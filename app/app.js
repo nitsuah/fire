@@ -1780,6 +1780,7 @@ function refreshAllUI() {
     document.getElementById('summary-total-annual-need').textContent = formatCurrency(annualExpenses);
 
     renderSideGigLedgerTable();
+    renderMonthlyCashFlow();
     calculateAndRenderProjections();
 }
 
@@ -1874,6 +1875,67 @@ function renderQuickStatsList() {
     if (reEl) reEl.textContent = formatCurrency(getAggregateRealEstate());
     const vEl = document.getElementById('stat-vehicles');
     if (vEl) vEl.textContent = formatCurrency(getAggregateVehicles());
+}
+
+function renderMonthlyCashFlow() {
+    const grossIncome = parseFloat(document.getElementById('tax-gross-income')?.value) || 0;
+    const monthlyGross = grossIncome / 12;
+    const sideGigMonthly = getSideGigYTDNet() / Math.max(new Date().getMonth() + 1, 1);
+    const cdMonthly = state.cds.reduce((sum, cd) => sum + (cd.principal || 0) * ((cd.rate || 0) / 100) / 12, 0);
+
+    const totalIncome = monthlyGross + sideGigMonthly + cdMonthly;
+
+    const exp = state.expenses;
+    const housing = exp.housing || 0;
+    const utilities = exp.utilities || 0;
+    const food = exp.food || 0;
+    const transport = exp.transport || 0;
+    const healthcare = exp.healthcare || 0;
+    const discretionary = exp.discretionary || 0;
+    const totalExpenses = housing + utilities + food + transport + healthcare + discretionary;
+
+    const net = totalIncome - totalExpenses;
+    const savingsRate = totalIncome > 0 ? Math.max(0, (net / totalIncome) * 100) : 0;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('cf-salary', formatCurrency(monthlyGross));
+    set('cf-sidegig', formatCurrency(sideGigMonthly));
+    set('cf-cd-interest', formatCurrency(cdMonthly));
+    set('cf-total-income', formatCurrency(totalIncome));
+    set('cf-housing', formatCurrency(housing));
+    set('cf-utilities', formatCurrency(utilities));
+    set('cf-food', formatCurrency(food));
+    set('cf-transport', formatCurrency(transport));
+    set('cf-healthcare', formatCurrency(healthcare));
+    set('cf-discretionary', formatCurrency(discretionary));
+    set('cf-total-expenses', formatCurrency(totalExpenses));
+
+    const netEl = document.getElementById('cf-net-value');
+    if (netEl) {
+        netEl.textContent = (net >= 0 ? '+' : '') + formatCurrency(net);
+        netEl.className = `cf-net-value ${net >= 0 ? 'text-emerald' : 'text-coral'}`;
+    }
+    const labelEl = document.getElementById('cf-net-label');
+    if (labelEl) {
+        if (totalIncome === 0) {
+            labelEl.textContent = 'Set your gross income in Expenses & Taxes to populate this section.';
+        } else if (net >= 0) {
+            labelEl.textContent = `You have ${formatCurrency(net)}/mo surplus to invest or save.`;
+        } else {
+            labelEl.textContent = `You are spending ${formatCurrency(Math.abs(net))}/mo more than you earn.`;
+        }
+    }
+
+    set('cf-savings-rate', `${savingsRate.toFixed(1)}%`);
+    set('cf-annual-surplus', (net >= 0 ? '+' : '') + formatCurrency(net * 12));
+
+    const incomePct = totalIncome > 0 && totalExpenses > 0
+        ? Math.min(100, (totalIncome / (totalIncome + totalExpenses)) * 100)
+        : 50;
+    const barIncome = document.getElementById('cf-bar-income');
+    const barExpense = document.getElementById('cf-bar-expense');
+    if (barIncome) barIncome.style.width = `${incomePct}%`;
+    if (barExpense) barExpense.style.width = `${100 - incomePct}%`;
 }
 
 /* ==========================================================================
