@@ -7,6 +7,7 @@ let state = {
     importedPositions: [],
     customAccounts: [],
     cds: [],
+    realEstate: [],
     expenses: {
         housing: 1500,
         utilities: 250,
@@ -32,6 +33,7 @@ let state = {
 // Editing track states
 let editingAccounts = [];
 let editingCDs = [];
+let editingRealEstate = [];
 
 // Chart.js instance trackers
 let assetAllocationChart = null;
@@ -48,8 +50,14 @@ let activeAllocationFilter = null;
 let tableSortColumn = 'pnl';
 let tableSortDir = 'desc';
 
-// Original allocation chart colors (used to restore after grey-out)
-const ALLOC_COLORS = ['#10b981', '#f59e0b', '#8b5cf6', '#3b82f6'];
+// Allocation chart slice definitions (parallel arrays, order matters)
+const ALLOC_SLICE_MAP = {
+    Cash:       { color: '#10b981', label: 'Cash / SPAXX' },
+    CDs:        { color: '#f59e0b', label: 'CDs & Fixed' },
+    Equities:   { color: '#8b5cf6', label: 'Equities' },
+    RealEstate: { color: '#06b6d4', label: 'Real Estate' },
+    Other:      { color: '#3b82f6', label: 'Other Assets' }
+};
 const ALLOC_GREY = 'rgba(120,120,140,0.25)';
 
 // Chart time-window state ('1m'|'1y'|'5y'|'10y'|'15y'|'all')
@@ -117,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCSVImport();
     initAccountsManager();
     initCDManager();
+    initRealEstateManager();
     initExpenseManager();
     initSideGigManager();
     initProjectionsManager();
@@ -138,8 +147,19 @@ function sanitizeState(data) {
     data.importedPositions = data.importedPositions || [];
     data.customAccounts = data.customAccounts || [];
     data.cds = data.cds || [];
+    data.realEstate = data.realEstate || [];
     data.sideGigLedger = data.sideGigLedger || [];
     data.importedFiles = data.importedFiles || [];
+
+    data.realEstate.forEach(re => {
+        if (!re.marketValue) re.marketValue = 0;
+        if (!re.purchasePrice) re.purchasePrice = 0;
+        if (!re.mortgageBalance) re.mortgageBalance = 0;
+        if (!re.monthlyPayment) re.monthlyPayment = 0;
+        if (!re.type) re.type = 'Primary Home';
+        if (!re.address) re.address = '';
+        if (!re.notes) re.notes = '';
+    });
     
     data.customAccounts.forEach(acc => {
         if (acc.apy === undefined || acc.apy === null) acc.apy = 0;
@@ -720,6 +740,144 @@ window.saveEditCD = async function(id) {
         refreshAllUI();
     }
 };
+
+/* ==========================================================================
+   Real Estate Manager
+   ========================================================================== */
+
+function initRealEstateManager() {
+    const form = document.getElementById('form-real-estate');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const entry = {
+            id: Date.now().toString(),
+            name: document.getElementById('re-name').value.trim(),
+            type: document.getElementById('re-type').value,
+            address: document.getElementById('re-address').value.trim(),
+            marketValue: parseFloat(document.getElementById('re-market-value').value) || 0,
+            purchasePrice: parseFloat(document.getElementById('re-purchase-price').value) || 0,
+            mortgageBalance: parseFloat(document.getElementById('re-mortgage-balance').value) || 0,
+            monthlyPayment: parseFloat(document.getElementById('re-monthly-payment').value) || 0,
+            notes: document.getElementById('re-notes').value.trim()
+        };
+        if (!entry.name || entry.marketValue <= 0) return;
+        state.realEstate.push(entry);
+        await saveState();
+        refreshAllUI();
+        form.reset();
+    });
+}
+
+window.deleteRealEstate = async function(id) {
+    state.realEstate = state.realEstate.filter(re => re.id !== id);
+    await saveState();
+    refreshAllUI();
+};
+
+window.startEditRealEstate = function(id) {
+    editingRealEstate.push(id);
+    renderRealEstateTable();
+};
+
+window.cancelEditRealEstate = function(id) {
+    editingRealEstate = editingRealEstate.filter(x => x !== id);
+    renderRealEstateTable();
+};
+
+window.saveEditRealEstate = async function(id) {
+    const idx = state.realEstate.findIndex(re => re.id === id);
+    if (idx === -1) return;
+    state.realEstate[idx] = {
+        ...state.realEstate[idx],
+        name: document.getElementById(`re-edit-name-${id}`)?.value.trim() || state.realEstate[idx].name,
+        type: document.getElementById(`re-edit-type-${id}`)?.value || state.realEstate[idx].type,
+        address: document.getElementById(`re-edit-address-${id}`)?.value.trim() || '',
+        marketValue: parseFloat(document.getElementById(`re-edit-market-${id}`)?.value) || 0,
+        purchasePrice: parseFloat(document.getElementById(`re-edit-purchase-${id}`)?.value) || 0,
+        mortgageBalance: parseFloat(document.getElementById(`re-edit-mortgage-${id}`)?.value) || 0,
+        monthlyPayment: parseFloat(document.getElementById(`re-edit-payment-${id}`)?.value) || 0,
+        notes: document.getElementById(`re-edit-notes-${id}`)?.value.trim() || ''
+    };
+    editingRealEstate = editingRealEstate.filter(x => x !== id);
+    await saveState();
+    refreshAllUI();
+};
+
+function renderRealEstateTable() {
+    const tbody = document.querySelector('#table-real-estate tbody');
+    if (!tbody) return;
+    const list = state.realEstate || [];
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No properties added yet. Use the form to add your first property.</td></tr>`;
+        renderRealEstateStats();
+        return;
+    }
+
+    let html = '';
+    list.forEach(re => {
+        const equity = (re.marketValue || 0) - (re.mortgageBalance || 0);
+        const gain = (re.marketValue || 0) - (re.purchasePrice || 0);
+        const gainStyle = gain >= 0 ? 'color:var(--color-success)' : 'color:var(--color-danger)';
+        const gainStr = gain >= 0 ? `+${formatCurrency(gain)}` : `-${formatCurrency(Math.abs(gain))}`;
+
+        if (editingRealEstate.includes(re.id)) {
+            html += `
+            <tr class="position-row">
+                <td><input class="inline-edit-input" id="re-edit-name-${re.id}" value="${re.name.replace(/"/g,'&quot;')}" placeholder="Property Name"></td>
+                <td>
+                    <select class="inline-edit-input" id="re-edit-type-${re.id}">
+                        ${['Primary Home','Investment','Rental','Land','Commercial'].map(t => `<option${t===re.type?' selected':''}>${t}</option>`).join('')}
+                    </select>
+                </td>
+                <td><input class="inline-edit-input" id="re-edit-address-${re.id}" value="${(re.address||'').replace(/"/g,'&quot;')}" placeholder="Address (optional)"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-market-${re.id}" type="number" value="${re.marketValue}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-mortgage-${re.id}" type="number" value="${re.mortgageBalance}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-purchase-${re.id}" type="number" value="${re.purchasePrice}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-payment-${re.id}" type="number" value="${re.monthlyPayment}" step="100"></td>
+                <td class="text-right">
+                    <button class="action-btn save-btn" onclick="saveEditRealEstate('${re.id}')">Save</button>
+                    <button class="action-btn cancel-btn" onclick="cancelEditRealEstate('${re.id}')">Cancel</button>
+                </td>
+            </tr>`;
+        } else {
+            html += `
+            <tr class="position-row">
+                <td class="font-bold">${re.name}</td>
+                <td><span class="tag-badge">${re.type}</span></td>
+                <td class="text-muted" style="font-size:11px;">${re.address || '—'}</td>
+                <td class="text-right font-bold">${formatCurrency(re.marketValue || 0)}</td>
+                <td class="text-right" style="${equity>=0?'color:var(--color-success)':'color:var(--color-danger)'};">${formatCurrency(equity)}</td>
+                <td class="text-right text-muted">${(re.purchasePrice||0)>0?formatCurrency(re.purchasePrice):'—'}</td>
+                <td class="text-right" style="${gainStyle}">${(re.purchasePrice||0)>0?gainStr:'—'}</td>
+                <td class="text-right">
+                    <button class="action-btn edit-btn" onclick="startEditRealEstate('${re.id}')">Edit</button>
+                    <button class="action-btn delete-btn" onclick="deleteRealEstate('${re.id}')">Delete</button>
+                </td>
+            </tr>`;
+        }
+    });
+    tbody.innerHTML = html;
+    renderRealEstateStats();
+}
+
+function renderRealEstateStats() {
+    const list = state.realEstate || [];
+    const totalValue = list.reduce((s, re) => s + (re.marketValue || 0), 0);
+    const totalMortgage = list.reduce((s, re) => s + (re.mortgageBalance || 0), 0);
+    const totalEquity = totalValue - totalMortgage;
+    const totalGain = list.reduce((s, re) => s + ((re.marketValue||0) - (re.purchasePrice||0)), 0);
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('re-stat-value', formatCurrency(totalValue));
+    set('re-stat-equity', formatCurrency(totalEquity));
+    set('re-stat-mortgage', formatCurrency(totalMortgage));
+    set('re-stat-gain', (totalGain >= 0 ? '+' : '') + formatCurrency(totalGain));
+    const gainEl = document.getElementById('re-stat-gain');
+    if (gainEl) gainEl.style.color = totalGain >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+}
 
 /* ==========================================================================
    Expenses & Taxes Manager
@@ -1393,6 +1551,7 @@ function refreshAllUI() {
     renderImportedFilesTable();
     renderCustomAccountsTable();
     renderCDTable();
+    renderRealEstateTable();
 
     const monthlyBase = getMonthlyExpensesBase();
     document.getElementById('summary-monthly-spend').textContent = formatCurrency(monthlyBase);
@@ -1476,8 +1635,12 @@ function getSideGigYTDNet() {
     return sum;
 }
 
+function getAggregateRealEstate() {
+    return (state.realEstate || []).reduce((sum, re) => sum + Math.max(0, (re.marketValue || 0) - (re.mortgageBalance || 0)), 0);
+}
+
 function getAggregateNetWorth() {
-    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getSideGigYTDNet();
+    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getAggregateRealEstate() + getSideGigYTDNet();
 }
 
 function renderQuickStatsList() {
@@ -1485,6 +1648,8 @@ function renderQuickStatsList() {
     document.getElementById('stat-cds').textContent = formatCurrency(getAggregateCDs());
     document.getElementById('stat-equities').textContent = formatCurrency(getAggregateEquities());
     document.getElementById('stat-sidegig').textContent = formatCurrency(getSideGigYTDNet());
+    const reEl = document.getElementById('stat-realestate');
+    if (reEl) reEl.textContent = formatCurrency(getAggregateRealEstate());
 }
 
 /* ==========================================================================
@@ -1642,10 +1807,11 @@ function renderAssetAllocationChart() {
     const cash = getAggregateCash();
     const cds = getAggregateCDs();
     const equities = getAggregateEquities();
+    const re = getAggregateRealEstate();
     const other = getAggregateOtherAssets() + getSideGigYTDNet();
-    const total = cash + cds + equities + other;
+    const total = cash + cds + equities + re + other;
 
-    if (cash === 0 && cds === 0 && equities === 0 && other === 0) {
+    if (total === 0) {
         if (assetAllocationChart) { assetAllocationChart.destroy(); assetAllocationChart = null; }
         return;
     }
@@ -1656,21 +1822,23 @@ function renderAssetAllocationChart() {
 
     const pct = (v) => total > 0 ? `${((v / total) * 100).toFixed(1)}%` : '0%';
 
-    const labels = [
-        `Cash / SPAXX  ${pct(cash)}`,
-        `CDs & Fixed   ${pct(cds)}`,
-        `Equities      ${pct(equities)}`,
-        `Other Assets  ${pct(other)}`
-    ];
-    const categoryKeys = ['Cash', 'CDs', 'Equities', 'Other'];
+    const slices = [
+        { key: 'Cash',        val: cash,     label: `Cash / SPAXX`,    color: '#10b981' },
+        { key: 'CDs',         val: cds,      label: `CDs & Fixed`,     color: '#f59e0b' },
+        { key: 'Equities',    val: equities, label: `Equities`,         color: '#8b5cf6' },
+        { key: 'RealEstate',  val: re,       label: `Real Estate`,      color: '#06b6d4' },
+        { key: 'Other',       val: other,    label: `Other Assets`,     color: '#3b82f6' },
+    ].filter(s => s.val > 0);
+
+    const categoryKeys = slices.map(s => s.key);
 
     assetAllocationChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels,
+            labels: slices.map(s => `${s.label}  ${pct(s.val)}`),
             datasets: [{
-                data: [cash, cds, equities, other],
-                backgroundColor: ['#10b981', '#f59e0b', '#8b5cf6', '#3b82f6'],
+                data: slices.map(s => s.val),
+                backgroundColor: slices.map(s => s.color),
                 borderWidth: 2,
                 borderColor: '#151c2c',
                 hoverBorderColor: '#ffffff',
@@ -1736,7 +1904,7 @@ function applyAllocationFilter(categoryKey) {
             match = !sym.includes('SPAXX') && !sym.includes('FDRXX') && !desc.includes('MONEY MARKET');
         } else if (categoryKey === 'Cash') {
             match = sym.includes('SPAXX') || sym.includes('FDRXX') || desc.includes('MONEY MARKET');
-        } else if (categoryKey === 'CDs' || categoryKey === 'Other') {
+        } else if (categoryKey === 'CDs' || categoryKey === 'Other' || categoryKey === 'RealEstate') {
             match = true;
         }
 
@@ -1750,11 +1918,23 @@ function applyAllocationFilter(categoryKey) {
     // Update pie chart slice colors: grey out non-selected slices
     if (assetAllocationChart) {
         const dataset = assetAllocationChart.data.datasets[0];
-        const selectedIdx = categoryKey !== null ? ALLOC_CATEGORY_KEYS.indexOf(categoryKey) : -1;
-        dataset.backgroundColor = ALLOC_COLORS.map((c, i) =>
+        const labels = assetAllocationChart.data.labels || [];
+        // Labels contain the slice key name as prefix before spaces
+        const selectedIdx = categoryKey !== null
+            ? labels.findIndex(l => {
+                const key = Object.keys(ALLOC_SLICE_MAP).find(k => ALLOC_SLICE_MAP[k].label === l.split('  ')[0].trim());
+                return key === categoryKey;
+              })
+            : -1;
+        const origColors = dataset.data.map((_, i) => {
+            const lbl = (labels[i] || '').split('  ')[0].trim();
+            const key = Object.keys(ALLOC_SLICE_MAP).find(k => ALLOC_SLICE_MAP[k].label === lbl);
+            return key ? ALLOC_SLICE_MAP[key].color : '#3b82f6';
+        });
+        dataset.backgroundColor = origColors.map((c, i) =>
             categoryKey === null || i === selectedIdx ? c : ALLOC_GREY
         );
-        dataset.borderColor = ALLOC_COLORS.map((c, i) =>
+        dataset.borderColor = origColors.map((c, i) =>
             categoryKey === null || i === selectedIdx ? '#151c2c' : 'transparent'
         );
         assetAllocationChart.update('none');
