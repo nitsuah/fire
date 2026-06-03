@@ -891,7 +891,24 @@
                                     <button class="period-btn active" onclick="setProjWindow('all')">All</button>
                                 </div>
                             </div>
-                            <div class="chart-container mt-4" style="position: relative; height:320px; width: 100%;">
+                            <!-- Line toggles -->
+                            <div class="chart-toggle-row">
+                                <button class="chart-toggle-btn active" data-line="nw" onclick="toggleProjLine('nw')">Net Worth</button>
+                                <button class="chart-toggle-btn active" data-line="fire" onclick="toggleProjLine('fire')">100% FIRE</button>
+                                <button class="chart-toggle-btn active" data-line="lean" onclick="toggleProjLine('lean')">75% Lean</button>
+                                <button class="chart-toggle-btn active" data-line="fat" onclick="toggleProjLine('fat')">125% Fat</button>
+                                <button class="chart-toggle-btn" data-line="coast" onclick="toggleProjLine('coast')">Coast</button>
+                                <button class="chart-toggle-btn" data-line="benchmark" onclick="toggleProjLine('benchmark')">US Median</button>
+                                <button class="chart-toggle-btn" data-line="scenarios" onclick="toggleProjLine('scenarios')">Scenarios</button>
+                            </div>
+                            <!-- Scenario selector (only active when scenarios toggle is on) -->
+                            <div class="scenario-row" id="scenario-row">
+                                <span class="scenario-label">Apply scenario:</span>
+                                <button class="scenario-btn" data-offset="-2" onclick="applyScenario(-2)">🐻 Bear (−2%)</button>
+                                <button class="scenario-btn active" data-offset="0" onclick="applyScenario(0)">Base Rate</button>
+                                <button class="scenario-btn" data-offset="2" onclick="applyScenario(2)">🐂 Bull (+2%)</button>
+                            </div>
+                            <div class="chart-container mt-3" style="position: relative; height:320px; width: 100%;">
                                 <canvas id="chart-networth-projections"></canvas>
                             </div>
                         </div>

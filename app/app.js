@@ -67,6 +67,21 @@ const ALLOC_GREY = 'rgba(120,120,140,0.25)';
 let dashProjWindow = 'all';
 let projWindow = 'all';
 
+// Projection chart line toggle state (which datasets are visible)
+let projLineToggles = {
+    nw: true, fire: true, lean: true, fat: true, coast: false, benchmark: false, scenarios: false
+};
+
+// US median retirement savings by age (Vanguard How America Saves 2023)
+const US_MEDIAN_SAVINGS = {
+    20: 8000, 25: 19000, 30: 45000, 35: 97000,
+    40: 130000, 45: 160000, 50: 200000, 55: 250000,
+    60: 330000, 65: 400000, 70: 420000
+};
+
+// Base return rate before scenario offset is applied (null = use projectionSettings)
+let scenarioOffset = 0; // +2 = bull, -2 = bear, 0 = base
+
 // Price refresh timer
 let priceRefreshTimer = null;
 
@@ -94,6 +109,9 @@ function sliceProjectionData(data, windowKey) {
         leanFireLine: data.leanFireLine.slice(0, n),
         fatFireLine: data.fatFireLine.slice(0, n),
         coastFireLine: data.coastFireLine.slice(0, n),
+        bullData: data.bullData ? data.bullData.slice(0, n) : [],
+        bearData: data.bearData ? data.bearData.slice(0, n) : [],
+        benchData: data.benchData ? data.benchData.slice(0, n) : [],
         retirementLineIndex: data.retirementLineIndex < n ? data.retirementLineIndex : -1,
         cdEvents: data.cdEvents.filter(e => e.yearIndex < n)
     };
@@ -118,6 +136,22 @@ window.setDashProjWindow = function(windowKey) {
 window.setProjWindow = function(windowKey) {
     projWindow = windowKey;
     setPeriodBtnActive('proj-period-btns', windowKey);
+    calculateAndRenderProjections();
+};
+
+window.toggleProjLine = function(key) {
+    projLineToggles[key] = !projLineToggles[key];
+    const btn = document.querySelector(`.chart-toggle-btn[data-line="${key}"]`);
+    if (btn) btn.classList.toggle('active', projLineToggles[key]);
+    calculateAndRenderProjections();
+};
+
+window.applyScenario = function(offset) {
+    // offset: +2 for bull, -2 for bear, 0 for base
+    scenarioOffset = offset;
+    document.querySelectorAll('.scenario-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.offset) === offset);
+    });
     calculateAndRenderProjections();
 };
 
@@ -1300,9 +1334,10 @@ function buildProjectionData() {
     const annualExpenses = getAnnualExpensesTotal();
     const swr = state.projectionSettings.swr / 100;
     const fireNumber = swr > 0 ? (annualExpenses / swr) : 0;
-    
+
     const savings = state.projectionSettings.annualSavings;
-    const nominalReturn = state.projectionSettings.expectedReturn / 100;
+    // Apply any active scenario offset to the expected return
+    const nominalReturn = (state.projectionSettings.expectedReturn + scenarioOffset) / 100;
     const inflation = state.projectionSettings.inflationRate / 100;
     const realReturn = nominalReturn - inflation;
     const span = state.projectionSettings.spanYears;
@@ -1317,12 +1352,21 @@ function buildProjectionData() {
     let coastFireLine = [];
     let currentNW = networth;
 
+    // Bull (+2% real) and Bear (-2% real) scenario arrays
+    let bullNW = networth, bearNW = networth;
+    const bullReturn = realReturn + 0.02;
+    const bearReturn = Math.max(realReturn - 0.02, -0.01);
+    let bullData = [], bearData = [];
+
     const coastYears = retireAge - currentAge;
-    const coastFireTarget = coastYears > 0 
+    const coastFireTarget = coastYears > 0
         ? fireNumber / Math.pow(1 + Math.max(realReturn, 0.001), coastYears)
         : fireNumber;
 
-    // Retirement age vertical line data-point index
+    // US median savings benchmark by age (Vanguard How America Saves 2023)
+    const ageKeys = Object.keys(US_MEDIAN_SAVINGS).map(Number).sort((a, b) => a - b);
+    const benchData = [];
+
     let retirementLineIndex = -1;
 
     for (let yr = 0; yr <= span; yr++) {
@@ -1333,13 +1377,21 @@ function buildProjectionData() {
         leanFireLine.push(Math.round(fireNumber * 0.75));
         fatFireLine.push(Math.round(fireNumber * 1.25));
         coastFireLine.push(Math.round(coastFireTarget));
+        bullData.push(Math.round(bullNW));
+        bearData.push(Math.round(Math.max(bearNW, 0)));
 
-        if (age === retireAge) {
-            retirementLineIndex = yr;
-        }
+        // Interpolate US median for this age
+        const lower = [...ageKeys].reverse().find(a => a <= age) ?? ageKeys[0];
+        const upper = ageKeys.find(a => a > age) ?? ageKeys[ageKeys.length - 1];
+        const t = lower === upper ? 0 : (age - lower) / (upper - lower);
+        benchData.push(Math.round(US_MEDIAN_SAVINGS[lower] * (1 - t) + US_MEDIAN_SAVINGS[upper] * t));
+
+        if (age === retireAge) retirementLineIndex = yr;
 
         if (yr < span) {
             currentNW = (currentNW * (1 + realReturn)) + savings;
+            bullNW    = (bullNW    * (1 + bullReturn)) + savings;
+            bearNW    = (bearNW    * (1 + bearReturn)) + savings;
         }
     }
 
@@ -1355,7 +1407,7 @@ function buildProjectionData() {
         return null;
     }).filter(Boolean);
 
-    return { labels, nwData, fireLine, leanFireLine, fatFireLine, coastFireLine, fireNumber, retirementLineIndex, cdEvents, realReturn, savings, networth };
+    return { labels, nwData, fireLine, leanFireLine, fatFireLine, coastFireLine, bullData, bearData, benchData, fireNumber, retirementLineIndex, cdEvents, realReturn, savings, networth };
 }
 
 function calculateAndRenderProjections() {
@@ -1364,157 +1416,96 @@ function calculateAndRenderProjections() {
     renderMilestones(raw.networth, raw.fireNumber, raw.realReturn, raw.savings);
 }
 
+function buildProjectionAnnotations(retirementLineIndex, cdEvents) {
+    const annotations = {};
+    if (retirementLineIndex >= 0) {
+        annotations['retireLine'] = {
+            type: 'line', xMin: retirementLineIndex, xMax: retirementLineIndex,
+            borderColor: 'rgba(245,158,11,0.85)', borderWidth: 2, borderDash: [6, 4],
+            label: { display: true, content: '🎯 Retire', position: 'start', color: '#f59e0b',
+                font: { size: 10, family: 'Outfit' }, backgroundColor: 'rgba(245,158,11,0.12)', padding: 4, yAdjust: -10 }
+        };
+    }
+    cdEvents.forEach((ev, i) => {
+        annotations[`cd_${i}`] = {
+            type: 'line', xMin: ev.yearIndex, xMax: ev.yearIndex,
+            borderColor: 'rgba(16,185,129,0.6)', borderWidth: 1, borderDash: [3, 4],
+            label: { display: true, content: `💰 ${ev.label}`, position: 'end', color: '#10b981',
+                font: { size: 9, family: 'Inter' }, backgroundColor: 'rgba(16,185,129,0.1)', padding: 3, yAdjust: 10 + (i * 16) }
+        };
+    });
+    return annotations;
+}
+
 function renderProjectionsChart(data) {
     const ctx = document.getElementById('chart-networth-projections');
     if (!ctx) return;
+    if (projectionsChart) projectionsChart.destroy();
 
-    if (projectionsChart) {
-        projectionsChart.destroy();
+    const { labels, nwData, fireLine, leanFireLine, fatFireLine, coastFireLine,
+            bullData, bearData, benchData, retirementLineIndex, cdEvents } = data;
+    const t = projLineToggles;
+
+    const datasets = [];
+
+    // Scenario band: bear first, then bull filled to bear (order matters for fill: '-1')
+    if (t.scenarios) {
+        datasets.push({ label: 'Bear Scenario (-2%)', data: bearData || [],
+            borderColor: 'rgba(244,63,94,0.45)', borderDash: [2,4], borderWidth: 1.5,
+            fill: false, pointRadius: 0, order: 0 });
+        datasets.push({ label: 'Bull Scenario (+2%)', data: bullData || [],
+            borderColor: 'rgba(16,185,129,0.45)', borderDash: [2,4], borderWidth: 1.5,
+            backgroundColor: 'rgba(120,120,180,0.07)',
+            fill: '-1', pointRadius: 0, order: 0 });
     }
 
-    const { labels, nwData, fireLine, leanFireLine, fatFireLine, coastFireLine, retirementLineIndex, cdEvents } = data;
+    datasets.push({ label: 'Projected Net Worth', data: nwData,
+        borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.08)',
+        borderWidth: 3, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, order: 1,
+        hidden: !t.nw });
+    datasets.push({ label: 'FIRE Target (100%)', data: fireLine,
+        borderColor: '#f43f5e', borderDash: [5, 5], borderWidth: 2,
+        fill: false, pointRadius: 0, order: 2, hidden: !t.fire });
+    datasets.push({ label: 'Lean FIRE (75%)', data: leanFireLine,
+        borderColor: 'rgba(244,63,94,0.4)', borderDash: [3, 5], borderWidth: 1,
+        fill: false, pointRadius: 0, order: 3, hidden: !t.lean });
+    datasets.push({ label: 'Fat FIRE (125%)', data: fatFireLine,
+        borderColor: 'rgba(139,92,246,0.4)', borderDash: [3, 5], borderWidth: 1,
+        fill: false, pointRadius: 0, order: 4, hidden: !t.fat });
+    datasets.push({ label: 'Coast FIRE', data: coastFireLine,
+        borderColor: 'rgba(16,185,129,0.5)', borderDash: [4, 4], borderWidth: 1,
+        fill: false, pointRadius: 0, order: 5, hidden: !t.coast });
+    datasets.push({ label: 'US Median Peer', data: benchData || [],
+        borderColor: '#f97316', borderDash: [2, 3], borderWidth: 1.5,
+        fill: false, pointRadius: 0, order: 6, hidden: !t.benchmark });
 
-    // Build annotation plugin data if available
-    const annotations = {};
-
-    if (retirementLineIndex >= 0) {
-        annotations['retireLine'] = {
-            type: 'line',
-            xMin: retirementLineIndex,
-            xMax: retirementLineIndex,
-            borderColor: 'rgba(245, 158, 11, 0.85)',
-            borderWidth: 2,
-            borderDash: [6, 4],
-            label: {
-                display: true,
-                content: `🎯 Retire`,
-                position: 'start',
-                color: '#f59e0b',
-                font: { size: 10, family: 'Outfit' },
-                backgroundColor: 'rgba(245,158,11,0.12)',
-                padding: 4,
-                yAdjust: -10
-            }
-        };
-    }
-
-    cdEvents.forEach((ev, i) => {
-        annotations[`cd_${i}`] = {
-            type: 'line',
-            xMin: ev.yearIndex,
-            xMax: ev.yearIndex,
-            borderColor: 'rgba(16, 185, 129, 0.6)',
-            borderWidth: 1,
-            borderDash: [3, 4],
-            label: {
-                display: true,
-                content: `💰 ${ev.label}`,
-                position: 'end',
-                color: '#10b981',
-                font: { size: 9, family: 'Inter' },
-                backgroundColor: 'rgba(16,185,129,0.1)',
-                padding: 3,
-                yAdjust: 10 + (i * 16)
-            }
-        };
-    });
+    const annotations = buildProjectionAnnotations(retirementLineIndex, cdEvents);
 
     projectionsChart = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Projected Net Worth',
-                    data: nwData,
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.35,
-                    pointRadius: 0,
-                    pointHoverRadius: 5,
-                    order: 1
-                },
-                {
-                    label: 'FIRE Target (100%)',
-                    data: fireLine,
-                    borderColor: '#f43f5e',
-                    borderDash: [5, 5],
-                    borderWidth: 2,
-                    fill: false,
-                    pointRadius: 0,
-                    order: 2
-                },
-                {
-                    label: 'Lean FIRE (75%)',
-                    data: leanFireLine,
-                    borderColor: 'rgba(244,63,94,0.4)',
-                    borderDash: [3, 5],
-                    borderWidth: 1,
-                    fill: false,
-                    pointRadius: 0,
-                    order: 3
-                },
-                {
-                    label: 'Fat FIRE (125%)',
-                    data: fatFireLine,
-                    borderColor: 'rgba(139,92,246,0.4)',
-                    borderDash: [3, 5],
-                    borderWidth: 1,
-                    fill: false,
-                    pointRadius: 0,
-                    order: 4
-                },
-                {
-                    label: 'Coast FIRE Target',
-                    data: coastFireLine,
-                    borderColor: 'rgba(16,185,129,0.5)',
-                    borderDash: [4, 4],
-                    borderWidth: 1,
-                    fill: false,
-                    pointRadius: 0,
-                    order: 5
-                }
-            ]
-        },
+        data: { labels, datasets },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             scales: {
                 y: {
                     grid: { color: 'rgba(255,255,255,0.04)' },
-                    ticks: {
-                        color: '#9ca3af',
-                        callback: (v) => '$' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v)
-                    }
+                    ticks: { color: '#9ca3af', callback: (v) => '$' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v) }
                 },
-                x: {
-                    grid: { display: false },
-                    ticks: { 
-                        color: '#9ca3af',
-                        maxTicksLimit: 12,
-                        maxRotation: 0
-                    }
-                }
+                x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 12, maxRotation: 0 } }
             },
             plugins: {
-                legend: {
-                    labels: { 
-                        color: '#f3f4f6', 
-                        font: { family: 'Outfit', size: 11 },
-                        boxWidth: 20
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
-                    }
-                },
+                legend: { labels: { color: '#f3f4f6', font: { family: 'Outfit', size: 11 }, boxWidth: 20 } },
+                tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}` } },
                 annotation: Object.keys(annotations).length > 0 ? { annotations } : undefined
             }
         }
+    });
+
+    // Sync toggle button active states
+    Object.keys(t).forEach(key => {
+        const btn = document.querySelector(`.chart-toggle-btn[data-line="${key}"]`);
+        if (btn) btn.classList.toggle('active', t[key]);
     });
 }
 
@@ -2159,12 +2150,14 @@ function renderDashboardCDNotifications() {
             maturityText = `Matures on ${cd.maturity} (${daysToMaturity} days left)`;
         }
 
+        const annualYield = (cd.principal || 0) * ((cd.rate || 0) / 100);
         html += `
             <li class="notification-item ${urgencyClass}">
                 <div class="notification-text">
                     <strong>${cd.bank} CD</strong> | ${formatCurrency(cd.principal)} at <strong>${Number(cd.rate).toFixed(2)}%</strong> APY
                     <div class="notification-date">${maturityText}</div>
                 </div>
+                <div class="cd-yield-badge">${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></div>
             </li>
         `;
     });
