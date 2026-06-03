@@ -1021,4 +1021,34 @@ h1, h2, h3, h4, h5, h6 {
     border-left-color: var(--color-success);
 }
 
+/* Tag badges (property type, vehicle type, etc.) */
+.tag-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(139, 92, 246, 0.12);
+    color: var(--color-primary-hover);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* Inline edit inputs inside table rows */
+.inline-edit-input {
+    background: var(--input-bg);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 6px;
+    color: var(--text-main);
+    font-size: 12px;
+    padding: 4px 8px;
+    width: 100%;
+    min-width: 60px;
+}
+
+.inline-edit-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
 

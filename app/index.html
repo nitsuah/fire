@@ -36,6 +36,10 @@
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
                     CDs & Fixed Income
                 </button>
+                <button class="nav-btn" data-tab="realestate" id="btn-tab-realestate">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                    Real Estate
+                </button>
                 <button class="nav-btn" data-tab="expenses" id="btn-tab-expenses">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v2h4v2H9V7h6v2z"/></svg>
                     Expenses & Taxes
@@ -178,6 +182,10 @@
                                     <div class="stat-item">
                                         <span class="stat-name">Equity Investments</span>
                                         <span class="stat-val" id="stat-equities">$0.00</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-name">Real Estate Equity</span>
+                                        <span class="stat-val" id="stat-realestate">$0.00</span>
                                     </div>
                                     <div class="stat-item">
                                         <span class="stat-name">Side Hustle Income (YTD)</span>
@@ -362,6 +370,106 @@
                                     <tbody>
                                         <tr>
                                             <td colspan="7" class="text-center text-muted">No CDs logged. Enter your CD details in the form.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: Real Estate -->
+                <section class="tab-pane" id="tab-realestate">
+                    <div class="dashboard-grid">
+                        <!-- Add Property Form -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Add Property</h2>
+                            <form id="form-real-estate">
+                                <div class="form-group">
+                                    <label for="re-name">Property Name</label>
+                                    <input type="text" id="re-name" placeholder="e.g. Primary Residence, 123 Main St" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="re-type">Property Type</label>
+                                    <select id="re-type">
+                                        <option>Primary Home</option>
+                                        <option>Investment</option>
+                                        <option>Rental</option>
+                                        <option>Land</option>
+                                        <option>Commercial</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="re-address">Address <span class="text-muted">(optional)</span></label>
+                                    <input type="text" id="re-address" placeholder="123 Main St, City, State">
+                                </div>
+                                <div class="form-group">
+                                    <label for="re-market-value">Estimated Market Value ($)</label>
+                                    <input type="number" id="re-market-value" min="0" step="1000" placeholder="0.00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="re-purchase-price">Purchase Price ($) <span class="text-muted">(for P&amp;L)</span></label>
+                                    <input type="number" id="re-purchase-price" min="0" step="1000" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="re-mortgage-balance">Remaining Mortgage Balance ($)</label>
+                                    <input type="number" id="re-mortgage-balance" min="0" step="1000" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="re-monthly-payment">Monthly Payment ($) <span class="text-muted">(optional)</span></label>
+                                    <input type="number" id="re-monthly-payment" min="0" step="100" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="re-notes">Notes <span class="text-muted">(optional)</span></label>
+                                    <input type="text" id="re-notes" placeholder="e.g. Rental income $1,200/mo">
+                                </div>
+                                <button type="submit" class="primary-btn mt-2">Add Property</button>
+                            </form>
+                        </div>
+
+                        <!-- Real Estate Stats -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Portfolio Summary</h2>
+                            <div class="cd-stats-container">
+                                <div class="cd-stat-box">
+                                    <span class="cd-stat-label">Total Market Value</span>
+                                    <span class="cd-stat-value text-emerald" id="re-stat-value">$0.00</span>
+                                </div>
+                                <div class="cd-stat-box mt-3">
+                                    <span class="cd-stat-label">Total Equity (Value − Mortgage)</span>
+                                    <span class="cd-stat-value text-purple" id="re-stat-equity">$0.00</span>
+                                </div>
+                                <div class="cd-stat-box mt-3">
+                                    <span class="cd-stat-label">Total Mortgage Balance</span>
+                                    <span class="cd-stat-value text-coral" id="re-stat-mortgage">$0.00</span>
+                                </div>
+                                <div class="cd-stat-box mt-3">
+                                    <span class="cd-stat-label">Unrealized Gain / Loss</span>
+                                    <span class="cd-stat-value" id="re-stat-gain">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Properties Table -->
+                        <div class="card glass-card span-2">
+                            <h2 class="card-title">Properties</h2>
+                            <div class="table-container">
+                                <table class="data-table" id="table-real-estate">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Type</th>
+                                            <th>Address</th>
+                                            <th class="text-right">Market Value</th>
+                                            <th class="text-right">Equity</th>
+                                            <th class="text-right">Purchase Price</th>
+                                            <th class="text-right">Gain / Loss</th>
+                                            <th class="text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted">No properties added yet. Use the form to add your first property.</td>
                                         </tr>
                                     </tbody>
                                 </table>
