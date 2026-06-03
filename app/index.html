@@ -76,43 +76,31 @@
                 <div class="header-metric">
                     <span class="metric-label">Estimated Net Worth</span>
                     <span class="metric-value text-emerald" id="banner-networth">$0.00</span>
+                    <div class="alloc-mini-bars" id="banner-alloc-bars"></div>
+                </div>
+                <div class="header-metric">
+                    <span class="metric-label">Annual Income</span>
+                    <span class="metric-value" id="banner-gross-income">$0</span>
+                    <span class="income-sub-line" id="banner-side-income">No side income</span>
                 </div>
                 <div class="header-metric">
                     <span class="metric-label">Annual Spend Rate</span>
                     <span class="metric-value text-coral" id="banner-spend">$0.00</span>
                 </div>
                 <div class="header-metric">
-                    <span class="metric-label">FIRE Target Net Worth</span>
-                    <span class="metric-value text-purple" id="banner-target">$0.00</span>
-                </div>
-                <div class="header-metric">
                     <span class="metric-label">FIRE Progress</span>
-                    <span class="metric-value text-amber" id="banner-progress">0.0%</span>
+                    <div class="fire-prog-wrap">
+                        <div class="fire-prog-bar" id="banner-fire-bar" style="width:0%">
+                            <span class="fire-prog-pct" id="banner-progress">0.0%</span>
+                        </div>
+                    </div>
+                    <span class="fire-prog-target" id="banner-target">Target: $0.00</span>
                 </div>
             </header>
 
             <div class="scroll-container">
                 <!-- TAB: Dashboard -->
                 <section class="tab-pane active" id="tab-dashboard">
-                    <!-- Full-width Overview Banner -->
-                    <div class="dashboard-grid">
-                        <div class="card glass-card span-3">
-                            <h2 class="card-title">Retirement Readiness Overview</h2>
-                            <div class="readiness-meter-container">
-                                <div class="readiness-progress-bar">
-                                    <div class="readiness-progress-fill" id="readiness-fill" style="width: 0%"></div>
-                                </div>
-                                <div class="readiness-labels">
-                                    <span>$0 (Start)</span>
-                                    <span id="readiness-target-label">Target: $0</span>
-                                </div>
-                            </div>
-                            <div class="readiness-status" id="readiness-status-text">
-                                You are currently <strong>0.0%</strong> of the way to your Safe Withdrawal FIRE goal. Keep saving!
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Two-column body: Left = Growth + Investments | Right = Allocation + Stats + CDs -->
                     <div class="dashboard-body">
                         <!-- LEFT COLUMN -->
@@ -137,7 +125,10 @@
 
                             <!-- Top Investment Positions -->
                             <div class="card glass-card">
-                                <h2 class="card-title">Top Investment Positions</h2>
+                                <div class="card-title-row">
+                                    <h2 class="card-title">Top Investment Positions</h2>
+                                    <button class="collapse-all-btn" onclick="collapseAllGroups()">Collapse All</button>
+                                </div>
                                 <div class="table-container">
                                     <table class="data-table" id="table-dashboard-positions">
                                         <thead>
@@ -158,6 +149,7 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                <div id="divs-suggestion-block" class="divs-suggestion-block"></div>
                             </div>
                         </div>
 
