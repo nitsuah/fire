@@ -253,6 +253,76 @@ h1, h2, h3, h4, h5, h6 {
     align-items: start;
 }
 
+/* Dashboard two-column body layout */
+.dashboard-body {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    margin-top: 24px;
+}
+
+.dash-col-left {
+    flex: 2;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.dash-col-right {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Card title row (title + period buttons side-by-side) */
+.card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.card-title-row .card-title {
+    margin-bottom: 0;
+}
+
+/* Period filter button group */
+.period-btns {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.period-btn {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--card-border);
+    background: transparent;
+    color: var(--text-muted);
+    transition: var(--transition-smooth);
+}
+
+.period-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: rgba(139, 92, 246, 0.08);
+}
+
+.period-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+}
+
 .span-2 {
     grid-column: span 2;
 }
@@ -777,6 +847,12 @@ h1, h2, h3, h4, h5, h6 {
     }
     .span-2, .span-3, .span-4 {
         grid-column: span 1;
+    }
+    .dashboard-body {
+        flex-direction: column;
+    }
+    .dash-col-right {
+        min-width: 0;
     }
     .grid-4-col {
         grid-template-columns: 1fr;

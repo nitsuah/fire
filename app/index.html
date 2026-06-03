@@ -86,9 +86,9 @@
             <div class="scroll-container">
                 <!-- TAB: Dashboard -->
                 <section class="tab-pane active" id="tab-dashboard">
+                    <!-- Full-width Overview Banner -->
                     <div class="dashboard-grid">
-                        <!-- Overview Card -->
-                        <div class="card glass-card span-2">
+                        <div class="card glass-card span-3">
                             <h2 class="card-title">Retirement Readiness Overview</h2>
                             <div class="readiness-meter-container">
                                 <div class="readiness-progress-bar">
@@ -103,77 +103,96 @@
                                 You are currently <strong>0.0%</strong> of the way to your Safe Withdrawal FIRE goal. Keep saving!
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Compact Projections Chart Card -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Retirement Growth Path</h2>
-                            <div class="chart-container" style="position: relative; height:200px;">
-                                <canvas id="chart-dashboard-projections"></canvas>
+                    <!-- Two-column body: Left = Growth + Investments | Right = Allocation + Stats + CDs -->
+                    <div class="dashboard-body">
+                        <!-- LEFT COLUMN -->
+                        <div class="dash-col-left">
+                            <!-- Retirement Growth Path -->
+                            <div class="card glass-card">
+                                <div class="card-title-row">
+                                    <h2 class="card-title">Retirement Growth Path</h2>
+                                    <div class="period-btns" id="dash-period-btns">
+                                        <button class="period-btn" onclick="setDashProjWindow('1m')">1M</button>
+                                        <button class="period-btn" onclick="setDashProjWindow('1y')">1Y</button>
+                                        <button class="period-btn" onclick="setDashProjWindow('5y')">5Y</button>
+                                        <button class="period-btn" onclick="setDashProjWindow('10y')">10Y</button>
+                                        <button class="period-btn" onclick="setDashProjWindow('15y')">15Y</button>
+                                        <button class="period-btn active" onclick="setDashProjWindow('all')">All</button>
+                                    </div>
+                                </div>
+                                <div class="chart-container" style="position: relative; height:220px;">
+                                    <canvas id="chart-dashboard-projections"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Top Investment Positions -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Top Investment Positions</h2>
+                                <div class="table-container">
+                                    <table class="data-table" id="table-dashboard-positions">
+                                        <thead>
+                                            <tr>
+                                                <th class="sortable-th" data-sort="symbol" onclick="setTableSort('symbol')">Symbol</th>
+                                                <th class="sortable-th" data-sort="desc" onclick="setTableSort('desc')">Description</th>
+                                                <th class="sortable-th text-right" data-sort="qty" onclick="setTableSort('qty')">Quantity</th>
+                                                <th class="sortable-th text-right" data-sort="price" onclick="setTableSort('price')">Last Price</th>
+                                                <th class="sortable-th text-right" data-sort="cost" onclick="setTableSort('cost')">Cost Basis</th>
+                                                <th class="sortable-th text-right" data-sort="value" onclick="setTableSort('value')">Current Value</th>
+                                                <th class="sortable-th text-right sort-desc" data-sort="pnl" onclick="setTableSort('pnl')">Total PnL</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Asset Allocation Card -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Asset Allocation</h2>
-                            <div class="chart-container" style="position: relative; height:200px;">
-                                <canvas id="chart-asset-allocation"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- Quick Stats Card -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Quick Stats</h2>
-                            <div class="stats-list">
-                                <div class="stat-item">
-                                    <span class="stat-name">Liquid Cash & SPAXX</span>
-                                    <span class="stat-val" id="stat-cash">$0.00</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-name">CD Balance</span>
-                                    <span class="stat-val" id="stat-cds">$0.00</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-name">Equity Investments</span>
-                                    <span class="stat-val" id="stat-equities">$0.00</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-name">Side Hustle Income (YTD)</span>
-                                    <span class="stat-val" id="stat-sidegig">$0.00</span>
+                        <!-- RIGHT COLUMN -->
+                        <div class="dash-col-right">
+                            <!-- Asset Allocation -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Asset Allocation</h2>
+                                <div class="chart-container" style="position: relative; height:210px;">
+                                    <canvas id="chart-asset-allocation"></canvas>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Recent Investments List -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Top Investment Positions</h2>
-                            <div class="table-container">
-                                <table class="data-table" id="table-dashboard-positions">
-                                    <thead>
-                                        <tr>
-                                            <th class="sortable-th" data-sort="symbol" onclick="setTableSort('symbol')">Symbol</th>
-                                            <th class="sortable-th" data-sort="desc" onclick="setTableSort('desc')">Description</th>
-                                            <th class="sortable-th text-right" data-sort="qty" onclick="setTableSort('qty')">Quantity</th>
-                                            <th class="sortable-th text-right" data-sort="price" onclick="setTableSort('price')">Last Price</th>
-                                            <th class="sortable-th text-right" data-sort="cost" onclick="setTableSort('cost')">Cost Basis</th>
-                                            <th class="sortable-th text-right" data-sort="value" onclick="setTableSort('value')">Current Value</th>
-                                            <th class="sortable-th text-right sort-desc" data-sort="pnl" onclick="setTableSort('pnl')">Total PnL</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="6" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <!-- Quick Stats -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Quick Stats</h2>
+                                <div class="stats-list">
+                                    <div class="stat-item">
+                                        <span class="stat-name">Liquid Cash & SPAXX</span>
+                                        <span class="stat-val" id="stat-cash">$0.00</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-name">CD Balance</span>
+                                        <span class="stat-val" id="stat-cds">$0.00</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-name">Equity Investments</span>
+                                        <span class="stat-val" id="stat-equities">$0.00</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-name">Side Hustle Income (YTD)</span>
+                                        <span class="stat-val" id="stat-sidegig">$0.00</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Active CD Summary -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">CDs Maturing Soon</h2>
-                            <ul class="notification-list" id="dashboard-cd-list">
-                                <li class="text-muted text-center py-4">No active Certificate of Deposits recorded. Add them in the CDs tab.</li>
-                            </ul>
+                            <!-- CDs Maturing Soon -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">CDs Maturing Soon</h2>
+                                <ul class="notification-list" id="dashboard-cd-list">
+                                    <li class="text-muted text-center py-4">No active Certificate of Deposits recorded. Add them in the CDs tab.</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -618,8 +637,20 @@
 
                         <!-- Projections Visualizer -->
                         <div class="card glass-card span-2">
-                            <h2 class="card-title">Retirement Growth Path</h2>
-                            <p class="card-subtitle">Real-terms net worth expansion showing target FIRE milestones.</p>
+                            <div class="card-title-row">
+                                <div>
+                                    <h2 class="card-title">Retirement Growth Path</h2>
+                                    <p class="card-subtitle">Real-terms net worth expansion showing target FIRE milestones.</p>
+                                </div>
+                                <div class="period-btns" id="proj-period-btns">
+                                    <button class="period-btn" onclick="setProjWindow('1m')">1M</button>
+                                    <button class="period-btn" onclick="setProjWindow('1y')">1Y</button>
+                                    <button class="period-btn" onclick="setProjWindow('5y')">5Y</button>
+                                    <button class="period-btn" onclick="setProjWindow('10y')">10Y</button>
+                                    <button class="period-btn" onclick="setProjWindow('15y')">15Y</button>
+                                    <button class="period-btn active" onclick="setProjWindow('all')">All</button>
+                                </div>
+                            </div>
                             <div class="chart-container mt-4" style="position: relative; height:320px; width: 100%;">
                                 <canvas id="chart-networth-projections"></canvas>
                             </div>
