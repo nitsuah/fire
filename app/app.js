@@ -1678,6 +1678,61 @@ function renderMilestones(startingNw, targetFireNw, realReturnRate, annualSaving
    UI Refresh & Computations
    ========================================================================== */
 
+function isSettledCash(pos) {
+    const sym = (pos.symbol || '').toUpperCase();
+    const desc = (pos.description || '').toUpperCase();
+    return sym.includes('SPAXX') || sym.includes('FDRXX') || sym.includes('FZSSX') || sym.includes('FZFXX') ||
+        sym === '**' || desc.includes('PENDING ACTIVITY') || desc.includes('MONEY MARKET') || desc.includes('CORE POSITION');
+}
+
+function renderAllocMiniBarsBanner() {
+    const el = document.getElementById('banner-alloc-bars');
+    if (!el) return;
+    const cash = getAggregateCash(), cds = getAggregateCDs(), equities = getAggregateEquities();
+    const re = getAggregateRealEstate(), veh = getAggregateVehicles();
+    const other = getAggregateOtherAssets() + getSideGigYTDNet();
+    const total = cash + cds + equities + re + veh + other;
+    if (total === 0) { el.innerHTML = ''; return; }
+    const segments = [
+        { pct: (cash / total) * 100, color: '#10b981', label: 'Cash' },
+        { pct: (cds / total) * 100, color: '#f59e0b', label: 'CDs' },
+        { pct: (equities / total) * 100, color: '#8b5cf6', label: 'Equities' },
+        { pct: (re / total) * 100, color: '#06b6d4', label: 'Real Estate' },
+        { pct: (veh / total) * 100, color: '#f97316', label: 'Vehicles' },
+        { pct: (other / total) * 100, color: '#3b82f6', label: 'Other' },
+    ].filter(s => s.pct > 0);
+    el.innerHTML = `<div class="alloc-bar-track">${segments.map(s =>
+        `<div class="alloc-bar-seg" style="width:${s.pct.toFixed(1)}%;background:${s.color};" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`
+    ).join('')}</div>`;
+}
+
+function renderDiversificationSuggestions(totalPortfolioValue) {
+    const block = document.getElementById('divs-suggestion-block');
+    if (!block) return;
+    const nw = getAggregateNetWorth();
+    if (!nw || nw === 0) { block.innerHTML = ''; return; }
+    const cashPct = (getAggregateCash() / nw) * 100;
+    const eqPct = (getAggregateEquities() / nw) * 100;
+    const cdsPct = (getAggregateCDs() / nw) * 100;
+    const rePct = (getAggregateRealEstate() / nw) * 100;
+
+    const suggestions = [];
+    if (cashPct > 30) suggestions.push(`Cash is ${cashPct.toFixed(0)}% of NW — consider deploying some into higher-yield CDs or index funds.`);
+    if (eqPct > 70) suggestions.push(`Equities are ${eqPct.toFixed(0)}% of NW — bonds or CD exposure could reduce volatility.`);
+    if (eqPct < 30 && nw > 50000) suggestions.push(`Equities are only ${eqPct.toFixed(0)}% of NW — long-term FIRE typically needs more equity growth.`);
+    if (cdsPct > 40) suggestions.push(`CDs are ${cdsPct.toFixed(0)}% of NW — solid fixed income, but ensure enough equity for long-term growth.`);
+    if (rePct === 0 && nw > 100000) suggestions.push(`No real estate in portfolio — property can diversify away from market correlation.`);
+    if (totalPortfolioValue > 0) {
+        state.importedPositions.forEach(pos => {
+            const w = (pos.value || 0) / totalPortfolioValue * 100;
+            if (w >= 20 && !isSettledCash(pos)) suggestions.push(`${pos.symbol} is ${w.toFixed(1)}% of your equity — concentration above 20% increases single-stock risk.`);
+        });
+    }
+
+    if (suggestions.length === 0) { block.innerHTML = ''; return; }
+    block.innerHTML = `<div class="divs-header">💡 Diversification Suggestions</div><ul class="divs-list">${suggestions.map(s => `<li>${s}</li>`).join('')}</ul>`;
+}
+
 function refreshAllUI() {
     calculateEbayProfit();
     
@@ -1689,23 +1744,20 @@ function refreshAllUI() {
 
     document.getElementById('banner-networth').textContent = formatCurrency(networth);
     document.getElementById('banner-spend').textContent = formatCurrency(annualExpenses);
-    document.getElementById('banner-target').textContent = formatCurrency(fireNumber);
     document.getElementById('banner-progress').textContent = `${progressPercent.toFixed(1)}%`;
+    document.getElementById('banner-target').textContent = `Target: ${formatCurrency(fireNumber)}`;
 
-    const fillEl = document.getElementById('readiness-fill');
-    if (fillEl) fillEl.style.width = `${progressPercent}%`;
-    
-    const targetLabel = document.getElementById('readiness-target-label');
-    if (targetLabel) targetLabel.textContent = `Target: ${formatCurrency(fireNumber)}`;
-    
-    const statusText = document.getElementById('readiness-status-text');
-    if (statusText) {
-        if (progressPercent >= 100) {
-            statusText.innerHTML = `Congratulations! You have reached <strong>${progressPercent.toFixed(1)}%</strong> of your FIRE goal. You are officially financially independent! 🚀`;
-        } else {
-            statusText.innerHTML = `You are currently <strong>${progressPercent.toFixed(1)}%</strong> of the way to your Safe Withdrawal FIRE goal. Save another <strong>${formatCurrency(Math.max(fireNumber - networth, 0))}</strong> to reach your target!`;
-        }
-    }
+    const fireBarEl = document.getElementById('banner-fire-bar');
+    if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
+
+    const grossIncome = parseFloat(document.getElementById('tax-gross-income')?.value) || 0;
+    const sideGigNet = getSideGigYTDNet();
+    const grossIncomeEl = document.getElementById('banner-gross-income');
+    if (grossIncomeEl) grossIncomeEl.textContent = formatCurrency(grossIncome);
+    const sideIncomeEl = document.getElementById('banner-side-income');
+    if (sideIncomeEl) sideIncomeEl.textContent = sideGigNet > 0 ? `+ ${formatCurrency(sideGigNet)} side hustle` : 'No side income';
+
+    renderAllocMiniBarsBanner();
 
     renderQuickStatsList();
     renderDashboardTopPositionsTable();
@@ -1881,13 +1933,13 @@ function renderDashboardTopPositionsTable() {
     if (state.importedPositions.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td></tr>`;
         updateSortHeaders();
+        renderDiversificationSuggestions(0);
         return;
     }
 
-    // Compute max abs P&L% across entire dataset for relative color scaling
     const maxAbsPct = state.importedPositions.reduce((m, p) => Math.max(m, Math.abs(p.pnlPercent || 0)), 0);
+    const totalPortfolioValue = state.importedPositions.reduce((s, p) => s + (p.value || 0), 0);
 
-    // Group positions by Account Name
     const grouped = {};
     state.importedPositions.forEach(pos => {
         const acc = pos.account || 'Brokerage';
@@ -1899,8 +1951,11 @@ function renderDashboardTopPositionsTable() {
     Object.keys(grouped).forEach(accName => {
         const positions = sortPositions(grouped[accName]);
         const accTotalVal = positions.reduce((sum, p) => sum + (p.value || 0), 0);
-        const accCostBasis = positions.reduce((sum, p) => sum + (p.costBasis || 0), 0);
-        const accPnL = accCostBasis > 0 ? accTotalVal - accCostBasis : positions.reduce((sum, p) => sum + (p.pnlDollar || 0), 0);
+        const nonCash = positions.filter(p => !isSettledCash(p));
+        const accCostBasis = nonCash.reduce((sum, p) => sum + (p.costBasis || 0), 0);
+        const accPnL = accCostBasis > 0
+            ? nonCash.reduce((sum, p) => sum + (p.value || 0), 0) - accCostBasis
+            : nonCash.reduce((sum, p) => sum + (p.pnlDollar || 0), 0);
         const accPnLPct = accCostBasis > 0 ? (accPnL / accCostBasis) * 100 : 0;
         const accPnLStyle = pnlColorStyle(accPnLPct, maxAbsPct || Math.abs(accPnLPct));
         const accValStyle = pnlColorStyle(accPnLPct, maxAbsPct || Math.abs(accPnLPct));
@@ -1914,7 +1969,8 @@ function renderDashboardTopPositionsTable() {
 
         html += `
             <tr class="table-group-header" onclick="toggleAccountGroup('${safeAccName}')">
-                <td colspan="5"><span class="${chevronClass}">▼</span> <strong>${accName}</strong></td>
+                <td colspan="4"><span class="${chevronClass}">▼</span> <strong>${accName}</strong></td>
+                <td class="text-right font-bold text-muted">${accCostBasis > 0 ? formatCurrency(accCostBasis) : '—'}</td>
                 <td class="text-right font-bold" style="${accValStyle}">${formatCurrency(accTotalVal)}</td>
                 <td class="text-right font-bold" style="${accPnLStyle}">${accPnLStr}</td>
             </tr>
@@ -1926,24 +1982,38 @@ function renderDashboardTopPositionsTable() {
                 const pnlPct = pos.pnlPercent || 0;
                 const pnlStyle = pnlColorStyle(pnlPct, maxAbsPct);
                 const valStyle = pnlColorStyle(pnlPct, maxAbsPct);
+                const settled = isSettledCash(pos);
 
                 let pnlText = '—';
-                if (Math.abs(pnlVal) > 0.01) {
+                if (!settled && Math.abs(pnlVal) > 0.01) {
                     pnlText = pnlVal > 0
                         ? `+${formatCurrency(pnlVal)} (+${Math.abs(pnlPct).toFixed(2)}%)`
                         : `-${formatCurrency(Math.abs(pnlVal))} (${pnlPct.toFixed(2)}%)`;
                 }
 
+                const weight = totalPortfolioValue > 0 ? (pos.value || 0) / totalPortfolioValue * 100 : 0;
+                let riskBadge = '';
+                if (!settled && weight >= 20) riskBadge = `<span class="risk-badge risk-high" title="${weight.toFixed(1)}% of portfolio">⚠</span>`;
+                else if (!settled && weight >= 15) riskBadge = `<span class="risk-badge risk-med" title="${weight.toFixed(1)}% of portfolio">⚡</span>`;
+
+                const MKTBENCH = 10;
+                let mktBadge = '';
+                if (!settled && Math.abs(pnlPct) > 0.01) {
+                    mktBadge = pnlPct >= MKTBENCH
+                        ? `<span class="mkt-badge mkt-up" title="${(pnlPct - MKTBENCH).toFixed(1)}% above ~10% market avg">▲ mkt</span>`
+                        : `<span class="mkt-badge mkt-dn" title="${(pnlPct - MKTBENCH).toFixed(1)}% below ~10% market avg">▼ mkt</span>`;
+                }
+
                 const sym = pos.symbol || '';
                 html += `
                     <tr class="position-row" data-account="${accName.replace(/"/g, '&quot;')}" data-symbol="${sym}">
-                        <td class="font-bold text-purple">${sym}</td>
+                        <td class="font-bold text-purple">${sym} ${riskBadge}</td>
                         <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pos.description || ''}</td>
                         <td class="text-right">${(pos.quantity || 0).toLocaleString(undefined, {maximumFractionDigits: 3})}</td>
                         <td class="text-right">${formatCurrency(pos.lastPrice || 0)}</td>
                         <td class="text-right text-muted">${(pos.costBasis || 0) > 0 ? formatCurrency(pos.costBasis) : '—'}</td>
                         <td class="text-right font-bold" style="${valStyle}">${formatCurrency(pos.value || 0)}</td>
-                        <td class="text-right font-bold" style="${pnlStyle}">${pnlText}</td>
+                        <td class="text-right font-bold" style="${pnlStyle}">${pnlText} ${mktBadge}</td>
                     </tr>
                 `;
             });
@@ -1951,7 +2021,16 @@ function renderDashboardTopPositionsTable() {
     });
     tbody.innerHTML = html;
     updateSortHeaders();
+    renderDiversificationSuggestions(totalPortfolioValue);
 }
+
+window.collapseAllGroups = function() {
+    const allCollapsed = state.importedPositions.every(pos => !!collapsedAccounts[pos.account || 'Brokerage']);
+    const grouped = {};
+    state.importedPositions.forEach(pos => { grouped[pos.account || 'Brokerage'] = true; });
+    Object.keys(grouped).forEach(acc => { collapsedAccounts[acc] = !allCollapsed; });
+    renderDashboardTopPositionsTable();
+};
 
 function updateSortHeaders() {
     const cols = ['symbol', 'desc', 'qty', 'price', 'cost', 'value', 'pnl'];

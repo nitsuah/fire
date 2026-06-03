@@ -190,9 +190,9 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Top Banner Summary Card */
 .header-banner {
-    height: var(--header-height);
+    min-height: var(--header-height);
     border-bottom: 1px solid var(--border-divider);
-    padding: 16px 32px;
+    padding: 12px 32px;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 24px;
@@ -1139,3 +1139,158 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
+
+/* ---- Header: allocation mini bars ---- */
+.alloc-bar-track {
+    display: flex;
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 5px;
+    gap: 1px;
+}
+
+.alloc-bar-seg {
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+/* ---- Header: income sub-line ---- */
+.income-sub-line {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* ---- Header: FIRE progress bar ---- */
+.fire-prog-wrap {
+    margin-top: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px;
+    height: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.fire-prog-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    border-radius: 20px;
+    min-width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    transition: width 0.5s ease;
+}
+
+.fire-prog-pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    padding-right: 6px;
+    white-space: nowrap;
+}
+
+.fire-prog-target {
+    font-size: 10px;
+    color: var(--text-dimmed);
+    margin-top: 3px;
+}
+
+/* ---- Investments: collapse-all button ---- */
+.collapse-all-btn {
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--card-border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    flex-shrink: 0;
+}
+
+.collapse-all-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary-hover);
+    background: rgba(139,92,246,0.08);
+}
+
+/* ---- Investments: risk concentration badges ---- */
+.risk-badge {
+    display: inline-block;
+    font-size: 10px;
+    border-radius: 4px;
+    padding: 1px 3px;
+    margin-left: 3px;
+    font-style: normal;
+    cursor: help;
+}
+
+.risk-badge.risk-high {
+    color: #f43f5e;
+    background: rgba(244,63,94,0.12);
+    border: 1px solid rgba(244,63,94,0.25);
+}
+
+.risk-badge.risk-med {
+    color: #f59e0b;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.25);
+}
+
+/* ---- Investments: market return comparison badge ---- */
+.mkt-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 3px;
+    padding: 1px 4px;
+    margin-left: 4px;
+    cursor: help;
+    vertical-align: middle;
+}
+
+.mkt-badge.mkt-up {
+    color: #10b981;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.2);
+}
+
+.mkt-badge.mkt-dn {
+    color: #f43f5e;
+    background: rgba(244,63,94,0.1);
+    border: 1px solid rgba(244,63,94,0.2);
+}
+
+/* ---- Investments: diversification suggestion block ---- */
+.divs-suggestion-block {
+    margin-top: 14px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(139,92,246,0.06);
+    border: 1px solid rgba(139,92,246,0.15);
+}
+
+.divs-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-primary-hover);
+    margin-bottom: 8px;
+    font-family: var(--font-heading);
+}
+
+.divs-list {
+    margin: 0;
+    padding-left: 16px;
+    list-style: disc;
+}
+
+.divs-list li {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 2px;
+}
