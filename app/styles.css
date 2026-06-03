@@ -1058,4 +1058,84 @@ h1, h2, h3, h4, h5, h6 {
     gap: 12px;
 }
 
+/* ---- Chart line toggle pills ---- */
+.chart-toggle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.chart-toggle-btn {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: var(--text-dimmed);
+    transition: var(--transition-smooth);
+}
+
+.chart-toggle-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary-hover);
+}
+
+.chart-toggle-btn.active {
+    background: rgba(139,92,246,0.18);
+    border-color: var(--color-primary);
+    color: var(--color-primary-hover);
+}
+
+/* ---- Scenario selector row ---- */
+.scenario-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.scenario-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.scenario-btn {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted);
+    transition: var(--transition-smooth);
+}
+
+.scenario-btn:hover { border-color: var(--color-primary); color: var(--color-primary-hover); }
+.scenario-btn.active { background: rgba(245,158,11,0.15); border-color: #f59e0b; color: #f59e0b; }
+
+/* ---- CD annual yield badge in dashboard notifications ---- */
+.cd-yield-badge {
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-success);
+    white-space: nowrap;
+    text-align: right;
+}
+
+.cd-yield-unit {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-dimmed);
+    margin-left: 1px;
+}
+
 
