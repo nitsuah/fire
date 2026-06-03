@@ -1051,4 +1051,11 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
 }
 
+/* Two-column form row for vehicle/property add forms */
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
 

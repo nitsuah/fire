@@ -40,6 +40,10 @@
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
                     Real Estate
                 </button>
+                <button class="nav-btn" data-tab="vehicles" id="btn-tab-vehicles">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+                    Vehicles
+                </button>
                 <button class="nav-btn" data-tab="expenses" id="btn-tab-expenses">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v2h4v2H9V7h6v2z"/></svg>
                     Expenses & Taxes
@@ -186,6 +190,10 @@
                                     <div class="stat-item">
                                         <span class="stat-name">Real Estate Equity</span>
                                         <span class="stat-val" id="stat-realestate">$0.00</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-name">Vehicle Equity</span>
+                                        <span class="stat-val" id="stat-vehicles">$0.00</span>
                                     </div>
                                     <div class="stat-item">
                                         <span class="stat-name">Side Hustle Income (YTD)</span>
@@ -470,6 +478,130 @@
                                     <tbody>
                                         <tr>
                                             <td colspan="8" class="text-center text-muted">No properties added yet. Use the form to add your first property.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: Vehicles -->
+                <section class="tab-pane" id="tab-vehicles">
+                    <div class="dashboard-grid">
+                        <!-- Add Vehicle Form -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Add Vehicle</h2>
+                            <form id="form-vehicles">
+                                <div class="form-row-2">
+                                    <div class="form-group">
+                                        <label for="veh-year">Year</label>
+                                        <input type="number" id="veh-year" min="1900" max="2030" placeholder="2024" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="veh-condition">Condition</label>
+                                        <select id="veh-condition">
+                                            <option>Excellent</option>
+                                            <option selected>Good</option>
+                                            <option>Fair</option>
+                                            <option>Poor</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row-2">
+                                    <div class="form-group">
+                                        <label for="veh-make">Make</label>
+                                        <input type="text" id="veh-make" placeholder="Toyota" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="veh-model">Model</label>
+                                        <input type="text" id="veh-model" placeholder="Camry" required>
+                                    </div>
+                                </div>
+                                <div class="form-row-2">
+                                    <div class="form-group">
+                                        <label for="veh-trim">Trim <span class="text-muted">(optional)</span></label>
+                                        <input type="text" id="veh-trim" placeholder="XSE">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="veh-color">Color <span class="text-muted">(optional)</span></label>
+                                        <input type="text" id="veh-color" placeholder="Midnight Black">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="veh-mileage">Current Mileage</label>
+                                    <input type="number" id="veh-mileage" min="0" step="100" placeholder="25000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="veh-current-value">Current Market Value ($)</label>
+                                    <input type="number" id="veh-current-value" min="0" step="500" placeholder="0.00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="veh-purchase-price">Purchase Price ($) <span class="text-muted">(for depreciation)</span></label>
+                                    <input type="number" id="veh-purchase-price" min="0" step="500" placeholder="0.00">
+                                </div>
+                                <div class="form-row-2">
+                                    <div class="form-group">
+                                        <label for="veh-loan-balance">Loan Balance ($)</label>
+                                        <input type="number" id="veh-loan-balance" min="0" step="500" placeholder="0.00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="veh-monthly-payment">Monthly Payment ($)</label>
+                                        <input type="number" id="veh-monthly-payment" min="0" step="50" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="veh-notes">Notes <span class="text-muted">(optional)</span></label>
+                                    <input type="text" id="veh-notes" placeholder="e.g. Used for Uber, financed at 4.9%">
+                                </div>
+                                <button type="submit" class="primary-btn mt-2">Add Vehicle</button>
+                            </form>
+                        </div>
+
+                        <!-- Fleet Stats -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Fleet Summary</h2>
+                            <div class="cd-stats-container">
+                                <div class="cd-stat-box">
+                                    <span class="cd-stat-label">Total Fleet Value</span>
+                                    <span class="cd-stat-value text-emerald" id="veh-stat-value">$0.00</span>
+                                </div>
+                                <div class="cd-stat-box mt-3">
+                                    <span class="cd-stat-label">Total Equity (Value − Loan)</span>
+                                    <span class="cd-stat-value text-purple" id="veh-stat-equity">$0.00</span>
+                                </div>
+                                <div class="cd-stat-box mt-3">
+                                    <span class="cd-stat-label">Total Loan Balance</span>
+                                    <span class="cd-stat-value text-coral" id="veh-stat-loan">$0.00</span>
+                                </div>
+                                <div class="cd-stat-box mt-3">
+                                    <span class="cd-stat-label">Total Depreciation</span>
+                                    <span class="cd-stat-value" id="veh-stat-dep">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vehicles Table -->
+                        <div class="card glass-card span-2">
+                            <h2 class="card-title">Vehicle Fleet</h2>
+                            <div class="table-container">
+                                <table class="data-table" id="table-vehicles">
+                                    <thead>
+                                        <tr>
+                                            <th>Vehicle</th>
+                                            <th>Condition</th>
+                                            <th class="text-right">Mileage</th>
+                                            <th class="text-right">Current Value</th>
+                                            <th class="text-right">Equity</th>
+                                            <th class="text-right">Loan Balance</th>
+                                            <th class="text-right">Purchase Price</th>
+                                            <th class="text-right">Depreciation</th>
+                                            <th class="text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted">No vehicles added yet. Use the form to add your first vehicle.</td>
                                         </tr>
                                     </tbody>
                                 </table>
