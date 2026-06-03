@@ -325,6 +325,35 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.5px;
 }
 
+.sortable-th {
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.sortable-th:hover {
+    color: var(--text-main);
+    background-color: rgba(139, 92, 246, 0.08);
+}
+
+.sortable-th::after {
+    content: ' ↕';
+    opacity: 0.3;
+    font-size: 10px;
+}
+
+.sortable-th.sort-asc::after {
+    content: ' ↑';
+    opacity: 1;
+    color: var(--color-primary);
+}
+
+.sortable-th.sort-desc::after {
+    content: ' ↓';
+    opacity: 1;
+    color: var(--color-primary);
+}
+
 .data-table tbody tr:last-child td {
     border-bottom: none;
 }

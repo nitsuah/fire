@@ -44,6 +44,14 @@ let collapsedAccounts = {};
 // Active allocation filter (null = all visible)
 let activeAllocationFilter = null;
 
+// Investment table sort state (default: P&L descending within each account group)
+let tableSortColumn = 'pnl';
+let tableSortDir = 'desc';
+
+// Original allocation chart colors (used to restore after grey-out)
+const ALLOC_COLORS = ['#10b981', '#f59e0b', '#8b5cf6', '#3b82f6'];
+const ALLOC_GREY = 'rgba(120,120,140,0.25)';
+
 // Price refresh timer
 let priceRefreshTimer = null;
 
@@ -1394,14 +1402,64 @@ function renderQuickStatsList() {
    Investment Positions Table (Collapsible Account Groups)
    ========================================================================== */
 
+// Returns an inline color style on a continuous red→neutral→green scale.
+// pnlPct: the position's P&L %; maxAbsPct: the largest abs P&L% in the dataset.
+function pnlColorStyle(pnlPct, maxAbsPct) {
+    if (maxAbsPct < 0.01 || pnlPct === 0) return 'color: var(--text-muted);';
+    const norm = Math.max(-1, Math.min(1, pnlPct / maxAbsPct));
+    if (norm > 0) {
+        const l = Math.round(65 - norm * 18);
+        const s = Math.round(50 + norm * 21);
+        return `color: hsl(142,${s}%,${l}%);`;
+    }
+    const absN = -norm;
+    const l = Math.round(65 - absN * 18);
+    const s = Math.round(50 + absN * 21);
+    return `color: hsl(0,${s}%,${l}%);`;
+}
+
+function sortPositions(positions) {
+    const col = tableSortColumn;
+    const dir = tableSortDir === 'asc' ? 1 : -1;
+    return [...positions].sort((a, b) => {
+        let av, bv;
+        switch (col) {
+            case 'symbol':   av = (a.symbol || '').toLowerCase(); bv = (b.symbol || '').toLowerCase(); break;
+            case 'desc':     av = (a.description || '').toLowerCase(); bv = (b.description || '').toLowerCase(); break;
+            case 'qty':      av = a.quantity || 0; bv = b.quantity || 0; break;
+            case 'price':    av = a.lastPrice || 0; bv = b.lastPrice || 0; break;
+            case 'cost':     av = a.costBasis || 0; bv = b.costBasis || 0; break;
+            case 'value':    av = a.value || 0; bv = b.value || 0; break;
+            default:         av = a.pnlDollar || 0; bv = b.pnlDollar || 0;
+        }
+        if (av < bv) return -dir;
+        if (av > bv) return dir;
+        return 0;
+    });
+}
+
+window.setTableSort = function(col) {
+    if (tableSortColumn === col) {
+        tableSortDir = tableSortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+        tableSortColumn = col;
+        tableSortDir = col === 'pnl' || col === 'value' ? 'desc' : 'asc';
+    }
+    renderDashboardTopPositionsTable();
+};
+
 function renderDashboardTopPositionsTable() {
     const tbody = document.querySelector('#table-dashboard-positions tbody');
     if (!tbody) return;
 
     if (state.importedPositions.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td></tr>`;
+        updateSortHeaders();
         return;
     }
+
+    // Compute max abs P&L% across entire dataset for relative color scaling
+    const maxAbsPct = state.importedPositions.reduce((m, p) => Math.max(m, Math.abs(p.pnlPercent || 0)), 0);
 
     // Group positions by Account Name
     const grouped = {};
@@ -1413,12 +1471,16 @@ function renderDashboardTopPositionsTable() {
 
     let html = '';
     Object.keys(grouped).forEach(accName => {
-        const positions = grouped[accName];
+        const positions = sortPositions(grouped[accName]);
         const accTotalVal = positions.reduce((sum, p) => sum + (p.value || 0), 0);
         const accCostBasis = positions.reduce((sum, p) => sum + (p.costBasis || 0), 0);
         const accPnL = accCostBasis > 0 ? accTotalVal - accCostBasis : positions.reduce((sum, p) => sum + (p.pnlDollar || 0), 0);
-        const accPnLClass = accPnL >= 0 ? 'text-emerald' : 'text-coral';
-        const accPnLStr = accPnL >= 0 ? `+${formatCurrency(accPnL)}` : `-${formatCurrency(Math.abs(accPnL))}`;
+        const accPnLPct = accCostBasis > 0 ? (accPnL / accCostBasis) * 100 : 0;
+        const accPnLStyle = pnlColorStyle(accPnLPct, maxAbsPct || Math.abs(accPnLPct));
+        const accValStyle = pnlColorStyle(accPnLPct, maxAbsPct || Math.abs(accPnLPct));
+        const accPnLStr = accPnL >= 0
+            ? `+${formatCurrency(accPnL)} (+${Math.abs(accPnLPct).toFixed(2)}%)`
+            : `-${formatCurrency(Math.abs(accPnL))} (${accPnLPct.toFixed(2)}%)`;
 
         const isCollapsed = !!collapsedAccounts[accName];
         const chevronClass = isCollapsed ? 'chevron-icon collapsed' : 'chevron-icon';
@@ -1426,12 +1488,9 @@ function renderDashboardTopPositionsTable() {
 
         html += `
             <tr class="table-group-header" onclick="toggleAccountGroup('${safeAccName}')">
-                <td colspan="7">
-                    <span class="${chevronClass}">▼</span>
-                    <strong>${accName}</strong>
-                    <span style="margin-left:12px; font-size:11px; color:var(--text-muted);">Total: <strong class="text-emerald">${formatCurrency(accTotalVal)}</strong></span>
-                    <span style="margin-left:10px; font-size:11px;">PnL: <strong class="${accPnLClass}">${accPnLStr}</strong></span>
-                </td>
+                <td colspan="5"><span class="${chevronClass}">▼</span> <strong>${accName}</strong></td>
+                <td class="text-right font-bold" style="${accValStyle}">${formatCurrency(accTotalVal)}</td>
+                <td class="text-right font-bold" style="${accPnLStyle}">${accPnLStr}</td>
             </tr>
         `;
 
@@ -1439,21 +1498,17 @@ function renderDashboardTopPositionsTable() {
             positions.forEach(pos => {
                 const pnlVal = pos.pnlDollar || 0;
                 const pnlPct = pos.pnlPercent || 0;
-                let pnlText = '$0.00 (0.0%)';
-                let pnlClass = 'text-muted';
+                const pnlStyle = pnlColorStyle(pnlPct, maxAbsPct);
+                const valStyle = pnlColorStyle(pnlPct, maxAbsPct);
 
+                let pnlText = '—';
                 if (Math.abs(pnlVal) > 0.01) {
-                    if (pnlVal > 0) {
-                        pnlText = `+${formatCurrency(pnlVal)} (+${Math.abs(pnlPct).toFixed(2)}%)`;
-                        pnlClass = 'text-emerald font-bold';
-                    } else {
-                        pnlText = `-${formatCurrency(Math.abs(pnlVal))} (${pnlPct.toFixed(2)}%)`;
-                        pnlClass = 'text-coral font-bold';
-                    }
+                    pnlText = pnlVal > 0
+                        ? `+${formatCurrency(pnlVal)} (+${Math.abs(pnlPct).toFixed(2)}%)`
+                        : `-${formatCurrency(Math.abs(pnlVal))} (${pnlPct.toFixed(2)}%)`;
                 }
 
                 const sym = pos.symbol || '';
-                // Build a CSS-safe data attribute
                 html += `
                     <tr class="position-row" data-account="${accName.replace(/"/g, '&quot;')}" data-symbol="${sym}">
                         <td class="font-bold text-purple">${sym}</td>
@@ -1461,14 +1516,25 @@ function renderDashboardTopPositionsTable() {
                         <td class="text-right">${(pos.quantity || 0).toLocaleString(undefined, {maximumFractionDigits: 3})}</td>
                         <td class="text-right">${formatCurrency(pos.lastPrice || 0)}</td>
                         <td class="text-right text-muted">${(pos.costBasis || 0) > 0 ? formatCurrency(pos.costBasis) : '—'}</td>
-                        <td class="text-right font-bold">${formatCurrency(pos.value || 0)}</td>
-                        <td class="text-right ${pnlClass}">${pnlText}</td>
+                        <td class="text-right font-bold" style="${valStyle}">${formatCurrency(pos.value || 0)}</td>
+                        <td class="text-right font-bold" style="${pnlStyle}">${pnlText}</td>
                     </tr>
                 `;
             });
         }
     });
     tbody.innerHTML = html;
+    updateSortHeaders();
+}
+
+function updateSortHeaders() {
+    const cols = ['symbol', 'desc', 'qty', 'price', 'cost', 'value', 'pnl'];
+    cols.forEach(col => {
+        const th = document.querySelector(`#table-dashboard-positions thead th[data-sort="${col}"]`);
+        if (!th) return;
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (col === tableSortColumn) th.classList.add(`sort-${tableSortDir}`);
+    });
 }
 
 window.toggleAccountGroup = function(accName) {
@@ -1563,7 +1629,10 @@ function renderAssetAllocationChart() {
     });
 }
 
+const ALLOC_CATEGORY_KEYS = ['Cash', 'CDs', 'Equities', 'Other'];
+
 function applyAllocationFilter(categoryKey) {
+    // Update table rows
     const rows = document.querySelectorAll('#table-dashboard-positions .position-row');
     rows.forEach(row => {
         if (categoryKey === null) {
@@ -1575,13 +1644,10 @@ function applyAllocationFilter(categoryKey) {
 
         let match = false;
         if (categoryKey === 'Equities') {
-            // Everything that's not cash-like
             match = !sym.includes('SPAXX') && !sym.includes('FDRXX') && !desc.includes('MONEY MARKET');
         } else if (categoryKey === 'Cash') {
             match = sym.includes('SPAXX') || sym.includes('FDRXX') || desc.includes('MONEY MARKET');
-        }
-        // CDs & Other are manual accounts; no CSV rows to filter – keep all visible
-        if (categoryKey === 'CDs' || categoryKey === 'Other') {
+        } else if (categoryKey === 'CDs' || categoryKey === 'Other') {
             match = true;
         }
 
@@ -1591,6 +1657,19 @@ function applyAllocationFilter(categoryKey) {
             row.classList.add('p-grayed-out');
         }
     });
+
+    // Update pie chart slice colors: grey out non-selected slices
+    if (assetAllocationChart) {
+        const dataset = assetAllocationChart.data.datasets[0];
+        const selectedIdx = categoryKey !== null ? ALLOC_CATEGORY_KEYS.indexOf(categoryKey) : -1;
+        dataset.backgroundColor = ALLOC_COLORS.map((c, i) =>
+            categoryKey === null || i === selectedIdx ? c : ALLOC_GREY
+        );
+        dataset.borderColor = ALLOC_COLORS.map((c, i) =>
+            categoryKey === null || i === selectedIdx ? '#151c2c' : 'transparent'
+        );
+        assetAllocationChart.update('none');
+    }
 }
 
 /* ==========================================================================

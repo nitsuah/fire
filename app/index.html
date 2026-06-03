@@ -150,13 +150,13 @@
                                 <table class="data-table" id="table-dashboard-positions">
                                     <thead>
                                         <tr>
-                                            <th>Symbol</th>
-                                            <th>Description</th>
-                                            <th class="text-right">Quantity</th>
-                                            <th class="text-right">Last Price</th>
-                                            <th class="text-right">Cost Basis</th>
-                                            <th class="text-right">Current Value</th>
-                                            <th class="text-right">Total PnL</th>
+                                            <th class="sortable-th" data-sort="symbol" onclick="setTableSort('symbol')">Symbol</th>
+                                            <th class="sortable-th" data-sort="desc" onclick="setTableSort('desc')">Description</th>
+                                            <th class="sortable-th text-right" data-sort="qty" onclick="setTableSort('qty')">Quantity</th>
+                                            <th class="sortable-th text-right" data-sort="price" onclick="setTableSort('price')">Last Price</th>
+                                            <th class="sortable-th text-right" data-sort="cost" onclick="setTableSort('cost')">Cost Basis</th>
+                                            <th class="sortable-th text-right" data-sort="value" onclick="setTableSort('value')">Current Value</th>
+                                            <th class="sortable-th text-right sort-desc" data-sort="pnl" onclick="setTableSort('pnl')">Total PnL</th>
                                         </tr>
                                     </thead>
                                     <tbody>

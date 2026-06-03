@@ -1,4 +1,4 @@
-## updated: 2026-06-02
+## updated: 2026-06-03
 
 # 🗺️ FIRE Calculator & Tracker Roadmap
 
@@ -6,12 +6,18 @@ Next Review: 2026-07-01
 
 ## Q2 2026: Foundation & Core Tracking (IN PROGRESS) 🏗️
 
-- [ ] Core HTML5 layout with high-end glassmorphic dark-theme styles.
-- [ ] Safe local CSV import parsing for Fidelity brokerage exports (aggregates symbols, quantities, and cash).
-- [ ] Manual check-ins and tracker management (CDs, Custom Cash/Brokerage Accounts, Expenses).
-- [ ] Core Projections engine using custom rates, showing retirement age predictions with 3%, 3.5%, and 4% SWR curves.
-- [ ] Local storage sync with Import/Export JSON backup utility.
-- [ ] Docker configuration using Alpine Nginx to run and test locally.
+- [x] Core HTML5 layout with high-end glassmorphic dark-theme styles.
+- [x] Safe local CSV import parsing for Fidelity brokerage exports (aggregates symbols, quantities, and cash).
+- [x] Manual check-ins and tracker management (CDs, Custom Cash/Brokerage Accounts, Expenses).
+- [x] Core Projections engine using custom rates, showing retirement age predictions with 3%, 3.5%, and 4% SWR curves.
+- [x] Local storage sync with Import/Export JSON backup utility.
+- [x] Docker configuration using Alpine Nginx to run and test locally.
+- [ ] **[UI]** P&L table polish — red-green color scale, column totals inline with data columns, sortable columns (default: faceted + P&L desc), pie-chart filter greys non-selected slices.
+- [ ] **[UI]** Dashboard layout reorganization — quick stats below allocation, CDs panel below on right, Top Investments to left under growth plan.
+- [ ] **[UI]** Time-period filter buttons (1M / 1Y / 5Y / 10Y / 15Y+) on both retirement growth graphs.
+- [ ] **[UI]** CD maturity markers overlaid on dashboard retirement growth chart.
+- [ ] **[Asset]** Real estate tracker — basic manual entry (property name, value, equity, mortgage details).
+- [ ] **[Asset]** Vehicle tracker — manual entry with robust fields (make/model/year, value, loan balance, depreciation estimate).
 
 ## Q3 2026: Side Hustle Hub & Auto-Calculators (Planned) 🚀
 
