@@ -8,6 +8,7 @@ let state = {
     customAccounts: [],
     cds: [],
     realEstate: [],
+    vehicles: [],
     expenses: {
         housing: 1500,
         utilities: 250,
@@ -34,6 +35,7 @@ let state = {
 let editingAccounts = [];
 let editingCDs = [];
 let editingRealEstate = [];
+let editingVehicles = [];
 
 // Chart.js instance trackers
 let assetAllocationChart = null;
@@ -56,6 +58,7 @@ const ALLOC_SLICE_MAP = {
     CDs:        { color: '#f59e0b', label: 'CDs & Fixed' },
     Equities:   { color: '#8b5cf6', label: 'Equities' },
     RealEstate: { color: '#06b6d4', label: 'Real Estate' },
+    Vehicles:   { color: '#f97316', label: 'Vehicles' },
     Other:      { color: '#3b82f6', label: 'Other Assets' }
 };
 const ALLOC_GREY = 'rgba(120,120,140,0.25)';
@@ -126,6 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAccountsManager();
     initCDManager();
     initRealEstateManager();
+    initVehiclesManager();
     initExpenseManager();
     initSideGigManager();
     initProjectionsManager();
@@ -148,8 +152,23 @@ function sanitizeState(data) {
     data.customAccounts = data.customAccounts || [];
     data.cds = data.cds || [];
     data.realEstate = data.realEstate || [];
+    data.vehicles = data.vehicles || [];
     data.sideGigLedger = data.sideGigLedger || [];
     data.importedFiles = data.importedFiles || [];
+
+    data.vehicles.forEach(v => {
+        if (!v.year) v.year = new Date().getFullYear();
+        if (!v.make) v.make = '';
+        if (!v.model) v.model = '';
+        if (!v.trim) v.trim = '';
+        if (!v.mileage) v.mileage = 0;
+        if (!v.condition) v.condition = 'Good';
+        if (!v.currentValue) v.currentValue = 0;
+        if (!v.purchasePrice) v.purchasePrice = 0;
+        if (!v.loanBalance) v.loanBalance = 0;
+        if (!v.monthlyPayment) v.monthlyPayment = 0;
+        if (!v.notes) v.notes = '';
+    });
 
     data.realEstate.forEach(re => {
         if (!re.marketValue) re.marketValue = 0;
@@ -880,6 +899,161 @@ function renderRealEstateStats() {
 }
 
 /* ==========================================================================
+   Vehicles Manager
+   ========================================================================== */
+
+function initVehiclesManager() {
+    const form = document.getElementById('form-vehicles');
+    if (!form) return;
+
+    const yearInput = document.getElementById('veh-year');
+    if (yearInput && !yearInput.value) yearInput.value = new Date().getFullYear();
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const entry = {
+            id: Date.now().toString(),
+            year: parseInt(document.getElementById('veh-year').value) || new Date().getFullYear(),
+            make: document.getElementById('veh-make').value.trim(),
+            model: document.getElementById('veh-model').value.trim(),
+            trim: document.getElementById('veh-trim').value.trim(),
+            color: document.getElementById('veh-color').value.trim(),
+            mileage: parseInt(document.getElementById('veh-mileage').value) || 0,
+            condition: document.getElementById('veh-condition').value,
+            currentValue: parseFloat(document.getElementById('veh-current-value').value) || 0,
+            purchasePrice: parseFloat(document.getElementById('veh-purchase-price').value) || 0,
+            loanBalance: parseFloat(document.getElementById('veh-loan-balance').value) || 0,
+            monthlyPayment: parseFloat(document.getElementById('veh-monthly-payment').value) || 0,
+            notes: document.getElementById('veh-notes').value.trim()
+        };
+        if (!entry.make || !entry.model || entry.currentValue <= 0) return;
+        state.vehicles.push(entry);
+        await saveState();
+        refreshAllUI();
+        form.reset();
+        document.getElementById('veh-year').value = new Date().getFullYear();
+    });
+}
+
+window.deleteVehicle = async function(id) {
+    state.vehicles = state.vehicles.filter(v => v.id !== id);
+    await saveState();
+    refreshAllUI();
+};
+
+window.startEditVehicle = function(id) {
+    editingVehicles.push(id);
+    renderVehiclesTable();
+};
+
+window.cancelEditVehicle = function(id) {
+    editingVehicles = editingVehicles.filter(x => x !== id);
+    renderVehiclesTable();
+};
+
+window.saveEditVehicle = async function(id) {
+    const idx = state.vehicles.findIndex(v => v.id === id);
+    if (idx === -1) return;
+    const g = (fId) => document.getElementById(`veh-edit-${fId}-${id}`);
+    state.vehicles[idx] = {
+        ...state.vehicles[idx],
+        year: parseInt(g('year')?.value) || state.vehicles[idx].year,
+        make: g('make')?.value.trim() || state.vehicles[idx].make,
+        model: g('model')?.value.trim() || state.vehicles[idx].model,
+        trim: g('trim')?.value.trim() || '',
+        color: g('color')?.value.trim() || '',
+        mileage: parseInt(g('mileage')?.value) || 0,
+        condition: g('condition')?.value || state.vehicles[idx].condition,
+        currentValue: parseFloat(g('value')?.value) || 0,
+        purchasePrice: parseFloat(g('purchase')?.value) || 0,
+        loanBalance: parseFloat(g('loan')?.value) || 0,
+        monthlyPayment: parseFloat(g('payment')?.value) || 0,
+        notes: g('notes')?.value.trim() || ''
+    };
+    editingVehicles = editingVehicles.filter(x => x !== id);
+    await saveState();
+    refreshAllUI();
+};
+
+function renderVehiclesTable() {
+    const tbody = document.querySelector('#table-vehicles tbody');
+    if (!tbody) return;
+    const list = state.vehicles || [];
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No vehicles added yet. Use the form to add your first vehicle.</td></tr>`;
+        renderVehicleStats();
+        return;
+    }
+
+    let html = '';
+    list.forEach(v => {
+        const equity = (v.currentValue || 0) - (v.loanBalance || 0);
+        const dep = (v.purchasePrice || 0) - (v.currentValue || 0);
+        const depStyle = dep <= 0 ? 'color:var(--color-success)' : 'color:var(--color-danger)';
+        const depStr = dep <= 0 ? `+${formatCurrency(Math.abs(dep))}` : `-${formatCurrency(dep)}`;
+        const equityStyle = equity >= 0 ? 'color:var(--color-success)' : 'color:var(--color-danger)';
+        const displayName = `${v.year} ${v.make} ${v.model}${v.trim ? ' ' + v.trim : ''}`;
+
+        if (editingVehicles.includes(v.id)) {
+            html += `
+            <tr class="position-row">
+                <td><input class="inline-edit-input" id="veh-edit-year-${v.id}" type="number" value="${v.year}" style="width:70px;"></td>
+                <td><input class="inline-edit-input" id="veh-edit-make-${v.id}" value="${(v.make||'').replace(/"/g,'&quot;')}"></td>
+                <td><input class="inline-edit-input" id="veh-edit-model-${v.id}" value="${(v.model||'').replace(/"/g,'&quot;')}"></td>
+                <td><input class="inline-edit-input" id="veh-edit-mileage-${v.id}" type="number" value="${v.mileage||0}"></td>
+                <td>
+                    <select class="inline-edit-input" id="veh-edit-condition-${v.id}">
+                        ${['Excellent','Good','Fair','Poor'].map(c=>`<option${c===v.condition?' selected':''}>${c}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-value-${v.id}" type="number" value="${v.currentValue||0}" step="500"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-loan-${v.id}" type="number" value="${v.loanBalance||0}" step="500"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-purchase-${v.id}" type="number" value="${v.purchasePrice||0}" step="500"></td>
+                <td class="text-right">
+                    <button class="action-btn save-btn" onclick="saveEditVehicle('${v.id}')">Save</button>
+                    <button class="action-btn cancel-btn" onclick="cancelEditVehicle('${v.id}')">Cancel</button>
+                </td>
+            </tr>`;
+        } else {
+            html += `
+            <tr class="position-row">
+                <td class="font-bold">${displayName}</td>
+                <td><span class="tag-badge">${v.condition}</span></td>
+                <td class="text-right text-muted">${(v.mileage||0).toLocaleString()} mi</td>
+                <td class="text-right font-bold">${formatCurrency(v.currentValue||0)}</td>
+                <td class="text-right" style="${equityStyle}">${formatCurrency(equity)}</td>
+                <td class="text-right text-muted">${(v.loanBalance||0)>0?formatCurrency(v.loanBalance):'Paid Off'}</td>
+                <td class="text-right text-muted">${(v.purchasePrice||0)>0?formatCurrency(v.purchasePrice):'—'}</td>
+                <td class="text-right" style="${depStyle}">${(v.purchasePrice||0)>0?depStr:'—'}</td>
+                <td class="text-right">
+                    <button class="action-btn edit-btn" onclick="startEditVehicle('${v.id}')">Edit</button>
+                    <button class="action-btn delete-btn" onclick="deleteVehicle('${v.id}')">Delete</button>
+                </td>
+            </tr>`;
+        }
+    });
+    tbody.innerHTML = html;
+    renderVehicleStats();
+}
+
+function renderVehicleStats() {
+    const list = state.vehicles || [];
+    const totalValue = list.reduce((s, v) => s + (v.currentValue || 0), 0);
+    const totalLoan = list.reduce((s, v) => s + (v.loanBalance || 0), 0);
+    const totalEquity = totalValue - totalLoan;
+    const totalDep = list.reduce((s, v) => s + ((v.purchasePrice||0) - (v.currentValue||0)), 0);
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('veh-stat-value', formatCurrency(totalValue));
+    set('veh-stat-equity', formatCurrency(totalEquity));
+    set('veh-stat-loan', formatCurrency(totalLoan));
+    set('veh-stat-dep', (totalDep >= 0 ? '-' : '+') + formatCurrency(Math.abs(totalDep)));
+    const depEl = document.getElementById('veh-stat-dep');
+    if (depEl) depEl.style.color = totalDep > 0 ? 'var(--color-danger)' : 'var(--color-success)';
+}
+
+/* ==========================================================================
    Expenses & Taxes Manager
    ========================================================================== */
 
@@ -1552,6 +1726,7 @@ function refreshAllUI() {
     renderCustomAccountsTable();
     renderCDTable();
     renderRealEstateTable();
+    renderVehiclesTable();
 
     const monthlyBase = getMonthlyExpensesBase();
     document.getElementById('summary-monthly-spend').textContent = formatCurrency(monthlyBase);
@@ -1639,8 +1814,12 @@ function getAggregateRealEstate() {
     return (state.realEstate || []).reduce((sum, re) => sum + Math.max(0, (re.marketValue || 0) - (re.mortgageBalance || 0)), 0);
 }
 
+function getAggregateVehicles() {
+    return (state.vehicles || []).reduce((sum, v) => sum + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)), 0);
+}
+
 function getAggregateNetWorth() {
-    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getAggregateRealEstate() + getSideGigYTDNet();
+    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getAggregateRealEstate() + getAggregateVehicles() + getSideGigYTDNet();
 }
 
 function renderQuickStatsList() {
@@ -1650,6 +1829,8 @@ function renderQuickStatsList() {
     document.getElementById('stat-sidegig').textContent = formatCurrency(getSideGigYTDNet());
     const reEl = document.getElementById('stat-realestate');
     if (reEl) reEl.textContent = formatCurrency(getAggregateRealEstate());
+    const vEl = document.getElementById('stat-vehicles');
+    if (vEl) vEl.textContent = formatCurrency(getAggregateVehicles());
 }
 
 /* ==========================================================================
@@ -1808,8 +1989,9 @@ function renderAssetAllocationChart() {
     const cds = getAggregateCDs();
     const equities = getAggregateEquities();
     const re = getAggregateRealEstate();
+    const veh = getAggregateVehicles();
     const other = getAggregateOtherAssets() + getSideGigYTDNet();
-    const total = cash + cds + equities + re + other;
+    const total = cash + cds + equities + re + veh + other;
 
     if (total === 0) {
         if (assetAllocationChart) { assetAllocationChart.destroy(); assetAllocationChart = null; }
@@ -1823,11 +2005,12 @@ function renderAssetAllocationChart() {
     const pct = (v) => total > 0 ? `${((v / total) * 100).toFixed(1)}%` : '0%';
 
     const slices = [
-        { key: 'Cash',        val: cash,     label: `Cash / SPAXX`,    color: '#10b981' },
-        { key: 'CDs',         val: cds,      label: `CDs & Fixed`,     color: '#f59e0b' },
-        { key: 'Equities',    val: equities, label: `Equities`,         color: '#8b5cf6' },
-        { key: 'RealEstate',  val: re,       label: `Real Estate`,      color: '#06b6d4' },
-        { key: 'Other',       val: other,    label: `Other Assets`,     color: '#3b82f6' },
+        { key: 'Cash',        val: cash,     label: 'Cash / SPAXX',  color: '#10b981' },
+        { key: 'CDs',         val: cds,      label: 'CDs & Fixed',   color: '#f59e0b' },
+        { key: 'Equities',    val: equities, label: 'Equities',       color: '#8b5cf6' },
+        { key: 'RealEstate',  val: re,       label: 'Real Estate',    color: '#06b6d4' },
+        { key: 'Vehicles',    val: veh,      label: 'Vehicles',       color: '#f97316' },
+        { key: 'Other',       val: other,    label: 'Other Assets',   color: '#3b82f6' },
     ].filter(s => s.val > 0);
 
     const categoryKeys = slices.map(s => s.key);
@@ -1904,7 +2087,7 @@ function applyAllocationFilter(categoryKey) {
             match = !sym.includes('SPAXX') && !sym.includes('FDRXX') && !desc.includes('MONEY MARKET');
         } else if (categoryKey === 'Cash') {
             match = sym.includes('SPAXX') || sym.includes('FDRXX') || desc.includes('MONEY MARKET');
-        } else if (categoryKey === 'CDs' || categoryKey === 'Other' || categoryKey === 'RealEstate') {
+        } else if (categoryKey === 'CDs' || categoryKey === 'Other' || categoryKey === 'RealEstate' || categoryKey === 'Vehicles') {
             match = true;
         }
 
