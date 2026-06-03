@@ -1407,3 +1407,214 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: space-between;
     align-items: center;
 }
+
+/* Alloc mini-bar hover tooltip */
+.alloc-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: rgba(12,15,23,0.95);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    backdrop-filter: blur(16px);
+    padding: 10px 14px;
+    min-width: 220px;
+    pointer-events: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.at-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 12px;
+}
+.at-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.at-label {
+    flex: 1;
+    color: rgba(255,255,255,0.7);
+}
+.at-val {
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+.at-pct {
+    color: rgba(255,255,255,0.45);
+    font-size: 11px;
+    min-width: 38px;
+    text-align: right;
+}
+.at-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 12px;
+    font-weight: 700;
+    color: #10b981;
+}
+
+/* Diversification suggestions in right column */
+.divs-suggestion-block:empty {
+    display: none;
+}
+
+/* ============================================================
+   Financial Overview — compact import bar + two-column layout
+   ============================================================ */
+
+.fo-import-bar {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    min-height: 52px;
+}
+
+.fo-import-drop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    border: 1.5px dashed rgba(255,255,255,0.18);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.fo-import-drop:hover,
+.fo-import-drop.drag-over {
+    border-color: rgba(139,92,246,0.7);
+    background: rgba(139,92,246,0.08);
+}
+
+.fo-upload-icon {
+    width: 18px;
+    height: 18px;
+    color: rgba(255,255,255,0.5);
+    flex-shrink: 0;
+}
+
+.fo-import-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+}
+
+.fo-import-files {
+    flex: 1;
+    overflow-x: auto;
+}
+
+.fo-import-table {
+    font-size: 11px;
+    width: 100%;
+}
+.fo-import-table th, .fo-import-table td {
+    padding: 4px 8px;
+}
+
+.fo-body {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+}
+
+.fo-left {
+    flex: 2;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.fo-right {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Unified add-form type tabs */
+.ua-type-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.ua-tab-btn {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    transition: background 0.18s, color 0.18s;
+}
+.ua-tab-btn.active {
+    background: rgba(139,92,246,0.25);
+    color: #c4b5fd;
+}
+.ua-tab-btn:hover:not(.active) {
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.7);
+}
+
+.ua-panel {
+    /* panels switch display via JS */
+}
+
+/* Inline form layout for FO add forms */
+.fo-form-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.fo-form-row .form-group {
+    flex: 1;
+    min-width: 110px;
+}
+
+/* CD metrics inline in holdings card title row */
+.cd-inline-metrics {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    flex-wrap: wrap;
+}
+
+/* Badge types in unified holdings table */
+.badge-type {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(139,92,246,0.18);
+    color: #c4b5fd;
+    white-space: nowrap;
+}
+.badge-type.badge-cd {
+    background: rgba(245,158,11,0.18);
+    color: #fcd34d;
+}

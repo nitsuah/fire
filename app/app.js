@@ -162,6 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCSVImport();
     initAccountsManager();
     initCDManager();
+    initUnifiedAssetForm();
     initRealEstateManager();
     initVehiclesManager();
     initExpenseManager();
@@ -562,6 +563,10 @@ function parseFidelityPositions(rows) {
 
         if (isNaN(cleanedValue)) continue;
 
+        const cleanBasis = isNaN(basis) ? 0 : basis;
+        const finalGainDollar = gainDollar || (cleanBasis > 0 ? cleanedValue - cleanBasis : 0);
+        const finalGainPercent = gainPercent || (cleanBasis > 0 ? ((cleanedValue - cleanBasis) / cleanBasis) * 100 : 0);
+
         state.importedPositions.push({
             account: row[idxAccountName] || 'Brokerage',
             symbol: sym,
@@ -569,9 +574,9 @@ function parseFidelityPositions(rows) {
             quantity: isNaN(qty) ? 0 : qty,
             lastPrice: isNaN(price) ? 0 : price,
             value: cleanedValue,
-            costBasis: isNaN(basis) ? 0 : basis,
-            pnlDollar: gainDollar,
-            pnlPercent: gainPercent
+            costBasis: cleanBasis,
+            pnlDollar: finalGainDollar,
+            pnlPercent: finalGainPercent
         });
         importedCount++;
     }
@@ -687,12 +692,12 @@ window.deleteImportedFile = async function(index) {
 
 window.startEditAccount = function(id) {
     editingAccounts.push(id);
-    renderCustomAccountsTable();
+    renderUnifiedHoldingsTable();
 };
 
 window.cancelEditAccount = function(id) {
     editingAccounts = editingAccounts.filter(x => x !== id);
-    renderCustomAccountsTable();
+    renderUnifiedHoldingsTable();
 };
 
 window.saveEditAccount = async function(id) {
@@ -759,12 +764,12 @@ window.deleteCD = async function(id) {
 
 window.startEditCD = function(id) {
     editingCDs.push(id);
-    renderCDTable();
+    renderUnifiedHoldingsTable();
 };
 
 window.cancelEditCD = function(id) {
     editingCDs = editingCDs.filter(x => x !== id);
-    renderCDTable();
+    renderUnifiedHoldingsTable();
 };
 
 window.saveEditCD = async function(id) {
@@ -1416,7 +1421,7 @@ function calculateAndRenderProjections() {
     renderMilestones(raw.networth, raw.fireNumber, raw.realReturn, raw.savings);
 }
 
-function buildProjectionAnnotations(retirementLineIndex, cdEvents) {
+function buildProjectionAnnotations(retirementLineIndex, cdEvents, nwData, fireNumber) {
     const annotations = {};
     if (retirementLineIndex >= 0) {
         annotations['retireLine'] = {
@@ -1425,6 +1430,34 @@ function buildProjectionAnnotations(retirementLineIndex, cdEvents) {
             label: { display: true, content: '🎯 Retire', position: 'start', color: '#f59e0b',
                 font: { size: 10, family: 'Outfit' }, backgroundColor: 'rgba(245,158,11,0.12)', padding: 4, yAdjust: -10 }
         };
+    }
+
+    // Milestone crossing points on the NW line
+    if (nwData && fireNumber > 0) {
+        const milestones = [
+            { key: 'lean', label: '75% Lean', pct: 0.75, color: '#f59e0b', yAdj: 18 },
+            { key: 'fire', label: '100% FIRE', pct: 1.0, color: '#f43f5e', yAdj: 0 },
+            { key: 'fat', label: '125% Fat', pct: 1.25, color: '#8b5cf6', yAdj: -18 },
+        ];
+        milestones.forEach(m => {
+            const target = fireNumber * m.pct;
+            const idx = nwData.findIndex(v => v >= target);
+            if (idx >= 0) {
+                annotations[`cross_${m.key}`] = {
+                    type: 'point',
+                    xValue: idx, yValue: nwData[idx],
+                    backgroundColor: m.color, radius: 7,
+                    borderColor: 'rgba(255,255,255,0.9)', borderWidth: 2,
+                    label: {
+                        display: true, content: m.label,
+                        color: m.color, backgroundColor: 'rgba(8,11,17,0.88)',
+                        font: { size: 10, family: 'Outfit', weight: '700' },
+                        padding: { x: 6, y: 3 }, borderRadius: 4,
+                        position: 'top', yAdjust: m.yAdj - 14
+                    }
+                };
+            }
+        });
     }
     cdEvents.forEach((ev, i) => {
         annotations[`cd_${i}`] = {
@@ -1479,7 +1512,7 @@ function renderProjectionsChart(data) {
         borderColor: '#f97316', borderDash: [2, 3], borderWidth: 1.5,
         fill: false, pointRadius: 0, order: 6, hidden: !t.benchmark });
 
-    const annotations = buildProjectionAnnotations(retirementLineIndex, cdEvents);
+    const annotations = buildProjectionAnnotations(retirementLineIndex, cdEvents, nwData, data.fireNumber);
 
     projectionsChart = new Chart(ctx, {
         type: 'line',
@@ -1694,16 +1727,37 @@ function renderAllocMiniBarsBanner() {
     const total = cash + cds + equities + re + veh + other;
     if (total === 0) { el.innerHTML = ''; return; }
     const segments = [
-        { pct: (cash / total) * 100, color: '#10b981', label: 'Cash' },
-        { pct: (cds / total) * 100, color: '#f59e0b', label: 'CDs' },
-        { pct: (equities / total) * 100, color: '#8b5cf6', label: 'Equities' },
-        { pct: (re / total) * 100, color: '#06b6d4', label: 'Real Estate' },
-        { pct: (veh / total) * 100, color: '#f97316', label: 'Vehicles' },
-        { pct: (other / total) * 100, color: '#3b82f6', label: 'Other' },
+        { amt: cash,     pct: (cash / total) * 100,     color: '#10b981', label: 'Cash' },
+        { amt: cds,      pct: (cds / total) * 100,      color: '#f59e0b', label: 'CDs' },
+        { amt: equities, pct: (equities / total) * 100, color: '#8b5cf6', label: 'Equities' },
+        { amt: re,       pct: (re / total) * 100,       color: '#06b6d4', label: 'Real Estate' },
+        { amt: veh,      pct: (veh / total) * 100,      color: '#f97316', label: 'Vehicles' },
+        { amt: other,    pct: (other / total) * 100,    color: '#3b82f6', label: 'Other' },
     ].filter(s => s.pct > 0);
     el.innerHTML = `<div class="alloc-bar-track">${segments.map(s =>
         `<div class="alloc-bar-seg" style="width:${s.pct.toFixed(1)}%;background:${s.color};" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`
     ).join('')}</div>`;
+
+    const track = el.querySelector('.alloc-bar-track');
+    const tip = document.getElementById('alloc-tooltip');
+    if (!track || !tip) return;
+
+    const tooltipRows = segments.map(s =>
+        `<div class="at-row"><span class="at-dot" style="background:${s.color};"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`
+    ).join('');
+    const totalRow = `<div class="at-total"><span class="at-label">Total NW</span><span class="at-val">${formatCurrency(total)}</span></div>`;
+
+    track.addEventListener('mouseenter', () => {
+        tip.innerHTML = tooltipRows + totalRow;
+        tip.style.display = 'block';
+    });
+    track.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+    track.addEventListener('mousemove', e => {
+        const x = e.clientX + 14, y = e.clientY - 10;
+        const vw = window.innerWidth, tw = tip.offsetWidth || 240;
+        tip.style.left = (x + tw > vw ? vw - tw - 8 : x) + 'px';
+        tip.style.top = y + 'px';
+    });
 }
 
 function renderDiversificationSuggestions(totalPortfolioValue) {
@@ -1768,6 +1822,7 @@ function refreshAllUI() {
     renderImportedFilesTable();
     renderCustomAccountsTable();
     renderCDTable();
+    renderUnifiedHoldingsTable();
     renderRealEstateTable();
     renderVehiclesTable();
 
@@ -2476,6 +2531,101 @@ function renderCDTable() {
         }
     });
     tbody.innerHTML = html;
+}
+
+/* ==========================================================================
+   Unified Holdings Table (merges customAccounts + CDs)
+   ========================================================================== */
+
+function renderUnifiedHoldingsTable() {
+    const tbody = document.querySelector('#table-unified-holdings tbody');
+    if (!tbody) return;
+
+    const total = state.customAccounts.length + state.cds.length;
+    if (total === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No accounts or CDs added yet.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+
+    state.customAccounts.forEach(acc => {
+        if (!acc || acc.value === undefined) return;
+        const isEditing = editingAccounts.includes(acc.id);
+        const hasYield = acc.type === 'Savings' || acc.type === 'Cash';
+        if (isEditing) {
+            html += `<tr>
+                <td><input type="text" class="inline-edit-input" id="edit-acc-name-${acc.id}" value="${acc.name}"></td>
+                <td><span class="text-muted">${acc.type}</span></td>
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:110px;" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}"></td>
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-acc-apy-${acc.id}" step="0.01" value="${Number(acc.apy).toFixed(2)}" ${hasYield ? '' : 'disabled'}></td>
+                <td>—</td>
+                <td class="text-right">
+                    <button class="save-btn" onclick="saveEditAccount('${acc.id}')">Save</button>
+                    <button class="cancel-btn" onclick="cancelEditAccount('${acc.id}')">Cancel</button>
+                </td>
+            </tr>`;
+        } else {
+            html += `<tr>
+                <td class="font-bold">${acc.name}</td>
+                <td><span class="badge-type">${acc.type}</span></td>
+                <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
+                <td class="text-right text-amber">${hasYield ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
+                <td class="text-muted">—</td>
+                <td class="text-right">
+                    <button class="edit-btn" onclick="startEditAccount('${acc.id}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteCustomAccount('${acc.id}')">Delete</button>
+                </td>
+            </tr>`;
+        }
+    });
+
+    state.cds.forEach(cd => {
+        if (!cd || cd.principal === undefined) return;
+        const isEditing = editingCDs.includes(cd.id);
+        const isMatured = new Date(cd.maturity) < new Date();
+        const interest = (cd.principal || 0) * ((cd.rate || 0) / 100);
+        if (isEditing) {
+            html += `<tr>
+                <td><input type="text" class="inline-edit-input" id="edit-cd-bank-${cd.id}" value="${cd.bank}"></td>
+                <td><span class="badge-type badge-cd">CD</span></td>
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:110px;" id="edit-cd-principal-${cd.id}" step="0.01" value="${Number(cd.principal).toFixed(2)}"></td>
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-cd-rate-${cd.id}" step="0.01" value="${Number(cd.rate).toFixed(2)}"></td>
+                <td><input type="date" class="inline-edit-input" id="edit-cd-maturity-${cd.id}" value="${cd.maturity}"><input type="date" class="inline-edit-input" id="edit-cd-start-${cd.id}" value="${cd.startDate || ''}" style="display:none;"></td>
+                <td class="text-right">
+                    <button class="save-btn" onclick="saveEditCD('${cd.id}')">Save</button>
+                    <button class="cancel-btn" onclick="cancelEditCD('${cd.id}')">Cancel</button>
+                </td>
+            </tr>`;
+        } else {
+            html += `<tr>
+                <td class="font-bold">${cd.bank} <span class="text-muted" style="font-size:10px;">+${formatCurrency(interest)}/yr</span></td>
+                <td><span class="badge-type badge-cd">CD</span></td>
+                <td class="text-right font-bold">${formatCurrency(cd.principal)}</td>
+                <td class="text-right text-amber">${Number(cd.rate).toFixed(2)}%</td>
+                <td style="color:${isMatured ? 'var(--color-danger)' : 'rgba(255,255,255,0.6)'};">${cd.maturity}${isMatured ? ' ⚠' : ''}</td>
+                <td class="text-right">
+                    <button class="edit-btn" onclick="startEditCD('${cd.id}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteCD('${cd.id}')">Delete</button>
+                </td>
+            </tr>`;
+        }
+    });
+
+    tbody.innerHTML = html;
+}
+
+function initUnifiedAssetForm() {
+    const tabs = document.querySelectorAll('.ua-tab-btn');
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            const target = btn.dataset.uaTab;
+            document.getElementById('ua-panel-account').style.display = target === 'account' ? '' : 'none';
+            document.getElementById('ua-panel-cd').style.display = target === 'cd' ? '' : 'none';
+        });
+    });
 }
 
 /* ==========================================================================
