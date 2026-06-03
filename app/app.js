@@ -52,8 +52,63 @@ let tableSortDir = 'desc';
 const ALLOC_COLORS = ['#10b981', '#f59e0b', '#8b5cf6', '#3b82f6'];
 const ALLOC_GREY = 'rgba(120,120,140,0.25)';
 
+// Chart time-window state ('1m'|'1y'|'5y'|'10y'|'15y'|'all')
+let dashProjWindow = 'all';
+let projWindow = 'all';
+
 // Price refresh timer
 let priceRefreshTimer = null;
+
+// Returns the number of data-points to display for a given window key.
+// Projection data is annual; null means show all.
+function windowToPoints(windowKey) {
+    switch (windowKey) {
+        case '1m': return 2;    // show ~1 year — monthly granularity isn't available
+        case '1y': return 2;
+        case '5y': return 6;
+        case '10y': return 11;
+        case '15y': return 16;
+        default:   return null; // all
+    }
+}
+
+function sliceProjectionData(data, windowKey) {
+    const n = windowToPoints(windowKey);
+    if (!n) return data;
+    return {
+        ...data,
+        labels: data.labels.slice(0, n),
+        nwData: data.nwData.slice(0, n),
+        fireLine: data.fireLine.slice(0, n),
+        leanFireLine: data.leanFireLine.slice(0, n),
+        fatFireLine: data.fatFireLine.slice(0, n),
+        coastFireLine: data.coastFireLine.slice(0, n),
+        retirementLineIndex: data.retirementLineIndex < n ? data.retirementLineIndex : -1,
+        cdEvents: data.cdEvents.filter(e => e.yearIndex < n)
+    };
+}
+
+function setPeriodBtnActive(containerId, windowKey) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.querySelectorAll('.period-btn').forEach(btn => {
+        const match = btn.textContent.toLowerCase().replace(' ', '') === windowKey
+            || (windowKey === 'all' && btn.textContent === 'All');
+        btn.classList.toggle('active', match);
+    });
+}
+
+window.setDashProjWindow = function(windowKey) {
+    dashProjWindow = windowKey;
+    setPeriodBtnActive('dash-period-btns', windowKey);
+    renderDashboardProjectionsChart();
+};
+
+window.setProjWindow = function(windowKey) {
+    projWindow = windowKey;
+    setPeriodBtnActive('proj-period-btns', windowKey);
+    calculateAndRenderProjections();
+};
 
 // Initialize App on DOM Load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -972,9 +1027,9 @@ function buildProjectionData() {
 }
 
 function calculateAndRenderProjections() {
-    const data = buildProjectionData();
-    renderProjectionsChart(data);
-    renderMilestones(data.networth, data.fireNumber, data.realReturn, data.savings);
+    const raw = buildProjectionData();
+    renderProjectionsChart(sliceProjectionData(raw, projWindow));
+    renderMilestones(raw.networth, raw.fireNumber, raw.realReturn, raw.savings);
 }
 
 function renderProjectionsChart(data) {
@@ -1139,8 +1194,8 @@ function renderDashboardProjectionsChart() {
         dashboardProjectionsChart.destroy();
     }
 
-    const data = buildProjectionData();
-    const { labels, nwData, fireLine, retirementLineIndex } = data;
+    const raw = buildProjectionData();
+    const { labels, nwData, fireLine, retirementLineIndex, cdEvents } = sliceProjectionData(raw, dashProjWindow);
 
     const annotations = {};
     if (retirementLineIndex >= 0) {
@@ -1150,9 +1205,38 @@ function renderDashboardProjectionsChart() {
             xMax: retirementLineIndex,
             borderColor: 'rgba(245, 158, 11, 0.7)',
             borderWidth: 1,
-            borderDash: [4, 3]
+            borderDash: [4, 3],
+            label: {
+                display: true,
+                content: '🎯 Retire',
+                position: 'start',
+                color: '#f59e0b',
+                font: { size: 9 },
+                backgroundColor: 'rgba(245,158,11,0.1)',
+                padding: 3
+            }
         };
     }
+    cdEvents.forEach((ev, i) => {
+        annotations[`cd_${i}`] = {
+            type: 'line',
+            xMin: ev.yearIndex,
+            xMax: ev.yearIndex,
+            borderColor: 'rgba(16,185,129,0.5)',
+            borderWidth: 1,
+            borderDash: [3, 4],
+            label: {
+                display: true,
+                content: `💰 ${ev.label}`,
+                position: 'end',
+                color: '#10b981',
+                font: { size: 9 },
+                backgroundColor: 'rgba(16,185,129,0.1)',
+                padding: 3,
+                yAdjust: 10 + (i * 14)
+            }
+        };
+    });
 
     dashboardProjectionsChart = new Chart(ctx, {
         type: 'line',
@@ -1200,6 +1284,11 @@ function renderDashboardProjectionsChart() {
             },
             plugins: {
                 legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`
+                    }
+                },
                 annotation: Object.keys(annotations).length > 0 ? { annotations } : undefined
             }
         }
