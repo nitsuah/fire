@@ -32,14 +32,6 @@
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
                     Financial Overview
                 </button>
-                <button class="nav-btn" data-tab="realestate" id="btn-tab-realestate">
-                    <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                    Real Estate
-                </button>
-                <button class="nav-btn" data-tab="vehicles" id="btn-tab-vehicles">
-                    <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
-                    Vehicles
-                </button>
                 <button class="nav-btn" data-tab="expenses" id="btn-tab-expenses">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v2h4v2H9V7h6v2z"/></svg>
                     Expenses & Taxes
@@ -245,6 +237,8 @@
                                 <div class="ua-type-tabs">
                                     <button class="ua-tab-btn active" data-ua-tab="account">Account / Asset</button>
                                     <button class="ua-tab-btn" data-ua-tab="cd">Certificate of Deposit</button>
+                                    <button class="ua-tab-btn" data-ua-tab="realestate">Real Estate</button>
+                                    <button class="ua-tab-btn" data-ua-tab="vehicle">Vehicle</button>
                                 </div>
 
                                 <div id="ua-panel-account" class="ua-panel">
@@ -305,6 +299,113 @@
                                         <button type="submit" class="primary-btn mt-2">Add CD</button>
                                     </form>
                                 </div>
+
+                                <div id="ua-panel-realestate" class="ua-panel" style="display:none;">
+                                    <form id="form-real-estate">
+                                        <div class="fo-form-row">
+                                            <div class="form-group">
+                                                <label for="re-name">Property Name</label>
+                                                <input type="text" id="re-name" placeholder="e.g. Primary Residence" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-type">Type</label>
+                                                <select id="re-type">
+                                                    <option>Primary Home</option>
+                                                    <option>Investment</option>
+                                                    <option>Rental</option>
+                                                    <option>Land</option>
+                                                    <option>Commercial</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-address">Address <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="re-address" placeholder="123 Main St">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-market-value">Market Value ($)</label>
+                                                <input type="number" id="re-market-value" min="0" step="1000" placeholder="0.00" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-purchase-price">Purchase Price ($)</label>
+                                                <input type="number" id="re-purchase-price" min="0" step="1000" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-mortgage-balance">Mortgage Balance ($)</label>
+                                                <input type="number" id="re-mortgage-balance" min="0" step="1000" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-monthly-payment">Monthly Payment ($)</label>
+                                                <input type="number" id="re-monthly-payment" min="0" step="100" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-notes">Notes <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="re-notes" placeholder="e.g. Rental income $1,200/mo">
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="primary-btn mt-2">Add Property</button>
+                                    </form>
+                                </div>
+
+                                <div id="ua-panel-vehicle" class="ua-panel" style="display:none;">
+                                    <form id="form-vehicles">
+                                        <div class="fo-form-row">
+                                            <div class="form-group">
+                                                <label for="veh-year">Year</label>
+                                                <input type="number" id="veh-year" min="1900" max="2030" placeholder="2024" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-make">Make</label>
+                                                <input type="text" id="veh-make" placeholder="Toyota" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-model">Model</label>
+                                                <input type="text" id="veh-model" placeholder="Camry" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-trim">Trim <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="veh-trim" placeholder="XSE">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-condition">Condition</label>
+                                                <select id="veh-condition">
+                                                    <option>Excellent</option>
+                                                    <option selected>Good</option>
+                                                    <option>Fair</option>
+                                                    <option>Poor</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-mileage">Mileage</label>
+                                                <input type="number" id="veh-mileage" min="0" step="100" placeholder="25000">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-current-value">Market Value ($)</label>
+                                                <input type="number" id="veh-current-value" min="0" step="500" placeholder="0.00" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-purchase-price">Purchase Price ($)</label>
+                                                <input type="number" id="veh-purchase-price" min="0" step="500" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-loan-balance">Loan Balance ($)</label>
+                                                <input type="number" id="veh-loan-balance" min="0" step="500" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-monthly-payment">Monthly Payment ($)</label>
+                                                <input type="number" id="veh-monthly-payment" min="0" step="50" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-color">Color <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="veh-color" placeholder="Midnight Black">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-notes">Notes <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="veh-notes" placeholder="e.g. Financed at 4.9%">
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="primary-btn mt-2">Add Vehicle</button>
+                                    </form>
+                                </div>
                             </div>
 
                             <!-- Unified Holdings Table -->
@@ -335,6 +436,79 @@
                                         </thead>
                                         <tbody>
                                             <tr><td colspan="6" class="text-center text-muted">No accounts or CDs added yet.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Real Estate Table -->
+                            <div class="card glass-card">
+                                <div class="card-title-row">
+                                    <h2 class="card-title">Properties</h2>
+                                    <div class="cd-inline-metrics">
+                                        <span class="text-emerald" id="re-stat-value">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">value ·</span>
+                                        <span class="text-purple" id="re-stat-equity">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">equity ·</span>
+                                        <span class="text-coral" id="re-stat-mortgage">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">mortgage ·</span>
+                                        <span id="re-stat-gain">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">gain</span>
+                                    </div>
+                                </div>
+                                <div class="table-container">
+                                    <table class="data-table" id="table-real-estate">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Type</th>
+                                                <th>Address</th>
+                                                <th class="text-right">Market Value</th>
+                                                <th class="text-right">Equity</th>
+                                                <th class="text-right">Purchase Price</th>
+                                                <th class="text-right">Gain / Loss</th>
+                                                <th class="text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="8" class="text-center text-muted">No properties added yet.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Vehicles Table -->
+                            <div class="card glass-card">
+                                <div class="card-title-row">
+                                    <h2 class="card-title">Vehicles</h2>
+                                    <div class="cd-inline-metrics">
+                                        <span class="text-emerald" id="veh-stat-value">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">value ·</span>
+                                        <span class="text-purple" id="veh-stat-equity">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">equity ·</span>
+                                        <span class="text-coral" id="veh-stat-loan">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">loan ·</span>
+                                        <span id="veh-stat-dep">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">depreciation</span>
+                                    </div>
+                                </div>
+                                <div class="table-container">
+                                    <table class="data-table" id="table-vehicles">
+                                        <thead>
+                                            <tr>
+                                                <th>Vehicle</th>
+                                                <th>Condition</th>
+                                                <th class="text-right">Mileage</th>
+                                                <th class="text-right">Current Value</th>
+                                                <th class="text-right">Equity</th>
+                                                <th class="text-right">Loan Balance</th>
+                                                <th class="text-right">Purchase Price</th>
+                                                <th class="text-right">Depreciation</th>
+                                                <th class="text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="9" class="text-center text-muted">No vehicles added yet.</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -383,6 +557,8 @@
                                     <div class="cf-row"><span class="cf-label">Transportation</span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
                                     <div class="cf-row"><span class="cf-label">Healthcare</span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
                                     <div class="cf-row"><span class="cf-label">Discretionary</span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Car Insurance (monthly equiv.)</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Home / Renters Insurance (monthly equiv.)</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
                                     <div class="cf-row cf-total-row">
                                         <span class="cf-label font-bold">Total Monthly Expenses</span>
                                         <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
@@ -416,230 +592,6 @@
 
                 </section>
 
-                <!-- TAB: Real Estate -->
-                <section class="tab-pane" id="tab-realestate">
-                    <div class="dashboard-grid">
-                        <!-- Add Property Form -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Add Property</h2>
-                            <form id="form-real-estate">
-                                <div class="form-group">
-                                    <label for="re-name">Property Name</label>
-                                    <input type="text" id="re-name" placeholder="e.g. Primary Residence, 123 Main St" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-type">Property Type</label>
-                                    <select id="re-type">
-                                        <option>Primary Home</option>
-                                        <option>Investment</option>
-                                        <option>Rental</option>
-                                        <option>Land</option>
-                                        <option>Commercial</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-address">Address <span class="text-muted">(optional)</span></label>
-                                    <input type="text" id="re-address" placeholder="123 Main St, City, State">
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-market-value">Estimated Market Value ($)</label>
-                                    <input type="number" id="re-market-value" min="0" step="1000" placeholder="0.00" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-purchase-price">Purchase Price ($) <span class="text-muted">(for P&amp;L)</span></label>
-                                    <input type="number" id="re-purchase-price" min="0" step="1000" placeholder="0.00">
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-mortgage-balance">Remaining Mortgage Balance ($)</label>
-                                    <input type="number" id="re-mortgage-balance" min="0" step="1000" placeholder="0.00">
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-monthly-payment">Monthly Payment ($) <span class="text-muted">(optional)</span></label>
-                                    <input type="number" id="re-monthly-payment" min="0" step="100" placeholder="0.00">
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-notes">Notes <span class="text-muted">(optional)</span></label>
-                                    <input type="text" id="re-notes" placeholder="e.g. Rental income $1,200/mo">
-                                </div>
-                                <button type="submit" class="primary-btn mt-2">Add Property</button>
-                            </form>
-                        </div>
-
-                        <!-- Real Estate Stats -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Portfolio Summary</h2>
-                            <div class="cd-stats-container">
-                                <div class="cd-stat-box">
-                                    <span class="cd-stat-label">Total Market Value</span>
-                                    <span class="cd-stat-value text-emerald" id="re-stat-value">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Equity (Value − Mortgage)</span>
-                                    <span class="cd-stat-value text-purple" id="re-stat-equity">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Mortgage Balance</span>
-                                    <span class="cd-stat-value text-coral" id="re-stat-mortgage">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Unrealized Gain / Loss</span>
-                                    <span class="cd-stat-value" id="re-stat-gain">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Properties Table -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Properties</h2>
-                            <div class="table-container">
-                                <table class="data-table" id="table-real-estate">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Type</th>
-                                            <th>Address</th>
-                                            <th class="text-right">Market Value</th>
-                                            <th class="text-right">Equity</th>
-                                            <th class="text-right">Purchase Price</th>
-                                            <th class="text-right">Gain / Loss</th>
-                                            <th class="text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="8" class="text-center text-muted">No properties added yet. Use the form to add your first property.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- TAB: Vehicles -->
-                <section class="tab-pane" id="tab-vehicles">
-                    <div class="dashboard-grid">
-                        <!-- Add Vehicle Form -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Add Vehicle</h2>
-                            <form id="form-vehicles">
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="veh-year">Year</label>
-                                        <input type="number" id="veh-year" min="1900" max="2030" placeholder="2024" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="veh-condition">Condition</label>
-                                        <select id="veh-condition">
-                                            <option>Excellent</option>
-                                            <option selected>Good</option>
-                                            <option>Fair</option>
-                                            <option>Poor</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="veh-make">Make</label>
-                                        <input type="text" id="veh-make" placeholder="Toyota" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="veh-model">Model</label>
-                                        <input type="text" id="veh-model" placeholder="Camry" required>
-                                    </div>
-                                </div>
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="veh-trim">Trim <span class="text-muted">(optional)</span></label>
-                                        <input type="text" id="veh-trim" placeholder="XSE">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="veh-color">Color <span class="text-muted">(optional)</span></label>
-                                        <input type="text" id="veh-color" placeholder="Midnight Black">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="veh-mileage">Current Mileage</label>
-                                    <input type="number" id="veh-mileage" min="0" step="100" placeholder="25000">
-                                </div>
-                                <div class="form-group">
-                                    <label for="veh-current-value">Current Market Value ($)</label>
-                                    <input type="number" id="veh-current-value" min="0" step="500" placeholder="0.00" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="veh-purchase-price">Purchase Price ($) <span class="text-muted">(for depreciation)</span></label>
-                                    <input type="number" id="veh-purchase-price" min="0" step="500" placeholder="0.00">
-                                </div>
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="veh-loan-balance">Loan Balance ($)</label>
-                                        <input type="number" id="veh-loan-balance" min="0" step="500" placeholder="0.00">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="veh-monthly-payment">Monthly Payment ($)</label>
-                                        <input type="number" id="veh-monthly-payment" min="0" step="50" placeholder="0.00">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="veh-notes">Notes <span class="text-muted">(optional)</span></label>
-                                    <input type="text" id="veh-notes" placeholder="e.g. Used for Uber, financed at 4.9%">
-                                </div>
-                                <button type="submit" class="primary-btn mt-2">Add Vehicle</button>
-                            </form>
-                        </div>
-
-                        <!-- Fleet Stats -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Fleet Summary</h2>
-                            <div class="cd-stats-container">
-                                <div class="cd-stat-box">
-                                    <span class="cd-stat-label">Total Fleet Value</span>
-                                    <span class="cd-stat-value text-emerald" id="veh-stat-value">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Equity (Value − Loan)</span>
-                                    <span class="cd-stat-value text-purple" id="veh-stat-equity">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Loan Balance</span>
-                                    <span class="cd-stat-value text-coral" id="veh-stat-loan">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Depreciation</span>
-                                    <span class="cd-stat-value" id="veh-stat-dep">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Vehicles Table -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Vehicle Fleet</h2>
-                            <div class="table-container">
-                                <table class="data-table" id="table-vehicles">
-                                    <thead>
-                                        <tr>
-                                            <th>Vehicle</th>
-                                            <th>Condition</th>
-                                            <th class="text-right">Mileage</th>
-                                            <th class="text-right">Current Value</th>
-                                            <th class="text-right">Equity</th>
-                                            <th class="text-right">Loan Balance</th>
-                                            <th class="text-right">Purchase Price</th>
-                                            <th class="text-right">Depreciation</th>
-                                            <th class="text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="9" class="text-center text-muted">No vehicles added yet. Use the form to add your first vehicle.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 <!-- TAB: Expenses & Taxes -->
                 <section class="tab-pane" id="tab-expenses">
                     <div class="dashboard-grid">
@@ -671,6 +623,35 @@
                                 <div class="form-group">
                                     <label for="exp-discretionary">Discretionary (Entertainment, Shopping)</label>
                                     <input type="number" id="exp-discretionary" class="expense-input" value="500">
+                                </div>
+                            </div>
+
+                            <div class="insurance-section mt-4">
+                                <h3 class="section-sub-title">Insurance</h3>
+                                <p class="card-subtitle">Enter the amount you pay and how often — we'll normalize to a monthly cost.</p>
+                                <div class="grid-2-col mt-3">
+                                    <div class="insurance-field-group">
+                                        <label>Car Insurance</label>
+                                        <div class="insurance-row">
+                                            <input type="number" id="ins-car-amt" class="insurance-amt-input" min="0" step="1" placeholder="0.00" value="0">
+                                            <select id="ins-car-freq" class="insurance-freq-select">
+                                                <option value="monthly">per month</option>
+                                                <option value="6month" selected>every 6 months</option>
+                                                <option value="annual">per year (upfront)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="insurance-field-group">
+                                        <label>Home / Renters Insurance</label>
+                                        <div class="insurance-row">
+                                            <input type="number" id="ins-home-amt" class="insurance-amt-input" min="0" step="1" placeholder="0.00" value="0">
+                                            <select id="ins-home-freq" class="insurance-freq-select">
+                                                <option value="monthly" selected>per month</option>
+                                                <option value="6month">every 6 months</option>
+                                                <option value="annual">per year (upfront)</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

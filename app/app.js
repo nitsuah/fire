@@ -17,6 +17,10 @@ let state = {
         healthcare: 150,
         discretionary: 500
     },
+    insurances: {
+        car: { amt: 0, freq: '6month' },
+        home: { amt: 0, freq: 'monthly' }
+    },
     taxRate: 20,
     sideGigLedger: [],
     projectionSettings: {
@@ -231,7 +235,12 @@ function sanitizeState(data) {
         if (!data.projectionSettings.currentAge) data.projectionSettings.currentAge = 30;
         if (!data.projectionSettings.retireAge) data.projectionSettings.retireAge = 60;
     }
-    
+
+    // Ensure insurance fields are always present
+    if (!data.insurances) data.insurances = { car: { amt: 0, freq: '6month' }, home: { amt: 0, freq: 'monthly' } };
+    if (!data.insurances.car) data.insurances.car = { amt: 0, freq: '6month' };
+    if (!data.insurances.home) data.insurances.home = { amt: 0, freq: 'monthly' };
+
     return data;
 }
 
@@ -1124,6 +1133,31 @@ function initExpenseManager() {
         });
     });
 
+    // Insurance fields
+    const insCarAmt = document.getElementById('ins-car-amt');
+    const insCarFreq = document.getElementById('ins-car-freq');
+    const insHomeAmt = document.getElementById('ins-home-amt');
+    const insHomeFreq = document.getElementById('ins-home-freq');
+
+    if (insCarAmt) insCarAmt.value = state.insurances.car.amt;
+    if (insCarFreq) insCarFreq.value = state.insurances.car.freq;
+    if (insHomeAmt) insHomeAmt.value = state.insurances.home.amt;
+    if (insHomeFreq) insHomeFreq.value = state.insurances.home.freq;
+
+    async function saveInsurance() {
+        state.insurances.car.amt = parseFloat(insCarAmt?.value) || 0;
+        state.insurances.car.freq = insCarFreq?.value || '6month';
+        state.insurances.home.amt = parseFloat(insHomeAmt?.value) || 0;
+        state.insurances.home.freq = insHomeFreq?.value || 'monthly';
+        await saveState();
+        refreshAllUI();
+    }
+
+    insCarAmt?.addEventListener('input', saveInsurance);
+    insCarFreq?.addEventListener('change', saveInsurance);
+    insHomeAmt?.addEventListener('input', saveInsurance);
+    insHomeFreq?.addEventListener('change', saveInsurance);
+
     taxSlider.addEventListener('input', async () => {
         state.taxRate = parseInt(taxSlider.value);
         taxDisplay.textContent = `${state.taxRate}%`;
@@ -1839,12 +1873,24 @@ function refreshAllUI() {
     calculateAndRenderProjections();
 }
 
+function insuranceToMonthly(ins) {
+    const amt = ins.amt || 0;
+    if (ins.freq === '6month') return amt / 6;
+    if (ins.freq === 'annual') return amt / 12;
+    return amt; // monthly
+}
+
+function getInsuranceMonthly() {
+    const ins = state.insurances || {};
+    return insuranceToMonthly(ins.car || {}) + insuranceToMonthly(ins.home || {});
+}
+
 function getMonthlyExpensesBase() {
     let base = 0;
     Object.keys(state.expenses).forEach(k => {
         base += state.expenses[k] || 0;
     });
-    return base;
+    return base + getInsuranceMonthly();
 }
 
 function getAnnualExpensesTotal() {
@@ -1947,7 +1993,10 @@ function renderMonthlyCashFlow() {
     const transport = exp.transport || 0;
     const healthcare = exp.healthcare || 0;
     const discretionary = exp.discretionary || 0;
-    const totalExpenses = housing + utilities + food + transport + healthcare + discretionary;
+    const ins = state.insurances || {};
+    const carIns = insuranceToMonthly(ins.car || {});
+    const homeIns = insuranceToMonthly(ins.home || {});
+    const totalExpenses = housing + utilities + food + transport + healthcare + discretionary + carIns + homeIns;
 
     const net = totalIncome - totalExpenses;
     const savingsRate = totalIncome > 0 ? Math.max(0, (net / totalIncome) * 100) : 0;
@@ -1963,6 +2012,8 @@ function renderMonthlyCashFlow() {
     set('cf-transport', formatCurrency(transport));
     set('cf-healthcare', formatCurrency(healthcare));
     set('cf-discretionary', formatCurrency(discretionary));
+    set('cf-car-insurance', formatCurrency(carIns));
+    set('cf-home-insurance', formatCurrency(homeIns));
     set('cf-total-expenses', formatCurrency(totalExpenses));
 
     const netEl = document.getElementById('cf-net-value');
