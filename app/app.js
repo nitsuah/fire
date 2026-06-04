@@ -1587,46 +1587,10 @@ function renderDashboardProjectionsChart() {
     const raw = buildProjectionData();
     const { labels, nwData, fireLine, retirementLineIndex, cdEvents } = sliceProjectionData(raw, dashProjWindow);
 
-    const annotations = {};
-    if (retirementLineIndex >= 0) {
-        annotations['retireLine'] = {
-            type: 'line',
-            xMin: retirementLineIndex,
-            xMax: retirementLineIndex,
-            borderColor: 'rgba(245, 158, 11, 0.7)',
-            borderWidth: 1,
-            borderDash: [4, 3],
-            label: {
-                display: true,
-                content: '🎯 Retire',
-                position: 'start',
-                color: '#f59e0b',
-                font: { size: 9 },
-                backgroundColor: 'rgba(245,158,11,0.1)',
-                padding: 3
-            }
-        };
-    }
-    cdEvents.forEach((ev, i) => {
-        annotations[`cd_${i}`] = {
-            type: 'line',
-            xMin: ev.yearIndex,
-            xMax: ev.yearIndex,
-            borderColor: 'rgba(16,185,129,0.5)',
-            borderWidth: 1,
-            borderDash: [3, 4],
-            label: {
-                display: true,
-                content: `💰 ${ev.label}`,
-                position: 'end',
-                color: '#10b981',
-                font: { size: 9 },
-                backgroundColor: 'rgba(16,185,129,0.1)',
-                padding: 3,
-                yAdjust: 10 + (i * 14)
-            }
-        };
-    });
+    const annualExpenses = getAnnualExpensesTotal();
+    const swr = state.projectionSettings.swr / 100;
+    const fireNumber = swr > 0 ? annualExpenses / swr : 0;
+    const annotations = buildProjectionAnnotations(retirementLineIndex, cdEvents, nwData, fireNumber);
 
     dashboardProjectionsChart = new Chart(ctx, {
         type: 'line',
@@ -1849,7 +1813,7 @@ function refreshAllUI() {
 
     renderQuickStatsList();
     renderDashboardTopPositionsTable();
-    renderDashboardCDNotifications();
+    renderDashboardLiquidPanel();
     renderAssetAllocationChart();
     renderDashboardProjectionsChart();
 
@@ -2363,52 +2327,71 @@ function applyAllocationFilter(categoryKey) {
 }
 
 /* ==========================================================================
-   CD Notifications Panel
+   Cash & Fixed Income Dashboard Panel (merged cash accounts + CDs)
    ========================================================================== */
 
-function renderDashboardCDNotifications() {
-    const ul = document.getElementById('dashboard-cd-list');
-    if (!ul) return;
-
-    if (state.cds.length === 0) {
-        ul.innerHTML = `<li class="text-muted text-center py-4">No active Certificate of Deposits recorded. Add them in the CDs tab.</li>`;
-        return;
-    }
+function renderDashboardLiquidPanel() {
+    const panel = document.getElementById('dashboard-liquid-panel');
+    if (!panel) return;
 
     const today = new Date();
     let html = '';
 
-    state.cds.forEach(cd => {
-        if (!cd || cd.principal === undefined || cd.principal === null) return;
-        const matDate = new Date(cd.maturity);
-        const timeDiff = matDate - today;
-        const daysToMaturity = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-        
-        let urgencyClass = '';
-        let maturityText = '';
+    // Cash accounts (Cash + Savings type from customAccounts)
+    const cashAccounts = state.customAccounts.filter(a => a.type === 'Cash' || a.type === 'Savings');
+    // Also include SPAXX/FDRXX/Pending from imported positions
+    const mmPositions = state.importedPositions.filter(p => isSettledCash(p));
 
-        if (daysToMaturity < 0) {
-            urgencyClass = 'urgent';
-            maturityText = `Matured on ${cd.maturity} (${Math.abs(daysToMaturity)} days ago)`;
-        } else if (daysToMaturity <= 30) {
-            urgencyClass = 'urgent';
-            maturityText = `Matures soon on ${cd.maturity} (${daysToMaturity} days left)`;
-        } else {
-            maturityText = `Matures on ${cd.maturity} (${daysToMaturity} days left)`;
-        }
+    if (cashAccounts.length > 0 || mmPositions.length > 0) {
+        html += `<div class="liquid-section-label">Cash &amp; Savings</div>`;
+        cashAccounts.forEach(acc => {
+            const apyStr = acc.apy > 0 ? `<span class="liquid-rate">${Number(acc.apy).toFixed(2)}% APY</span>` : '';
+            html += `<div class="liquid-row">
+                <div class="liquid-name">${acc.name} <span class="liquid-type">${acc.type}</span></div>
+                <div class="liquid-val">${formatCurrency(acc.value)} ${apyStr}</div>
+            </div>`;
+        });
+        mmPositions.forEach(pos => {
+            html += `<div class="liquid-row">
+                <div class="liquid-name">${pos.symbol} <span class="liquid-type">Money Market</span></div>
+                <div class="liquid-val">${formatCurrency(pos.value)}</div>
+            </div>`;
+        });
+    }
 
-        const annualYield = (cd.principal || 0) * ((cd.rate || 0) / 100);
-        html += `
-            <li class="notification-item ${urgencyClass}">
-                <div class="notification-text">
-                    <strong>${cd.bank} CD</strong> | ${formatCurrency(cd.principal)} at <strong>${Number(cd.rate).toFixed(2)}%</strong> APY
-                    <div class="notification-date">${maturityText}</div>
+    // CDs
+    if (state.cds.length > 0) {
+        html += `<div class="liquid-section-label mt-2">Certificates of Deposit</div>`;
+        state.cds.forEach(cd => {
+            if (!cd || cd.principal === undefined) return;
+            const matDate = new Date(cd.maturity);
+            const daysLeft = Math.ceil((matDate - today) / 86400000);
+            const isMatured = daysLeft < 0;
+            const isSoon = !isMatured && daysLeft <= 30;
+            const annualYield = (cd.principal || 0) * ((cd.rate || 0) / 100);
+            const statusColor = isMatured ? 'var(--color-danger)' : isSoon ? '#f59e0b' : 'rgba(255,255,255,0.4)';
+            const statusText = isMatured
+                ? `Matured ${Math.abs(daysLeft)}d ago`
+                : isSoon ? `Matures in ${daysLeft}d`
+                : `${daysLeft}d left`;
+            html += `<div class="liquid-row">
+                <div class="liquid-name">
+                    ${cd.bank} <span class="liquid-type">CD · ${Number(cd.rate).toFixed(2)}%</span>
+                    <span class="liquid-maturity" style="color:${statusColor};">${statusText}</span>
                 </div>
-                <div class="cd-yield-badge">${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></div>
-            </li>
-        `;
-    });
-    ul.innerHTML = html;
+                <div class="liquid-val">
+                    ${formatCurrency(cd.principal)}
+                    <span class="cd-yield-badge">${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></span>
+                </div>
+            </div>`;
+        });
+    }
+
+    if (!html) {
+        panel.innerHTML = `<p class="text-muted text-center" style="padding:12px 0;">No cash accounts or CDs recorded yet.</p>`;
+        return;
+    }
+    panel.innerHTML = html;
 }
 
 /* ==========================================================================
@@ -2420,7 +2403,7 @@ function renderImportedFilesTable() {
     if (!tbody) return;
 
     if (state.importedFiles.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No files imported yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No files imported yet.</td></tr>`;
         return;
     }
 
@@ -2428,10 +2411,9 @@ function renderImportedFilesTable() {
     state.importedFiles.forEach((file, index) => {
         html += `
             <tr>
-                <td class="font-bold">${file.name}</td>
+                <td class="font-bold" title="${file.date}">${file.name}</td>
                 <td><span class="text-purple">${file.source}</span></td>
-                <td>${file.date}</td>
-                <td>${file.records} records</td>
+                <td>${file.records}</td>
                 <td class="text-right">
                     <button class="delete-btn" onclick="deleteImportedFile(${index})">Remove</button>
                 </td>
@@ -2668,13 +2650,16 @@ function renderUnifiedHoldingsTable() {
 
 function initUnifiedAssetForm() {
     const tabs = document.querySelectorAll('.ua-tab-btn');
+    const panels = ['account', 'cd', 'realestate', 'vehicle'];
     tabs.forEach(btn => {
         btn.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
             btn.classList.add('active');
             const target = btn.dataset.uaTab;
-            document.getElementById('ua-panel-account').style.display = target === 'account' ? '' : 'none';
-            document.getElementById('ua-panel-cd').style.display = target === 'cd' ? '' : 'none';
+            panels.forEach(p => {
+                const el = document.getElementById(`ua-panel-${p}`);
+                if (el) el.style.display = target === p ? '' : 'none';
+            });
         });
     });
 }

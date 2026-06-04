@@ -1619,6 +1619,83 @@ h1, h2, h3, h4, h5, h6 {
     color: #fcd34d;
 }
 
+/* Cash & Fixed Income dashboard panel */
+.liquid-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin: 4px 0 6px;
+}
+.liquid-section-label.mt-2 { margin-top: 12px; }
+
+.liquid-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 12px;
+}
+.liquid-row:last-child { border-bottom: none; }
+
+.liquid-name {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liquid-type {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.35);
+}
+
+.liquid-maturity {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.liquid-val {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-weight: 700;
+    color: #10b981;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.liquid-rate {
+    font-size: 10px;
+    font-weight: 600;
+    color: #f59e0b;
+}
+
+/* FO import card (right panel) */
+.fo-import-card .fo-import-drop {
+    padding: 10px 14px;
+    gap: 8px;
+    justify-content: flex-start;
+}
+.fo-import-card .fo-upload-icon {
+    width: 16px;
+    height: 16px;
+}
+.fo-import-card .fo-import-label {
+    font-size: 11px;
+}
+
 /* Insurance fields in Expenses tab */
 .insurance-section {
     border-top: 1px solid rgba(255,255,255,0.08);

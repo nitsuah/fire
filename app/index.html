@@ -182,17 +182,17 @@
                                 </div>
                             </div>
 
+                            <!-- Cash & Fixed Income -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Cash &amp; Fixed Income</h2>
+                                <div id="dashboard-liquid-panel">
+                                    <p class="text-muted text-center" style="padding:12px 0;">No cash or CDs recorded yet.</p>
+                                </div>
+                            </div>
+
                             <!-- Diversification Suggestions -->
                             <div class="card glass-card">
                                 <div id="divs-suggestion-block" class="divs-suggestion-block"></div>
-                            </div>
-
-                            <!-- CDs Maturing Soon -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">CDs Maturing Soon</h2>
-                                <ul class="notification-list" id="dashboard-cd-list">
-                                    <li class="text-muted text-center py-4">No active Certificate of Deposits recorded. Add them in the CDs tab.</li>
-                                </ul>
                             </div>
                         </div>
                     </div>
@@ -202,30 +202,6 @@
                 <section class="tab-pane" id="tab-financial">
 
                     <!-- Compact Import Sub-bar -->
-                    <div class="fo-import-bar">
-                        <div class="fo-import-drop" id="csv-drag-zone">
-                            <svg class="fo-upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                            <span class="fo-import-label">Drop CSV to import — Fidelity, Chase, Capital One supported &nbsp;·&nbsp; read-only, local only</span>
-                            <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
-                        </div>
-                        <div class="fo-import-files">
-                            <table class="data-table fo-import-table" id="table-imported-files">
-                                <thead>
-                                    <tr>
-                                        <th>File</th>
-                                        <th>Source</th>
-                                        <th>Imported</th>
-                                        <th>Records</th>
-                                        <th class="text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr><td colspan="5" class="text-center text-muted">No files imported yet.</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
                     <!-- Two-column body -->
                     <div class="fo-body">
 
@@ -524,6 +500,27 @@
                         <!-- RIGHT: Cash Flow panel -->
                         <div class="fo-right">
 
+                            <!-- Net Cash Flow (top) -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Net Monthly Cash Flow</h2>
+                                <div class="cf-net-container">
+                                    <div class="cf-net-value" id="cf-net-value">$0</div>
+                                    <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
+                                    <div class="cf-bar-wrap mt-4">
+                                        <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
+                                        <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
+                                    </div>
+                                    <div class="cf-savings-rate mt-3">
+                                        <span class="cf-label">Savings Rate</span>
+                                        <span class="cf-val font-bold" id="cf-savings-rate">0%</span>
+                                    </div>
+                                    <div class="cf-annual-row mt-2">
+                                        <span class="cf-label">Annual Surplus / Deficit</span>
+                                        <span class="cf-val font-bold" id="cf-annual-surplus">$0</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Income Sources -->
                             <div class="card glass-card">
                                 <h2 class="card-title">Income Sources</h2>
@@ -557,8 +554,8 @@
                                     <div class="cf-row"><span class="cf-label">Transportation</span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
                                     <div class="cf-row"><span class="cf-label">Healthcare</span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
                                     <div class="cf-row"><span class="cf-label">Discretionary</span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Car Insurance (monthly equiv.)</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Home / Renters Insurance (monthly equiv.)</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Car Insurance</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Home / Renters Insurance</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
                                     <div class="cf-row cf-total-row">
                                         <span class="cf-label font-bold">Total Monthly Expenses</span>
                                         <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
@@ -566,24 +563,28 @@
                                 </div>
                             </div>
 
-                            <!-- Net Cash Flow -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Net Monthly Cash Flow</h2>
-                                <div class="cf-net-container">
-                                    <div class="cf-net-value" id="cf-net-value">$0</div>
-                                    <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
-                                    <div class="cf-bar-wrap mt-4">
-                                        <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
-                                        <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
-                                    </div>
-                                    <div class="cf-savings-rate mt-3">
-                                        <span class="cf-label">Savings Rate</span>
-                                        <span class="cf-val font-bold" id="cf-savings-rate">0%</span>
-                                    </div>
-                                    <div class="cf-annual-row mt-2">
-                                        <span class="cf-label">Annual Surplus / Deficit</span>
-                                        <span class="cf-val font-bold" id="cf-annual-surplus">$0</span>
-                                    </div>
+                            <!-- CSV Import (compact, bottom of right panel) -->
+                            <div class="card glass-card fo-import-card">
+                                <h2 class="card-title">Import Data</h2>
+                                <div class="fo-import-drop" id="csv-drag-zone">
+                                    <svg class="fo-upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                                    <span class="fo-import-label">Drop CSV — Fidelity, Chase, Capital One &nbsp;·&nbsp; read-only, local</span>
+                                    <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
+                                </div>
+                                <div class="table-container mt-2">
+                                    <table class="data-table fo-import-table" id="table-imported-files">
+                                        <thead>
+                                            <tr>
+                                                <th>File</th>
+                                                <th>Source</th>
+                                                <th>Records</th>
+                                                <th class="text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="4" class="text-center text-muted">No files imported yet.</td></tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
 
