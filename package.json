@@ -4,9 +4,22 @@
   "description": "Lightweight FIRE Tracker & API Server",
   "main": "app/server.js",
   "scripts": {
-    "start": "node app/server.js"
+    "start": "node app/server.js",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "build": "echo 'No build step required for this project' && exit 0"
   },
   "dependencies": {
     "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "globals": "^15.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "prettier": "^3.3.3",
+    "supertest": "^7.0.0",
+    "vitest": "^2.0.5"
   }
 }

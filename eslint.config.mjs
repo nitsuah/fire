@@ -1,34 +1,63 @@
 import js from '@eslint/js';
+import globals from 'globals';
 import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
 
 export default [
-  // Apply recommended ESLint rules for JavaScript
-  js.configs.recommended,
+    js.configs.recommended,
 
-  // Configure Prettier as an ESLint plugin
-  {
-    plugins: {
-      prettier: prettierPlugin,
+    // Node.js files (server)
+    {
+        files: ['app/server.js'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+            },
+        },
     },
-    rules: {
-      'prettier/prettier': 'error',
-      // Add any additional JavaScript-specific rules or overrides here
-      // For example:
-      // 'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
-      // 'indent': ['error', 2],
-      // 'linebreak-style': ['error', 'unix'],
-      // 'quotes': ['error', 'single'],
-      // 'semi': ['error', 'always'],
+
+    // Test files (vitest globals are a superset of jest globals)
+    {
+        files: ['**/*.test.js'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.jest,
+            },
+        },
     },
-  },
 
-  // Disable ESLint rules that conflict with Prettier
-  // This must be the last configuration in the array to ensure it overrides all other configs
-  prettierConfig,
+    // Browser-side application code
+    {
+        files: ['app/app.js'],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+                Chart: 'readonly',
+            },
+        },
+    },
 
-  // Global ignore patterns
-  {
-    ignores: ['dist/', 'node_modules/', 'build/', '.next/', 'out/'],
-  },
+    // Prettier integration
+    {
+        plugins: {
+            prettier: prettierPlugin,
+        },
+        rules: {
+            'prettier/prettier': 'error',
+        },
+    },
+
+    prettierConfig,
+
+    {
+        ignores: [
+            'dist/',
+            'node_modules/',
+            'build/',
+            '.next/',
+            'out/',
+            'app/app.js',
+        ],
+    },
 ];
