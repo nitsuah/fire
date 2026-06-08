@@ -32,14 +32,6 @@
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
                     Financial Overview
                 </button>
-                <button class="nav-btn" data-tab="realestate" id="btn-tab-realestate">
-                    <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                    Real Estate
-                </button>
-                <button class="nav-btn" data-tab="vehicles" id="btn-tab-vehicles">
-                    <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
-                    Vehicles
-                </button>
                 <button class="nav-btn" data-tab="expenses" id="btn-tab-expenses">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v2h4v2H9V7h6v2z"/></svg>
                     Expenses & Taxes
@@ -93,6 +85,7 @@
                     <span class="fire-prog-target" id="banner-target">Target: $0.00</span>
                 </div>
             </header>
+            <div id="alloc-tooltip" class="alloc-tooltip" style="display:none;"></div>
 
             <div class="scroll-container">
                 <!-- TAB: Dashboard -->
@@ -145,7 +138,6 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <div id="divs-suggestion-block" class="divs-suggestion-block"></div>
                             </div>
                         </div>
 
@@ -190,12 +182,17 @@
                                 </div>
                             </div>
 
-                            <!-- CDs Maturing Soon -->
+                            <!-- Cash & Fixed Income -->
                             <div class="card glass-card">
-                                <h2 class="card-title">CDs Maturing Soon</h2>
-                                <ul class="notification-list" id="dashboard-cd-list">
-                                    <li class="text-muted text-center py-4">No active Certificate of Deposits recorded. Add them in the CDs tab.</li>
-                                </ul>
+                                <h2 class="card-title">Cash &amp; Fixed Income</h2>
+                                <div id="dashboard-liquid-panel">
+                                    <p class="text-muted text-center" style="padding:12px 0;">No cash or CDs recorded yet.</p>
+                                </div>
+                            </div>
+
+                            <!-- Diversification Suggestions -->
+                            <div class="card glass-card">
+                                <div id="divs-suggestion-block" class="divs-suggestion-block"></div>
                             </div>
                         </div>
                     </div>
@@ -204,484 +201,396 @@
                 <!-- TAB: Financial Overview (merged Accounts + CDs + Cash Flow) -->
                 <section class="tab-pane" id="tab-financial">
 
-                    <!-- Section: Import & Accounts -->
-                    <div class="fo-section-label">Import &amp; Accounts</div>
-                    <div class="dashboard-grid">
-                        <!-- Import CSV Zone -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Safe Read-Only Import</h2>
-                            <p class="card-subtitle">Upload CSV exports from your financial institutions. All parsing is done purely locally in your browser. No files or credentials are ever sent to a server.</p>
+                    <!-- Compact Import Sub-bar -->
+                    <!-- Two-column body -->
+                    <div class="fo-body">
 
-                            <div class="import-drag-zone" id="csv-drag-zone">
-                                <svg class="upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                                <h3>Drag & Drop Financial CSV exports here</h3>
-                                <p>or click to browse files</p>
-                                <span class="accepted-formats">Supported: Fidelity Positions CSV, Chase transaction CSV, Capital One CSV</span>
-                                <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
+                        <!-- LEFT: Unified form + holdings -->
+                        <div class="fo-left">
+
+                            <!-- Unified Add Form -->
+                            <div class="card glass-card">
+                                <div class="ua-type-tabs">
+                                    <button class="ua-tab-btn active" data-ua-tab="account">Account / Asset</button>
+                                    <button class="ua-tab-btn" data-ua-tab="cd">Certificate of Deposit</button>
+                                    <button class="ua-tab-btn" data-ua-tab="realestate">Real Estate</button>
+                                    <button class="ua-tab-btn" data-ua-tab="vehicle">Vehicle</button>
+                                </div>
+
+                                <div id="ua-panel-account" class="ua-panel">
+                                    <form id="form-custom-account">
+                                        <div class="fo-form-row">
+                                            <div class="form-group">
+                                                <label for="acc-name">Name</label>
+                                                <input type="text" id="acc-name" placeholder="e.g. Chase Savings" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="acc-type">Type</label>
+                                                <select id="acc-type">
+                                                    <option value="Cash">Cash &amp; Checking</option>
+                                                    <option value="Savings">High Yield Savings</option>
+                                                    <option value="Crypto">Cryptocurrency</option>
+                                                    <option value="Brokerage">Custom Brokerage</option>
+                                                    <option value="RealEstate">Real Estate</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="acc-val">Value ($)</label>
+                                                <input type="number" id="acc-val" min="0" step="0.01" placeholder="0.00" required>
+                                            </div>
+                                            <div class="form-group" id="group-acc-apy">
+                                                <label for="acc-apy">APY (%)</label>
+                                                <input type="number" id="acc-apy" min="0" max="30" step="0.01" placeholder="0.00" value="0.00">
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="primary-btn mt-2">Add Account</button>
+                                    </form>
+                                </div>
+
+                                <div id="ua-panel-cd" class="ua-panel" style="display:none;">
+                                    <form id="form-cd-entry">
+                                        <div class="fo-form-row">
+                                            <div class="form-group">
+                                                <label for="cd-bank">Bank</label>
+                                                <input type="text" id="cd-bank" placeholder="e.g. Marcus" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="cd-principal">Principal ($)</label>
+                                                <input type="number" id="cd-principal" min="0" step="0.01" placeholder="0.00" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="cd-rate">APY (%)</label>
+                                                <input type="number" id="cd-rate" min="0" step="0.01" placeholder="5.10" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="cd-start">Start</label>
+                                                <input type="date" id="cd-start" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="cd-maturity">Maturity</label>
+                                                <input type="date" id="cd-maturity" required>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="primary-btn mt-2">Add CD</button>
+                                    </form>
+                                </div>
+
+                                <div id="ua-panel-realestate" class="ua-panel" style="display:none;">
+                                    <form id="form-real-estate">
+                                        <div class="fo-form-row">
+                                            <div class="form-group">
+                                                <label for="re-name">Property Name</label>
+                                                <input type="text" id="re-name" placeholder="e.g. Primary Residence" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-type">Type</label>
+                                                <select id="re-type">
+                                                    <option>Primary Home</option>
+                                                    <option>Investment</option>
+                                                    <option>Rental</option>
+                                                    <option>Land</option>
+                                                    <option>Commercial</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-address">Address <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="re-address" placeholder="123 Main St">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-market-value">Market Value ($)</label>
+                                                <input type="number" id="re-market-value" min="0" step="1000" placeholder="0.00" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-purchase-price">Purchase Price ($)</label>
+                                                <input type="number" id="re-purchase-price" min="0" step="1000" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-mortgage-balance">Mortgage Balance ($)</label>
+                                                <input type="number" id="re-mortgage-balance" min="0" step="1000" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-monthly-payment">Monthly Payment ($)</label>
+                                                <input type="number" id="re-monthly-payment" min="0" step="100" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="re-notes">Notes <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="re-notes" placeholder="e.g. Rental income $1,200/mo">
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="primary-btn mt-2">Add Property</button>
+                                    </form>
+                                </div>
+
+                                <div id="ua-panel-vehicle" class="ua-panel" style="display:none;">
+                                    <form id="form-vehicles">
+                                        <div class="fo-form-row">
+                                            <div class="form-group">
+                                                <label for="veh-year">Year</label>
+                                                <input type="number" id="veh-year" min="1900" max="2030" placeholder="2024" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-make">Make</label>
+                                                <input type="text" id="veh-make" placeholder="Toyota" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-model">Model</label>
+                                                <input type="text" id="veh-model" placeholder="Camry" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-trim">Trim <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="veh-trim" placeholder="XSE">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-condition">Condition</label>
+                                                <select id="veh-condition">
+                                                    <option>Excellent</option>
+                                                    <option selected>Good</option>
+                                                    <option>Fair</option>
+                                                    <option>Poor</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-mileage">Mileage</label>
+                                                <input type="number" id="veh-mileage" min="0" step="100" placeholder="25000">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-current-value">Market Value ($)</label>
+                                                <input type="number" id="veh-current-value" min="0" step="500" placeholder="0.00" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-purchase-price">Purchase Price ($)</label>
+                                                <input type="number" id="veh-purchase-price" min="0" step="500" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-loan-balance">Loan Balance ($)</label>
+                                                <input type="number" id="veh-loan-balance" min="0" step="500" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-monthly-payment">Monthly Payment ($)</label>
+                                                <input type="number" id="veh-monthly-payment" min="0" step="50" placeholder="0.00">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-color">Color <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="veh-color" placeholder="Midnight Black">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="veh-notes">Notes <span class="text-muted">(optional)</span></label>
+                                                <input type="text" id="veh-notes" placeholder="e.g. Financed at 4.9%">
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="primary-btn mt-2">Add Vehicle</button>
+                                    </form>
+                                </div>
                             </div>
 
-                            <div class="file-history-container mt-4">
-                                <h3>Imported Statements &amp; Portfolios</h3>
+                            <!-- Unified Holdings Table -->
+                            <div class="card glass-card">
+                                <div class="card-title-row">
+                                    <h2 class="card-title">Holdings</h2>
+                                    <div class="cd-inline-metrics">
+                                        <span class="text-muted" style="font-size:11px;">CDs:</span>
+                                        <span class="text-emerald" id="cd-total-principal">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">principal ·</span>
+                                        <span class="text-amber" id="cd-total-interest">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">annual ·</span>
+                                        <span class="text-purple" id="cd-weighted-apy">0.00%</span>
+                                        <span class="text-muted" style="font-size:11px;">yield</span>
+                                    </div>
+                                </div>
                                 <div class="table-container">
-                                    <table class="data-table" id="table-imported-files">
+                                    <table class="data-table" id="table-unified-holdings">
                                         <thead>
                                             <tr>
-                                                <th>File Name</th>
-                                                <th>Source Type</th>
-                                                <th>Date Imported</th>
-                                                <th>Records Found</th>
+                                                <th>Name</th>
+                                                <th>Category</th>
+                                                <th class="text-right">Value / Principal</th>
+                                                <th class="text-right">Rate / APY</th>
+                                                <th>Maturity</th>
                                                 <th class="text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr>
-                                                <td colspan="5" class="text-center text-muted">No files imported yet.</td>
-                                            </tr>
+                                            <tr><td colspan="6" class="text-center text-muted">No accounts or CDs added yet.</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Manual Account Entry -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Add Custom Account / Asset</h2>
-                            <form id="form-custom-account">
-                                <div class="form-group">
-                                    <label for="acc-name">Account/Asset Name</label>
-                                    <input type="text" id="acc-name" placeholder="e.g. Chase Savings, Coinbase Crypto" required>
+                            <!-- Real Estate Table -->
+                            <div class="card glass-card">
+                                <div class="card-title-row">
+                                    <h2 class="card-title">Properties</h2>
+                                    <div class="cd-inline-metrics">
+                                        <span class="text-emerald" id="re-stat-value">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">value ·</span>
+                                        <span class="text-purple" id="re-stat-equity">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">equity ·</span>
+                                        <span class="text-coral" id="re-stat-mortgage">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">mortgage ·</span>
+                                        <span id="re-stat-gain">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">gain</span>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="acc-type">Asset Type</label>
-                                    <select id="acc-type">
-                                        <option value="Cash">Cash & Checking</option>
-                                        <option value="Savings">High Yield Savings (HYSA)</option>
-                                        <option value="Crypto">Cryptocurrency</option>
-                                        <option value="Brokerage">Custom Brokerage Account</option>
-                                        <option value="RealEstate">Real Estate & Equity</option>
-                                        <option value="Other">Other / Alternatives</option>
-                                    </select>
+                                <div class="table-container">
+                                    <table class="data-table" id="table-real-estate">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Type</th>
+                                                <th>Address</th>
+                                                <th class="text-right">Market Value</th>
+                                                <th class="text-right">Equity</th>
+                                                <th class="text-right">Purchase Price</th>
+                                                <th class="text-right">Gain / Loss</th>
+                                                <th class="text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="8" class="text-center text-muted">No properties added yet.</td></tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div class="form-group">
-                                    <label for="acc-val">Current Value ($)</label>
-                                    <input type="number" id="acc-val" min="0" step="0.01" placeholder="0.00" required>
-                                </div>
-                                <div class="form-group" id="group-acc-apy">
-                                    <label for="acc-apy">APY / Annual Yield (%)</label>
-                                    <input type="number" id="acc-apy" min="0" max="30" step="0.01" placeholder="e.g. 4.50" value="0.00">
-                                </div>
-                                <button type="submit" class="primary-btn mt-2">Add Account</button>
-                            </form>
-                        </div>
-
-                        <!-- Custom Accounts List -->
-                        <div class="card glass-card span-3">
-                            <h2 class="card-title">Assets &amp; Custom Accounts Portfolio</h2>
-                            <div class="table-container">
-                                <table class="data-table" id="table-custom-accounts">
-                                    <thead>
-                                        <tr>
-                                            <th>Account/Asset Name</th>
-                                            <th>Type</th>
-                                            <th class="text-right">APY</th>
-                                            <th class="text-right">Current Value</th>
-                                            <th class="text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="4" class="text-center text-muted">No manual accounts entered.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
                             </div>
+
+                            <!-- Vehicles Table -->
+                            <div class="card glass-card">
+                                <div class="card-title-row">
+                                    <h2 class="card-title">Vehicles</h2>
+                                    <div class="cd-inline-metrics">
+                                        <span class="text-emerald" id="veh-stat-value">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">value ·</span>
+                                        <span class="text-purple" id="veh-stat-equity">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">equity ·</span>
+                                        <span class="text-coral" id="veh-stat-loan">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">loan ·</span>
+                                        <span id="veh-stat-dep">$0.00</span>
+                                        <span class="text-muted" style="font-size:11px;">depreciation</span>
+                                    </div>
+                                </div>
+                                <div class="table-container">
+                                    <table class="data-table" id="table-vehicles">
+                                        <thead>
+                                            <tr>
+                                                <th>Vehicle</th>
+                                                <th>Condition</th>
+                                                <th class="text-right">Mileage</th>
+                                                <th class="text-right">Current Value</th>
+                                                <th class="text-right">Equity</th>
+                                                <th class="text-right">Loan Balance</th>
+                                                <th class="text-right">Purchase Price</th>
+                                                <th class="text-right">Depreciation</th>
+                                                <th class="text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="9" class="text-center text-muted">No vehicles added yet.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Hidden backing tables (used by existing render functions for CD metrics & compat) -->
+                            <div style="display:none;">
+                                <table id="table-custom-accounts"><thead><tr><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody></table>
+                                <table id="table-cd-list"><thead><tr><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody></table>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT: Cash Flow panel -->
+                        <div class="fo-right">
+
+                            <!-- Net Cash Flow (top) -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Net Monthly Cash Flow</h2>
+                                <div class="cf-net-container">
+                                    <div class="cf-net-value" id="cf-net-value">$0</div>
+                                    <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
+                                    <div class="cf-bar-wrap mt-4">
+                                        <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
+                                        <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
+                                    </div>
+                                    <div class="cf-savings-rate mt-3">
+                                        <span class="cf-label">Savings Rate</span>
+                                        <span class="cf-val font-bold" id="cf-savings-rate">0%</span>
+                                    </div>
+                                    <div class="cf-annual-row mt-2">
+                                        <span class="cf-label">Annual Surplus / Deficit</span>
+                                        <span class="cf-val font-bold" id="cf-annual-surplus">$0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Income Sources -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Income Sources</h2>
+                                <div class="cf-list" id="cashflow-income-list">
+                                    <div class="cf-row">
+                                        <span class="cf-label">Salary / W2 (monthly)</span>
+                                        <span class="cf-val text-emerald" id="cf-salary">$0</span>
+                                    </div>
+                                    <div class="cf-row">
+                                        <span class="cf-label">Side Hustle (YTD avg)</span>
+                                        <span class="cf-val text-emerald" id="cf-sidegig">$0</span>
+                                    </div>
+                                    <div class="cf-row">
+                                        <span class="cf-label">CD Interest (monthly)</span>
+                                        <span class="cf-val text-amber" id="cf-cd-interest">$0</span>
+                                    </div>
+                                    <div class="cf-row cf-total-row">
+                                        <span class="cf-label font-bold">Total Monthly Income</span>
+                                        <span class="cf-val text-emerald font-bold" id="cf-total-income">$0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Monthly Expenses -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Monthly Expenses</h2>
+                                <div class="cf-list">
+                                    <div class="cf-row"><span class="cf-label">Housing</span><span class="cf-val text-coral" id="cf-housing">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Utilities</span><span class="cf-val text-coral" id="cf-utilities">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Food &amp; Groceries</span><span class="cf-val text-coral" id="cf-food">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Transportation</span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Healthcare</span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Discretionary</span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Car Insurance</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
+                                    <div class="cf-row"><span class="cf-label">Home / Renters Insurance</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
+                                    <div class="cf-row cf-total-row">
+                                        <span class="cf-label font-bold">Total Monthly Expenses</span>
+                                        <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CSV Import (compact, bottom of right panel) -->
+                            <div class="card glass-card fo-import-card">
+                                <h2 class="card-title">Import Data</h2>
+                                <div class="fo-import-drop" id="csv-drag-zone">
+                                    <svg class="fo-upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                                    <span class="fo-import-label">Drop CSV — Fidelity, Chase, Capital One &nbsp;·&nbsp; read-only, local</span>
+                                    <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
+                                </div>
+                                <div class="table-container mt-2">
+                                    <table class="data-table fo-import-table" id="table-imported-files">
+                                        <thead>
+                                            <tr>
+                                                <th>File</th>
+                                                <th>Source</th>
+                                                <th>Records</th>
+                                                <th class="text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td colspan="4" class="text-center text-muted">No files imported yet.</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
-                    <!-- Section: CDs & Fixed Income -->
-                    <div class="fo-section-label mt-6">CDs &amp; Fixed Income</div>
-                    <div class="dashboard-grid">
-                        <!-- Add CD Form -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Add Certificate of Deposit</h2>
-                            <form id="form-cd-entry">
-                                <div class="form-group">
-                                    <label for="cd-bank">Issuing Bank</label>
-                                    <input type="text" id="cd-bank" placeholder="e.g. Capital One, Marcus" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="cd-principal">Principal Amount ($)</label>
-                                    <input type="number" id="cd-principal" min="0" step="0.01" placeholder="0.00" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="cd-rate">Annual Interest Rate (APY %)</label>
-                                    <input type="number" id="cd-rate" min="0" step="0.01" placeholder="e.g. 5.10" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="cd-start">Start Date</label>
-                                    <input type="date" id="cd-start" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="cd-maturity">Maturity Date</label>
-                                    <input type="date" id="cd-maturity" required>
-                                </div>
-                                <button type="submit" class="primary-btn mt-2">Add CD Position</button>
-                            </form>
-                        </div>
-
-                        <!-- CD Statistics & Totals -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">CD Metrics</h2>
-                            <div class="cd-stats-container">
-                                <div class="cd-stat-box">
-                                    <span class="cd-stat-label">Total CDs Principal</span>
-                                    <span class="cd-stat-value text-emerald" id="cd-total-principal">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Interest Earned at Maturity</span>
-                                    <span class="cd-stat-value text-amber" id="cd-total-interest">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Weighted Yield (APY)</span>
-                                    <span class="cd-stat-value text-purple" id="cd-weighted-apy">0.00%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Active CD Table / Ladder -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Certificate of Deposit (CD) Ladder</h2>
-                            <div class="table-container">
-                                <table class="data-table" id="table-cd-list">
-                                    <thead>
-                                        <tr>
-                                            <th>Bank</th>
-                                            <th class="text-right">Principal</th>
-                                            <th class="text-right">APY</th>
-                                            <th>Start Date</th>
-                                            <th>Maturity Date</th>
-                                            <th class="text-right">Est. Return</th>
-                                            <th class="text-right">Status</th>
-                                            <th class="text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="7" class="text-center text-muted">No CDs logged. Enter your CD details in the form.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section: Monthly Cash Flow -->
-                    <div class="fo-section-label mt-6">Monthly Cash Flow</div>
-                    <div class="dashboard-grid">
-                        <!-- Income Sources -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Income Sources</h2>
-                            <div class="cf-list" id="cashflow-income-list">
-                                <div class="cf-row">
-                                    <span class="cf-label">Salary / W2 (monthly)</span>
-                                    <span class="cf-val text-emerald" id="cf-salary">$0</span>
-                                </div>
-                                <div class="cf-row">
-                                    <span class="cf-label">Side Hustle (YTD avg)</span>
-                                    <span class="cf-val text-emerald" id="cf-sidegig">$0</span>
-                                </div>
-                                <div class="cf-row">
-                                    <span class="cf-label">CD Interest (monthly)</span>
-                                    <span class="cf-val text-amber" id="cf-cd-interest">$0</span>
-                                </div>
-                                <div class="cf-row cf-total-row">
-                                    <span class="cf-label font-bold">Total Monthly Income</span>
-                                    <span class="cf-val text-emerald font-bold" id="cf-total-income">$0</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Expense Breakdown -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Monthly Expenses</h2>
-                            <div class="cf-list">
-                                <div class="cf-row">
-                                    <span class="cf-label">Housing</span>
-                                    <span class="cf-val text-coral" id="cf-housing">$0</span>
-                                </div>
-                                <div class="cf-row">
-                                    <span class="cf-label">Utilities</span>
-                                    <span class="cf-val text-coral" id="cf-utilities">$0</span>
-                                </div>
-                                <div class="cf-row">
-                                    <span class="cf-label">Food &amp; Groceries</span>
-                                    <span class="cf-val text-coral" id="cf-food">$0</span>
-                                </div>
-                                <div class="cf-row">
-                                    <span class="cf-label">Transportation</span>
-                                    <span class="cf-val text-coral" id="cf-transport">$0</span>
-                                </div>
-                                <div class="cf-row">
-                                    <span class="cf-label">Healthcare</span>
-                                    <span class="cf-val text-coral" id="cf-healthcare">$0</span>
-                                </div>
-                                <div class="cf-row">
-                                    <span class="cf-label">Discretionary</span>
-                                    <span class="cf-val text-coral" id="cf-discretionary">$0</span>
-                                </div>
-                                <div class="cf-row cf-total-row">
-                                    <span class="cf-label font-bold">Total Monthly Expenses</span>
-                                    <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Net Cash Flow Summary -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Net Monthly Cash Flow</h2>
-                            <div class="cf-net-container">
-                                <div class="cf-net-value" id="cf-net-value">$0</div>
-                                <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
-                                <div class="cf-bar-wrap mt-4">
-                                    <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
-                                    <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
-                                </div>
-                                <div class="cf-savings-rate mt-3">
-                                    <span class="cf-label">Savings Rate</span>
-                                    <span class="cf-val font-bold" id="cf-savings-rate">0%</span>
-                                </div>
-                                <div class="cf-annual-row mt-2">
-                                    <span class="cf-label">Annual Surplus / Deficit</span>
-                                    <span class="cf-val font-bold" id="cf-annual-surplus">$0</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </section>
-
-                <!-- TAB: Real Estate -->
-                <section class="tab-pane" id="tab-realestate">
-                    <div class="dashboard-grid">
-                        <!-- Add Property Form -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Add Property</h2>
-                            <form id="form-real-estate">
-                                <div class="form-group">
-                                    <label for="re-name">Property Name</label>
-                                    <input type="text" id="re-name" placeholder="e.g. Primary Residence, 123 Main St" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-type">Property Type</label>
-                                    <select id="re-type">
-                                        <option>Primary Home</option>
-                                        <option>Investment</option>
-                                        <option>Rental</option>
-                                        <option>Land</option>
-                                        <option>Commercial</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-address">Address <span class="text-muted">(optional)</span></label>
-                                    <input type="text" id="re-address" placeholder="123 Main St, City, State">
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-market-value">Estimated Market Value ($)</label>
-                                    <input type="number" id="re-market-value" min="0" step="1000" placeholder="0.00" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-purchase-price">Purchase Price ($) <span class="text-muted">(for P&amp;L)</span></label>
-                                    <input type="number" id="re-purchase-price" min="0" step="1000" placeholder="0.00">
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-mortgage-balance">Remaining Mortgage Balance ($)</label>
-                                    <input type="number" id="re-mortgage-balance" min="0" step="1000" placeholder="0.00">
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-monthly-payment">Monthly Payment ($) <span class="text-muted">(optional)</span></label>
-                                    <input type="number" id="re-monthly-payment" min="0" step="100" placeholder="0.00">
-                                </div>
-                                <div class="form-group">
-                                    <label for="re-notes">Notes <span class="text-muted">(optional)</span></label>
-                                    <input type="text" id="re-notes" placeholder="e.g. Rental income $1,200/mo">
-                                </div>
-                                <button type="submit" class="primary-btn mt-2">Add Property</button>
-                            </form>
-                        </div>
-
-                        <!-- Real Estate Stats -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Portfolio Summary</h2>
-                            <div class="cd-stats-container">
-                                <div class="cd-stat-box">
-                                    <span class="cd-stat-label">Total Market Value</span>
-                                    <span class="cd-stat-value text-emerald" id="re-stat-value">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Equity (Value − Mortgage)</span>
-                                    <span class="cd-stat-value text-purple" id="re-stat-equity">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Mortgage Balance</span>
-                                    <span class="cd-stat-value text-coral" id="re-stat-mortgage">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Unrealized Gain / Loss</span>
-                                    <span class="cd-stat-value" id="re-stat-gain">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Properties Table -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Properties</h2>
-                            <div class="table-container">
-                                <table class="data-table" id="table-real-estate">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Type</th>
-                                            <th>Address</th>
-                                            <th class="text-right">Market Value</th>
-                                            <th class="text-right">Equity</th>
-                                            <th class="text-right">Purchase Price</th>
-                                            <th class="text-right">Gain / Loss</th>
-                                            <th class="text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="8" class="text-center text-muted">No properties added yet. Use the form to add your first property.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- TAB: Vehicles -->
-                <section class="tab-pane" id="tab-vehicles">
-                    <div class="dashboard-grid">
-                        <!-- Add Vehicle Form -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Add Vehicle</h2>
-                            <form id="form-vehicles">
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="veh-year">Year</label>
-                                        <input type="number" id="veh-year" min="1900" max="2030" placeholder="2024" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="veh-condition">Condition</label>
-                                        <select id="veh-condition">
-                                            <option>Excellent</option>
-                                            <option selected>Good</option>
-                                            <option>Fair</option>
-                                            <option>Poor</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="veh-make">Make</label>
-                                        <input type="text" id="veh-make" placeholder="Toyota" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="veh-model">Model</label>
-                                        <input type="text" id="veh-model" placeholder="Camry" required>
-                                    </div>
-                                </div>
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="veh-trim">Trim <span class="text-muted">(optional)</span></label>
-                                        <input type="text" id="veh-trim" placeholder="XSE">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="veh-color">Color <span class="text-muted">(optional)</span></label>
-                                        <input type="text" id="veh-color" placeholder="Midnight Black">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="veh-mileage">Current Mileage</label>
-                                    <input type="number" id="veh-mileage" min="0" step="100" placeholder="25000">
-                                </div>
-                                <div class="form-group">
-                                    <label for="veh-current-value">Current Market Value ($)</label>
-                                    <input type="number" id="veh-current-value" min="0" step="500" placeholder="0.00" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="veh-purchase-price">Purchase Price ($) <span class="text-muted">(for depreciation)</span></label>
-                                    <input type="number" id="veh-purchase-price" min="0" step="500" placeholder="0.00">
-                                </div>
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="veh-loan-balance">Loan Balance ($)</label>
-                                        <input type="number" id="veh-loan-balance" min="0" step="500" placeholder="0.00">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="veh-monthly-payment">Monthly Payment ($)</label>
-                                        <input type="number" id="veh-monthly-payment" min="0" step="50" placeholder="0.00">
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="veh-notes">Notes <span class="text-muted">(optional)</span></label>
-                                    <input type="text" id="veh-notes" placeholder="e.g. Used for Uber, financed at 4.9%">
-                                </div>
-                                <button type="submit" class="primary-btn mt-2">Add Vehicle</button>
-                            </form>
-                        </div>
-
-                        <!-- Fleet Stats -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Fleet Summary</h2>
-                            <div class="cd-stats-container">
-                                <div class="cd-stat-box">
-                                    <span class="cd-stat-label">Total Fleet Value</span>
-                                    <span class="cd-stat-value text-emerald" id="veh-stat-value">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Equity (Value − Loan)</span>
-                                    <span class="cd-stat-value text-purple" id="veh-stat-equity">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Loan Balance</span>
-                                    <span class="cd-stat-value text-coral" id="veh-stat-loan">$0.00</span>
-                                </div>
-                                <div class="cd-stat-box mt-3">
-                                    <span class="cd-stat-label">Total Depreciation</span>
-                                    <span class="cd-stat-value" id="veh-stat-dep">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Vehicles Table -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Vehicle Fleet</h2>
-                            <div class="table-container">
-                                <table class="data-table" id="table-vehicles">
-                                    <thead>
-                                        <tr>
-                                            <th>Vehicle</th>
-                                            <th>Condition</th>
-                                            <th class="text-right">Mileage</th>
-                                            <th class="text-right">Current Value</th>
-                                            <th class="text-right">Equity</th>
-                                            <th class="text-right">Loan Balance</th>
-                                            <th class="text-right">Purchase Price</th>
-                                            <th class="text-right">Depreciation</th>
-                                            <th class="text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="9" class="text-center text-muted">No vehicles added yet. Use the form to add your first vehicle.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
                 </section>
 
                 <!-- TAB: Expenses & Taxes -->
@@ -715,6 +624,35 @@
                                 <div class="form-group">
                                     <label for="exp-discretionary">Discretionary (Entertainment, Shopping)</label>
                                     <input type="number" id="exp-discretionary" class="expense-input" value="500">
+                                </div>
+                            </div>
+
+                            <div class="insurance-section mt-4">
+                                <h3 class="section-sub-title">Insurance</h3>
+                                <p class="card-subtitle">Enter the amount you pay and how often — we'll normalize to a monthly cost.</p>
+                                <div class="grid-2-col mt-3">
+                                    <div class="insurance-field-group">
+                                        <label>Car Insurance</label>
+                                        <div class="insurance-row">
+                                            <input type="number" id="ins-car-amt" class="insurance-amt-input" min="0" step="1" placeholder="0.00" value="0">
+                                            <select id="ins-car-freq" class="insurance-freq-select">
+                                                <option value="monthly">per month</option>
+                                                <option value="6month" selected>every 6 months</option>
+                                                <option value="annual">per year (upfront)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="insurance-field-group">
+                                        <label>Home / Renters Insurance</label>
+                                        <div class="insurance-row">
+                                            <input type="number" id="ins-home-amt" class="insurance-amt-input" min="0" step="1" placeholder="0.00" value="0">
+                                            <select id="ins-home-freq" class="insurance-freq-select">
+                                                <option value="monthly" selected>per month</option>
+                                                <option value="6month">every 6 months</option>
+                                                <option value="annual">per year (upfront)</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

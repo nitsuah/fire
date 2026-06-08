@@ -17,6 +17,10 @@ let state = {
         healthcare: 150,
         discretionary: 500
     },
+    insurances: {
+        car: { amt: 0, freq: '6month' },
+        home: { amt: 0, freq: 'monthly' }
+    },
     taxRate: 20,
     sideGigLedger: [],
     projectionSettings: {
@@ -162,6 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCSVImport();
     initAccountsManager();
     initCDManager();
+    initUnifiedAssetForm();
     initRealEstateManager();
     initVehiclesManager();
     initExpenseManager();
@@ -230,7 +235,12 @@ function sanitizeState(data) {
         if (!data.projectionSettings.currentAge) data.projectionSettings.currentAge = 30;
         if (!data.projectionSettings.retireAge) data.projectionSettings.retireAge = 60;
     }
-    
+
+    // Ensure insurance fields are always present
+    if (!data.insurances) data.insurances = { car: { amt: 0, freq: '6month' }, home: { amt: 0, freq: 'monthly' } };
+    if (!data.insurances.car) data.insurances.car = { amt: 0, freq: '6month' };
+    if (!data.insurances.home) data.insurances.home = { amt: 0, freq: 'monthly' };
+
     return data;
 }
 
@@ -562,6 +572,10 @@ function parseFidelityPositions(rows) {
 
         if (isNaN(cleanedValue)) continue;
 
+        const cleanBasis = isNaN(basis) ? 0 : basis;
+        const finalGainDollar = gainDollar || (cleanBasis > 0 ? cleanedValue - cleanBasis : 0);
+        const finalGainPercent = gainPercent || (cleanBasis > 0 ? ((cleanedValue - cleanBasis) / cleanBasis) * 100 : 0);
+
         state.importedPositions.push({
             account: row[idxAccountName] || 'Brokerage',
             symbol: sym,
@@ -569,9 +583,9 @@ function parseFidelityPositions(rows) {
             quantity: isNaN(qty) ? 0 : qty,
             lastPrice: isNaN(price) ? 0 : price,
             value: cleanedValue,
-            costBasis: isNaN(basis) ? 0 : basis,
-            pnlDollar: gainDollar,
-            pnlPercent: gainPercent
+            costBasis: cleanBasis,
+            pnlDollar: finalGainDollar,
+            pnlPercent: finalGainPercent
         });
         importedCount++;
     }
@@ -687,12 +701,12 @@ window.deleteImportedFile = async function(index) {
 
 window.startEditAccount = function(id) {
     editingAccounts.push(id);
-    renderCustomAccountsTable();
+    renderUnifiedHoldingsTable();
 };
 
 window.cancelEditAccount = function(id) {
     editingAccounts = editingAccounts.filter(x => x !== id);
-    renderCustomAccountsTable();
+    renderUnifiedHoldingsTable();
 };
 
 window.saveEditAccount = async function(id) {
@@ -759,12 +773,12 @@ window.deleteCD = async function(id) {
 
 window.startEditCD = function(id) {
     editingCDs.push(id);
-    renderCDTable();
+    renderUnifiedHoldingsTable();
 };
 
 window.cancelEditCD = function(id) {
     editingCDs = editingCDs.filter(x => x !== id);
-    renderCDTable();
+    renderUnifiedHoldingsTable();
 };
 
 window.saveEditCD = async function(id) {
@@ -1119,6 +1133,31 @@ function initExpenseManager() {
         });
     });
 
+    // Insurance fields
+    const insCarAmt = document.getElementById('ins-car-amt');
+    const insCarFreq = document.getElementById('ins-car-freq');
+    const insHomeAmt = document.getElementById('ins-home-amt');
+    const insHomeFreq = document.getElementById('ins-home-freq');
+
+    if (insCarAmt) insCarAmt.value = state.insurances.car.amt;
+    if (insCarFreq) insCarFreq.value = state.insurances.car.freq;
+    if (insHomeAmt) insHomeAmt.value = state.insurances.home.amt;
+    if (insHomeFreq) insHomeFreq.value = state.insurances.home.freq;
+
+    async function saveInsurance() {
+        state.insurances.car.amt = parseFloat(insCarAmt?.value) || 0;
+        state.insurances.car.freq = insCarFreq?.value || '6month';
+        state.insurances.home.amt = parseFloat(insHomeAmt?.value) || 0;
+        state.insurances.home.freq = insHomeFreq?.value || 'monthly';
+        await saveState();
+        refreshAllUI();
+    }
+
+    insCarAmt?.addEventListener('input', saveInsurance);
+    insCarFreq?.addEventListener('change', saveInsurance);
+    insHomeAmt?.addEventListener('input', saveInsurance);
+    insHomeFreq?.addEventListener('change', saveInsurance);
+
     taxSlider.addEventListener('input', async () => {
         state.taxRate = parseInt(taxSlider.value);
         taxDisplay.textContent = `${state.taxRate}%`;
@@ -1416,7 +1455,7 @@ function calculateAndRenderProjections() {
     renderMilestones(raw.networth, raw.fireNumber, raw.realReturn, raw.savings);
 }
 
-function buildProjectionAnnotations(retirementLineIndex, cdEvents) {
+function buildProjectionAnnotations(retirementLineIndex, cdEvents, nwData, fireNumber) {
     const annotations = {};
     if (retirementLineIndex >= 0) {
         annotations['retireLine'] = {
@@ -1425,6 +1464,34 @@ function buildProjectionAnnotations(retirementLineIndex, cdEvents) {
             label: { display: true, content: '🎯 Retire', position: 'start', color: '#f59e0b',
                 font: { size: 10, family: 'Outfit' }, backgroundColor: 'rgba(245,158,11,0.12)', padding: 4, yAdjust: -10 }
         };
+    }
+
+    // Milestone crossing points on the NW line
+    if (nwData && fireNumber > 0) {
+        const milestones = [
+            { key: 'lean', label: '75% Lean', pct: 0.75, color: '#f59e0b', yAdj: 18 },
+            { key: 'fire', label: '100% FIRE', pct: 1.0, color: '#f43f5e', yAdj: 0 },
+            { key: 'fat', label: '125% Fat', pct: 1.25, color: '#8b5cf6', yAdj: -18 },
+        ];
+        milestones.forEach(m => {
+            const target = fireNumber * m.pct;
+            const idx = nwData.findIndex(v => v >= target);
+            if (idx >= 0) {
+                annotations[`cross_${m.key}`] = {
+                    type: 'point',
+                    xValue: idx, yValue: nwData[idx],
+                    backgroundColor: m.color, radius: 7,
+                    borderColor: 'rgba(255,255,255,0.9)', borderWidth: 2,
+                    label: {
+                        display: true, content: m.label,
+                        color: m.color, backgroundColor: 'rgba(8,11,17,0.88)',
+                        font: { size: 10, family: 'Outfit', weight: '700' },
+                        padding: { x: 6, y: 3 }, borderRadius: 4,
+                        position: 'top', yAdjust: m.yAdj - 14
+                    }
+                };
+            }
+        });
     }
     cdEvents.forEach((ev, i) => {
         annotations[`cd_${i}`] = {
@@ -1479,7 +1546,7 @@ function renderProjectionsChart(data) {
         borderColor: '#f97316', borderDash: [2, 3], borderWidth: 1.5,
         fill: false, pointRadius: 0, order: 6, hidden: !t.benchmark });
 
-    const annotations = buildProjectionAnnotations(retirementLineIndex, cdEvents);
+    const annotations = buildProjectionAnnotations(retirementLineIndex, cdEvents, nwData, data.fireNumber);
 
     projectionsChart = new Chart(ctx, {
         type: 'line',
@@ -1520,46 +1587,10 @@ function renderDashboardProjectionsChart() {
     const raw = buildProjectionData();
     const { labels, nwData, fireLine, retirementLineIndex, cdEvents } = sliceProjectionData(raw, dashProjWindow);
 
-    const annotations = {};
-    if (retirementLineIndex >= 0) {
-        annotations['retireLine'] = {
-            type: 'line',
-            xMin: retirementLineIndex,
-            xMax: retirementLineIndex,
-            borderColor: 'rgba(245, 158, 11, 0.7)',
-            borderWidth: 1,
-            borderDash: [4, 3],
-            label: {
-                display: true,
-                content: '🎯 Retire',
-                position: 'start',
-                color: '#f59e0b',
-                font: { size: 9 },
-                backgroundColor: 'rgba(245,158,11,0.1)',
-                padding: 3
-            }
-        };
-    }
-    cdEvents.forEach((ev, i) => {
-        annotations[`cd_${i}`] = {
-            type: 'line',
-            xMin: ev.yearIndex,
-            xMax: ev.yearIndex,
-            borderColor: 'rgba(16,185,129,0.5)',
-            borderWidth: 1,
-            borderDash: [3, 4],
-            label: {
-                display: true,
-                content: `💰 ${ev.label}`,
-                position: 'end',
-                color: '#10b981',
-                font: { size: 9 },
-                backgroundColor: 'rgba(16,185,129,0.1)',
-                padding: 3,
-                yAdjust: 10 + (i * 14)
-            }
-        };
-    });
+    const annualExpenses = getAnnualExpensesTotal();
+    const swr = state.projectionSettings.swr / 100;
+    const fireNumber = swr > 0 ? annualExpenses / swr : 0;
+    const annotations = buildProjectionAnnotations(retirementLineIndex, cdEvents, nwData, fireNumber);
 
     dashboardProjectionsChart = new Chart(ctx, {
         type: 'line',
@@ -1694,16 +1725,37 @@ function renderAllocMiniBarsBanner() {
     const total = cash + cds + equities + re + veh + other;
     if (total === 0) { el.innerHTML = ''; return; }
     const segments = [
-        { pct: (cash / total) * 100, color: '#10b981', label: 'Cash' },
-        { pct: (cds / total) * 100, color: '#f59e0b', label: 'CDs' },
-        { pct: (equities / total) * 100, color: '#8b5cf6', label: 'Equities' },
-        { pct: (re / total) * 100, color: '#06b6d4', label: 'Real Estate' },
-        { pct: (veh / total) * 100, color: '#f97316', label: 'Vehicles' },
-        { pct: (other / total) * 100, color: '#3b82f6', label: 'Other' },
+        { amt: cash,     pct: (cash / total) * 100,     color: '#10b981', label: 'Cash' },
+        { amt: cds,      pct: (cds / total) * 100,      color: '#f59e0b', label: 'CDs' },
+        { amt: equities, pct: (equities / total) * 100, color: '#8b5cf6', label: 'Equities' },
+        { amt: re,       pct: (re / total) * 100,       color: '#06b6d4', label: 'Real Estate' },
+        { amt: veh,      pct: (veh / total) * 100,      color: '#f97316', label: 'Vehicles' },
+        { amt: other,    pct: (other / total) * 100,    color: '#3b82f6', label: 'Other' },
     ].filter(s => s.pct > 0);
     el.innerHTML = `<div class="alloc-bar-track">${segments.map(s =>
         `<div class="alloc-bar-seg" style="width:${s.pct.toFixed(1)}%;background:${s.color};" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`
     ).join('')}</div>`;
+
+    const track = el.querySelector('.alloc-bar-track');
+    const tip = document.getElementById('alloc-tooltip');
+    if (!track || !tip) return;
+
+    const tooltipRows = segments.map(s =>
+        `<div class="at-row"><span class="at-dot" style="background:${s.color};"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`
+    ).join('');
+    const totalRow = `<div class="at-total"><span class="at-label">Total NW</span><span class="at-val">${formatCurrency(total)}</span></div>`;
+
+    track.addEventListener('mouseenter', () => {
+        tip.innerHTML = tooltipRows + totalRow;
+        tip.style.display = 'block';
+    });
+    track.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+    track.addEventListener('mousemove', e => {
+        const x = e.clientX + 14, y = e.clientY - 10;
+        const vw = window.innerWidth, tw = tip.offsetWidth || 240;
+        tip.style.left = (x + tw > vw ? vw - tw - 8 : x) + 'px';
+        tip.style.top = y + 'px';
+    });
 }
 
 function renderDiversificationSuggestions(totalPortfolioValue) {
@@ -1761,13 +1813,14 @@ function refreshAllUI() {
 
     renderQuickStatsList();
     renderDashboardTopPositionsTable();
-    renderDashboardCDNotifications();
+    renderDashboardLiquidPanel();
     renderAssetAllocationChart();
     renderDashboardProjectionsChart();
 
     renderImportedFilesTable();
     renderCustomAccountsTable();
     renderCDTable();
+    renderUnifiedHoldingsTable();
     renderRealEstateTable();
     renderVehiclesTable();
 
@@ -1784,12 +1837,24 @@ function refreshAllUI() {
     calculateAndRenderProjections();
 }
 
+function insuranceToMonthly(ins) {
+    const amt = ins.amt || 0;
+    if (ins.freq === '6month') return amt / 6;
+    if (ins.freq === 'annual') return amt / 12;
+    return amt; // monthly
+}
+
+function getInsuranceMonthly() {
+    const ins = state.insurances || {};
+    return insuranceToMonthly(ins.car || {}) + insuranceToMonthly(ins.home || {});
+}
+
 function getMonthlyExpensesBase() {
     let base = 0;
     Object.keys(state.expenses).forEach(k => {
         base += state.expenses[k] || 0;
     });
-    return base;
+    return base + getInsuranceMonthly();
 }
 
 function getAnnualExpensesTotal() {
@@ -1892,7 +1957,10 @@ function renderMonthlyCashFlow() {
     const transport = exp.transport || 0;
     const healthcare = exp.healthcare || 0;
     const discretionary = exp.discretionary || 0;
-    const totalExpenses = housing + utilities + food + transport + healthcare + discretionary;
+    const ins = state.insurances || {};
+    const carIns = insuranceToMonthly(ins.car || {});
+    const homeIns = insuranceToMonthly(ins.home || {});
+    const totalExpenses = housing + utilities + food + transport + healthcare + discretionary + carIns + homeIns;
 
     const net = totalIncome - totalExpenses;
     const savingsRate = totalIncome > 0 ? Math.max(0, (net / totalIncome) * 100) : 0;
@@ -1908,6 +1976,8 @@ function renderMonthlyCashFlow() {
     set('cf-transport', formatCurrency(transport));
     set('cf-healthcare', formatCurrency(healthcare));
     set('cf-discretionary', formatCurrency(discretionary));
+    set('cf-car-insurance', formatCurrency(carIns));
+    set('cf-home-insurance', formatCurrency(homeIns));
     set('cf-total-expenses', formatCurrency(totalExpenses));
 
     const netEl = document.getElementById('cf-net-value');
@@ -2257,52 +2327,71 @@ function applyAllocationFilter(categoryKey) {
 }
 
 /* ==========================================================================
-   CD Notifications Panel
+   Cash & Fixed Income Dashboard Panel (merged cash accounts + CDs)
    ========================================================================== */
 
-function renderDashboardCDNotifications() {
-    const ul = document.getElementById('dashboard-cd-list');
-    if (!ul) return;
-
-    if (state.cds.length === 0) {
-        ul.innerHTML = `<li class="text-muted text-center py-4">No active Certificate of Deposits recorded. Add them in the CDs tab.</li>`;
-        return;
-    }
+function renderDashboardLiquidPanel() {
+    const panel = document.getElementById('dashboard-liquid-panel');
+    if (!panel) return;
 
     const today = new Date();
     let html = '';
 
-    state.cds.forEach(cd => {
-        if (!cd || cd.principal === undefined || cd.principal === null) return;
-        const matDate = new Date(cd.maturity);
-        const timeDiff = matDate - today;
-        const daysToMaturity = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-        
-        let urgencyClass = '';
-        let maturityText = '';
+    // Cash accounts (Cash + Savings type from customAccounts)
+    const cashAccounts = state.customAccounts.filter(a => a.type === 'Cash' || a.type === 'Savings');
+    // Also include SPAXX/FDRXX/Pending from imported positions
+    const mmPositions = state.importedPositions.filter(p => isSettledCash(p));
 
-        if (daysToMaturity < 0) {
-            urgencyClass = 'urgent';
-            maturityText = `Matured on ${cd.maturity} (${Math.abs(daysToMaturity)} days ago)`;
-        } else if (daysToMaturity <= 30) {
-            urgencyClass = 'urgent';
-            maturityText = `Matures soon on ${cd.maturity} (${daysToMaturity} days left)`;
-        } else {
-            maturityText = `Matures on ${cd.maturity} (${daysToMaturity} days left)`;
-        }
+    if (cashAccounts.length > 0 || mmPositions.length > 0) {
+        html += `<div class="liquid-section-label">Cash &amp; Savings</div>`;
+        cashAccounts.forEach(acc => {
+            const apyStr = acc.apy > 0 ? `<span class="liquid-rate">${Number(acc.apy).toFixed(2)}% APY</span>` : '';
+            html += `<div class="liquid-row">
+                <div class="liquid-name">${acc.name} <span class="liquid-type">${acc.type}</span></div>
+                <div class="liquid-val">${formatCurrency(acc.value)} ${apyStr}</div>
+            </div>`;
+        });
+        mmPositions.forEach(pos => {
+            html += `<div class="liquid-row">
+                <div class="liquid-name">${pos.symbol} <span class="liquid-type">Money Market</span></div>
+                <div class="liquid-val">${formatCurrency(pos.value)}</div>
+            </div>`;
+        });
+    }
 
-        const annualYield = (cd.principal || 0) * ((cd.rate || 0) / 100);
-        html += `
-            <li class="notification-item ${urgencyClass}">
-                <div class="notification-text">
-                    <strong>${cd.bank} CD</strong> | ${formatCurrency(cd.principal)} at <strong>${Number(cd.rate).toFixed(2)}%</strong> APY
-                    <div class="notification-date">${maturityText}</div>
+    // CDs
+    if (state.cds.length > 0) {
+        html += `<div class="liquid-section-label mt-2">Certificates of Deposit</div>`;
+        state.cds.forEach(cd => {
+            if (!cd || cd.principal === undefined) return;
+            const matDate = new Date(cd.maturity);
+            const daysLeft = Math.ceil((matDate - today) / 86400000);
+            const isMatured = daysLeft < 0;
+            const isSoon = !isMatured && daysLeft <= 30;
+            const annualYield = (cd.principal || 0) * ((cd.rate || 0) / 100);
+            const statusColor = isMatured ? 'var(--color-danger)' : isSoon ? '#f59e0b' : 'rgba(255,255,255,0.4)';
+            const statusText = isMatured
+                ? `Matured ${Math.abs(daysLeft)}d ago`
+                : isSoon ? `Matures in ${daysLeft}d`
+                : `${daysLeft}d left`;
+            html += `<div class="liquid-row">
+                <div class="liquid-name">
+                    ${cd.bank} <span class="liquid-type">CD · ${Number(cd.rate).toFixed(2)}%</span>
+                    <span class="liquid-maturity" style="color:${statusColor};">${statusText}</span>
                 </div>
-                <div class="cd-yield-badge">${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></div>
-            </li>
-        `;
-    });
-    ul.innerHTML = html;
+                <div class="liquid-val">
+                    ${formatCurrency(cd.principal)}
+                    <span class="cd-yield-badge">${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></span>
+                </div>
+            </div>`;
+        });
+    }
+
+    if (!html) {
+        panel.innerHTML = `<p class="text-muted text-center" style="padding:12px 0;">No cash accounts or CDs recorded yet.</p>`;
+        return;
+    }
+    panel.innerHTML = html;
 }
 
 /* ==========================================================================
@@ -2314,7 +2403,7 @@ function renderImportedFilesTable() {
     if (!tbody) return;
 
     if (state.importedFiles.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No files imported yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No files imported yet.</td></tr>`;
         return;
     }
 
@@ -2322,10 +2411,9 @@ function renderImportedFilesTable() {
     state.importedFiles.forEach((file, index) => {
         html += `
             <tr>
-                <td class="font-bold">${file.name}</td>
+                <td class="font-bold" title="${file.date}">${file.name}</td>
                 <td><span class="text-purple">${file.source}</span></td>
-                <td>${file.date}</td>
-                <td>${file.records} records</td>
+                <td>${file.records}</td>
                 <td class="text-right">
                     <button class="delete-btn" onclick="deleteImportedFile(${index})">Remove</button>
                 </td>
@@ -2476,6 +2564,104 @@ function renderCDTable() {
         }
     });
     tbody.innerHTML = html;
+}
+
+/* ==========================================================================
+   Unified Holdings Table (merges customAccounts + CDs)
+   ========================================================================== */
+
+function renderUnifiedHoldingsTable() {
+    const tbody = document.querySelector('#table-unified-holdings tbody');
+    if (!tbody) return;
+
+    const total = state.customAccounts.length + state.cds.length;
+    if (total === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No accounts or CDs added yet.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+
+    state.customAccounts.forEach(acc => {
+        if (!acc || acc.value === undefined) return;
+        const isEditing = editingAccounts.includes(acc.id);
+        const hasYield = acc.type === 'Savings' || acc.type === 'Cash';
+        if (isEditing) {
+            html += `<tr>
+                <td><input type="text" class="inline-edit-input" id="edit-acc-name-${acc.id}" value="${acc.name}"></td>
+                <td><span class="text-muted">${acc.type}</span></td>
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:110px;" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}"></td>
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-acc-apy-${acc.id}" step="0.01" value="${Number(acc.apy).toFixed(2)}" ${hasYield ? '' : 'disabled'}></td>
+                <td>—</td>
+                <td class="text-right">
+                    <button class="save-btn" onclick="saveEditAccount('${acc.id}')">Save</button>
+                    <button class="cancel-btn" onclick="cancelEditAccount('${acc.id}')">Cancel</button>
+                </td>
+            </tr>`;
+        } else {
+            html += `<tr>
+                <td class="font-bold">${acc.name}</td>
+                <td><span class="badge-type">${acc.type}</span></td>
+                <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
+                <td class="text-right text-amber">${hasYield ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
+                <td class="text-muted">—</td>
+                <td class="text-right">
+                    <button class="edit-btn" onclick="startEditAccount('${acc.id}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteCustomAccount('${acc.id}')">Delete</button>
+                </td>
+            </tr>`;
+        }
+    });
+
+    state.cds.forEach(cd => {
+        if (!cd || cd.principal === undefined) return;
+        const isEditing = editingCDs.includes(cd.id);
+        const isMatured = new Date(cd.maturity) < new Date();
+        const interest = (cd.principal || 0) * ((cd.rate || 0) / 100);
+        if (isEditing) {
+            html += `<tr>
+                <td><input type="text" class="inline-edit-input" id="edit-cd-bank-${cd.id}" value="${cd.bank}"></td>
+                <td><span class="badge-type badge-cd">CD</span></td>
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:110px;" id="edit-cd-principal-${cd.id}" step="0.01" value="${Number(cd.principal).toFixed(2)}"></td>
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-cd-rate-${cd.id}" step="0.01" value="${Number(cd.rate).toFixed(2)}"></td>
+                <td><input type="date" class="inline-edit-input" id="edit-cd-maturity-${cd.id}" value="${cd.maturity}"><input type="date" class="inline-edit-input" id="edit-cd-start-${cd.id}" value="${cd.startDate || ''}" style="display:none;"></td>
+                <td class="text-right">
+                    <button class="save-btn" onclick="saveEditCD('${cd.id}')">Save</button>
+                    <button class="cancel-btn" onclick="cancelEditCD('${cd.id}')">Cancel</button>
+                </td>
+            </tr>`;
+        } else {
+            html += `<tr>
+                <td class="font-bold">${cd.bank} <span class="text-muted" style="font-size:10px;">+${formatCurrency(interest)}/yr</span></td>
+                <td><span class="badge-type badge-cd">CD</span></td>
+                <td class="text-right font-bold">${formatCurrency(cd.principal)}</td>
+                <td class="text-right text-amber">${Number(cd.rate).toFixed(2)}%</td>
+                <td style="color:${isMatured ? 'var(--color-danger)' : 'rgba(255,255,255,0.6)'};">${cd.maturity}${isMatured ? ' ⚠' : ''}</td>
+                <td class="text-right">
+                    <button class="edit-btn" onclick="startEditCD('${cd.id}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteCD('${cd.id}')">Delete</button>
+                </td>
+            </tr>`;
+        }
+    });
+
+    tbody.innerHTML = html;
+}
+
+function initUnifiedAssetForm() {
+    const tabs = document.querySelectorAll('.ua-tab-btn');
+    const panels = ['account', 'cd', 'realestate', 'vehicle'];
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            const target = btn.dataset.uaTab;
+            panels.forEach(p => {
+                const el = document.getElementById(`ua-panel-${p}`);
+                if (el) el.style.display = target === p ? '' : 'none';
+            });
+        });
+    });
 }
 
 /* ==========================================================================
