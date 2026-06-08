@@ -10,7 +10,7 @@
     "build": "echo 'No build step required for this project' && exit 0"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
