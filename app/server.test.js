@@ -17,11 +17,24 @@ const DEFAULT_STATE = {
     cds: [],
     realEstate: [],
     vehicles: [],
-    expenses: { housing: 1500, utilities: 250, food: 400, transport: 300, healthcare: 150, discretionary: 500 },
+    expenses: {
+        housing: 1500,
+        utilities: 250,
+        food: 400,
+        transport: 300,
+        healthcare: 150,
+        discretionary: 500,
+    },
     taxRate: 20,
     sideGigLedger: [],
-    projectionSettings: { annualSavings: 25000, expectedReturn: 8.0, inflationRate: 2.5, swr: 4.0, spanYears: 30 },
-    importedFiles: []
+    projectionSettings: {
+        annualSavings: 25000,
+        expectedReturn: 8.0,
+        inflationRate: 2.5,
+        swr: 4.0,
+        spanYears: 30,
+    },
+    importedFiles: [],
 };
 
 function resetDB(overrides) {
@@ -31,7 +44,11 @@ function resetDB(overrides) {
 }
 
 afterAll(() => {
-    try { fs.unlinkSync(TEST_DB); } catch (_) { /* ignore */ }
+    try {
+        fs.unlinkSync(TEST_DB);
+    } catch {
+        /* ignore */
+    }
 });
 
 // ─── Static file serving ───────────────────────────────────────────────────────
@@ -105,7 +122,7 @@ describe('POST /api/accounts', () => {
             name: 'Chase Savings',
             type: 'Savings',
             value: 10000,
-            apy: 4.5
+            apy: 4.5,
         });
         expect(res.status).toBe(201);
         expect(res.body.name).toBe('Chase Savings');
@@ -116,27 +133,37 @@ describe('POST /api/accounts', () => {
     });
 
     it('defaults type to Cash when not provided', async () => {
-        const res = await request(app).post('/api/accounts').send({ name: 'Wallet', value: 500 });
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'Wallet', value: 500 });
         expect(res.status).toBe(201);
         expect(res.body.type).toBe('Cash');
     });
 
     it('defaults value to 0 for non-numeric input', async () => {
-        const res = await request(app).post('/api/accounts').send({ name: 'Test', type: 'Cash', value: 'invalid' });
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'Test', type: 'Cash', value: 'invalid' });
         expect(res.status).toBe(201);
         expect(res.body.value).toBe(0);
     });
 
     it('persists the account so GET /api/state reflects it', async () => {
-        await request(app).post('/api/accounts').send({ name: 'MyBank', type: 'Cash', value: 5000 });
+        await request(app)
+            .post('/api/accounts')
+            .send({ name: 'MyBank', type: 'Cash', value: 5000 });
         const stateRes = await request(app).get('/api/state');
         expect(stateRes.body.customAccounts).toHaveLength(1);
         expect(stateRes.body.customAccounts[0].name).toBe('MyBank');
     });
 
     it('generates a unique id for each account', async () => {
-        const r1 = await request(app).post('/api/accounts').send({ name: 'A', value: 100 });
-        const r2 = await request(app).post('/api/accounts').send({ name: 'B', value: 200 });
+        const r1 = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'A', value: 100 });
+        const r2 = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'B', value: 200 });
         expect(r1.body.id).not.toBe(r2.body.id);
     });
 });
@@ -148,32 +175,42 @@ describe('PUT /api/accounts/:id', () => {
 
     beforeEach(async () => {
         resetDB();
-        const res = await request(app).post('/api/accounts').send({ name: 'Original', type: 'Cash', value: 1000, apy: 2.0 });
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'Original', type: 'Cash', value: 1000, apy: 2.0 });
         accountId = res.body.id;
     });
 
     it('updates name and value', async () => {
-        const res = await request(app).put(`/api/accounts/${accountId}`).send({ name: 'Updated', value: 2000 });
+        const res = await request(app)
+            .put(`/api/accounts/${accountId}`)
+            .send({ name: 'Updated', value: 2000 });
         expect(res.status).toBe(200);
         expect(res.body.name).toBe('Updated');
         expect(res.body.value).toBe(2000);
     });
 
     it('returns 404 for non-existent id', async () => {
-        const res = await request(app).put('/api/accounts/nonexistent').send({ name: 'X' });
+        const res = await request(app)
+            .put('/api/accounts/nonexistent')
+            .send({ name: 'X' });
         expect(res.status).toBe(404);
         expect(res.body.error).toBeDefined();
     });
 
     it('partial update keeps unchanged fields', async () => {
-        const res = await request(app).put(`/api/accounts/${accountId}`).send({ value: 9999 });
+        const res = await request(app)
+            .put(`/api/accounts/${accountId}`)
+            .send({ value: 9999 });
         expect(res.status).toBe(200);
         expect(res.body.name).toBe('Original');
         expect(res.body.value).toBe(9999);
     });
 
     it('updates apy', async () => {
-        const res = await request(app).put(`/api/accounts/${accountId}`).send({ apy: 5.0 });
+        const res = await request(app)
+            .put(`/api/accounts/${accountId}`)
+            .send({ apy: 5.0 });
         expect(res.status).toBe(200);
         expect(res.body.apy).toBe(5.0);
     });
@@ -186,7 +223,9 @@ describe('DELETE /api/accounts/:id', () => {
 
     beforeEach(async () => {
         resetDB();
-        const res = await request(app).post('/api/accounts').send({ name: 'ToDelete', type: 'Cash', value: 500 });
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'ToDelete', type: 'Cash', value: 500 });
         accountId = res.body.id;
     });
 
@@ -199,7 +238,9 @@ describe('DELETE /api/accounts/:id', () => {
     it('account no longer appears in state after deletion', async () => {
         await request(app).delete(`/api/accounts/${accountId}`);
         const stateRes = await request(app).get('/api/state');
-        const found = stateRes.body.customAccounts.find(a => a.id === accountId);
+        const found = stateRes.body.customAccounts.find(
+            (a) => a.id === accountId,
+        );
         expect(found).toBeUndefined();
     });
 
@@ -221,7 +262,7 @@ describe('POST /api/cds', () => {
             principal: 10000,
             rate: 5.1,
             startDate: '2024-01-01',
-            maturity: '2025-01-01'
+            maturity: '2025-01-01',
         });
         expect(res.status).toBe(201);
         expect(res.body.bank).toBe('Marcus');
@@ -232,22 +273,40 @@ describe('POST /api/cds', () => {
 
     it('defaults startDate to today when not provided', async () => {
         const res = await request(app).post('/api/cds').send({
-            bank: 'Test', principal: 5000, rate: 4.0, maturity: '2026-01-01'
+            bank: 'Test',
+            principal: 5000,
+            rate: 4.0,
+            maturity: '2026-01-01',
         });
         expect(res.status).toBe(201);
         expect(res.body.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     it('persists in state', async () => {
-        await request(app).post('/api/cds').send({ bank: 'Ally', principal: 8000, rate: 4.8, maturity: '2025-06-01' });
+        await request(app).post('/api/cds').send({
+            bank: 'Ally',
+            principal: 8000,
+            rate: 4.8,
+            maturity: '2025-06-01',
+        });
         const stateRes = await request(app).get('/api/state');
         expect(stateRes.body.cds).toHaveLength(1);
         expect(stateRes.body.cds[0].bank).toBe('Ally');
     });
 
     it('can create multiple CDs', async () => {
-        await request(app).post('/api/cds').send({ bank: 'Bank1', principal: 5000, rate: 4.0, maturity: '2025-01-01' });
-        await request(app).post('/api/cds').send({ bank: 'Bank2', principal: 10000, rate: 5.0, maturity: '2026-01-01' });
+        await request(app).post('/api/cds').send({
+            bank: 'Bank1',
+            principal: 5000,
+            rate: 4.0,
+            maturity: '2025-01-01',
+        });
+        await request(app).post('/api/cds').send({
+            bank: 'Bank2',
+            principal: 10000,
+            rate: 5.0,
+            maturity: '2026-01-01',
+        });
         const stateRes = await request(app).get('/api/state');
         expect(stateRes.body.cds).toHaveLength(2);
     });
@@ -260,31 +319,44 @@ describe('PUT /api/cds/:id', () => {
 
     beforeEach(async () => {
         resetDB();
-        const res = await request(app).post('/api/cds').send({ bank: 'Bank A', principal: 5000, rate: 4.0, maturity: '2025-12-01' });
+        const res = await request(app).post('/api/cds').send({
+            bank: 'Bank A',
+            principal: 5000,
+            rate: 4.0,
+            maturity: '2025-12-01',
+        });
         cdId = res.body.id;
     });
 
     it('updates CD principal and rate', async () => {
-        const res = await request(app).put(`/api/cds/${cdId}`).send({ principal: 7500, rate: 5.0 });
+        const res = await request(app)
+            .put(`/api/cds/${cdId}`)
+            .send({ principal: 7500, rate: 5.0 });
         expect(res.status).toBe(200);
         expect(res.body.principal).toBe(7500);
         expect(res.body.rate).toBe(5.0);
     });
 
     it('returns 404 for unknown id', async () => {
-        const res = await request(app).put('/api/cds/nonexistent').send({ principal: 100 });
+        const res = await request(app)
+            .put('/api/cds/nonexistent')
+            .send({ principal: 100 });
         expect(res.status).toBe(404);
     });
 
     it('partial update keeps unchanged fields', async () => {
-        const res = await request(app).put(`/api/cds/${cdId}`).send({ bank: 'Bank B' });
+        const res = await request(app)
+            .put(`/api/cds/${cdId}`)
+            .send({ bank: 'Bank B' });
         expect(res.status).toBe(200);
         expect(res.body.bank).toBe('Bank B');
         expect(res.body.principal).toBe(5000);
     });
 
     it('updates maturity date', async () => {
-        const res = await request(app).put(`/api/cds/${cdId}`).send({ maturity: '2027-06-01' });
+        const res = await request(app)
+            .put(`/api/cds/${cdId}`)
+            .send({ maturity: '2027-06-01' });
         expect(res.status).toBe(200);
         expect(res.body.maturity).toBe('2027-06-01');
     });
@@ -297,7 +369,12 @@ describe('DELETE /api/cds/:id', () => {
 
     beforeEach(async () => {
         resetDB();
-        const res = await request(app).post('/api/cds').send({ bank: 'Delete Me', principal: 1000, rate: 3.5, maturity: '2024-12-01' });
+        const res = await request(app).post('/api/cds').send({
+            bank: 'Delete Me',
+            principal: 1000,
+            rate: 3.5,
+            maturity: '2024-12-01',
+        });
         cdId = res.body.id;
     });
 
@@ -329,7 +406,9 @@ describe('GET /api/prices', () => {
     });
 
     it('returns empty object when all symbols are filtered (SPAXX, FDRXX etc.)', async () => {
-        const res = await request(app).get('/api/prices?symbols=SPAXX,FDRXX,FCASH,FDIC');
+        const res = await request(app).get(
+            '/api/prices?symbols=SPAXX,FDRXX,FCASH,FDIC',
+        );
         expect(res.status).toBe(200);
         expect(res.body).toEqual({});
     });

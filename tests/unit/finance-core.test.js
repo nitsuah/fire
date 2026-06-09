@@ -28,7 +28,7 @@ const {
     sortPositions,
     calculateEbayFees,
     calculateEbayNetProfit,
-    US_MEDIAN_SAVINGS
+    US_MEDIAN_SAVINGS,
 } = require('../../app/lib/finance-core');
 
 // ─── formatCurrency ────────────────────────────────────────────────────────────
@@ -91,7 +91,18 @@ describe('sanitizeState', () => {
     });
 
     it('does not overwrite existing vehicle fields', () => {
-        const state = { vehicles: [{ year: 2020, make: 'Honda', model: 'Civic', mileage: 30000, condition: 'Excellent', currentValue: 18000 }] };
+        const state = {
+            vehicles: [
+                {
+                    year: 2020,
+                    make: 'Honda',
+                    model: 'Civic',
+                    mileage: 30000,
+                    condition: 'Excellent',
+                    currentValue: 18000,
+                },
+            ],
+        };
         const result = sanitizeState(state);
         expect(result.vehicles[0].year).toBe(2020);
         expect(result.vehicles[0].condition).toBe('Excellent');
@@ -108,14 +119,26 @@ describe('sanitizeState', () => {
     });
 
     it('fills null apy and value in customAccounts', () => {
-        const state = { customAccounts: [{ id: '1', name: 'Checking', type: 'Cash', apy: null, value: null }] };
+        const state = {
+            customAccounts: [
+                {
+                    id: '1',
+                    name: 'Checking',
+                    type: 'Cash',
+                    apy: null,
+                    value: null,
+                },
+            ],
+        };
         const result = sanitizeState(state);
         expect(result.customAccounts[0].apy).toBe(0);
         expect(result.customAccounts[0].value).toBe(0);
     });
 
     it('fills missing CD fields', () => {
-        const state = { cds: [{ id: '1', bank: 'Marcus', maturity: '2025-12-01' }] };
+        const state = {
+            cds: [{ id: '1', bank: 'Marcus', maturity: '2025-12-01' }],
+        };
         const result = sanitizeState(state);
         const cd = result.cds[0];
         expect(cd.startDate).toBe('');
@@ -184,7 +207,8 @@ describe('parseCSVText', () => {
 
 // ─── parseFidelityPositions ────────────────────────────────────────────────────
 
-const FIDELITY_HEADER = 'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total,Gain/Loss Dollar,Gain/Loss Percent';
+const FIDELITY_HEADER =
+    'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total,Gain/Loss Dollar,Gain/Loss Percent';
 
 describe('parseFidelityPositions', () => {
     it('returns 0 count if Symbol column is missing', () => {
@@ -212,11 +236,12 @@ describe('parseFidelityPositions', () => {
         const result = parseFidelityPositions(rows);
         // second row has no account name but valid symbol, should be parsed
         // third row has no symbol, should be skipped
-        expect(result.positions.every(p => p.symbol !== '')).toBe(true);
+        expect(result.positions.every((p) => p.symbol !== '')).toBe(true);
     });
 
     it('calculates pnlDollar from value minus costBasis when no gain columns', () => {
-        const header = 'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total';
+        const header =
+            'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total';
         const csv = `${header}\nAcc,TSLA,Tesla,5,200,1000,800`;
         const rows = parseCSVText(csv);
         const result = parseFidelityPositions(rows);
@@ -239,7 +264,8 @@ describe('parseFidelityPositions', () => {
     });
 
     it('uses Brokerage as default account name', () => {
-        const header = 'Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total';
+        const header =
+            'Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total';
         const csv = `${header}\nAAPL,Apple Inc,10,175,1750,1400`;
         const rows = parseCSVText(csv);
         const result = parseFidelityPositions(rows);
@@ -257,15 +283,18 @@ describe('parseChaseStatement', () => {
         const rows = [
             ['Date', 'Desc', 'Type', 'Cat', 'Bal', 'Amount'],
             ['2024-01-01', 'Coffee', 'Debit', 'Food', '100', '-5.50'],
-            ['2024-01-02', 'Paycheck', 'Credit', 'Income', '1000', '3000']
+            ['2024-01-02', 'Paycheck', 'Credit', 'Income', '1000', '3000'],
         ];
         const result = parseChaseStatement(rows);
         expect(result.imported).toBe(1);
-        expect(result.totalOutflow).toBeCloseTo(5.50);
+        expect(result.totalOutflow).toBeCloseTo(5.5);
     });
 
     it('skips header row', () => {
-        const rows = [['Date', 'Desc', 'x', 'x', 'x', 'Amount'], ['2024-01-01', 'Coffee', '', '', '', '-10.00']];
+        const rows = [
+            ['Date', 'Desc', 'x', 'x', 'x', 'Amount'],
+            ['2024-01-01', 'Coffee', '', '', '', '-10.00'],
+        ];
         const result = parseChaseStatement(rows);
         expect(result.imported).toBe(1);
     });
@@ -277,7 +306,10 @@ describe('parseChaseStatement', () => {
     });
 
     it('returns zero for positive-only transactions', () => {
-        const rows = [['Date', 'Desc', 'x', 'x', 'x', 'Amount'], ['2024-01-01', 'Paycheck', '', '', '', '3000']];
+        const rows = [
+            ['Date', 'Desc', 'x', 'x', 'x', 'Amount'],
+            ['2024-01-01', 'Paycheck', '', '', '', '3000'],
+        ];
         const result = parseChaseStatement(rows);
         expect(result.imported).toBe(0);
         expect(result.totalOutflow).toBe(0);
@@ -288,11 +320,12 @@ describe('parseChaseStatement', () => {
 
 describe('parseCapitalOneStatement', () => {
     it('counts debit amounts as outflow', () => {
-        const csv = 'Card No.,Date,Description,Category,Debit,Credit\n1234,2024-01-01,Coffee,Food,5.50,\n1234,2024-01-02,Payment,,, 100.00';
+        const csv =
+            'Card No.,Date,Description,Category,Debit,Credit\n1234,2024-01-01,Coffee,Food,5.50,\n1234,2024-01-02,Payment,,, 100.00';
         const rows = parseCSVText(csv);
         const result = parseCapitalOneStatement(rows);
         expect(result.imported).toBe(1);
-        expect(result.totalOutflow).toBeCloseTo(5.50);
+        expect(result.totalOutflow).toBeCloseTo(5.5);
     });
 
     it('returns 0 if debit column not found', () => {
@@ -303,7 +336,10 @@ describe('parseCapitalOneStatement', () => {
     });
 
     it('skips rows shorter than debit column index', () => {
-        const rows = [['Card No.', 'Date', 'Desc', 'Cat', 'Debit', 'Credit'], ['1234', '2024-01-01']];
+        const rows = [
+            ['Card No.', 'Date', 'Desc', 'Cat', 'Debit', 'Credit'],
+            ['1234', '2024-01-01'],
+        ];
         const result = parseCapitalOneStatement(rows);
         expect(result.imported).toBe(0);
     });
@@ -404,7 +440,7 @@ describe('getInsuranceMonthly', () => {
     it('sums car and home insurance monthly', () => {
         const ins = {
             car: { amt: 600, freq: '6month' },
-            home: { amt: 1200, freq: 'annual' }
+            home: { amt: 1200, freq: 'annual' },
         };
         expect(getInsuranceMonthly(ins)).toBe(200); // 100 + 100
     });
@@ -420,13 +456,19 @@ describe('getInsuranceMonthly', () => {
 describe('getMonthlyExpensesBase', () => {
     it('sums all expense categories plus insurance', () => {
         const expenses = { housing: 1000, food: 500, transport: 200 };
-        const insurances = { car: { amt: 0, freq: 'monthly' }, home: { amt: 0, freq: 'monthly' } };
+        const insurances = {
+            car: { amt: 0, freq: 'monthly' },
+            home: { amt: 0, freq: 'monthly' },
+        };
         expect(getMonthlyExpensesBase(expenses, insurances)).toBe(1700);
     });
 
     it('includes car insurance in total', () => {
         const expenses = { housing: 1000 };
-        const insurances = { car: { amt: 120, freq: 'monthly' }, home: { amt: 0, freq: 'monthly' } };
+        const insurances = {
+            car: { amt: 120, freq: 'monthly' },
+            home: { amt: 0, freq: 'monthly' },
+        };
         expect(getMonthlyExpensesBase(expenses, insurances)).toBe(1120);
     });
 });
@@ -436,7 +478,10 @@ describe('getMonthlyExpensesBase', () => {
 describe('getAnnualExpensesTotal', () => {
     it('multiplies monthly base by 12 and adds tax drag', () => {
         const expenses = { housing: 1000 };
-        const insurances = { car: { amt: 0, freq: 'monthly' }, home: { amt: 0, freq: 'monthly' } };
+        const insurances = {
+            car: { amt: 0, freq: 'monthly' },
+            home: { amt: 0, freq: 'monthly' },
+        };
         // monthly base = 1000, annual = 12000, tax drag 20% = 2400, total = 14400
         expect(getAnnualExpensesTotal(expenses, insurances, 20)).toBe(14400);
     });
@@ -460,19 +505,30 @@ describe('isSettledCash', () => {
     });
 
     it('identifies money market descriptions', () => {
-        expect(isSettledCash({ symbol: 'XX', description: 'Fidelity Money Market Fund' })).toBe(true);
+        expect(
+            isSettledCash({
+                symbol: 'XX',
+                description: 'Fidelity Money Market Fund',
+            }),
+        ).toBe(true);
     });
 
     it('identifies pending activity', () => {
-        expect(isSettledCash({ symbol: 'XX', description: 'Pending Activity' })).toBe(true);
+        expect(
+            isSettledCash({ symbol: 'XX', description: 'Pending Activity' }),
+        ).toBe(true);
     });
 
     it('identifies core position', () => {
-        expect(isSettledCash({ symbol: 'XX', description: 'Core Position' })).toBe(true);
+        expect(
+            isSettledCash({ symbol: 'XX', description: 'Core Position' }),
+        ).toBe(true);
     });
 
     it('does not flag regular equities', () => {
-        expect(isSettledCash({ symbol: 'AAPL', description: 'Apple Inc' })).toBe(false);
+        expect(
+            isSettledCash({ symbol: 'AAPL', description: 'Apple Inc' }),
+        ).toBe(false);
     });
 
     it('identifies ** symbol as settled', () => {
@@ -490,11 +546,11 @@ describe('getAggregateCash', () => {
     it('sums SPAXX positions and Cash/Savings accounts', () => {
         const positions = [
             { symbol: 'SPAXX', description: '', value: 5000 },
-            { symbol: 'AAPL', description: '', value: 2000 }
+            { symbol: 'AAPL', description: '', value: 2000 },
         ];
         const accounts = [
             { type: 'Cash', value: 3000 },
-            { type: 'Brokerage', value: 10000 }
+            { type: 'Brokerage', value: 10000 },
         ];
         expect(getAggregateCash(positions, accounts)).toBe(8000); // 5000 + 3000
     });
@@ -509,7 +565,13 @@ describe('getAggregateCash', () => {
     });
 
     it('includes MONEY MARKET descriptions (case-sensitive, uppercase)', () => {
-        const positions = [{ symbol: 'XX', description: 'FIDELITY MONEY MARKET CORE', value: 750 }];
+        const positions = [
+            {
+                symbol: 'XX',
+                description: 'FIDELITY MONEY MARKET CORE',
+                value: 750,
+            },
+        ];
         expect(getAggregateCash(positions, [])).toBe(750);
     });
 
@@ -525,7 +587,7 @@ describe('getAggregateCDs', () => {
     it('sums all CD principals', () => {
         const cds = [
             { principal: 10000, rate: 5 },
-            { principal: 5000, rate: 4.5 }
+            { principal: 5000, rate: 4.5 },
         ];
         expect(getAggregateCDs(cds)).toBe(15000);
     });
@@ -546,12 +608,12 @@ describe('getAggregateEquities', () => {
     it('sums non-cash imported positions and Brokerage/Crypto accounts', () => {
         const positions = [
             { symbol: 'AAPL', description: '', value: 5000 },
-            { symbol: 'SPAXX', description: '', value: 2000 }
+            { symbol: 'SPAXX', description: '', value: 2000 },
         ];
         const accounts = [
             { type: 'Brokerage', value: 3000 },
             { type: 'Crypto', value: 1000 },
-            { type: 'Savings', value: 500 }
+            { type: 'Savings', value: 500 },
         ];
         expect(getAggregateEquities(positions, accounts)).toBe(9000); // 5000 + 3000 + 1000
     });
@@ -569,7 +631,7 @@ describe('getAggregateOtherAssets', () => {
             { type: 'Other', value: 2000 },
             { type: 'RealEstate', value: 5000 },
             { type: 'Cash', value: 1000 },
-            { type: 'Savings', value: 500 }
+            { type: 'Savings', value: 500 },
         ];
         expect(getAggregateOtherAssets(accounts)).toBe(7000);
     });
@@ -584,11 +646,7 @@ describe('getAggregateOtherAssets', () => {
 
 describe('getSideGigYTDNet', () => {
     it('sums net values from ledger', () => {
-        const ledger = [
-            { net: 150 },
-            { net: -30 },
-            { net: 200 }
-        ];
+        const ledger = [{ net: 150 }, { net: -30 }, { net: 200 }];
         expect(getSideGigYTDNet(ledger)).toBe(320);
     });
 
@@ -603,7 +661,7 @@ describe('getAggregateRealEstate', () => {
     it('computes equity (market value - mortgage)', () => {
         const re = [
             { marketValue: 400000, mortgageBalance: 250000 },
-            { marketValue: 200000, mortgageBalance: 180000 }
+            { marketValue: 200000, mortgageBalance: 180000 },
         ];
         expect(getAggregateRealEstate(re)).toBe(170000); // 150000 + 20000
     });
@@ -624,7 +682,7 @@ describe('getAggregateVehicles', () => {
     it('computes equity (current value - loan balance)', () => {
         const vehicles = [
             { currentValue: 25000, loanBalance: 15000 },
-            { currentValue: 12000, loanBalance: 0 }
+            { currentValue: 12000, loanBalance: 0 },
         ];
         expect(getAggregateVehicles(vehicles)).toBe(22000); // 10000 + 12000
     });
@@ -640,12 +698,14 @@ describe('getAggregateVehicles', () => {
 describe('getAggregateNetWorth', () => {
     it('sums all asset categories', () => {
         const state = {
-            importedPositions: [{ symbol: 'AAPL', description: '', value: 10000 }],
+            importedPositions: [
+                { symbol: 'AAPL', description: '', value: 10000 },
+            ],
             customAccounts: [{ type: 'Cash', value: 5000 }],
             cds: [{ principal: 8000 }],
             realEstate: [{ marketValue: 300000, mortgageBalance: 200000 }],
             vehicles: [{ currentValue: 20000, loanBalance: 10000 }],
-            sideGigLedger: [{ net: 500 }]
+            sideGigLedger: [{ net: 500 }],
         };
         const nw = getAggregateNetWorth(state);
         // equities: 10000, cash: 5000, CDs: 8000, RE equity: 100000, vehicles: 10000, side: 500
@@ -654,8 +714,12 @@ describe('getAggregateNetWorth', () => {
 
     it('returns 0 when state has no assets', () => {
         const state = {
-            importedPositions: [], customAccounts: [], cds: [],
-            realEstate: [], vehicles: [], sideGigLedger: []
+            importedPositions: [],
+            customAccounts: [],
+            cds: [],
+            realEstate: [],
+            vehicles: [],
+            sideGigLedger: [],
         };
         expect(getAggregateNetWorth(state)).toBe(0);
     });
@@ -670,7 +734,8 @@ describe('windowToPoints', () => {
     it('returns 11 for 10y', () => expect(windowToPoints('10y')).toBe(11));
     it('returns 16 for 15y', () => expect(windowToPoints('15y')).toBe(16));
     it('returns null for all', () => expect(windowToPoints('all')).toBeNull());
-    it('returns null for unknown key', () => expect(windowToPoints('foo')).toBeNull());
+    it('returns null for unknown key', () =>
+        expect(windowToPoints('foo')).toBeNull());
 });
 
 // ─── sliceProjectionData ───────────────────────────────────────────────────────
@@ -688,7 +753,7 @@ describe('sliceProjectionData', () => {
         benchData: Array.from({ length: n }, () => 50000),
         retirementLineIndex: 5,
         cdEvents: [{ yearIndex: 3, label: 'CD Matures', amount: 10000 }],
-        fireNumber: 500000
+        fireNumber: 500000,
     });
 
     it('returns all data for "all" window', () => {
@@ -741,8 +806,18 @@ describe('buildProjectionData', () => {
         realEstate: [],
         vehicles: [],
         sideGigLedger: [],
-        expenses: { housing: 2000, food: 500, transport: 300, utilities: 200, healthcare: 150, discretionary: 400 },
-        insurances: { car: { amt: 0, freq: 'monthly' }, home: { amt: 0, freq: 'monthly' } },
+        expenses: {
+            housing: 2000,
+            food: 500,
+            transport: 300,
+            utilities: 200,
+            healthcare: 150,
+            discretionary: 400,
+        },
+        insurances: {
+            car: { amt: 0, freq: 'monthly' },
+            home: { amt: 0, freq: 'monthly' },
+        },
         taxRate: 25,
         projectionSettings: {
             annualSavings: 20000,
@@ -751,8 +826,8 @@ describe('buildProjectionData', () => {
             swr: 4.0,
             spanYears: 10,
             currentAge: 35,
-            retireAge: 60
-        }
+            retireAge: 60,
+        },
     };
 
     it('generates labels for each year of the span', () => {
@@ -770,19 +845,25 @@ describe('buildProjectionData', () => {
 
     it('net worth grows over time with positive real return', () => {
         const data = buildProjectionData(baseState, 0);
-        expect(data.nwData[data.nwData.length - 1]).toBeGreaterThan(data.nwData[0]);
+        expect(data.nwData[data.nwData.length - 1]).toBeGreaterThan(
+            data.nwData[0],
+        );
     });
 
     it('computes fireNumber from annual expenses and SWR', () => {
         const data = buildProjectionData(baseState, 0);
-        const annualExpenses = getAnnualExpensesTotal(baseState.expenses, baseState.insurances, baseState.taxRate);
+        const annualExpenses = getAnnualExpensesTotal(
+            baseState.expenses,
+            baseState.insurances,
+            baseState.taxRate,
+        );
         const expected = annualExpenses / 0.04;
         expect(data.fireNumber).toBeCloseTo(expected, 0);
     });
 
     it('fireLine is constant (FIRE target)', () => {
         const data = buildProjectionData(baseState, 0);
-        const allSame = data.fireLine.every(v => v === data.fireLine[0]);
+        const allSame = data.fireLine.every((v) => v === data.fireLine[0]);
         expect(allSame).toBe(true);
     });
 
@@ -806,14 +887,18 @@ describe('buildProjectionData', () => {
     it('bear scenario is lower than base', () => {
         const data = buildProjectionData(baseState, 0);
         const lastIdx = data.nwData.length - 1;
-        expect(data.bearData[lastIdx]).toBeLessThanOrEqual(data.nwData[lastIdx]);
+        expect(data.bearData[lastIdx]).toBeLessThanOrEqual(
+            data.nwData[lastIdx],
+        );
     });
 
     it('applies scenario offset to return rate', () => {
         const bullData = buildProjectionData(baseState, 2);
         const baseData = buildProjectionData(baseState, 0);
         const lastIdx = bullData.nwData.length - 1;
-        expect(bullData.nwData[lastIdx]).toBeGreaterThan(baseData.nwData[lastIdx]);
+        expect(bullData.nwData[lastIdx]).toBeGreaterThan(
+            baseData.nwData[lastIdx],
+        );
     });
 
     it('sets retirementLineIndex correctly', () => {
@@ -824,7 +909,14 @@ describe('buildProjectionData', () => {
     });
 
     it('sets retirementLineIndex when retire is within span', () => {
-        const state = { ...baseState, projectionSettings: { ...baseState.projectionSettings, retireAge: 40, spanYears: 10 } };
+        const state = {
+            ...baseState,
+            projectionSettings: {
+                ...baseState.projectionSettings,
+                retireAge: 40,
+                spanYears: 10,
+            },
+        };
         const data = buildProjectionData(state, 0);
         expect(data.retirementLineIndex).toBe(5); // age 40 is 5 years from 35
     });
@@ -834,7 +926,14 @@ describe('buildProjectionData', () => {
         futureDate.setFullYear(futureDate.getFullYear() + 2);
         const state = {
             ...baseState,
-            cds: [{ bank: 'Marcus', principal: 10000, rate: 5, maturity: futureDate.toISOString().slice(0, 10) }]
+            cds: [
+                {
+                    bank: 'Marcus',
+                    principal: 10000,
+                    rate: 5,
+                    maturity: futureDate.toISOString().slice(0, 10),
+                },
+            ],
         };
         const data = buildProjectionData(state, 0);
         expect(data.cdEvents.length).toBeGreaterThan(0);
@@ -881,9 +980,33 @@ describe('pnlColorStyle', () => {
 
 describe('sortPositions', () => {
     const positions = [
-        { symbol: 'TSLA', description: 'Tesla', quantity: 5, lastPrice: 200, costBasis: 800, value: 1000, pnlDollar: 200 },
-        { symbol: 'AAPL', description: 'Apple', quantity: 10, lastPrice: 175, costBasis: 1400, value: 1750, pnlDollar: 350 },
-        { symbol: 'MSFT', description: 'Microsoft', quantity: 3, lastPrice: 380, costBasis: 900, value: 1140, pnlDollar: 240 }
+        {
+            symbol: 'TSLA',
+            description: 'Tesla',
+            quantity: 5,
+            lastPrice: 200,
+            costBasis: 800,
+            value: 1000,
+            pnlDollar: 200,
+        },
+        {
+            symbol: 'AAPL',
+            description: 'Apple',
+            quantity: 10,
+            lastPrice: 175,
+            costBasis: 1400,
+            value: 1750,
+            pnlDollar: 350,
+        },
+        {
+            symbol: 'MSFT',
+            description: 'Microsoft',
+            quantity: 3,
+            lastPrice: 380,
+            costBasis: 900,
+            value: 1140,
+            pnlDollar: 240,
+        },
     ];
 
     it('sorts by symbol ascending', () => {
@@ -966,7 +1089,7 @@ describe('calculateEbayFees', () => {
 
     it('handles zero values', () => {
         const fees = calculateEbayFees(0, 0, 0, 0);
-        expect(fees).toBeCloseTo(0.30, 2); // just the flat $0.30
+        expect(fees).toBeCloseTo(0.3, 2); // just the flat $0.30
     });
 });
 
@@ -976,7 +1099,7 @@ describe('calculateEbayNetProfit', () => {
     it('computes correct net profit', () => {
         // price=100, cost=30, shipping_charged=0, shipping_actual=8.50, cat=13.25%, ad=2%
         // gross=100, fees=15.55, net = 100 - 15.55 - 8.50 - 30 = 45.95
-        const profit = calculateEbayNetProfit(100, 30, 0, 8.50, 13.25, 2);
+        const profit = calculateEbayNetProfit(100, 30, 0, 8.5, 13.25, 2);
         expect(profit).toBeCloseTo(45.95, 1);
     });
 
@@ -1001,9 +1124,13 @@ describe('US_MEDIAN_SAVINGS', () => {
     });
 
     it('increases with age', () => {
-        const ages = Object.keys(US_MEDIAN_SAVINGS).map(Number).sort((a, b) => a - b);
+        const ages = Object.keys(US_MEDIAN_SAVINGS)
+            .map(Number)
+            .sort((a, b) => a - b);
         for (let i = 1; i < ages.length; i++) {
-            expect(US_MEDIAN_SAVINGS[ages[i]]).toBeGreaterThanOrEqual(US_MEDIAN_SAVINGS[ages[i - 1]]);
+            expect(US_MEDIAN_SAVINGS[ages[i]]).toBeGreaterThanOrEqual(
+                US_MEDIAN_SAVINGS[ages[i - 1]],
+            );
         }
     });
 });
