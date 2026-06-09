@@ -6,9 +6,9 @@ import prettierConfig from 'eslint-config-prettier';
 export default [
     js.configs.recommended,
 
-    // Node.js files (server)
+    // Node.js files (server + lib)
     {
-        files: ['app/server.js'],
+        files: ['app/server.js', 'app/lib/**/*.js'],
         languageOptions: {
             globals: {
                 ...globals.node,
