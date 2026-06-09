@@ -7,6 +7,7 @@
     "start": "node app/server.js",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "build": "echo 'No build step required for this project' && exit 0"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "prettier": "^3.3.3",
     "supertest": "^7.0.0",
-    "vitest": "^2.0.5"
+    "vitest": "^2.0.5",
+    "@vitest/coverage-v8": "^2.0.5"
   }
 }

@@ -4,8 +4,8 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const DATA_DIR = path.join(__dirname, '../data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const DATA_DIR = process.env.FIRE_DATA_DIR || path.join(__dirname, '../data');
+const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
 app.use(express.json());
 app.use(express.static(__dirname));
