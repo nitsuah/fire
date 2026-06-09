@@ -4,8 +4,7 @@
 
 | Metric                            | Current                                  | Target  | Status       |
 | --------------------------------  | ---------------------------------------  | ------  | -----------  |
-| Coverage — Statements             | 93.7%                                    | 80%     | Met          |
-| Coverage — Branch                 | 73.5%                                    | 80%     | Below Target |
+| Code Coverage                     | 93.7%                                    | 80%     | Met          |
 | Total Tests                       | 182 (136 unit / 35 integration / 11 e2e) | 100+    | Met          |
 | CI/CD Build Status                | Passing (GitHub Actions)                 | Passing | Met          |
 | ESLint Violations                 | 0                                        | 0       | Met          |
