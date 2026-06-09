@@ -1,30 +1,8 @@
-## updated: 2026-06-03
+## updated: 2026-06-08
 
 # Tasks
 
-## Done
-
-- [x] Create workspace documentation structure (`README.md`, `ROADMAP.md`).
-- [x] Outline project goals and architecture.
-- [x] Build application foundation and design system.
-- [x] Implement Fidelity positions CSV parsing and import dashboard.
-- [x] Build Net Worth Projections engine with SWR curves and milestone predictions.
-- [x] Dockerize local environment (Node/Alpine, port 8080, volume-mounted data/).
-- [x] Implement manual entry interfaces for custom accounts, Cash, and CDs.
-- [x] Local storage sync with Import/Export JSON backup utility.
-- [x] P&L table polish — red-green color scale, sortable faceted columns, pie filter.
-- [x] Dashboard layout reorganization — growth + investments left, allocation + stats + CDs right.
-- [x] Time-period filter buttons (1M / 1Y / 5Y / 10Y / 15Y+) on retirement growth charts.
-- [x] CD maturity markers on dashboard retirement growth chart.
-- [x] Real estate tracker — manual entry with equity/mortgage/gain tracking.
-- [x] Vehicle tracker — make/model/year/loan/depreciation with fleet summary.
-- [x] Retirement chart line toggles + scenario bands (Bull/Bear) + US Median benchmark.
-- [x] CD annual yield badge on dashboard CDs Maturing Soon card.
-- [x] Header restructure — mini allocation bars, income metric, FIRE progress bar.
-- [x] Investments: collapse-all, cost basis in facet totals, settled cash excluded from PnL.
-- [x] Investments: risk concentration badges and market return comparison badges.
-- [x] Investments: diversification suggestion block.
-- [x] Financial Overview tab (merged Accounts + CDs) + Monthly Cash Flow section.
+## In Progress
 
 ## Todo
 
