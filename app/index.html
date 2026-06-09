@@ -490,6 +490,17 @@
                                 </div>
                             </div>
 
+                            <!-- CD Ladder Visualizer -->
+                            <div class="card glass-card" id="cd-ladder-card">
+                                <div class="card-title-row">
+                                    <h2 class="card-title">CD Ladder</h2>
+                                    <span class="text-muted" style="font-size:11px;">green = active · yellow = maturing soon · red = matured</span>
+                                </div>
+                                <div style="position:relative;height:auto;min-height:80px;" id="cd-ladder-container">
+                                    <canvas id="chart-cd-ladder" style="max-height:220px;"></canvas>
+                                </div>
+                            </div>
+
                             <!-- Hidden backing tables (used by existing render functions for CD metrics & compat) -->
                             <div style="display:none;">
                                 <table id="table-custom-accounts"><thead><tr><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody></table>
@@ -707,11 +718,20 @@
                 <!-- TAB: Side Hustle Hub -->
                 <section class="tab-pane" id="tab-sidegig">
                     <div class="dashboard-grid">
-                        <!-- eBay Profit & Margin Estimator -->
+                        <!-- Platform Fee Calculator (tabbed) -->
                         <div class="card glass-card span-2">
-                            <h2 class="card-title">eBay Profit & Margin Estimator</h2>
-                            <p class="card-subtitle">Maximize and automate your side hustle! Estimate your exact margins before listing items.</p>
-                            
+                            <div class="card-title-row">
+                                <h2 class="card-title">Platform Fee Calculator</h2>
+                                <div class="platform-tabs">
+                                    <button class="platform-tab-btn active" data-platform="ebay">eBay</button>
+                                    <button class="platform-tab-btn" data-platform="etsy">Etsy</button>
+                                    <button class="platform-tab-btn" data-platform="fb">FB Marketplace</button>
+                                </div>
+                            </div>
+                            <p class="card-subtitle">Estimate your exact margins before listing. Switch platforms to compare fee structures.</p>
+
+                            <!-- eBay Panel -->
+                            <div id="calc-panel-ebay" class="platform-calc-panel">
                             <div class="grid-2-col mt-4">
                                 <div class="form-group">
                                     <label for="ebay-price">eBay Listing Sale Price ($)</label>
@@ -773,6 +793,76 @@
                                 </button>
                                 <div id="ebay-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Disconnected</div>
                             </div>
+                            </div><!-- /calc-panel-ebay -->
+
+                            <!-- Etsy Panel -->
+                            <div id="calc-panel-etsy" class="platform-calc-panel" style="display:none;">
+                            <div class="etsy-fee-note mt-2" style="font-size:11px;color:var(--text-muted);">Rates: $0.20 listing · 6.5% transaction · 3%+$0.25 payment processing</div>
+                            <div class="grid-2-col mt-3">
+                                <div class="form-group">
+                                    <label for="etsy-price">Item Sale Price ($)</label>
+                                    <input type="number" id="etsy-price" min="0" step="0.01" value="40.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="etsy-cost">Your Item Cost ($)</label>
+                                    <input type="number" id="etsy-cost" min="0" step="0.01" value="10.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="etsy-shipping-charged">Shipping Charged to Buyer ($)</label>
+                                    <input type="number" id="etsy-shipping-charged" min="0" step="0.01" value="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="etsy-shipping-actual">Actual Postage Cost ($)</label>
+                                    <input type="number" id="etsy-shipping-actual" min="0" step="0.01" value="5.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="etsy-ads-rate">Etsy Ads Rate (% of sale, 0 = none)</label>
+                                    <input type="number" id="etsy-ads-rate" min="0" max="25" step="0.5" value="0">
+                                </div>
+                            </div>
+                            <div class="calculator-results-box mt-4">
+                                <div class="results-grid">
+                                    <div class="result-box"><span class="result-label">Gross Revenue</span><span class="result-value text-white" id="etsy-res-gross">$40.00</span></div>
+                                    <div class="result-box"><span class="result-label">Est. Etsy Fees</span><span class="result-value text-coral" id="etsy-res-fees">$0.00</span></div>
+                                    <div class="result-box"><span class="result-label">Net Profit</span><span class="result-value text-emerald" id="etsy-res-profit">$0.00</span></div>
+                                    <div class="result-box"><span class="result-label">ROI Margin</span><span class="result-value text-amber" id="etsy-res-roi">0%</span></div>
+                                </div>
+                                <button type="button" class="primary-btn mt-3 w-full" id="btn-save-etsy-sale">Log Etsy Sale to Income History</button>
+                            </div>
+                            </div><!-- /calc-panel-etsy -->
+
+                            <!-- FB Marketplace Panel -->
+                            <div id="calc-panel-fb" class="platform-calc-panel" style="display:none;">
+                            <div class="fb-fee-note mt-2" id="fb-fee-note" style="font-size:11px;color:var(--text-muted);">Local pickup — no selling fee</div>
+                            <div class="grid-2-col mt-3">
+                                <div class="form-group">
+                                    <label for="fb-price">Listing Sale Price ($)</label>
+                                    <input type="number" id="fb-price" min="0" step="0.01" value="50.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="fb-cost">Your Item Cost ($)</label>
+                                    <input type="number" id="fb-cost" min="0" step="0.01" value="15.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="fb-shipping-actual">Actual Shipping Cost ($)</label>
+                                    <input type="number" id="fb-shipping-actual" min="0" step="0.01" value="0.00">
+                                </div>
+                                <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:22px;">
+                                    <input type="checkbox" id="fb-is-shipped" style="width:16px;height:16px;cursor:pointer;">
+                                    <label for="fb-is-shipped" style="margin:0;cursor:pointer;">Sold via FB Checkout (5% fee)</label>
+                                </div>
+                            </div>
+                            <div class="calculator-results-box mt-4">
+                                <div class="results-grid">
+                                    <div class="result-box"><span class="result-label">Gross Revenue</span><span class="result-value text-white" id="fb-res-gross">$50.00</span></div>
+                                    <div class="result-box"><span class="result-label">FB Selling Fee</span><span class="result-value text-coral" id="fb-res-fees">$0.00</span></div>
+                                    <div class="result-box"><span class="result-label">Net Profit</span><span class="result-value text-emerald" id="fb-res-profit">$0.00</span></div>
+                                    <div class="result-box"><span class="result-label">ROI Margin</span><span class="result-value text-amber" id="fb-res-roi">0%</span></div>
+                                </div>
+                                <button type="button" class="primary-btn mt-3 w-full" id="btn-save-fb-sale">Log FB Marketplace Sale</button>
+                            </div>
+                            </div><!-- /calc-panel-fb -->
+
                         </div>
 
                         <!-- Side Hustle Ideas / Suggestions -->
@@ -873,7 +963,7 @@
                                     <input type="number" id="proj-inflation" min="0" max="15" value="2.5" step="0.1">
                                 </div>
                                 <div class="form-group">
-                                    <label for="proj-swr">Selected Safe Withdrawal Rate (SWR %)</label>
+                                    <label for="proj-swr">Safe Withdrawal Rate (SWR %) <span class="info-tip" data-tip="The percentage you can safely withdraw from your portfolio each year in retirement without running out of money. The 4% Rule (Bengen 1994) is the classic standard — meaning a $1M portfolio can sustain ~$40K/yr. Lower SWR = more conservative; use 3–3.5% for longer retirements.">?</span></label>
                                     <select id="proj-swr">
                                         <option value="3.0">3.0% SWR (Extra Safe)</option>
                                         <option value="3.5">3.5% SWR (Moderate)</option>
@@ -927,7 +1017,14 @@
 
                         <!-- Projection Stats / Milestones -->
                         <div class="card glass-card span-3">
-                            <h2 class="card-title">Milestone Predictions</h2>
+                            <div class="card-title-row">
+                                <h2 class="card-title">Milestone Predictions</h2>
+                                <span class="text-muted" style="font-size:11px;">
+                                    <span class="info-tip" data-tip="Coast FIRE: the amount where, if you stopped saving today, your portfolio would grow on its own to your FIRE number by retirement age.">Coast FIRE</span>
+                                    &nbsp;·&nbsp;
+                                    <span class="info-tip" data-tip="Lean FIRE: retire on a minimal budget (75% of your target FIRE number). Fat FIRE: retire with 25% extra cushion above your target for lifestyle flexibility.">Lean / Fat FIRE</span>
+                                </span>
+                            </div>
                             <div class="milestones-grid mt-2" id="projection-milestones-container">
                                 <!-- Dynamically populated by app.js -->
                             </div>

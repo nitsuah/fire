@@ -1759,3 +1759,99 @@ h1, h2, h3, h4, h5, h6 {
     outline: none;
     border-color: rgba(139,92,246,0.6);
 }
+
+/* ==========================================================================
+   Info Tooltips
+   ========================================================================== */
+.info-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: rgba(139,92,246,0.25);
+    color: #a78bfa;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: help;
+    position: relative;
+    vertical-align: middle;
+    margin-left: 4px;
+    border: 1px solid rgba(139,92,246,0.4);
+    text-decoration: none;
+}
+.info-tip::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(8, 11, 17, 0.97);
+    border: 1px solid rgba(139,92,246,0.35);
+    color: #d1d5db;
+    font-size: 11px;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 8px;
+    width: 260px;
+    text-align: left;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 200;
+    white-space: normal;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+.info-tip:hover::after {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   Platform Fee Calculator Tabs
+   ========================================================================== */
+.platform-tabs {
+    display: flex;
+    gap: 4px;
+}
+.platform-tab-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    font-family: 'Outfit', sans-serif;
+}
+.platform-tab-btn:hover {
+    background: rgba(139,92,246,0.12);
+    color: #d1d5db;
+    border-color: rgba(139,92,246,0.3);
+}
+.platform-tab-btn.active {
+    background: rgba(139,92,246,0.2);
+    border-color: rgba(139,92,246,0.5);
+    color: #c4b5fd;
+}
+.platform-calc-panel {
+    animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   CD Ladder Chart
+   ========================================================================== */
+#cd-ladder-card {
+    margin-top: 0;
+}
+#cd-ladder-container canvas {
+    width: 100% !important;
+}

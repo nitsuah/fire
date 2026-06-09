@@ -28,6 +28,10 @@ const {
     sortPositions,
     calculateEbayFees,
     calculateEbayNetProfit,
+    calculateEtsyFees,
+    calculateEtsyNetProfit,
+    calculateFBFees,
+    calculateFBNetProfit,
     US_MEDIAN_SAVINGS,
 } = require('../../app/lib/finance-core');
 
@@ -1132,5 +1136,217 @@ describe('US_MEDIAN_SAVINGS', () => {
                 US_MEDIAN_SAVINGS[ages[i - 1]],
             );
         }
+    });
+});
+
+// ─── parseChaseStatement (category-aware) ─────────────────────────────────────
+
+describe('parseChaseStatement (categorization)', () => {
+    it('maps Chase Food & Drink category to food bucket', () => {
+        const rows = [
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-01',
+                '2024-01-02',
+                'Chipotle',
+                'Food & Drink',
+                'Sale',
+                '-15.00',
+            ],
+        ];
+        const result = parseChaseStatement(rows);
+        expect(result.imported).toBe(1);
+        expect(result.categories.food).toBeCloseTo(15);
+        expect(result.categories.discretionary).toBe(0);
+    });
+
+    it('maps Chase Automotive category to transport bucket', () => {
+        const rows = [
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-03',
+                '2024-01-04',
+                'Shell Gas',
+                'Automotive',
+                'Sale',
+                '-60.00',
+            ],
+        ];
+        const result = parseChaseStatement(rows);
+        expect(result.categories.transport).toBeCloseTo(60);
+    });
+
+    it('falls back to keyword matching when category unknown', () => {
+        const rows = [
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-05',
+                '2024-01-06',
+                'CVS Pharmacy Purchase',
+                'Retail',
+                'Sale',
+                '-22.00',
+            ],
+        ];
+        const result = parseChaseStatement(rows);
+        expect(result.categories.healthcare).toBeCloseTo(22);
+    });
+
+    it('provides months field', () => {
+        const rows = [
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-01',
+                '2024-01-02',
+                'Coffee',
+                'Food & Drink',
+                'Sale',
+                '-5.00',
+            ],
+            [
+                '2024-02-01',
+                '2024-02-02',
+                'Coffee',
+                'Food & Drink',
+                'Sale',
+                '-5.00',
+            ],
+        ];
+        const result = parseChaseStatement(rows);
+        expect(result.months).toBeGreaterThanOrEqual(1);
+    });
+});
+
+// ─── parseCapitalOneStatement (category-aware) ────────────────────────────────
+
+describe('parseCapitalOneStatement (categorization)', () => {
+    it('maps grocery category to food bucket', () => {
+        const csv =
+            'Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit\n2024-01-01,2024-01-02,1234,Kroger,Grocery Store/Supermarket,85.00,';
+        const rows = parseCSVText(csv);
+        const result = parseCapitalOneStatement(rows);
+        expect(result.imported).toBe(1);
+        expect(result.categories.food).toBeCloseTo(85);
+    });
+
+    it('categorizes uncategorized transaction via keyword fallback', () => {
+        const csv =
+            'Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit\n2024-01-01,2024-01-02,1234,Walgreens Pharmacy,Other,12.00,';
+        const rows = parseCSVText(csv);
+        const result = parseCapitalOneStatement(rows);
+        expect(result.categories.healthcare).toBeCloseTo(12);
+    });
+});
+
+// ─── calculateEtsyFees ────────────────────────────────────────────────────────
+
+describe('calculateEtsyFees', () => {
+    it('calculates listing, transaction, and payment fees', () => {
+        // price=40, shipping=0, adsRate=0
+        // listing: $0.20
+        // transaction: 40 * 0.065 = $2.60
+        // payment: 40 * 0.03 + 0.25 = $1.45
+        // total: $4.25
+        const result = calculateEtsyFees(40, 0, 0);
+        expect(result.listingFee).toBeCloseTo(0.2, 2);
+        expect(result.transactionFee).toBeCloseTo(2.6, 2);
+        expect(result.paymentProcessing).toBeCloseTo(1.45, 2);
+        expect(result.adsFee).toBe(0);
+        expect(result.total).toBeCloseTo(4.25, 2);
+    });
+
+    it('includes shipping in transaction and payment fees', () => {
+        // price=30, shipping=5, total=35
+        // transaction: 35 * 0.065 = 2.275
+        // payment: 35 * 0.03 + 0.25 = 1.30
+        const result = calculateEtsyFees(30, 5, 0);
+        expect(result.transactionFee).toBeCloseTo(2.275, 2);
+        expect(result.paymentProcessing).toBeCloseTo(1.3, 2);
+    });
+
+    it('adds Etsy Ads fee when adsRate > 0', () => {
+        // price=100, adsRate=10% → adsFee = 10
+        const result = calculateEtsyFees(100, 0, 10);
+        expect(result.adsFee).toBeCloseTo(10, 2);
+    });
+});
+
+// ─── calculateEtsyNetProfit ───────────────────────────────────────────────────
+
+describe('calculateEtsyNetProfit', () => {
+    it('computes correct net profit', () => {
+        // price=40, shipping_charged=0, actual=5, cost=10, ads=0
+        // gross=40, fees=4.25, net = 40 - 4.25 - 5 - 10 = 20.75
+        const profit = calculateEtsyNetProfit(40, 0, 5, 10, 0);
+        expect(profit).toBeCloseTo(20.75, 1);
+    });
+
+    it('returns negative when costs exceed revenue', () => {
+        const profit = calculateEtsyNetProfit(10, 0, 0, 50, 0);
+        expect(profit).toBeLessThan(0);
+    });
+});
+
+// ─── calculateFBFees ──────────────────────────────────────────────────────────
+
+describe('calculateFBFees', () => {
+    it('returns zero fees for local pickup', () => {
+        const result = calculateFBFees(50, false);
+        expect(result.total).toBe(0);
+    });
+
+    it('applies 5% fee for shipped sales', () => {
+        const result = calculateFBFees(100, true);
+        expect(result.sellingFee).toBeCloseTo(5, 2);
+        expect(result.total).toBeCloseTo(5, 2);
+    });
+
+    it('applies minimum $0.40 fee for low-value shipped sales', () => {
+        const result = calculateFBFees(5, true); // 5% of $5 = $0.25, minimum $0.40
+        expect(result.sellingFee).toBeCloseTo(0.4, 2);
+    });
+});
+
+// ─── calculateFBNetProfit ─────────────────────────────────────────────────────
+
+describe('calculateFBNetProfit', () => {
+    it('computes correct profit for local sale', () => {
+        // price=50, cost=20, no fees, no shipping
+        const profit = calculateFBNetProfit(50, 0, 20, false);
+        expect(profit).toBeCloseTo(30, 2);
+    });
+
+    it('deducts 5% fee for shipped sale', () => {
+        // price=100, cost=30, shipping=8, 5% fee=5
+        const profit = calculateFBNetProfit(100, 8, 30, true);
+        expect(profit).toBeCloseTo(57, 1);
     });
 });
