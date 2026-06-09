@@ -1738,10 +1738,81 @@ function buildProjectionData() {
     return { labels, nwData, fireLine, leanFireLine, fatFireLine, coastFireLine, bullData, bearData, benchData, fireNumber, retirementLineIndex, cdEvents, realReturn, savings, networth };
 }
 
+function computeScenarioFIREDate({ savingsMultiplier = 1, returnOffset = 0, inflationOffset = 0 } = {}) {
+    const networth = getAggregateNetWorth();
+    const annualExpenses = getAnnualExpensesTotal();
+    const swr = state.projectionSettings.swr / 100;
+    const fireNumber = swr > 0 ? (annualExpenses / swr) : 0;
+    if (fireNumber <= 0) return null;
+
+    const savings = state.projectionSettings.annualSavings * savingsMultiplier;
+    const nominalReturn = (state.projectionSettings.expectedReturn + returnOffset) / 100;
+    const inflation = (state.projectionSettings.inflationRate + inflationOffset) / 100;
+    const realReturn = nominalReturn - inflation;
+    const currentAge = state.projectionSettings.currentAge || 30;
+
+    if (networth >= fireNumber) return currentAge;
+
+    let nw = networth;
+    for (let yr = 1; yr <= 80; yr++) {
+        nw = (nw * (1 + realReturn)) + savings;
+        if (nw >= fireNumber) return currentAge + yr;
+    }
+    return null;
+}
+
+function renderScenarioComparison() {
+    const container = document.getElementById('scenario-comparison-container');
+    if (!container) return;
+
+    const currentAge = state.projectionSettings.currentAge || 30;
+    const scenarios = [
+        { label: 'Base Case',          icon: '📊', savingsMultiplier: 1,    returnOffset: 0,  inflationOffset: 0,  isBase: true },
+        { label: 'Savings +10%',       icon: '💰', savingsMultiplier: 1.10, returnOffset: 0,  inflationOffset: 0  },
+        { label: 'Savings +20%',       icon: '💰', savingsMultiplier: 1.20, returnOffset: 0,  inflationOffset: 0  },
+        { label: 'Bear Market (−2%)',  icon: '🐻', savingsMultiplier: 1,    returnOffset: -2, inflationOffset: 0  },
+        { label: 'Severe Bear (−4%)', icon: '🐻', savingsMultiplier: 1,    returnOffset: -4, inflationOffset: 0  },
+        { label: 'Inflation +1%',      icon: '📈', savingsMultiplier: 1,    returnOffset: 0,  inflationOffset: 1  },
+        { label: 'Inflation +2%',      icon: '📈', savingsMultiplier: 1,    returnOffset: 0,  inflationOffset: 2  },
+    ];
+
+    const results = scenarios.map(s => ({ ...s, fireAge: computeScenarioFIREDate(s) }));
+    const baseAge = results.find(r => r.isBase)?.fireAge;
+
+    const rows = results.map(r => {
+        const age = r.fireAge;
+        const yearsAway = age !== null ? age - currentAge : null;
+        const delta = (!r.isBase && age !== null && baseAge !== null) ? age - baseAge : null;
+
+        let ageCell = age !== null
+            ? `<strong>Age ${age}</strong>`
+            : `<span class="text-muted">Not within 80 yrs</span>`;
+
+        let deltaCell = r.isBase ? '<span class="scen-delta-neutral">base</span>' :
+            delta === null ? '<span class="text-muted">—</span>' :
+            delta < 0 ? `<span class="scen-delta-better">${delta} yrs</span>` :
+            delta > 0 ? `<span class="scen-delta-worse">+${delta} yrs</span>` :
+            '<span class="scen-delta-neutral">same</span>';
+
+        return `<tr class="${r.isBase ? 'scen-base-row' : ''}">
+            <td class="scen-label-cell">${r.icon} ${r.label}</td>
+            <td>${ageCell}</td>
+            <td class="text-muted">${yearsAway !== null ? yearsAway + ' yrs' : '—'}</td>
+            <td>${deltaCell}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `<table class="scenario-compare-table">
+        <thead><tr><th>Scenario</th><th>FIRE Age</th><th>Years Away</th><th>vs. Base</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
 function calculateAndRenderProjections() {
     const raw = buildProjectionData();
     renderProjectionsChart(sliceProjectionData(raw, projWindow));
     renderMilestones(raw.networth, raw.fireNumber, raw.realReturn, raw.savings);
+    renderScenarioComparison();
 }
 
 function buildProjectionAnnotations(retirementLineIndex, cdEvents, nwData, fireNumber) {

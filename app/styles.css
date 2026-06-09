@@ -343,6 +343,7 @@ h1, h2, h3, h4, h5, h6 {
     padding: 24px;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
     transition: border-color 0.25s ease;
+    min-width: 0;
 }
 
 .card:hover {
@@ -850,6 +851,7 @@ h1, h2, h3, h4, h5, h6 {
     }
     .dashboard-body {
         flex-direction: column;
+        align-items: stretch;
     }
     .dash-col-right {
         min-width: 0;
@@ -869,40 +871,6 @@ h1, h2, h3, h4, h5, h6 {
         padding: 16px;
     }
     .milestones-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
-    .app-container {
-        flex-direction: column;
-    }
-    .sidebar {
-        width: 100%;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--border-divider);
-        padding: 16px;
-    }
-    .nav-menu {
-        flex-direction: row;
-        overflow-x: auto;
-        padding-bottom: 8px;
-    }
-    .nav-btn {
-        padding: 8px 12px;
-        font-size: 12px;
-    }
-    .nav-btn.active {
-        box-shadow: inset 0 -3px 0 var(--color-primary);
-    }
-    .main-content {
-        height: calc(100vh - 200px);
-    }
-    .milestones-grid {
-        grid-template-columns: 1fr;
-    }
-    .results-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
@@ -1854,4 +1822,170 @@ h1, h2, h3, h4, h5, h6 {
 }
 #cd-ladder-container canvas {
     width: 100% !important;
+}
+
+/* ==========================================================================
+   Multi-Scenario FIRE Date Comparison Table
+   ========================================================================== */
+.scenario-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.scenario-compare-table th {
+    text-align: left;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-dimmed);
+    padding: 0 12px 10px 12px;
+    border-bottom: 1px solid var(--border-divider);
+}
+.scenario-compare-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-divider);
+    vertical-align: middle;
+}
+.scenario-compare-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.scenario-compare-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+.scen-base-row td {
+    background: rgba(139, 92, 246, 0.06);
+}
+.scen-label-cell {
+    font-weight: 500;
+    color: var(--text-main);
+}
+.scen-delta-better {
+    color: var(--color-success);
+    font-weight: 600;
+    font-size: 12px;
+}
+.scen-delta-worse {
+    color: var(--color-danger);
+    font-weight: 600;
+    font-size: 12px;
+}
+.scen-delta-neutral {
+    color: var(--text-dimmed);
+    font-size: 12px;
+}
+
+/* ==========================================================================
+   Mobile Responsive Layout
+   ========================================================================== */
+@media (max-width: 768px) {
+    body {
+        overflow: auto;
+    }
+    .app-container {
+        flex-direction: column;
+        width: 100%;
+        height: auto;
+        min-height: 100vh;
+    }
+    .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-divider);
+        padding: 8px 12px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    .brand {
+        margin-bottom: 0;
+        padding-left: 0;
+        flex-shrink: 0;
+        margin-right: 8px;
+    }
+    .brand-name {
+        display: none;
+    }
+    .nav-menu {
+        flex-direction: row;
+        flex-grow: 1;
+        overflow-x: auto;
+        gap: 2px;
+        padding-bottom: 0;
+        scrollbar-width: none;
+    }
+    .nav-menu::-webkit-scrollbar {
+        display: none;
+    }
+    .nav-btn {
+        padding: 7px 10px;
+        font-size: 11px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        border-radius: 6px;
+    }
+    .nav-btn.active {
+        box-shadow: inset 0 -2px 0 var(--color-primary);
+        background-color: rgba(139, 92, 246, 0.1);
+    }
+    .sidebar-footer {
+        display: none;
+    }
+    .main-content {
+        height: auto;
+        overflow: visible;
+    }
+    .scroll-container {
+        overflow: visible;
+        padding: 16px;
+    }
+    .header-banner {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 12px 16px;
+        gap: 12px;
+        min-height: auto;
+    }
+    .fo-body {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .fo-right {
+        min-width: 0;
+    }
+    .card-title-row > span.text-muted {
+        flex-basis: 100%;
+    }
+    .milestones-grid {
+        grid-template-columns: 1fr;
+    }
+    .results-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .header-banner {
+        grid-template-columns: 1fr;
+        padding: 10px 12px;
+    }
+    .nav-icon {
+        display: none;
+    }
+    .nav-btn {
+        font-size: 10px;
+        padding: 6px 8px;
+    }
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+    .platform-tabs {
+        flex-wrap: wrap;
+    }
+    .metric-value {
+        font-size: 18px;
+    }
 }
