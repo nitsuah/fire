@@ -171,8 +171,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     initVehiclesManager();
     initExpenseManager();
     initSideGigManager();
+    initPlatformCalculators();
     initProjectionsManager();
-    
+
     // Initial Render
     refreshAllUI();
 
@@ -592,47 +593,130 @@ function parseFidelityPositions(rows) {
     return importedCount;
 }
 
-function parseChaseStatement(rows) {
-    let imported = 0;
-    let totalOutflow = 0;
-    
-    rows.forEach((row, i) => {
-        if (i === 0) return;
-        if (row.length < 5) return;
-        const amount = parseFloat(row[5]);
-        if (!isNaN(amount) && amount < 0) {
-            totalOutflow += Math.abs(amount);
-            imported++;
+const _CHASE_CAT_MAP = {
+    'automotive': 'transport', 'bills & utilities': 'utilities', 'food & drink': 'food',
+    'gas': 'transport', 'groceries': 'food', 'health & wellness': 'healthcare',
+    'medical': 'healthcare', 'home': 'housing', 'travel': 'transport',
+    'entertainment': 'discretionary', 'shopping': 'discretionary', 'personal': 'discretionary',
+};
+
+const _C1_CAT_MAP = {
+    'grocery': 'food', 'restaurant': 'food', 'fast food': 'food', 'coffee': 'food',
+    'gas/automobile': 'transport', 'automotive': 'transport', 'taxi': 'transport',
+    'utilities': 'utilities', 'phone': 'utilities', 'internet': 'utilities',
+    'health care': 'healthcare', 'dentist': 'healthcare', 'pharmacy': 'healthcare',
+    'rent': 'housing', 'home improvement': 'housing',
+};
+
+const _KEYWORD_MAP = [
+    { keys: ['rent', 'lease', 'mortgage', 'hoa', 'apartment'], cat: 'housing' },
+    { keys: ['electric', 'water bill', 'gas company', 'internet', 'comcast', 'xfinity', 'spectrum', 'at&t', 'verizon fios', 't-mobile'], cat: 'utilities' },
+    { keys: ['grocery', 'safeway', 'kroger', 'trader joe', 'whole foods', 'aldi', 'publix', 'costco', 'walmart', 'restaurant', 'pizza', 'burger', 'mcdonald', 'chipotle', 'starbucks', 'doordash', 'grubhub', 'ubereats', 'instacart'], cat: 'food' },
+    { keys: ['shell ', 'exxon', 'bp ', 'chevron', 'mobil ', 'speedway', 'gas station', 'fuel', 'uber ', 'lyft ', 'parking', 'toll', 'auto repair', 'jiffy lube', 'firestone', 'car wash'], cat: 'transport' },
+    { keys: ['pharmacy', 'cvs ', 'walgreens', 'rite aid', 'hospital', 'medical', 'dental', 'vision', 'kaiser', 'urgent care'], cat: 'healthcare' },
+];
+
+function _descToExpenseCategory(desc) {
+    const lower = (desc || '').toLowerCase();
+    for (const { keys, cat } of _KEYWORD_MAP) {
+        if (keys.some(k => lower.includes(k))) return cat;
+    }
+    return 'discretionary';
+}
+
+function _calcStatementMonths(dates) {
+    if (!dates.length) return 1;
+    const ts = dates.map(d => new Date(d).getTime()).filter(t => !isNaN(t));
+    if (ts.length < 2) return 1;
+    return Math.max(1, Math.round((Math.max(...ts) - Math.min(...ts)) / (1000 * 60 * 60 * 24 * 30.44)));
+}
+
+function _applyStatementCategories(cats, months) {
+    const m = months || 1;
+    let applied = false;
+    for (const [cat, total] of Object.entries(cats)) {
+        if (total > 0 && state.expenses[cat] !== undefined) {
+            state.expenses[cat] = Math.round(total / m);
+            const el = document.getElementById(`exp-${cat}`);
+            if (el) el.value = state.expenses[cat];
+            applied = true;
         }
-    });
+    }
+    return applied;
+}
+
+function parseChaseStatement(rows) {
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const idxDate = headers.findIndex(h => h.includes('transaction date'));
+    const idxDesc = headers.findIndex(h => h.includes('description'));
+    const idxCat = headers.findIndex(h => h === 'category');
+    const idxAmt = headers.findIndex(h => h === 'amount');
+    if (idxAmt === -1) return 0;
+
+    const cats = { housing: 0, utilities: 0, food: 0, transport: 0, healthcare: 0, discretionary: 0 };
+    const dates = [];
+    let imported = 0;
+
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length < 3) continue;
+        const amount = parseFloat(row[idxAmt]);
+        if (isNaN(amount) || amount >= 0) continue;
+        const charge = Math.abs(amount);
+        imported++;
+        if (idxDate !== -1 && row[idxDate]) dates.push(row[idxDate]);
+        const rawCat = idxCat !== -1 ? (row[idxCat] || '').toLowerCase().trim() : '';
+        const mappedCat = _CHASE_CAT_MAP[rawCat];
+        if (mappedCat) {
+            cats[mappedCat] += charge;
+        } else {
+            const desc = idxDesc !== -1 ? (row[idxDesc] || '') : '';
+            cats[_descToExpenseCategory(desc)] += charge;
+        }
+    }
 
     if (imported > 0) {
-        state.expenses.discretionary = Math.round(totalOutflow);
+        const months = _calcStatementMonths(dates);
+        _applyStatementCategories(cats, months);
     }
     return imported;
 }
 
 function parseCapitalOneStatement(rows) {
-    let imported = 0;
-    let totalOutflow = 0;
-
     const headers = rows[0].map(h => h.trim().toLowerCase());
+    const idxDate = headers.findIndex(h => h.includes('transaction date'));
+    const idxDesc = headers.findIndex(h => h.includes('description'));
+    const idxCat = headers.findIndex(h => h === 'category');
     const idxDebit = headers.indexOf('debit');
-
     if (idxDebit === -1) return 0;
+
+    const cats = { housing: 0, utilities: 0, food: 0, transport: 0, healthcare: 0, discretionary: 0 };
+    const dates = [];
+    let imported = 0;
 
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (row.length < idxDebit) continue;
+        if (row.length <= idxDebit) continue;
         const debit = parseFloat(row[idxDebit]);
-        if (!isNaN(debit) && debit > 0) {
-            totalOutflow += debit;
-            imported++;
+        if (isNaN(debit) || debit <= 0) continue;
+        imported++;
+        if (idxDate !== -1 && row[idxDate]) dates.push(row[idxDate]);
+        const rawCat = idxCat !== -1 ? (row[idxCat] || '').toLowerCase().trim() : '';
+        let mapped = null;
+        for (const [key, val] of Object.entries(_C1_CAT_MAP)) {
+            if (rawCat.includes(key)) { mapped = val; break; }
+        }
+        if (mapped) {
+            cats[mapped] += debit;
+        } else {
+            const desc = idxDesc !== -1 ? (row[idxDesc] || '') : '';
+            cats[_descToExpenseCategory(desc)] += debit;
         }
     }
 
     if (imported > 0) {
-        state.expenses.discretionary = Math.round(totalOutflow);
+        const months = _calcStatementMonths(dates);
+        _applyStatementCategories(cats, months);
     }
     return imported;
 }
@@ -1335,6 +1419,211 @@ window.deleteSideGigEntry = async function(id) {
 };
 
 /* ==========================================================================
+   Platform Fee Calculators (Etsy + FB Marketplace)
+   ========================================================================== */
+
+function initPlatformCalculators() {
+    // Tab switching
+    document.querySelectorAll('.platform-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.platform-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.platform-calc-panel').forEach(p => p.style.display = 'none');
+            btn.classList.add('active');
+            const panel = document.getElementById(`calc-panel-${btn.dataset.platform}`);
+            if (panel) panel.style.display = '';
+        });
+    });
+
+    // Etsy live calculation
+    ['etsy-price', 'etsy-shipping-charged', 'etsy-shipping-actual', 'etsy-cost', 'etsy-ads-rate'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', calculateEtsyProfit);
+    });
+
+    // FB live calculation
+    ['fb-price', 'fb-shipping-actual', 'fb-cost', 'fb-is-shipped'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', calculateFBProfit);
+        document.getElementById(id)?.addEventListener('change', calculateFBProfit);
+    });
+
+    // Log buttons
+    document.getElementById('btn-save-etsy-sale')?.addEventListener('click', async () => {
+        const price = parseFloat(document.getElementById('etsy-price').value) || 0;
+        const shipping = parseFloat(document.getElementById('etsy-shipping-charged').value) || 0;
+        const shippingActual = parseFloat(document.getElementById('etsy-shipping-actual').value) || 0;
+        const cost = parseFloat(document.getElementById('etsy-cost').value) || 0;
+        const adsRate = parseFloat(document.getElementById('etsy-ads-rate').value) || 0;
+        const fees = calculateEtsyFeesTotal(price, shipping, adsRate);
+        const net = (price + shipping) - fees - shippingActual - cost;
+        state.sideGigLedger.push({ id: Date.now().toString(), desc: `Etsy Sale: $${price} Item`, category: 'Etsy', revenue: price + shipping, expenses: fees + shippingActual + cost, net });
+        await saveState();
+        refreshAllUI();
+        alert('Etsy sale logged to Side Income history!');
+    });
+
+    document.getElementById('btn-save-fb-sale')?.addEventListener('click', async () => {
+        const price = parseFloat(document.getElementById('fb-price').value) || 0;
+        const shippingActual = parseFloat(document.getElementById('fb-shipping-actual').value) || 0;
+        const cost = parseFloat(document.getElementById('fb-cost').value) || 0;
+        const isShipped = document.getElementById('fb-is-shipped')?.checked;
+        const fees = calculateFBFeesTotal(price, isShipped);
+        const net = price - fees - shippingActual - cost;
+        state.sideGigLedger.push({ id: Date.now().toString(), desc: `FB Marketplace Sale: $${price} Item`, category: 'FB Marketplace', revenue: price, expenses: fees + shippingActual + cost, net });
+        await saveState();
+        refreshAllUI();
+        alert('FB Marketplace sale logged to Side Income history!');
+    });
+
+    calculateEtsyProfit();
+    calculateFBProfit();
+}
+
+function calculateEtsyFeesTotal(price, shipping, adsRate) {
+    const p = price || 0;
+    const s = shipping || 0;
+    const listing = 0.20;
+    const transaction = (p + s) * 0.065;
+    const payment = (p + s) * 0.03 + 0.25;
+    const ads = (p + s) * ((adsRate || 0) / 100);
+    return listing + transaction + payment + ads;
+}
+
+function calculateEtsyProfit() {
+    const price = parseFloat(document.getElementById('etsy-price')?.value) || 0;
+    const shipping = parseFloat(document.getElementById('etsy-shipping-charged')?.value) || 0;
+    const shippingActual = parseFloat(document.getElementById('etsy-shipping-actual')?.value) || 0;
+    const cost = parseFloat(document.getElementById('etsy-cost')?.value) || 0;
+    const adsRate = parseFloat(document.getElementById('etsy-ads-rate')?.value) || 0;
+
+    const gross = price + shipping;
+    const fees = calculateEtsyFeesTotal(price, shipping, adsRate);
+    const net = gross - fees - shippingActual - cost;
+    const roi = cost > 0 ? (net / cost) * 100 : 0;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('etsy-res-gross', formatCurrency(gross));
+    set('etsy-res-fees', formatCurrency(fees));
+    set('etsy-res-profit', formatCurrency(net));
+    set('etsy-res-roi', `${roi.toFixed(1)}%`);
+    const profitEl = document.getElementById('etsy-res-profit');
+    if (profitEl) profitEl.className = `result-value ${net < 0 ? 'text-coral' : 'text-emerald'}`;
+}
+
+function calculateFBFeesTotal(price, isShipped) {
+    if (!isShipped) return 0;
+    return Math.max((price || 0) * 0.05, 0.40);
+}
+
+function calculateFBProfit() {
+    const price = parseFloat(document.getElementById('fb-price')?.value) || 0;
+    const shippingActual = parseFloat(document.getElementById('fb-shipping-actual')?.value) || 0;
+    const cost = parseFloat(document.getElementById('fb-cost')?.value) || 0;
+    const isShipped = document.getElementById('fb-is-shipped')?.checked || false;
+
+    const fees = calculateFBFeesTotal(price, isShipped);
+    const net = price - fees - shippingActual - cost;
+    const roi = cost > 0 ? (net / cost) * 100 : 0;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('fb-res-gross', formatCurrency(price));
+    set('fb-res-fees', formatCurrency(fees));
+    set('fb-res-profit', formatCurrency(net));
+    set('fb-res-roi', `${roi.toFixed(1)}%`);
+    const profitEl = document.getElementById('fb-res-profit');
+    if (profitEl) profitEl.className = `result-value ${net < 0 ? 'text-coral' : 'text-emerald'}`;
+
+    const feeNote = document.getElementById('fb-fee-note');
+    if (feeNote) feeNote.textContent = isShipped ? 'FB checkout fee: 5% (min $0.40)' : 'Local pickup — no selling fee';
+}
+
+/* ==========================================================================
+   CD Ladder Visualizer
+   ========================================================================== */
+
+let cdLadderChart = null;
+
+function renderCDLadderChart() {
+    const ctx = document.getElementById('chart-cd-ladder');
+    if (!ctx) return;
+
+    if (cdLadderChart) { cdLadderChart.destroy(); cdLadderChart = null; }
+
+    const today = new Date();
+    const cds = (state.cds || []).filter(cd => cd.principal > 0 && cd.maturity);
+
+    if (cds.length === 0) {
+        ctx.parentElement.innerHTML = '<p class="text-muted text-center" style="padding:20px 0;font-size:12px;">Add CDs to see the ladder visualization.</p>';
+        return;
+    }
+
+    const sorted = [...cds].sort((a, b) => new Date(a.maturity) - new Date(b.maturity));
+
+    const labels = sorted.map(cd => {
+        const mat = new Date(cd.maturity);
+        return `${cd.bank} (${mat.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })})`;
+    });
+
+    const daysLeft = sorted.map(cd => {
+        const d = Math.ceil((new Date(cd.maturity) - today) / 86400000);
+        return Math.max(d, 0);
+    });
+
+    const colors = sorted.map(cd => {
+        const d = Math.ceil((new Date(cd.maturity) - today) / 86400000);
+        if (d < 0) return 'rgba(244,63,94,0.75)';
+        if (d <= 30) return 'rgba(245,158,11,0.85)';
+        if (d <= 90) return 'rgba(251,191,36,0.75)';
+        return 'rgba(16,185,129,0.75)';
+    });
+
+    const principals = sorted.map(cd => cd.principal);
+    const annualYields = sorted.map(cd => ((cd.principal || 0) * ((cd.rate || 0) / 100)).toFixed(0));
+
+    cdLadderChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Principal',
+                data: principals,
+                backgroundColor: colors,
+                borderColor: colors.map(c => c.replace('0.75', '1').replace('0.85', '1')),
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const cd = sorted[ctx.dataIndex];
+                            const d = daysLeft[ctx.dataIndex];
+                            const status = d <= 0 ? 'Matured' : `${d}d left`;
+                            return [
+                                ` Principal: ${formatCurrency(cd.principal)}`,
+                                ` Rate: ${Number(cd.rate).toFixed(2)}%  |  Yield: $${annualYields[ctx.dataIndex]}/yr`,
+                                ` Status: ${status}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: { color: '#9ca3af', callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0) + 'K' : v) }
+                },
+                y: { grid: { display: false }, ticks: { color: '#d1d5db', font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+/* ==========================================================================
    Net Worth Projections Engine
    ========================================================================== */
 
@@ -1449,10 +1738,81 @@ function buildProjectionData() {
     return { labels, nwData, fireLine, leanFireLine, fatFireLine, coastFireLine, bullData, bearData, benchData, fireNumber, retirementLineIndex, cdEvents, realReturn, savings, networth };
 }
 
+function computeScenarioFIREDate({ savingsMultiplier = 1, returnOffset = 0, inflationOffset = 0 } = {}) {
+    const networth = getAggregateNetWorth();
+    const annualExpenses = getAnnualExpensesTotal();
+    const swr = state.projectionSettings.swr / 100;
+    const fireNumber = swr > 0 ? (annualExpenses / swr) : 0;
+    if (fireNumber <= 0) return null;
+
+    const savings = state.projectionSettings.annualSavings * savingsMultiplier;
+    const nominalReturn = (state.projectionSettings.expectedReturn + returnOffset) / 100;
+    const inflation = (state.projectionSettings.inflationRate + inflationOffset) / 100;
+    const realReturn = nominalReturn - inflation;
+    const currentAge = state.projectionSettings.currentAge || 30;
+
+    if (networth >= fireNumber) return currentAge;
+
+    let nw = networth;
+    for (let yr = 1; yr <= 80; yr++) {
+        nw = (nw * (1 + realReturn)) + savings;
+        if (nw >= fireNumber) return currentAge + yr;
+    }
+    return null;
+}
+
+function renderScenarioComparison() {
+    const container = document.getElementById('scenario-comparison-container');
+    if (!container) return;
+
+    const currentAge = state.projectionSettings.currentAge || 30;
+    const scenarios = [
+        { label: 'Base Case',          icon: '📊', savingsMultiplier: 1,    returnOffset: 0,  inflationOffset: 0,  isBase: true },
+        { label: 'Savings +10%',       icon: '💰', savingsMultiplier: 1.10, returnOffset: 0,  inflationOffset: 0  },
+        { label: 'Savings +20%',       icon: '💰', savingsMultiplier: 1.20, returnOffset: 0,  inflationOffset: 0  },
+        { label: 'Bear Market (−2%)',  icon: '🐻', savingsMultiplier: 1,    returnOffset: -2, inflationOffset: 0  },
+        { label: 'Severe Bear (−4%)', icon: '🐻', savingsMultiplier: 1,    returnOffset: -4, inflationOffset: 0  },
+        { label: 'Inflation +1%',      icon: '📈', savingsMultiplier: 1,    returnOffset: 0,  inflationOffset: 1  },
+        { label: 'Inflation +2%',      icon: '📈', savingsMultiplier: 1,    returnOffset: 0,  inflationOffset: 2  },
+    ];
+
+    const results = scenarios.map(s => ({ ...s, fireAge: computeScenarioFIREDate(s) }));
+    const baseAge = results.find(r => r.isBase)?.fireAge;
+
+    const rows = results.map(r => {
+        const age = r.fireAge;
+        const yearsAway = age !== null ? age - currentAge : null;
+        const delta = (!r.isBase && age !== null && baseAge !== null) ? age - baseAge : null;
+
+        let ageCell = age !== null
+            ? `<strong>Age ${age}</strong>`
+            : `<span class="text-muted">Not within 80 yrs</span>`;
+
+        let deltaCell = r.isBase ? '<span class="scen-delta-neutral">base</span>' :
+            delta === null ? '<span class="text-muted">—</span>' :
+            delta < 0 ? `<span class="scen-delta-better">${delta} yrs</span>` :
+            delta > 0 ? `<span class="scen-delta-worse">+${delta} yrs</span>` :
+            '<span class="scen-delta-neutral">same</span>';
+
+        return `<tr class="${r.isBase ? 'scen-base-row' : ''}">
+            <td class="scen-label-cell">${r.icon} ${r.label}</td>
+            <td>${ageCell}</td>
+            <td class="text-muted">${yearsAway !== null ? yearsAway + ' yrs' : '—'}</td>
+            <td>${deltaCell}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `<table class="scenario-compare-table">
+        <thead><tr><th>Scenario</th><th>FIRE Age</th><th>Years Away</th><th>vs. Base</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
 function calculateAndRenderProjections() {
     const raw = buildProjectionData();
     renderProjectionsChart(sliceProjectionData(raw, projWindow));
     renderMilestones(raw.networth, raw.fireNumber, raw.realReturn, raw.savings);
+    renderScenarioComparison();
 }
 
 function buildProjectionAnnotations(retirementLineIndex, cdEvents, nwData, fireNumber) {
@@ -1820,6 +2180,7 @@ function refreshAllUI() {
     renderImportedFilesTable();
     renderCustomAccountsTable();
     renderCDTable();
+    renderCDLadderChart();
     renderUnifiedHoldingsTable();
     renderRealEstateTable();
     renderVehiclesTable();

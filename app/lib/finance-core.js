@@ -225,43 +225,279 @@ function parseFidelityPositions(rows) {
     return { positions, count: importedCount };
 }
 
+// Maps Chase/CapOne category labels → our expense bucket keys
+const CHASE_CATEGORY_MAP = {
+    automotive: 'transport',
+    'bills & utilities': 'utilities',
+    'food & drink': 'food',
+    gas: 'transport',
+    groceries: 'food',
+    'health & wellness': 'healthcare',
+    medical: 'healthcare',
+    home: 'housing',
+    travel: 'transport',
+    entertainment: 'discretionary',
+    shopping: 'discretionary',
+    personal: 'discretionary',
+    'fees & adjustments': 'discretionary',
+    'professional services': 'discretionary',
+    education: 'discretionary',
+    charity: 'discretionary',
+};
+
+const CAPITALONE_CATEGORY_MAP = {
+    'grocery store/supermarket': 'food',
+    restaurant: 'food',
+    'fast food': 'food',
+    'other food & beverage': 'food',
+    'coffee shops': 'food',
+    'gas/automobile': 'transport',
+    automotive: 'transport',
+    'taxi/ride shares': 'transport',
+    utilities: 'utilities',
+    'phone/cable': 'utilities',
+    internet: 'utilities',
+    'health care': 'healthcare',
+    dentist: 'healthcare',
+    pharmacy: 'healthcare',
+    doctor: 'healthcare',
+    'rent payment': 'housing',
+    'home improvement': 'housing',
+    'hotel/resort': 'discretionary',
+    entertainment: 'discretionary',
+    merchandise: 'discretionary',
+    clothing: 'discretionary',
+    'online shopping': 'discretionary',
+    travel: 'transport',
+};
+
+const FALLBACK_KEYWORD_MAP = [
+    {
+        keys: [
+            'rent',
+            'lease',
+            'mortgage',
+            'hoa',
+            'apartment',
+            'property mgmt',
+        ],
+        cat: 'housing',
+    },
+    {
+        keys: [
+            'electric',
+            'water bill',
+            'gas company',
+            'internet',
+            'comcast',
+            'xfinity',
+            'spectrum',
+            'at&t',
+            'verizon fios',
+            't-mobile',
+            'tmobile',
+            'cox ',
+            'frontier',
+        ],
+        cat: 'utilities',
+    },
+    {
+        keys: [
+            'grocery',
+            'safeway',
+            'kroger',
+            'trader joe',
+            'whole foods',
+            'aldi',
+            'publix',
+            'costco',
+            'walmart',
+            'food lion',
+            'stop & shop',
+            'giant',
+            'meijer',
+            'heb ',
+            'wegman',
+            'stater bros',
+            'restaurant',
+            'pizza',
+            'burger',
+            'mcdonald',
+            'chipotle',
+            'taco bell',
+            'subway',
+            'starbucks',
+            'dunkin',
+            'panera',
+            'chick-fil',
+            'doordash',
+            'grubhub',
+            'ubereats',
+            'instacart',
+        ],
+        cat: 'food',
+    },
+    {
+        keys: [
+            'shell ',
+            'exxon',
+            'bp ',
+            'chevron',
+            'mobil ',
+            'sunoco',
+            'speedway',
+            'wawa ',
+            'gas station',
+            'fuel',
+            'uber ',
+            'lyft ',
+            'parking',
+            'toll',
+            'ez pass',
+            'metro card',
+            'auto repair',
+            'jiffy lube',
+            'firestone',
+            'valvoline',
+            'car wash',
+            'pep boys',
+            "o'reilly",
+            'advance auto',
+        ],
+        cat: 'transport',
+    },
+    {
+        keys: [
+            'pharmacy',
+            'cvs ',
+            'walgreens',
+            'rite aid',
+            'hospital',
+            'medical',
+            'dental',
+            'vision',
+            'kaiser',
+            'labcorp',
+            'quest diag',
+            'urgent care',
+        ],
+        cat: 'healthcare',
+    },
+];
+
+function _descToCategory(desc) {
+    const lower = desc.toLowerCase();
+    for (const { keys, cat } of FALLBACK_KEYWORD_MAP) {
+        if (keys.some((k) => lower.includes(k))) return cat;
+    }
+    return 'discretionary';
+}
+
+function _parseDateRange(dates) {
+    if (!dates.length) return 1;
+    const ts = dates.map((d) => new Date(d).getTime()).filter((t) => !isNaN(t));
+    if (ts.length < 2) return 1;
+    const rangeMs = Math.max(...ts) - Math.min(...ts);
+    const months = Math.max(
+        1,
+        Math.round(rangeMs / (1000 * 60 * 60 * 24 * 30.44)),
+    );
+    return months;
+}
+
 function parseChaseStatement(rows) {
+    const headers = rows[0].map((h) => h.trim().toLowerCase());
+    const idxDate = headers.findIndex((h) => h.includes('transaction date'));
+    const idxDesc = headers.findIndex((h) => h.includes('description'));
+    const idxCat = headers.findIndex((h) => h === 'category');
+    const idxAmt = headers.findIndex((h) => h === 'amount');
+
+    if (idxAmt === -1)
+        return { imported: 0, totalOutflow: 0, categories: {}, months: 1 };
+
+    const cats = {
+        housing: 0,
+        utilities: 0,
+        food: 0,
+        transport: 0,
+        healthcare: 0,
+        discretionary: 0,
+    };
+    const dates = [];
     let imported = 0;
-    let totalOutflow = 0;
 
-    rows.forEach((row, i) => {
-        if (i === 0) return;
-        if (row.length < 6) return;
-        const amount = parseFloat(row[5]);
-        if (!isNaN(amount) && amount < 0) {
-            totalOutflow += Math.abs(amount);
-            imported++;
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length < 3) continue;
+        const amount = parseFloat(row[idxAmt]);
+        if (isNaN(amount) || amount >= 0) continue;
+        const charge = Math.abs(amount);
+        imported++;
+        if (idxDate !== -1 && row[idxDate]) dates.push(row[idxDate]);
+        const rawCat =
+            idxCat !== -1 ? (row[idxCat] || '').toLowerCase().trim() : '';
+        const mappedCat = CHASE_CATEGORY_MAP[rawCat];
+        if (mappedCat) {
+            cats[mappedCat] += charge;
+        } else {
+            const desc = idxDesc !== -1 ? row[idxDesc] || '' : '';
+            cats[_descToCategory(desc)] += charge;
         }
-    });
+    }
 
-    return { imported, totalOutflow };
+    const months = _parseDateRange(dates);
+    const totalOutflow = Object.values(cats).reduce((s, v) => s + v, 0);
+    return { imported, totalOutflow, categories: cats, months };
 }
 
 function parseCapitalOneStatement(rows) {
-    let imported = 0;
-    let totalOutflow = 0;
-
     const headers = rows[0].map((h) => h.trim().toLowerCase());
+    const idxDate = headers.findIndex((h) => h.includes('transaction date'));
+    const idxDesc = headers.findIndex((h) => h.includes('description'));
+    const idxCat = headers.findIndex((h) => h === 'category');
     const idxDebit = headers.indexOf('debit');
 
-    if (idxDebit === -1) return { imported: 0, totalOutflow: 0 };
+    if (idxDebit === -1)
+        return { imported: 0, totalOutflow: 0, categories: {}, months: 1 };
+
+    const cats = {
+        housing: 0,
+        utilities: 0,
+        food: 0,
+        transport: 0,
+        healthcare: 0,
+        discretionary: 0,
+    };
+    const dates = [];
+    let imported = 0;
 
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         if (row.length <= idxDebit) continue;
         const debit = parseFloat(row[idxDebit]);
-        if (!isNaN(debit) && debit > 0) {
-            totalOutflow += debit;
-            imported++;
+        if (isNaN(debit) || debit <= 0) continue;
+        imported++;
+        if (idxDate !== -1 && row[idxDate]) dates.push(row[idxDate]);
+        const rawCat =
+            idxCat !== -1 ? (row[idxCat] || '').toLowerCase().trim() : '';
+        let mapped = null;
+        for (const [key, val] of Object.entries(CAPITALONE_CATEGORY_MAP)) {
+            if (rawCat.includes(key)) {
+                mapped = val;
+                break;
+            }
+        }
+        if (mapped) {
+            cats[mapped] += debit;
+        } else {
+            const desc = idxDesc !== -1 ? row[idxDesc] || '' : '';
+            cats[_descToCategory(desc)] += debit;
         }
     }
 
-    return { imported, totalOutflow };
+    const months = _parseDateRange(dates);
+    const totalOutflow = Object.values(cats).reduce((s, v) => s + v, 0);
+    return { imported, totalOutflow, categories: cats, months };
 }
 
 function computeEffectiveTaxRate(grossIncome, filingState) {
@@ -672,6 +908,50 @@ function calculateEbayNetProfit(
     return gross - fees - (shippingActual || 0) - (cost || 0);
 }
 
+// Etsy fee breakdown (2024 rates)
+function calculateEtsyFees(price, shipping, adsRate) {
+    const p = price || 0;
+    const s = shipping || 0;
+    const listingFee = 0.2;
+    const transactionFee = (p + s) * 0.065;
+    const paymentProcessing = (p + s) * 0.03 + 0.25;
+    const adsFee = (p + s) * ((adsRate || 0) / 100);
+    return {
+        listingFee,
+        transactionFee,
+        paymentProcessing,
+        adsFee,
+        total: listingFee + transactionFee + paymentProcessing + adsFee,
+    };
+}
+
+function calculateEtsyNetProfit(
+    price,
+    shipping,
+    shippingActual,
+    cost,
+    adsRate,
+) {
+    const p = price || 0;
+    const s = shipping || 0;
+    const fees = calculateEtsyFees(p, s, adsRate);
+    return p + s - fees.total - (shippingActual || 0) - (cost || 0);
+}
+
+// Facebook Marketplace fees (5% or $0.40 min for checkout, free for local)
+function calculateFBFees(price, isShipped) {
+    const p = price || 0;
+    if (!isShipped) return { sellingFee: 0, total: 0 };
+    const sellingFee = Math.max(p * 0.05, 0.4);
+    return { sellingFee, total: sellingFee };
+}
+
+function calculateFBNetProfit(price, shippingActual, cost, isShipped) {
+    const p = price || 0;
+    const fees = calculateFBFees(p, isShipped);
+    return p - fees.total - (shippingActual || 0) - (cost || 0);
+}
+
 module.exports = {
     US_MEDIAN_SAVINGS,
     formatCurrency,
@@ -701,4 +981,10 @@ module.exports = {
     sortPositions,
     calculateEbayFees,
     calculateEbayNetProfit,
+    calculateEtsyFees,
+    calculateEtsyNetProfit,
+    calculateFBFees,
+    calculateFBNetProfit,
+    CHASE_CATEGORY_MAP,
+    CAPITALONE_CATEGORY_MAP,
 };
