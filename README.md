@@ -86,5 +86,5 @@ fire/
 
 ## 🗺️ Roadmap & Tasks
 
-- View milestones in [ROADMAP.md](file:///c:/Users/ajhar/code/fire/ROADMAP.md)
-- View active implementation checklist in [TASKS.md](file:///c:/Users/ajhar/code/fire/TASKS.md)
+- View milestones in [ROADMAP.md](ROADMAP.md)
+- View active implementation checklist in [TASKS.md](TASKS.md)
