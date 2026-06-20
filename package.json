@@ -5,9 +5,9 @@
   "main": "app/server.js",
   "scripts": {
     "start": "node app/server.js",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --config config/eslint.config.mjs",
+    "test": "vitest run --config config/vitest.config.ts",
+    "test:coverage": "vitest run --coverage --config config/vitest.config.ts",
     "build": "echo 'No build step required for this project' && exit 0"
   },
   "dependencies": {
