@@ -14,22 +14,22 @@
 
 ### P2 - Extensions & Auto-Parsing
 
-- [ ] Expand CSV parsing to support Chase and Capital One credit card statement uploads.
+- [x] Expand CSV parsing to support Chase and Capital One credit card statement uploads.
   - Priority: P2
   - Context: Parse bank statement debits to auto-categorize and update expense baselines.
   - Acceptance Criteria: Parsed debits are logged and reflected in monthly cash flow section.
-- [ ] Create Side Hustle Tracker enhancements — Etsy/FB Marketplace log support.
+- [x] Create Side Hustle Tracker enhancements — Etsy/FB Marketplace log support.
   - Priority: P2
   - Context: Expand side gig ledger to support multiple platform categories beyond eBay.
 
 ### P3 - Visualization & Polish
 
-- [ ] CD Ladder visualizer — timeline view of upcoming maturities with yield overlays.
-- [ ] Add tooltips and explanation indicators for financial metrics (SWR, FIRE number, etc.).
-- [ ] Mobile-responsive layout adjustments for tablet/phone.
+- [x] CD Ladder visualizer — timeline view of upcoming maturities with yield overlays.
+- [x] Add tooltips and explanation indicators for financial metrics (SWR, FIRE number, etc.).
+- [x] Mobile-responsive layout adjustments for tablet/phone.
 
 ### Q3/Q4 Backlog
 
 - [ ] Tax drag estimation engine with custom federal/state bracket support.
-- [ ] Multi-scenario FIRE date comparison (salary bumps, inflation spikes, market downturns).
+- [x] Multi-scenario FIRE date comparison (salary bumps, inflation spikes, market downturns).
 - [ ] PWA packaging for offline access.
