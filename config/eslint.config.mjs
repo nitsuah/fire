@@ -57,6 +57,7 @@ export default [
             'build/',
             '.next/',
             'out/',
+            '.claude/',
             'app/app.js',
         ],
     },
