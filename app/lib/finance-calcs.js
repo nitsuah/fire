@@ -71,34 +71,52 @@ function _getAnnualExpensesTotal(expenses, insurances, taxRate) {
         return amt;
     };
     let base = 0;
-    Object.keys(expenses).forEach((k) => { base += expenses[k] || 0; });
-    base += insuranceToMonthly(ins.car || {}) + insuranceToMonthly(ins.home || {});
+    Object.keys(expenses).forEach((k) => {
+        base += expenses[k] || 0;
+    });
+    base +=
+        insuranceToMonthly(ins.car || {}) + insuranceToMonthly(ins.home || {});
     const baseAnnual = base * 12;
     return baseAnnual + baseAnnual * ((taxRate || 0) / 100);
 }
 
 function _getAggregateNetWorth(state) {
-    let cash = 0, equities = 0;
+    let cash = 0,
+        equities = 0;
     (state.importedPositions || []).forEach((pos) => {
-        const sym = (pos.symbol || '');
-        const desc = (pos.description || '');
-        if (sym.includes('SPAXX') || sym.includes('FDRXX') || desc.includes('MONEY MARKET')) {
+        const sym = pos.symbol || '';
+        const desc = pos.description || '';
+        if (
+            sym.includes('SPAXX') ||
+            sym.includes('FDRXX') ||
+            desc.includes('MONEY MARKET')
+        ) {
             cash += pos.value || 0;
         } else {
             equities += pos.value || 0;
         }
     });
     (state.customAccounts || []).forEach((acc) => {
-        if (acc.type === 'Cash' || acc.type === 'Savings') cash += acc.value || 0;
-        else if (acc.type === 'Brokerage' || acc.type === 'Crypto') equities += acc.value || 0;
+        if (acc.type === 'Cash' || acc.type === 'Savings')
+            cash += acc.value || 0;
+        else if (acc.type === 'Brokerage' || acc.type === 'Crypto')
+            equities += acc.value || 0;
         else cash += acc.value || 0; // other assets
     });
     const cds = (state.cds || []).reduce((s, cd) => s + (cd.principal || 0), 0);
-    const re = (state.realEstate || []).reduce((s, r) =>
-        s + Math.max(0, (r.marketValue || 0) - (r.mortgageBalance || 0)), 0);
-    const veh = (state.vehicles || []).reduce((s, v) =>
-        s + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)), 0);
-    const gig = (state.sideGigLedger || []).reduce((s, sg) => s + (sg.net || 0), 0);
+    const re = (state.realEstate || []).reduce(
+        (s, r) =>
+            s + Math.max(0, (r.marketValue || 0) - (r.mortgageBalance || 0)),
+        0,
+    );
+    const veh = (state.vehicles || []).reduce(
+        (s, v) => s + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)),
+        0,
+    );
+    const gig = (state.sideGigLedger || []).reduce(
+        (s, sg) => s + (sg.net || 0),
+        0,
+    );
     return cash + equities + cds + re + veh + gig;
 }
 
@@ -108,7 +126,11 @@ function buildProjectionData(state, scenarioOffset) {
     const insurances = state.insurances || {};
     const taxRate = state.taxRate || 0;
     const networth = _getAggregateNetWorth(state);
-    const annualExpenses = _getAnnualExpensesTotal(expenses, insurances, taxRate);
+    const annualExpenses = _getAnnualExpensesTotal(
+        expenses,
+        insurances,
+        taxRate,
+    );
     const swr = (state.projectionSettings.swr || 4.0) / 100;
     const fireNumber = swr > 0 ? annualExpenses / swr : 0;
 

@@ -8,8 +8,8 @@
      finance-platforms.js — eBay / Etsy / Facebook fee calculators
    ========================================================================== */
 
-const parsing   = require('./finance-parsing');
-const calcs     = require('./finance-calcs');
+const parsing = require('./finance-parsing');
+const calcs = require('./finance-calcs');
 const platforms = require('./finance-platforms');
 
 /* --------------------------------------------------------------------------
@@ -331,25 +331,25 @@ function sortPositions(positions, col, dir) {
 module.exports = {
     // from finance-calcs.js
     US_MEDIAN_SAVINGS,
-    windowToPoints:      calcs.windowToPoints,
+    windowToPoints: calcs.windowToPoints,
     sliceProjectionData: calcs.sliceProjectionData,
     buildProjectionData: calcs.buildProjectionData,
 
     // from finance-parsing.js
-    parseCSVText:              parsing.parseCSVText,
-    parseFidelityPositions:    parsing.parseFidelityPositions,
-    parseChaseStatement:       parsing.parseChaseStatement,
-    parseCapitalOneStatement:  parsing.parseCapitalOneStatement,
-    CHASE_CATEGORY_MAP:        parsing.CHASE_CATEGORY_MAP,
-    CAPITALONE_CATEGORY_MAP:   parsing.CAPITALONE_CATEGORY_MAP,
+    parseCSVText: parsing.parseCSVText,
+    parseFidelityPositions: parsing.parseFidelityPositions,
+    parseChaseStatement: parsing.parseChaseStatement,
+    parseCapitalOneStatement: parsing.parseCapitalOneStatement,
+    CHASE_CATEGORY_MAP: parsing.CHASE_CATEGORY_MAP,
+    CAPITALONE_CATEGORY_MAP: parsing.CAPITALONE_CATEGORY_MAP,
 
     // from finance-platforms.js
-    calculateEbayFees:      platforms.calculateEbayFees,
+    calculateEbayFees: platforms.calculateEbayFees,
     calculateEbayNetProfit: platforms.calculateEbayNetProfit,
-    calculateEtsyFees:      platforms.calculateEtsyFees,
+    calculateEtsyFees: platforms.calculateEtsyFees,
     calculateEtsyNetProfit: platforms.calculateEtsyNetProfit,
-    calculateFBFees:        platforms.calculateFBFees,
-    calculateFBNetProfit:   platforms.calculateFBNetProfit,
+    calculateFBFees: platforms.calculateFBFees,
+    calculateFBNetProfit: platforms.calculateFBNetProfit,
 
     // inline helpers
     formatCurrency,

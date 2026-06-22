@@ -13,22 +13,32 @@ async function fetchAndApplyPrices() {
     if (state.importedPositions.length === 0) return;
 
     // Collect unique non-cash equity symbols
-    const symbols = [...new Set(
-        state.importedPositions
-            .filter(p => p.symbol && !p.symbol.includes('SPAXX') && !p.symbol.includes('FDRXX') && !p.description?.includes('MONEY MARKET'))
-            .map(p => p.symbol.trim().replace(/\*+$/, ''))
-            .filter(s => s.length > 0 && !/^\d/.test(s))
-    )];
+    const symbols = [
+        ...new Set(
+            state.importedPositions
+                .filter(
+                    (p) =>
+                        p.symbol &&
+                        !p.symbol.includes('SPAXX') &&
+                        !p.symbol.includes('FDRXX') &&
+                        !p.description?.includes('MONEY MARKET'),
+                )
+                .map((p) => p.symbol.trim().replace(/\*+$/, ''))
+                .filter((s) => s.length > 0 && !/^\d/.test(s)),
+        ),
+    ];
 
     if (symbols.length === 0) return;
 
     try {
-        const res = await fetch(`/api/prices?symbols=${encodeURIComponent(symbols.join(','))}`);
+        const res = await fetch(
+            `/api/prices?symbols=${encodeURIComponent(symbols.join(','))}`,
+        );
         if (!res.ok) return;
         const prices = await res.json();
 
         let updated = false;
-        state.importedPositions.forEach(pos => {
+        state.importedPositions.forEach((pos) => {
             const cleanSym = pos.symbol.trim().replace(/\*+$/, '');
             if (prices[cleanSym]) {
                 const newPrice = prices[cleanSym].price;
@@ -52,9 +62,11 @@ async function fetchAndApplyPrices() {
             // Silently save & re-render without full alert spam
             await saveState();
             refreshAllUI();
-            console.log(`[Prices] Updated ${symbols.length} symbols from Yahoo Finance.`);
+            console.log(
+                `[Prices] Updated ${symbols.length} symbols from Yahoo Finance.`,
+            );
         }
     } catch (err) {
-        console.warn("[Prices] Could not fetch real-time quotes:", err);
+        console.warn('[Prices] Could not fetch real-time quotes:', err);
     }
 }

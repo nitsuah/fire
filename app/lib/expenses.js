@@ -10,7 +10,7 @@ function initExpenseManager() {
     const grossIncomeInput = document.getElementById('tax-gross-income');
     const filingStateSelect = document.getElementById('tax-filing-state');
 
-    inputs.forEach(input => {
+    inputs.forEach((input) => {
         const id = input.id.replace('exp-', '');
         if (state.expenses[id] !== undefined) {
             input.value = state.expenses[id];
@@ -22,7 +22,7 @@ function initExpenseManager() {
         taxDisplay.textContent = `${state.taxRate}%`;
     }
 
-    inputs.forEach(input => {
+    inputs.forEach((input) => {
         input.addEventListener('input', async () => {
             const id = input.id.replace('exp-', '');
             state.expenses[id] = parseFloat(input.value) || 0;
@@ -83,13 +83,13 @@ function initExpenseManager() {
 function computeEffectiveTaxRate(grossIncome, filingState) {
     // 2024 Federal brackets (single filer, simplified)
     const federalBrackets = [
-        { limit: 11600,  rate: 0.10 },
-        { limit: 47150,  rate: 0.12 },
+        { limit: 11600, rate: 0.1 },
+        { limit: 47150, rate: 0.12 },
         { limit: 100525, rate: 0.22 },
         { limit: 191950, rate: 0.24 },
         { limit: 243725, rate: 0.32 },
         { limit: 609350, rate: 0.35 },
-        { limit: Infinity, rate: 0.37 }
+        { limit: Infinity, rate: 0.37 },
     ];
 
     let federalTax = 0;
@@ -110,14 +110,18 @@ function computeEffectiveTaxRate(grossIncome, filingState) {
         IL: 0.0495, // flat
         CA: grossIncome > 300000 ? 0.113 : grossIncome > 100000 ? 0.093 : 0.073,
         NY: grossIncome > 215400 ? 0.109 : grossIncome > 80650 ? 0.0685 : 0.045,
-        Other: 0.04
+        Other: 0.04,
     };
 
-    const stateRate = stateTaxRates[filingState] !== undefined ? stateTaxRates[filingState] : 0.04;
+    const stateRate =
+        stateTaxRates[filingState] !== undefined
+            ? stateTaxRates[filingState]
+            : 0.04;
     const stateTax = grossIncome * stateRate;
 
     // FICA (Social Security 6.2% up to $168,600 + Medicare 1.45%)
-    const ficaTax = Math.min(grossIncome, 168600) * 0.062 + grossIncome * 0.0145;
+    const ficaTax =
+        Math.min(grossIncome, 168600) * 0.062 + grossIncome * 0.0145;
 
     const totalTax = federalTax + stateTax + ficaTax;
     const effectiveRate = Math.round((totalTax / grossIncome) * 100);

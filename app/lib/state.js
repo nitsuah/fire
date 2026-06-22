@@ -14,7 +14,7 @@ function sanitizeState(data) {
     data.sideGigLedger = data.sideGigLedger || [];
     data.importedFiles = data.importedFiles || [];
 
-    data.vehicles.forEach(v => {
+    data.vehicles.forEach((v) => {
         if (!v.year) v.year = new Date().getFullYear();
         if (!v.make) v.make = '';
         if (!v.model) v.model = '';
@@ -28,7 +28,7 @@ function sanitizeState(data) {
         if (!v.notes) v.notes = '';
     });
 
-    data.realEstate.forEach(re => {
+    data.realEstate.forEach((re) => {
         if (!re.marketValue) re.marketValue = 0;
         if (!re.purchasePrice) re.purchasePrice = 0;
         if (!re.mortgageBalance) re.mortgageBalance = 0;
@@ -38,27 +38,36 @@ function sanitizeState(data) {
         if (!re.notes) re.notes = '';
     });
 
-    data.customAccounts.forEach(acc => {
+    data.customAccounts.forEach((acc) => {
         if (acc.apy === undefined || acc.apy === null) acc.apy = 0;
         if (acc.value === undefined || acc.value === null) acc.value = 0;
     });
 
-    data.cds.forEach(cd => {
-        if (cd.startDate === undefined || cd.startDate === null) cd.startDate = '';
-        if (cd.principal === undefined || cd.principal === null) cd.principal = 0;
+    data.cds.forEach((cd) => {
+        if (cd.startDate === undefined || cd.startDate === null)
+            cd.startDate = '';
+        if (cd.principal === undefined || cd.principal === null)
+            cd.principal = 0;
         if (cd.rate === undefined || cd.rate === null) cd.rate = 0;
     });
 
     // Ensure projectionSettings has age fields
     if (data.projectionSettings) {
-        if (!data.projectionSettings.currentAge) data.projectionSettings.currentAge = 30;
-        if (!data.projectionSettings.retireAge) data.projectionSettings.retireAge = 60;
+        if (!data.projectionSettings.currentAge)
+            data.projectionSettings.currentAge = 30;
+        if (!data.projectionSettings.retireAge)
+            data.projectionSettings.retireAge = 60;
     }
 
     // Ensure insurance fields are always present
-    if (!data.insurances) data.insurances = { car: { amt: 0, freq: '6month' }, home: { amt: 0, freq: 'monthly' } };
+    if (!data.insurances)
+        data.insurances = {
+            car: { amt: 0, freq: '6month' },
+            home: { amt: 0, freq: 'monthly' },
+        };
     if (!data.insurances.car) data.insurances.car = { amt: 0, freq: '6month' };
-    if (!data.insurances.home) data.insurances.home = { amt: 0, freq: 'monthly' };
+    if (!data.insurances.home)
+        data.insurances.home = { amt: 0, freq: 'monthly' };
 
     return data;
 }
@@ -68,14 +77,21 @@ async function loadStateFromServer() {
         const res = await fetch('/api/state');
         if (res.ok) {
             const data = await res.json();
-            if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            if (
+                data &&
+                typeof data === 'object' &&
+                Object.keys(data).length > 0
+            ) {
                 state = sanitizeState({ ...state, ...data });
-                console.log("State loaded successfully from backend DB.");
+                console.log('State loaded successfully from backend DB.');
                 return;
             }
         }
     } catch (e) {
-        console.warn("Express backend unreachable. Falling back to localStorage.", e);
+        console.warn(
+            'Express backend unreachable. Falling back to localStorage.',
+            e,
+        );
     }
     loadStateFromStorage();
 }
@@ -87,9 +103,12 @@ function loadStateFromStorage() {
             const parsed = JSON.parse(savedState);
             state = sanitizeState({ ...state, ...parsed });
             state.expenses = { ...state.expenses, ...(parsed.expenses || {}) };
-            state.projectionSettings = { ...state.projectionSettings, ...(parsed.projectionSettings || {}) };
+            state.projectionSettings = {
+                ...state.projectionSettings,
+                ...(parsed.projectionSettings || {}),
+            };
         } catch (e) {
-            console.error("Error parsing localstorage state", e);
+            console.error('Error parsing localstorage state', e);
         }
     }
 }
@@ -101,22 +120,27 @@ async function saveState() {
         const res = await fetch('/api/state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(state)
+            body: JSON.stringify(state),
         });
         if (!res.ok) {
-            console.error("Server API returned status", res.status);
+            console.error('Server API returned status', res.status);
         }
     } catch (e) {
-        console.warn("Could not save state to Express backend server.", e);
+        console.warn('Could not save state to Express backend server.', e);
     }
 }
 
 // Backup Export & Import Utility
 document.getElementById('btn-backup-export').addEventListener('click', () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+    const dataStr =
+        'data:text/json;charset=utf-8,' +
+        encodeURIComponent(JSON.stringify(state, null, 2));
     const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `fire_tracker_backup_${new Date().toISOString().slice(0,10)}.json`);
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute(
+        'download',
+        `fire_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`,
+    );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
