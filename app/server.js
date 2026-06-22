@@ -1,9 +1,10 @@
 const express = require('express');
 const fs = require('fs');
+const net = require('net');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PREFERRED_PORT = parseInt(process.env.PORT) || 8080;
 const DATA_DIR = process.env.FIRE_DATA_DIR || path.join(__dirname, '../data');
 const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
@@ -362,13 +363,35 @@ app.get('/api/prices', async (req, res) => {
     res.json(pricesCache.data);
 });
 
+function findAvailablePort(candidates) {
+    const [port, ...rest] = candidates;
+    return new Promise((resolve) => {
+        const probe = net.createServer();
+        probe.once('error', () => {
+            if (rest.length) resolve(findAvailablePort(rest));
+            else {
+                // Let OS assign an ephemeral port
+                const fallback = net.createServer();
+                fallback.listen(0, () => {
+                    const p = fallback.address().port;
+                    fallback.close(() => resolve(p));
+                });
+            }
+        });
+        probe.once('listening', () => { probe.close(() => resolve(port)); });
+        probe.listen(port);
+    });
+}
+
 if (require.main === module) {
-    app.listen(PORT, () => {
-        console.log(
-            `🔥 FIRE Tracker Server running at http://localhost:${PORT}`,
-        );
-        // Pre-warm Yahoo crumb on startup
-        refreshYahooCrumb().catch(() => {});
+    findAvailablePort([PREFERRED_PORT, 3001, 3000, 3002, 3003]).then(port => {
+        app.listen(port, () => {
+            if (port !== PREFERRED_PORT) {
+                console.warn(`[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`);
+            }
+            console.log(`🔥 FIRE Tracker Server running at http://localhost:${port}`);
+            refreshYahooCrumb().catch(() => {});
+        });
     });
 }
 

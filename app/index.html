@@ -12,7 +12,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Chart.js Annotation Plugin (for retirement line, CD markers) -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="lib/css/base.css">
+    <link rel="stylesheet" href="lib/css/layout.css">
+    <link rel="stylesheet" href="lib/css/components.css">
+    <link rel="stylesheet" href="lib/css/components-data.css">
+    <link rel="stylesheet" href="lib/css/widgets.css">
+    <link rel="stylesheet" href="lib/css/charts.css">
 </head>
 <body>
     <div class="app-container">
@@ -1049,8 +1054,16 @@
     </div>
 
     <!-- Extracted modules (load before app.js) -->
+    <script src="lib/state.js"></script>
+    <script src="lib/prices.js"></script>
+    <script src="lib/csv-import.js"></script>
+    <script src="lib/expenses.js"></script>
+    <script src="lib/side-gig.js"></script>
+    <script src="lib/projections.js"></script>
     <script src="lib/charts.js"></script>
-    <script src="lib/tables.js"></script>
+    <script src="lib/tables-assets.js"></script>
+    <script src="lib/tables-positions.js"></script>
+    <script src="lib/managers.js"></script>
     <!-- Main Controller Script -->
     <script src="app.js"></script>
 </body>

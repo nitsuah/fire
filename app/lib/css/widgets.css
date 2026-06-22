@@ -1,0 +1,418 @@
+/* ==========================================================================
+   widgets.css — Form tabs, FO import zone, liquid panel, insurance fields,
+                 side-gig items, calculator outputs, scenario table, FIRE
+                 progress bar, CD stats
+   ========================================================================== */
+
+/* Unified add-form type tabs */
+.ua-type-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.ua-tab-btn {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    transition: background 0.18s, color 0.18s;
+}
+.ua-tab-btn.active {
+    background: rgba(139,92,246,0.25);
+    color: #c4b5fd;
+}
+.ua-tab-btn:hover:not(.active) {
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.7);
+}
+
+/* Inline form layout for FO add forms */
+.fo-form-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.fo-form-row .form-group {
+    flex: 1;
+    min-width: 110px;
+}
+
+/* CD metrics inline in holdings card title row */
+.cd-inline-metrics {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    flex-wrap: wrap;
+}
+
+/* FO import drop zone */
+.fo-import-drop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    border: 1.5px dashed rgba(255,255,255,0.18);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.fo-import-drop:hover,
+.fo-import-drop.drag-over {
+    border-color: rgba(139,92,246,0.7);
+    background: rgba(139,92,246,0.08);
+}
+
+.fo-upload-icon {
+    width: 18px;
+    height: 18px;
+    color: rgba(255,255,255,0.5);
+    flex-shrink: 0;
+}
+
+.fo-import-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+}
+
+.fo-import-files {
+    flex: 1;
+    overflow-x: auto;
+}
+
+.fo-import-table {
+    font-size: 11px;
+    width: 100%;
+}
+.fo-import-table th, .fo-import-table td {
+    padding: 4px 8px;
+}
+
+/* FO import card (right panel) */
+.fo-import-card .fo-import-drop {
+    padding: 10px 14px;
+    gap: 8px;
+    justify-content: flex-start;
+}
+.fo-import-card .fo-upload-icon {
+    width: 16px;
+    height: 16px;
+}
+.fo-import-card .fo-import-label {
+    font-size: 11px;
+}
+
+/* Cash & Fixed Income dashboard panel */
+.liquid-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin: 4px 0 6px;
+}
+.liquid-section-label.mt-2 { margin-top: 12px; }
+
+.liquid-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 12px;
+}
+.liquid-row:last-child { border-bottom: none; }
+
+.liquid-name {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liquid-type {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.35);
+}
+
+.liquid-maturity {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.liquid-val {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-weight: 700;
+    color: #10b981;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.liquid-rate {
+    font-size: 10px;
+    font-weight: 600;
+    color: #f59e0b;
+}
+
+/* Insurance fields in Expenses tab */
+.insurance-section {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 16px;
+}
+
+.section-sub-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.75);
+    margin: 0 0 4px 0;
+    font-family: 'Outfit', sans-serif;
+}
+
+.insurance-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.insurance-field-group label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 600;
+}
+
+.insurance-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.insurance-amt-input {
+    flex: 1;
+    min-width: 80px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #fff;
+    font-size: 13px;
+    font-family: 'Outfit', sans-serif;
+}
+.insurance-amt-input:focus {
+    outline: none;
+    border-color: rgba(139,92,246,0.6);
+}
+
+.insurance-freq-select {
+    flex: 1.4;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+}
+.insurance-freq-select:focus {
+    outline: none;
+    border-color: rgba(139,92,246,0.6);
+}
+
+/* Side hustles tips items */
+.hustle-tips-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.hustle-item {
+    background-color: rgba(255,255,255,0.01);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 2px solid var(--color-primary);
+}
+
+.hustle-item h4 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.hustle-item p {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* eBay Profit Calculator Outputs */
+.calculator-results-box {
+    background-color: rgba(15, 22, 36, 0.9);
+    border: 1px solid var(--border-divider);
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.result-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.result-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.result-value {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--font-heading);
+}
+
+/* Multi-Scenario FIRE Date Comparison Table */
+.scenario-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.scenario-compare-table th {
+    text-align: left;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-dimmed);
+    padding: 0 12px 10px 12px;
+    border-bottom: 1px solid var(--border-divider);
+}
+.scenario-compare-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-divider);
+    vertical-align: middle;
+}
+.scenario-compare-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.scenario-compare-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+.scen-base-row td {
+    background: rgba(139, 92, 246, 0.06);
+}
+.scen-label-cell {
+    font-weight: 500;
+    color: var(--text-main);
+}
+.scen-delta-better {
+    color: var(--color-success);
+    font-weight: 600;
+    font-size: 12px;
+}
+.scen-delta-worse {
+    color: var(--color-danger);
+    font-weight: 600;
+    font-size: 12px;
+}
+.scen-delta-neutral {
+    color: var(--text-dimmed);
+    font-size: 12px;
+}
+
+/* Header: income sub-line */
+.income-sub-line {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Header: FIRE progress bar */
+.fire-prog-wrap {
+    margin-top: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px;
+    height: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.fire-prog-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    border-radius: 20px;
+    min-width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    transition: width 0.5s ease;
+}
+
+.fire-prog-pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    padding-right: 6px;
+    white-space: nowrap;
+}
+
+.fire-prog-target {
+    font-size: 10px;
+    color: var(--text-dimmed);
+    margin-top: 3px;
+}
+
+/* CD Stats Container */
+.cd-stats-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.cd-stat-box {
+    background-color: rgba(255,255,255,0.015);
+    border: 1px solid var(--border-divider);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.cd-stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.cd-stat-value {
+    font-size: 18px;
+    font-family: var(--font-heading);
+    font-weight: 700;
+}
