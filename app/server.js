@@ -4,7 +4,7 @@ const net = require('net');
 const path = require('path');
 
 const app = express();
-const PREFERRED_PORT = parseInt(process.env.PORT) || 8080;
+const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
 const DATA_DIR = process.env.FIRE_DATA_DIR || path.join(__dirname, '../data');
 const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
@@ -378,18 +378,24 @@ function findAvailablePort(candidates) {
                 });
             }
         });
-        probe.once('listening', () => { probe.close(() => resolve(port)); });
+        probe.once('listening', () => {
+            probe.close(() => resolve(port));
+        });
         probe.listen(port);
     });
 }
 
 if (require.main === module) {
-    findAvailablePort([PREFERRED_PORT, 3001, 3000, 3002, 3003]).then(port => {
+    findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005]).then((port) => {
         app.listen(port, () => {
             if (port !== PREFERRED_PORT) {
-                console.warn(`[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`);
+                console.warn(
+                    `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
+                );
             }
-            console.log(`🔥 FIRE Tracker Server running at http://localhost:${port}`);
+            console.log(
+                `🔥 FIRE Tracker Server running at http://localhost:${port}`,
+            );
             refreshYahooCrumb().catch(() => {});
         });
     });
