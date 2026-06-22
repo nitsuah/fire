@@ -1,0 +1,383 @@
+/* ==========================================================================
+   components.css — Buttons, inputs, forms, tables, badges, position rows,
+                    milestones, cash flow, alloc tooltip, collapse/sort controls
+   (Widgets: ua-tabs, fo-form, liquid panel, insurance, side-gig, calculators,
+    scenario table, income bar, fire progress, CD stats → widgets.css)
+   ========================================================================== */
+
+/* Backup / sidebar buttons */
+.backup-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-divider);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    transition: var(--transition-smooth);
+}
+
+.backup-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+
+.backup-btn.import-btn {
+    background: rgba(139, 92, 246, 0.05);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.backup-btn.import-btn:hover {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--color-primary);
+}
+
+/* Tables Styling */
+.table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-divider);
+    background-color: rgba(10, 15, 25, 0.4);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+}
+
+.data-table th, .data-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.data-table th {
+    background-color: rgba(255, 255, 255, 0.02);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sortable-th {
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.sortable-th:hover {
+    color: var(--text-main);
+    background-color: rgba(139, 92, 246, 0.08);
+}
+
+.sortable-th::after {
+    content: ' ↕';
+    opacity: 0.3;
+    font-size: 10px;
+}
+
+.sortable-th.sort-asc::after {
+    content: ' ↑';
+    opacity: 1;
+    color: var(--color-primary);
+}
+
+.sortable-th.sort-desc::after {
+    content: ' ↓';
+    opacity: 1;
+    color: var(--color-primary);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tr:hover td {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Forms Styling */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-family: var(--font-heading);
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    background-color: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-main);
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+/* Sliders */
+.slider-input {
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.1);
+    outline: none;
+    padding: 0 !important;
+}
+
+.slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.slider-input::-webkit-slider-thumb:hover {
+    background: var(--color-primary-hover);
+    transform: scale(1.15);
+}
+
+.slider-val {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    margin-top: 6px;
+}
+
+/* Primary button */
+.primary-btn {
+    background-color: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.primary-btn:hover {
+    background-color: var(--color-primary-hover);
+    transform: translateY(-1px);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: var(--color-danger);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: var(--transition-smooth);
+}
+
+.delete-btn:hover {
+    background-color: var(--color-danger-bg);
+}
+
+/* Import Drag and Drop Zone */
+.import-drag-zone {
+    border: 2px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.01);
+    transition: var(--transition-smooth);
+}
+
+.import-drag-zone:hover, .import-drag-zone.dragover {
+    border-color: var(--color-primary);
+    background-color: rgba(139, 92, 246, 0.03);
+}
+
+.upload-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    transition: var(--transition-smooth);
+}
+
+.import-drag-zone:hover .upload-icon {
+    color: var(--color-primary);
+    transform: translateY(-4px);
+}
+
+.import-drag-zone h3 {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.import-drag-zone p {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+.accepted-formats {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dimmed);
+}
+
+/* Table Group Header & Inline Inputs for Editing */
+.table-group-header {
+    background-color: rgba(139, 92, 246, 0.08) !important;
+    font-weight: 700 !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-heading);
+    letter-spacing: 0.5px;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: var(--transition-smooth);
+}
+
+.table-group-header td {
+    padding: 8px 16px !important;
+    border-bottom: 2px solid rgba(139, 92, 246, 0.25) !important;
+}
+
+.table-group-header:hover {
+    background-color: rgba(139, 92, 246, 0.16) !important;
+}
+
+.inline-edit-input {
+    background-color: var(--input-bg);
+    border: 1px solid var(--color-primary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 13px;
+    width: 100%;
+    outline: none;
+    background: var(--input-bg);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 6px;
+    color: var(--text-main);
+    font-size: 12px;
+    min-width: 60px;
+}
+
+.inline-edit-input:focus {
+    box-shadow: 0 0 3px var(--color-primary);
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
+.edit-btn {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: var(--transition-smooth);
+    margin-right: 4px;
+}
+
+.edit-btn:hover {
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+.save-btn {
+    background: none;
+    border: none;
+    color: var(--color-success);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: var(--transition-smooth);
+    margin-right: 4px;
+}
+
+.save-btn:hover {
+    background-color: var(--color-success-bg);
+}
+
+.cancel-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: var(--transition-smooth);
+}
+
+.cancel-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Interactivity Filters */
+.p-grayed-out {
+    opacity: 0.18 !important;
+    filter: grayscale(85%);
+    pointer-events: none;
+}
+
+.chevron-icon {
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 10px;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: rotate(0deg);
+}
+
+.chevron-icon.collapsed {
+    transform: rotate(-90deg);
+}
+
+.hustle-item.linked {
+    border-left-color: var(--color-success);
+}
+
+/* Two-column form row */
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
