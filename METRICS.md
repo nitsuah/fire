@@ -4,9 +4,11 @@
 
 | Metric                            | Current                                  | Target  | Status       |
 | :-------------------------------- | :--------------------------------------- | :------ | :----------- |
-| Coverage — Statements             | 93.7%                                    | 80%     | Met          |
-| Coverage — Branch                 | 73.5%                                    | 80%     | Below Target |
-| Total Tests                       | 182 (136 unit / 35 integration / 11 e2e) | 100+    | Met          |
+| Coverage — Statements             | 26.14%                                   | 80%     | Below Target |
+| Coverage — Branch                 | 26.2%                                    | 80%     | Below Target |
+| Coverage — Functions              | 26.56%                                   | 80%     | Below Target |
+| Coverage — Lines                  | 25.79%                                   | 80%     | Below Target |
+| Total Tests                       | 198                                      | 100+    | Met          |
 | CI/CD Build Status                | Passing (GitHub Actions)                 | Passing | Met          |
 | ESLint Violations                 | 0                                        | 0       | Met          |
 | Dependency Vulnerabilities        | 6 moderate/critical (dev deps only)      | 0       | Below Target |
@@ -16,6 +18,7 @@
 | Client Bundle Size (app.js)       | ~117 KB                                  | <500 KB | Met          |
 | Build Success Rate                | N/A (no build step)                      | 99%     | N/A          |
 | Deployment Frequency              | TBD                                      | Weekly  | Untracked    |
+| Last updated                      | 2026-06-25                               |         |              |
 
 ## How to Update
 
