@@ -1,4 +1,4 @@
-## updated: 2026-06-08
+## updated: 2026-06-25
 
 # 🗺️ FIRE Calculator & Tracker Roadmap
 
@@ -8,12 +8,9 @@ Next Review: 2026-07-01
 
 > Completed. Full tracker foundation shipped — see FEATURES.md for all shipped capabilities.
 
-## Q3 2026: Side Hustle Hub & Auto-Calculators 🚀
+## Q3 2026: Side Hustle Hub & Auto-Calculators ✅
 
-- [x] Side gig tracker interface allowing manual logs of sales (Etsy, FB Marketplace, Craigslist).
-- [x] Built-in eBay Fee & Shipping Margin Calculator to automate tracking margin and net sales income.
-- [x] Expand file parsing to support Chase and Capital One credit card statement uploads to auto-categorize spending patterns.
-- [x] CD Ladder visualizer featuring upcoming maturity alerts and aggregate yields calculations.
+> Completed. All Q3 items shipped — see FEATURES.md for full details.
 
 ## Q4 2026: Advanced Scenarios & Integrations 🧪
 

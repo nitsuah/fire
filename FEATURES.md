@@ -44,6 +44,14 @@
 - **Metric Tooltips** — Inline explanation indicators for financial terms (SWR, FIRE number, Coast FIRE, etc.) surfaced directly on each metric.
 - **Mobile-Responsive Layout** — Adaptive layout for tablet and phone viewports without loss of core dashboard functionality.
 
+## Architecture
+
+- **Module Split** — `app.js` refactored into `charts.js` (all Chart.js rendering logic) and `tables.js` (table rendering and DOM updates); reduces coupling and improves maintainability.
+
+## Testing
+
+- **Unit / Integration / E2E Suite** — Comprehensive test suite with 80%+ coverage across unit, integration, and end-to-end tests (Vitest + Playwright).
+
 ## Planned
 
 - **Tax Drag Estimation Engine** — Custom federal/state bracket support with capital gains configuration.
