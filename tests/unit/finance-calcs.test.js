@@ -1,7 +1,6 @@
 'use strict';
 
 const {
-    windowToPoints,
     sliceProjectionData,
     buildProjectionData,
 } = require('../../app/lib/finance-calcs');
@@ -195,7 +194,10 @@ describe('buildProjectionData — coast FIRE target when retireAge <= currentAge
 
 describe('buildProjectionData — scenarioOffset', () => {
     it('negative offset reduces ending net worth (bear scenario)', () => {
-        const state = { ...BASE, customAccounts: [{ type: 'Cash', value: 50000 }] };
+        const state = {
+            ...BASE,
+            customAccounts: [{ type: 'Cash', value: 50000 }],
+        };
         const base = buildProjectionData(state, 0);
         const bear = buildProjectionData(state, -2);
         const last = base.nwData.length - 1;
@@ -207,7 +209,10 @@ describe('buildProjectionData — insurance branches in _getAnnualExpensesTotal'
     it('handles 6month car insurance', () => {
         const state = {
             ...BASE,
-            insurances: { car: { amt: 600, freq: '6month' }, home: { amt: 0, freq: 'monthly' } },
+            insurances: {
+                car: { amt: 600, freq: '6month' },
+                home: { amt: 0, freq: 'monthly' },
+            },
         };
         const data = buildProjectionData(state, 0);
         // 600/6 = 100/month extra vs 0 — just verify it runs and produces sane output
@@ -217,7 +222,10 @@ describe('buildProjectionData — insurance branches in _getAnnualExpensesTotal'
     it('handles annual home insurance', () => {
         const state = {
             ...BASE,
-            insurances: { car: { amt: 0, freq: 'monthly' }, home: { amt: 1200, freq: 'annual' } },
+            insurances: {
+                car: { amt: 0, freq: 'monthly' },
+                home: { amt: 1200, freq: 'annual' },
+            },
         };
         const data = buildProjectionData(state, 0);
         expect(data.fireNumber).toBeGreaterThan(0);
@@ -228,7 +236,14 @@ describe('buildProjectionData — CD events', () => {
     it('excludes past CD maturities', () => {
         const state = {
             ...BASE,
-            cds: [{ bank: 'Old', principal: 5000, rate: 4, maturity: '2020-01-01' }],
+            cds: [
+                {
+                    bank: 'Old',
+                    principal: 5000,
+                    rate: 4,
+                    maturity: '2020-01-01',
+                },
+            ],
         };
         const data = buildProjectionData(state, 0);
         expect(data.cdEvents).toHaveLength(0);
@@ -237,7 +252,14 @@ describe('buildProjectionData — CD events', () => {
     it('excludes CD maturities beyond span', () => {
         const state = {
             ...BASE,
-            cds: [{ bank: 'Far', principal: 5000, rate: 4, maturity: '2099-01-01' }],
+            cds: [
+                {
+                    bank: 'Far',
+                    principal: 5000,
+                    rate: 4,
+                    maturity: '2099-01-01',
+                },
+            ],
         };
         const data = buildProjectionData(state, 0);
         expect(data.cdEvents).toHaveLength(0);
