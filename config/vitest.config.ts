@@ -12,7 +12,10 @@ export default defineConfig({
       provider: 'v8',
       include: [
         'app/server.js',
-        'app/lib/**/*.js',
+        'app/lib/finance-calcs.js',
+        'app/lib/finance-core.js',
+        'app/lib/finance-parsing.js',
+        'app/lib/finance-platforms.js',
       ],
       exclude: [
         'app/app.js',
