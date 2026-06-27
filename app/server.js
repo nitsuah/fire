@@ -11,6 +11,9 @@ const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
 const DATA_DIR = process.env.FIRE_DATA_DIR || path.join(__dirname, '../data');
 const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
+console.log(`[Server Init] DATA_DIR: ${DATA_DIR}`);
+console.log(`[Server Init] DB_FILE: ${DB_FILE}`);
+
 app.use(express.json());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'a-very-secret-key',
