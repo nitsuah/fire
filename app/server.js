@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const net = require('net');
 const path = require('path');
+const session = require('express-session');
+const crypto = require('crypto');
 
 const app = express();
 const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
@@ -9,6 +11,11 @@ const DATA_DIR = process.env.FIRE_DATA_DIR || path.join(__dirname, '../data');
 const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
 app.use(express.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+    resave: false,
+    saveUninitialized: true
+}));
 app.use(express.static(__dirname));
 
 // Ensure database directory and file exist on startup
@@ -69,6 +76,28 @@ function writeState(state) {
         console.error('Error writing to database', e);
         return false;
     }
+}
+
+// Encryption helpers
+const ALGORITHM = 'aes-256-gcm';
+const KEY = process.env.SYNC_MASTER_KEY ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex') : crypto.randomBytes(32);
+
+function encrypt(text) {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+    return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+function decrypt(text) {
+    const [iv, authTag, encrypted] = text.split(':');
+    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
 }
 
 /* ==========================================================================
@@ -402,3 +431,73 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+// Sync OAuth routes
+app.get('/api/sync/init', (req, res) => {
+    // 1. Generate state for CSRF protection
+    const state = crypto.randomBytes(16).toString('hex');
+
+    // Store state in session (simplified for now)
+    req.session = { oauthState: state };
+
+    // 2. Construct OAuth URL (Example with placeholders)
+    const providerUrl = 'https://oauth.provider.com/authorize';
+    const params = new URLSearchParams({
+        client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
+        redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
+        response_type: 'code',
+        scope: 'read_only_accounts',
+        state: state
+    });
+
+    // 3. Redirect user
+    res.redirect(`${providerUrl}?${params.toString()}`);
+});
+
+// Placeholder token exchange logic
+app.post('/api/sync/callback', async (req, res) => {
+    // 1. Verify state parameter
+    const { code, state } = req.body;
+
+    if (!state || state !== req.session?.oauthState) {
+        return res.status(403).json({ error: 'Invalid or missing state' });
+    }
+
+    if (!code) {
+        return res.status(400).json({ error: 'Missing code' });
+    }
+
+    // 2. TODO: Implement actual token exchange (fetch to provider)
+    console.log('Exchanging code for tokens:', code);
+    const tokens = { access_token: 'actual_access_token_from_provider', refresh_token: 'actual_refresh_token', expires_in: 3600 };
+
+    // 3. Encrypt tokens
+    const encryptedToken = encrypt(JSON.stringify(tokens));
+
+    // 4. Store encrypted tokens
+    try {
+        const tokenData = { lastUpdated: new Date().toISOString(), data: encryptedToken };
+        fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify(tokenData));
+        res.json({ status: 'success', message: 'Tokens securely stored.' });
+    } catch (err) {
+        console.error('Failed to store tokens:', err);
+        res.status(500).json({ error: 'Failed to store tokens.' });
+    }
+});
+
+// Proxy API route to external platform (e.g. Fidelity)
+app.get('/api/sync/data', async (req, res) => {
+    // 1. Read stored tokens
+    const tokenFile = path.join(DATA_DIR, 'tokens.json');
+    if (!fs.existsSync(tokenFile)) {
+        return res.status(401).json({ error: 'No tokens found. Please authorize.' });
+    }
+
+    const { data: encryptedToken } = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    
+    // 2. Decrypt tokens
+    const tokens = JSON.parse(decrypt(encryptedToken));
+
+    // 3. Proxy request (Placeholder: add logic to call external API with tokens)
+    res.json({ status: 'success', data: 'Aggregated data (mock)', accessToken: tokens.access_token.substring(0, 5) + '...' });
+});

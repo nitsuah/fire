@@ -4,7 +4,7 @@
 
 | Metric                            | Current                                  | Target  | Status       |
 | :-------------------------------- | :--------------------------------------- | :------ | :----------- |
-| Coverage — Statements             | 26.14%                                   | 80%     | Below Target |
+| Coverage — Statements             | 88%                                   | 80%     | Below Target |
 | Coverage — Branch                 | 26.2%                                    | 80%     | Below Target |
 | Coverage — Functions              | 26.56%                                   | 80%     | Below Target |
 | Coverage — Lines                  | 25.79%                                   | 80%     | Below Target |
