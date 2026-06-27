@@ -6,6 +6,12 @@ const session = require('express-session'); // Moved from further down
 const crypto = require('crypto'); // Moved from further down
 const jsonata = require('jsonata'); // New: for JSONata transformations
 
+function omitSecret(template) {
+    const cleaned = { ...template };
+    delete cleaned.secret;
+    return cleaned;
+}
+
 const app = express();
 const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
 const DATA_DIR = process.env.FIRE_DATA_DIR || path.join(__dirname, '../data');
@@ -230,20 +236,6 @@ function integrateWebhookData(db, type, data) {
                 break;
             }
             default:
-                if (typeof data === 'object' && data !== null) {
-                    db.projectionSettings = {
-                        ...db.projectionSettings,
-                        ...data,
-                    };
-                } else {
-                    console.warn(
-                        `[Webhook] Invalid data for projectionSettings:`,
-                        data,
-                    );
-                    return false;
-                }
-                break;
-            default:
                 console.warn(
                     `[Webhook] Unhandled webhook type: ${type}. Data:`,
                     data,
@@ -421,7 +413,7 @@ app.post('/api/sync/templates', (req, res) => {
 
 app.get('/api/sync/templates', (req, res) => {
     const db = readState();
-    res.json(db.webhookTemplates.map(({ secret: _secret, ...rest }) => rest)); // Exclude secret from retrieval
+    res.json(db.webhookTemplates.map(omitSecret)); // Exclude secret from retrieval
 });
 
 app.put('/api/sync/templates/:id', (req, res) => {
@@ -444,9 +436,7 @@ app.put('/api/sync/templates/:id', (req, res) => {
     };
 
     if (writeState(db)) {
-        const { secret, ...updatedTemplate } =
-            db.webhookTemplates[templateIndex];
-        res.json(updatedTemplate);
+        res.json(omitSecret(db.webhookTemplates[templateIndex]));
     } else {
         res.status(500).json({ error: 'Failed to update webhook template.' });
     }
