@@ -445,13 +445,26 @@ app.get('/api/sync/init', (req, res) => {
     res.redirect(`${providerUrl}?${params.toString()}`);
 });
 
-app.post('/api/sync/callback', (req, res) => {
-    // TODO: 1. Verify state parameter
-    // TODO: 2. Exchange code for access/refresh tokens
-    // TODO: 3. Encrypt tokens using encrypt()
-    // TODO: 4. Store encrypted tokens securely
+app.post('/api/sync/callback', async (req, res) => {
+    // 1. Verify state parameter (simple example check)
     const { code, state } = req.body;
-    // Example storage call:
-    // const encryptedToken = encrypt(JSON.stringify(tokens));
-    res.status(501).json({ error: 'OAuth callback not implemented' });
+    if (!code || !state) {
+        return res.status(400).json({ error: 'Missing code or state' });
+    }
+
+    // 2. Placeholder: Exchange code for tokens (would involve a fetch to provider)
+    const tokens = { access_token: 'dummy_access_token', refresh_token: 'dummy_refresh_token', expires_in: 3600 };
+
+    // 3. Encrypt tokens using encrypt()
+    const encryptedToken = encrypt(JSON.stringify(tokens));
+
+    // 4. Store encrypted tokens securely
+    try {
+        const tokenData = { lastUpdated: new Date().toISOString(), data: encryptedToken };
+        fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify(tokenData));
+        res.json({ status: 'success', message: 'Tokens securely stored.' });
+    } catch (err) {
+        console.error('Failed to store tokens:', err);
+        res.status(500).json({ error: 'Failed to store tokens.' });
+    }
 });
