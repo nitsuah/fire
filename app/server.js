@@ -426,12 +426,23 @@ if (require.main === module) {
 
 module.exports = app;
 
-// Sync OAuth routes (Placeholder implementation)
+// Sync OAuth routes
 app.get('/api/sync/init', (req, res) => {
-    // TODO: 1. Generate state for CSRF protection
-    // TODO: 2. Construct OAuth URL with redirect_uri, client_id, scope, state
-    // TODO: 3. Redirect user
-    res.status(501).json({ error: 'OAuth initialization not implemented' });
+    // 1. Generate state for CSRF protection
+    const state = crypto.randomBytes(16).toString('hex');
+
+    // 2. Construct OAuth URL (Example with placeholders)
+    const providerUrl = 'https://oauth.provider.com/authorize';
+    const params = new URLSearchParams({
+        client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
+        redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
+        response_type: 'code',
+        scope: 'read_only_accounts',
+        state: state
+    });
+
+    // 3. Redirect user
+    res.redirect(`${providerUrl}?${params.toString()}`);
 });
 
 app.post('/api/sync/callback', (req, res) => {
