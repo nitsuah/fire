@@ -181,6 +181,29 @@ function integrateWebhookData(db, type, data) {
     }
 }
 
+// Function to find an available port (Moved to top)
+function findAvailablePort(candidates) {
+    const [port, ...rest] = candidates;
+    return new Promise((resolve) => {
+        const probe = net.createServer();
+        probe.once('error', () => {
+            if (rest.length) resolve(findAvailablePort(rest));
+            else {
+                // Let OS assign an ephemeral port
+                const fallback = net.createServer();
+                fallback.listen(0, () => {
+                    const p = fallback.address().port;
+                    fallback.close(() => resolve(p));
+                });
+            }
+        });
+        probe.once('listening', () => {
+            probe.close(() => resolve(port));
+        });
+        probe.listen(port);
+    });
+}
+
 /* ==========================================================================
    REST API Endpoints
    ========================================================================== */
