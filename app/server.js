@@ -483,3 +483,20 @@ app.post('/api/sync/callback', async (req, res) => {
         res.status(500).json({ error: 'Failed to store tokens.' });
     }
 });
+
+// Proxy API route to external platform (e.g. Fidelity)
+app.get('/api/sync/data', async (req, res) => {
+    // 1. Read stored tokens
+    const tokenFile = path.join(DATA_DIR, 'tokens.json');
+    if (!fs.existsSync(tokenFile)) {
+        return res.status(401).json({ error: 'No tokens found. Please authorize.' });
+    }
+
+    const { data: encryptedToken } = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    
+    // 2. Decrypt tokens
+    const tokens = JSON.parse(decrypt(encryptedToken));
+
+    // 3. Proxy request (Placeholder: add logic to call external API with tokens)
+    res.json({ status: 'success', data: 'Aggregated data (mock)', accessToken: tokens.access_token.substring(0, 5) + '...' });
+});
