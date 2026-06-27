@@ -4,6 +4,7 @@ const net = require('net');
 const path = require('path');
 const session = require('express-session'); // Moved from further down
 const crypto = require('crypto'); // Moved from further down
+const jsonata = require('jsonata'); // New: for JSONata transformations
 
 const app = express();
 const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
@@ -94,6 +95,42 @@ function decrypt(text) {
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
+}
+
+// Function to integrate webhook data into the main application state
+function integrateWebhookData(db, type, data) {
+    switch (type) {
+        case 'accounts':
+            // Assuming data is an array of accounts or a single account object
+            const incomingAccounts = Array.isArray(data) ? data : [data];
+            incomingAccounts.forEach(incomingAcc => {
+                const existingIndex = db.customAccounts.findIndex(acc => acc.id === incomingAcc.id);
+                if (existingIndex !== -1) {
+                    // Update existing account
+                    db.customAccounts[existingIndex] = { ...db.customAccounts[existingIndex], ...incomingAcc };
+                } else {
+                    // Add new account
+                    db.customAccounts.push({ id: crypto.randomBytes(8).toString('hex'), ...incomingAcc });
+                }
+            });
+            break;
+        case 'cds':
+            const incomingCds = Array.isArray(data) ? data : [data];
+            incomingCds.forEach(incomingCd => {
+                const existingIndex = db.cds.findIndex(cd => cd.id === incomingCd.id);
+                if (existingIndex !== -1) {
+                    db.cds[existingIndex] = { ...db.cds[existingIndex], ...incomingCd };
+                } else {
+                    db.cds.push({ id: crypto.randomBytes(8).toString('hex'), ...incomingCd });
+                }
+            });
+            break;
+        // TODO: Add cases for 'transactions', 'positions', 'net_worth' etc.
+        default:
+            console.warn(`[Webhook] Unhandled webhook type: ${type}. Data:`, data);
+            return false;
+    }
+    return true;
 }
 
 /* ==========================================================================
@@ -750,28 +787,26 @@ module.exports = app;
         // Apply mapping
         let transformedData = {};
         try {
-            // Very basic mapping for now.
-            // A more robust solution would involve a custom scripting engine (e.g., Jexl, custom JS vm)
-            // or a more expressive JSONPath-like mapping.
-            if (template.mapping && typeof template.mapping === 'object') {
-                for (const key in template.mapping) {
-                    // Simple direct mapping for demonstration
-                    if (req.body[key] !== undefined) {
-                        transformedData[template.mapping[key]] = req.body[key];
-                    }
-                }
+            if (template.mapping && typeof template.mapping === 'string') {
+                const expression = jsonata(template.mapping);
+                transformedData = await expression.evaluate(req.body);
             } else {
                 transformedData = req.body; // No specific mapping, take raw body
             }
         } catch (e) {
             console.error('Error applying webhook mapping:', e);
-            return res.status(400).json({ error: 'Error processing webhook data.' });
+            return res.status(400).json({ error: 'Error processing webhook data.', details: e.message });
         }
 
-        // TODO: Integrate transformedData into the main application state (db.json)
-        // This will depend on template.type (e.g., 'transactions', 'positions')
-        console.log(`Received webhook for template ${template.name}, transformed data:`, transformedData);
-        // For now, just return success
-        res.json({ status: 'success', message: 'Webhook received and processed (data not yet integrated).' });
+        // Integrate transformedData into the main application state (db.json)
+        const db = readState(); // Re-read to ensure we have the latest state
+        const integrationSuccess = integrateWebhookData(db, template.type, transformedData);
+
+        if (integrationSuccess && writeState(db)) {
+            console.log(`Received webhook for template ${template.name}, integrated data of type ${template.type}.`);
+            res.json({ status: 'success', message: `Webhook data for ${template.type} integrated successfully.` });
+        } else {
+            res.status(500).json({ error: 'Failed to integrate webhook data.' });
+        }
     });
 
