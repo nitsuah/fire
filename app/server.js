@@ -416,6 +416,8 @@ app.post('/api/sync/webhook/:templateId', async (req, res) => {
         return res.status(400).json({ error: 'Error processing webhook data.', details: e.message });
     }
 
+    console.log('[Webhook] Transformed Data:', transformedData); // Log the transformed data
+
     // Integrate transformedData into the main application state (db.json)
     const dbUpdated = readState(); // Re-read to ensure we have the latest state
     const integrationSuccess = integrateWebhookData(dbUpdated, template.type, transformedData);
