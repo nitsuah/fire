@@ -125,7 +125,31 @@ function integrateWebhookData(db, type, data) {
                 }
             });
             break;
-        // TODO: Add cases for 'transactions', 'positions', 'net_worth' etc.
+        case 'positions':
+            const incomingPositions = Array.isArray(data) ? data : [data];
+            incomingPositions.forEach(incomingPos => {
+                // Assuming 'symbol' is the unique identifier for positions
+                const existingIndex = db.importedPositions.findIndex(pos => pos.symbol === incomingPos.symbol);
+                if (existingIndex !== -1) {
+                    db.importedPositions[existingIndex] = { ...db.importedPositions[existingIndex], ...incomingPos };
+                } else {
+                    db.importedPositions.push(incomingPos);
+                }
+            });
+            break;
+        case 'expenses':
+            // Assuming data is an object with expense categories and values
+            db.expenses = { ...db.expenses, ...data };
+            break;
+        case 'sideGigLedger':
+            const incomingLedgerEntries = Array.isArray(data) ? data : [data];
+            incomingLedgerEntries.forEach(entry => {
+                // Assuming new entries are always appended, or a unique ID is provided for updates if needed
+                // For now, just append
+                db.sideGigLedger.push({ id: crypto.randomBytes(8).toString('hex'), ...entry });
+            });
+            break;
+        // TODO: Add cases for 'transactions', 'net_worth' etc.
         default:
             console.warn(`[Webhook] Unhandled webhook type: ${type}. Data:`, data);
             return false;
@@ -310,8 +334,20 @@ app.post('/api/sync/webhook/:templateId', (req, res) => {
         return res.status(404).json({ error: 'Webhook template not found.' });
     }
 
-    // TODO: Implement HMAC verification if template.secret is set
-    // For now, assume valid or handle external auth middleware
+    // Implement HMAC verification if template.secret is set
+    if (template.secret) {
+        const signature = req.headers['x-webhook-signature'];
+        if (!signature) {
+            return res.status(401).json({ error: 'Missing webhook signature.' });
+        }
+
+        const hmac = crypto.createHmac('sha256', template.secret);
+        const digest = hmac.update(JSON.stringify(req.body)).digest('hex');
+
+        if (signature !== `sha256=${digest}`) {
+            return res.status(403).json({ error: 'Invalid webhook signature.' });
+        }
+    }
 
     // Apply mapping
     let transformedData = {};
