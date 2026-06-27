@@ -425,3 +425,17 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+// Sync OAuth routes (Placeholder implementation)
+app.get('/api/sync/init', (req, res) => {
+    // TODO: Generate OAuth URL for provider (Fidelity/Aggregator)
+    res.json({ url: 'https://oauth.provider.com/authorize?client_id=...' });
+});
+
+app.post('/api/sync/callback', (req, res) => {
+    // TODO: Exchange code for tokens, encrypt, and store
+    const { code } = req.body;
+    const encryptedToken = encrypt('{"access_token": "...", "refresh_token": "..."}');
+    // fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify({ token: encryptedToken }));
+    res.json({ status: 'success' });
+});
