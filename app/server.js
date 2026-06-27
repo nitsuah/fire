@@ -114,9 +114,12 @@ function integrateWebhookData(db, type, data) {
                 incomingAccounts.forEach(incomingAcc => {
                     const existingIndex = db.customAccounts.findIndex(acc => acc.id === incomingAcc.id);
                     if (existingIndex !== -1) {
+                        // Update existing account
                         db.customAccounts[existingIndex] = { ...db.customAccounts[existingIndex], ...incomingAcc };
                     } else {
-                        db.customAccounts.push({ id: crypto.randomBytes(8).toString('hex'), ...incomingAcc });
+                        // Add new account, using provided ID if available, otherwise generate one
+                        const newAccId = incomingAcc.id || crypto.randomBytes(8).toString('hex');
+                        db.customAccounts.push({ id: newAccId, ...incomingAcc });
                     }
                 });
                 break;
