@@ -2,20 +2,32 @@ const express = require('express');
 const fs = require('fs');
 const net = require('net');
 const path = require('path');
-const session = require('express-session');
-const crypto = require('crypto');
+const session = require('express-session'); // Moved from further down
+const crypto = require('crypto'); // Moved from further down
+const jsonata = require('jsonata'); // New: for JSONata transformations
+
+function omitSecret(template) {
+    const cleaned = { ...template };
+    delete cleaned.secret;
+    return cleaned;
+}
 
 const app = express();
 const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
 const DATA_DIR = process.env.FIRE_DATA_DIR || path.join(__dirname, '../data');
 const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
+console.log(`[Server Init] DATA_DIR: ${DATA_DIR}`);
+console.log(`[Server Init] DB_FILE: ${DB_FILE}`);
+
 app.use(express.json());
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'a-very-secret-key',
-    resave: false,
-    saveUninitialized: true
-}));
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+        resave: false,
+        saveUninitialized: true,
+    }),
+);
 app.use(express.static(__dirname));
 
 // Ensure database directory and file exist on startup
@@ -46,6 +58,7 @@ function initDatabase() {
                 spanYears: 30,
             },
             importedFiles: [],
+            webhookTemplates: [], // New: Store webhook templates
         };
         fs.writeFileSync(DB_FILE, JSON.stringify(defaultState, null, 2));
     }
@@ -78,9 +91,11 @@ function writeState(state) {
     }
 }
 
-// Encryption helpers
+// Encryption helpers (Moved from further down)
 const ALGORITHM = 'aes-256-gcm';
-const KEY = process.env.SYNC_MASTER_KEY ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex') : crypto.randomBytes(32);
+const KEY = process.env.SYNC_MASTER_KEY
+    ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex')
+    : crypto.randomBytes(32);
 
 function encrypt(text) {
     const iv = crypto.randomBytes(12);
@@ -93,11 +108,171 @@ function encrypt(text) {
 
 function decrypt(text) {
     const [iv, authTag, encrypted] = text.split(':');
-    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
+    const decipher = crypto.createDecipheriv(
+        ALGORITHM,
+        KEY,
+        Buffer.from(iv, 'hex'),
+    );
     decipher.setAuthTag(Buffer.from(authTag, 'hex'));
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
+}
+
+// Function to integrate webhook data into the main application state
+function integrateWebhookData(db, type, data) {
+    try {
+        switch (type) {
+            case 'accounts': {
+                const incomingAccounts = Array.isArray(data) ? data : [data];
+                incomingAccounts.forEach((incomingAcc) => {
+                    const existingIndex = db.customAccounts.findIndex(
+                        (acc) => acc.id === incomingAcc.id,
+                    );
+                    if (existingIndex !== -1) {
+                        // Update existing account
+                        db.customAccounts[existingIndex] = {
+                            ...db.customAccounts[existingIndex],
+                            ...incomingAcc,
+                        };
+                    } else {
+                        // Add new account, using provided ID if available, otherwise generate one
+                        const newAccId =
+                            incomingAcc.id ||
+                            crypto.randomBytes(8).toString('hex');
+                        db.customAccounts.push({
+                            id: newAccId,
+                            ...incomingAcc,
+                        });
+                    }
+                });
+                break;
+            }
+            case 'cds': {
+                const incomingCds = Array.isArray(data) ? data : [data];
+                incomingCds.forEach((incomingCd) => {
+                    const existingIndex = db.cds.findIndex(
+                        (cd) => cd.id === incomingCd.id,
+                    );
+                    if (existingIndex !== -1) {
+                        db.cds[existingIndex] = {
+                            ...db.cds[existingIndex],
+                            ...incomingCd,
+                        };
+                    } else {
+                        db.cds.push({
+                            id: crypto.randomBytes(8).toString('hex'),
+                            ...incomingCd,
+                        });
+                    }
+                });
+                break;
+            }
+            case 'positions': {
+                const incomingPositions = Array.isArray(data) ? data : [data];
+                incomingPositions.forEach((incomingPos) => {
+                    const existingIndex = db.importedPositions.findIndex(
+                        (pos) => pos.symbol === incomingPos.symbol,
+                    );
+                    if (existingIndex !== -1) {
+                        db.importedPositions[existingIndex] = {
+                            ...db.importedPositions[existingIndex],
+                            ...incomingPos,
+                        };
+                    } else {
+                        db.importedPositions.push({
+                            id: crypto.randomBytes(8).toString('hex'),
+                            ...incomingPos,
+                        });
+                    }
+                });
+                break;
+            }
+            case 'expenses': {
+                db.expenses = { ...db.expenses, ...data };
+                break;
+            }
+            case 'sideGigLedger': {
+                const incomingLedgerEntries = Array.isArray(data)
+                    ? data
+                    : [data];
+                incomingLedgerEntries.forEach((entry) => {
+                    db.sideGigLedger.push({
+                        id: crypto.randomBytes(8).toString('hex'),
+                        ...entry,
+                    });
+                });
+                break;
+            }
+            case 'importedFiles': {
+                const incomingFiles = Array.isArray(data) ? data : [data];
+                incomingFiles.forEach((file) => {
+                    db.importedFiles.push(file);
+                });
+                break;
+            }
+            case 'taxRate': {
+                if (typeof data === 'number') {
+                    db.taxRate = data;
+                } else {
+                    console.warn(`[Webhook] Invalid data for taxRate:`, data);
+                    return false;
+                }
+                break;
+            }
+            case 'projectionSettings': {
+                if (typeof data === 'object' && data !== null) {
+                    db.projectionSettings = {
+                        ...db.projectionSettings,
+                        ...data,
+                    };
+                } else {
+                    console.warn(
+                        `[Webhook] Invalid data for projectionSettings:`,
+                        data,
+                    );
+                    return false;
+                }
+                break;
+            }
+            default:
+                console.warn(
+                    `[Webhook] Unhandled webhook type: ${type}. Data:`,
+                    data,
+                );
+                return false;
+        }
+        return true;
+    } catch (error) {
+        console.error(
+            `[Webhook] Error integrating data of type ${type}:`,
+            error,
+        );
+        return false;
+    }
+}
+
+// Function to find an available port (Moved to top)
+function findAvailablePort(candidates) {
+    const [port, ...rest] = candidates;
+    return new Promise((resolve) => {
+        const probe = net.createServer();
+        probe.once('error', () => {
+            if (rest.length) resolve(findAvailablePort(rest));
+            else {
+                // Let OS assign an ephemeral port
+                const fallback = net.createServer();
+                fallback.listen(0, () => {
+                    const p = fallback.address().port;
+                    fallback.close(() => resolve(p));
+                });
+            }
+        });
+        probe.once('listening', () => {
+            probe.close(() => resolve(port));
+        });
+        probe.listen(port);
+    });
 }
 
 /* ==========================================================================
@@ -116,6 +291,242 @@ app.post('/api/state', (req, res) => {
         res.json({ message: 'State successfully updated.', state: req.body });
     } else {
         res.status(500).json({ error: 'Failed to write database state.' });
+    }
+});
+
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+        resave: false,
+        saveUninitialized: true,
+    }),
+);
+
+// Sync OAuth routes
+app.get('/api/sync/init', (req, res) => {
+    // 1. Generate state for CSRF protection
+    const state = crypto.randomBytes(16).toString('hex');
+
+    // Store state in session (simplified for now)
+    req.session = { oauthState: state };
+
+    // 2. Construct OAuth URL (Example with placeholders)
+    const providerUrl = 'https://oauth.provider.com/authorize';
+    const params = new URLSearchParams({
+        client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
+        redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
+        response_type: 'code',
+        scope: 'read_only_accounts',
+        state: state,
+    });
+
+    // 3. Redirect user
+    res.redirect(`${providerUrl}?${params.toString()}`);
+});
+
+// Placeholder token exchange logic
+app.post('/api/sync/callback', async (req, res) => {
+    // 1. Verify state parameter
+    const { code, state } = req.body;
+
+    if (!state || state !== req.session?.oauthState) {
+        return res.status(403).json({ error: 'Invalid or missing state' });
+    }
+
+    if (!code) {
+        return res.status(400).json({ error: 'Missing code' });
+    }
+
+    // 2. TODO: Implement actual token exchange (fetch to provider)
+    console.log('Exchanging code for tokens:', code);
+    const tokens = {
+        access_token: 'actual_access_token_from_provider',
+        refresh_token: 'actual_refresh_token',
+        expires_in: 3600,
+    };
+
+    // 3. Encrypt tokens
+    const encryptedToken = encrypt(JSON.stringify(tokens));
+
+    // 4. Store encrypted tokens
+    try {
+        const tokenData = {
+            lastUpdated: new Date().toISOString(),
+            data: encryptedToken,
+        };
+        fs.writeFileSync(
+            path.join(DATA_DIR, 'tokens.json'),
+            JSON.stringify(tokenData),
+        );
+        res.json({ status: 'success', message: 'Tokens securely stored.' });
+    } catch (err) {
+        console.error('Failed to store tokens:', err);
+        res.status(500).json({ error: 'Failed to store tokens.' });
+    }
+});
+
+// Proxy API route to external platform (e.g. Fidelity)
+app.get('/api/sync/data', async (req, res) => {
+    // 1. Read stored tokens
+    const tokenFile = path.join(DATA_DIR, 'tokens.json');
+    if (!fs.existsSync(tokenFile)) {
+        return res
+            .status(401)
+            .json({ error: 'No tokens found. Please authorize.' });
+    }
+
+    const { data: encryptedToken } = JSON.parse(
+        fs.readFileSync(tokenFile, 'utf8'),
+    );
+
+    // 2. Decrypt tokens
+    const tokens = JSON.parse(decrypt(encryptedToken));
+
+    // 3. Proxy request (Placeholder: add logic to call external API with tokens)
+    res.json({
+        status: 'success',
+        data: 'Aggregated data (mock)',
+        accessToken: tokens.access_token.substring(0, 5) + '...',
+    });
+});
+
+// Webhook API Endpoints
+// 6. Webhook Templates Management APIs
+app.post('/api/sync/templates', (req, res) => {
+    const db = readState();
+    const newTemplate = {
+        id: crypto.randomBytes(8).toString('hex'), // Unique ID for the template
+        name: req.body.name,
+        source: req.body.source, // e.g., "Plaid", "Fidelity", "Custom"
+        type: req.body.type, // e.g., "transactions", "positions", "net_worth"
+        mapping: req.body.mapping, // JSON object for data mapping rules
+        secret: req.body.secret || null, // Optional: for HMAC verification
+        createdAt: new Date().toISOString(),
+    };
+    db.webhookTemplates.push(newTemplate);
+    if (writeState(db)) {
+        res.status(201).json(newTemplate);
+    } else {
+        res.status(500).json({ error: 'Failed to save webhook template.' });
+    }
+});
+
+app.get('/api/sync/templates', (req, res) => {
+    const db = readState();
+    res.json(db.webhookTemplates.map(omitSecret)); // Exclude secret from retrieval
+});
+
+app.put('/api/sync/templates/:id', (req, res) => {
+    const db = readState();
+    const templateIndex = db.webhookTemplates.findIndex(
+        (t) => t.id === req.params.id,
+    );
+
+    if (templateIndex === -1) {
+        return res.status(404).json({ error: 'Webhook template not found.' });
+    }
+
+    db.webhookTemplates[templateIndex] = {
+        ...db.webhookTemplates[templateIndex],
+        name: req.body.name || db.webhookTemplates[templateIndex].name,
+        source: req.body.source || db.webhookTemplates[templateIndex].source,
+        type: req.body.type || db.webhookTemplates[templateIndex].type,
+        mapping: req.body.mapping || db.webhookTemplates[templateIndex].mapping,
+        secret: req.body.secret || db.webhookTemplates[templateIndex].secret,
+    };
+
+    if (writeState(db)) {
+        res.json(omitSecret(db.webhookTemplates[templateIndex]));
+    } else {
+        res.status(500).json({ error: 'Failed to update webhook template.' });
+    }
+});
+
+app.delete('/api/sync/templates/:id', (req, res) => {
+    const db = readState();
+    const initialLength = db.webhookTemplates.length;
+    db.webhookTemplates = db.webhookTemplates.filter(
+        (t) => t.id !== req.params.id,
+    );
+
+    if (db.webhookTemplates.length === initialLength) {
+        return res.status(404).json({ error: 'Webhook template not found.' });
+    }
+
+    if (writeState(db)) {
+        res.json({ message: 'Webhook template successfully deleted.' });
+    } else {
+        res.status(500).json({ error: 'Failed to delete webhook template.' });
+    }
+});
+
+// 7. Generic Webhook Receiver Endpoint
+app.post('/api/sync/webhook/:templateId', async (req, res) => {
+    const db = readState();
+    const template = db.webhookTemplates.find(
+        (t) => t.id === req.params.templateId,
+    );
+
+    if (!template) {
+        return res.status(404).json({ error: 'Webhook template not found.' });
+    }
+
+    // Implement HMAC verification if template.secret is set
+    if (template.secret) {
+        const signature = req.headers['x-webhook-signature'];
+        if (!signature) {
+            return res
+                .status(401)
+                .json({ error: 'Missing webhook signature.' });
+        }
+
+        const hmac = crypto.createHmac('sha256', template.secret);
+        const digest = hmac.update(JSON.stringify(req.body)).digest('hex');
+
+        if (signature !== `sha256=${digest}`) {
+            return res
+                .status(403)
+                .json({ error: 'Invalid webhook signature.' });
+        }
+    }
+
+    // Apply mapping
+    let transformedData = {};
+    try {
+        if (template.mapping && typeof template.mapping === 'string') {
+            const expression = jsonata(template.mapping);
+            transformedData = await expression.evaluate(req.body);
+        } else {
+            transformedData = req.body; // No specific mapping, take raw body
+        }
+    } catch (e) {
+        console.error('Error applying webhook mapping:', e);
+        return res.status(400).json({
+            error: 'Error processing webhook data.',
+            details: e.message,
+        });
+    }
+
+    console.log('[Webhook] Transformed Data:', transformedData); // Log the transformed data
+
+    // Integrate transformedData into the main application state (db.json)
+    const dbUpdated = readState(); // Re-read to ensure we have the latest state
+    const integrationSuccess = integrateWebhookData(
+        dbUpdated,
+        template.type,
+        transformedData,
+    );
+
+    if (integrationSuccess && writeState(dbUpdated)) {
+        console.log(
+            `Received webhook for template ${template.name}, integrated data of type ${template.type}.`,
+        );
+        res.json({
+            status: 'success',
+            message: `Webhook data for ${template.type} integrated successfully.`,
+        });
+    } else {
+        res.status(500).json({ error: 'Failed to integrate webhook data.' });
     }
 });
 
@@ -392,112 +803,20 @@ app.get('/api/prices', async (req, res) => {
     res.json(pricesCache.data);
 });
 
-function findAvailablePort(candidates) {
-    const [port, ...rest] = candidates;
-    return new Promise((resolve) => {
-        const probe = net.createServer();
-        probe.once('error', () => {
-            if (rest.length) resolve(findAvailablePort(rest));
-            else {
-                // Let OS assign an ephemeral port
-                const fallback = net.createServer();
-                fallback.listen(0, () => {
-                    const p = fallback.address().port;
-                    fallback.close(() => resolve(p));
-                });
-            }
-        });
-        probe.once('listening', () => {
-            probe.close(() => resolve(port));
-        });
-        probe.listen(port);
-    });
-}
+module.exports = app;
 
 if (require.main === module) {
     findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005]).then((port) => {
-        app.listen(port, () => {
+        app.listen(port, '0.0.0.0', () => {
             if (port !== PREFERRED_PORT) {
                 console.warn(
                     `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
                 );
             }
             console.log(
-                `🔥 FIRE Tracker Server running at http://localhost:${port}`,
+                `🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`,
             );
             refreshYahooCrumb().catch(() => {});
         });
     });
 }
-
-module.exports = app;
-
-// Sync OAuth routes
-app.get('/api/sync/init', (req, res) => {
-    // 1. Generate state for CSRF protection
-    const state = crypto.randomBytes(16).toString('hex');
-
-    // Store state in session (simplified for now)
-    req.session = { oauthState: state };
-
-    // 2. Construct OAuth URL (Example with placeholders)
-    const providerUrl = 'https://oauth.provider.com/authorize';
-    const params = new URLSearchParams({
-        client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
-        redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
-        response_type: 'code',
-        scope: 'read_only_accounts',
-        state: state
-    });
-
-    // 3. Redirect user
-    res.redirect(`${providerUrl}?${params.toString()}`);
-});
-
-// Placeholder token exchange logic
-app.post('/api/sync/callback', async (req, res) => {
-    // 1. Verify state parameter
-    const { code, state } = req.body;
-
-    if (!state || state !== req.session?.oauthState) {
-        return res.status(403).json({ error: 'Invalid or missing state' });
-    }
-
-    if (!code) {
-        return res.status(400).json({ error: 'Missing code' });
-    }
-
-    // 2. TODO: Implement actual token exchange (fetch to provider)
-    console.log('Exchanging code for tokens:', code);
-    const tokens = { access_token: 'actual_access_token_from_provider', refresh_token: 'actual_refresh_token', expires_in: 3600 };
-
-    // 3. Encrypt tokens
-    const encryptedToken = encrypt(JSON.stringify(tokens));
-
-    // 4. Store encrypted tokens
-    try {
-        const tokenData = { lastUpdated: new Date().toISOString(), data: encryptedToken };
-        fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify(tokenData));
-        res.json({ status: 'success', message: 'Tokens securely stored.' });
-    } catch (err) {
-        console.error('Failed to store tokens:', err);
-        res.status(500).json({ error: 'Failed to store tokens.' });
-    }
-});
-
-// Proxy API route to external platform (e.g. Fidelity)
-app.get('/api/sync/data', async (req, res) => {
-    // 1. Read stored tokens
-    const tokenFile = path.join(DATA_DIR, 'tokens.json');
-    if (!fs.existsSync(tokenFile)) {
-        return res.status(401).json({ error: 'No tokens found. Please authorize.' });
-    }
-
-    const { data: encryptedToken } = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
-    
-    // 2. Decrypt tokens
-    const tokens = JSON.parse(decrypt(encryptedToken));
-
-    // 3. Proxy request (Placeholder: add logic to call external API with tokens)
-    res.json({ status: 'success', data: 'Aggregated data (mock)', accessToken: tokens.access_token.substring(0, 5) + '...' });
-});
