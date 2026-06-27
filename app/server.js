@@ -149,6 +149,28 @@ function integrateWebhookData(db, type, data) {
                 db.sideGigLedger.push({ id: crypto.randomBytes(8).toString('hex'), ...entry });
             });
             break;
+        case 'importedFiles':
+            const incomingFiles = Array.isArray(data) ? data : [data];
+            incomingFiles.forEach(file => {
+                db.importedFiles.push(file);
+            });
+            break;
+        case 'taxRate':
+            if (typeof data === 'number') {
+                db.taxRate = data;
+            } else {
+                console.warn(`[Webhook] Invalid data for taxRate:`, data);
+                return false;
+            }
+            break;
+        case 'projectionSettings':
+            if (typeof data === 'object' && data !== null) {
+                db.projectionSettings = { ...db.projectionSettings, ...data };
+            } else {
+                console.warn(`[Webhook] Invalid data for projectionSettings:`, data);
+                return false;
+            }
+            break;
         // TODO: Add cases for 'transactions', 'net_worth' etc.
         default:
             console.warn(`[Webhook] Unhandled webhook type: ${type}. Data:`, data);
