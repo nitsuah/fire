@@ -12,6 +12,11 @@ const DATA_DIR = process.env.FIRE_DATA_DIR || path.join(__dirname, '../data');
 const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
 app.use(express.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+    resave: false,
+    saveUninitialized: true
+}));
 app.use(express.static(__dirname));
 
 // Ensure database directory and file exist on startup
