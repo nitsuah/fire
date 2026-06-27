@@ -428,14 +428,19 @@ module.exports = app;
 
 // Sync OAuth routes (Placeholder implementation)
 app.get('/api/sync/init', (req, res) => {
-    // TODO: Generate OAuth URL for provider (Fidelity/Aggregator)
-    res.json({ url: 'https://oauth.provider.com/authorize?client_id=...' });
+    // TODO: 1. Generate state for CSRF protection
+    // TODO: 2. Construct OAuth URL with redirect_uri, client_id, scope, state
+    // TODO: 3. Redirect user
+    res.status(501).json({ error: 'OAuth initialization not implemented' });
 });
 
 app.post('/api/sync/callback', (req, res) => {
-    // TODO: Exchange code for tokens, encrypt, and store
-    const { code } = req.body;
-    const encryptedToken = encrypt('{"access_token": "...", "refresh_token": "..."}');
-    // fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify({ token: encryptedToken }));
-    res.json({ status: 'success' });
+    // TODO: 1. Verify state parameter
+    // TODO: 2. Exchange code for access/refresh tokens
+    // TODO: 3. Encrypt tokens using encrypt()
+    // TODO: 4. Store encrypted tokens securely
+    const { code, state } = req.body;
+    // Example storage call:
+    // const encryptedToken = encrypt(JSON.stringify(tokens));
+    res.status(501).json({ error: 'OAuth callback not implemented' });
 });
