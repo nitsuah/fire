@@ -431,6 +431,9 @@ app.get('/api/sync/init', (req, res) => {
     // 1. Generate state for CSRF protection
     const state = crypto.randomBytes(16).toString('hex');
 
+    // Store state in session (simplified for now)
+    req.session = { oauthState: state };
+
     // 2. Construct OAuth URL (Example with placeholders)
     const providerUrl = 'https://oauth.provider.com/authorize';
     const params = new URLSearchParams({
@@ -446,19 +449,25 @@ app.get('/api/sync/init', (req, res) => {
 });
 
 app.post('/api/sync/callback', async (req, res) => {
-    // 1. Verify state parameter (simple example check)
+    // 1. Verify state parameter
     const { code, state } = req.body;
-    if (!code || !state) {
-        return res.status(400).json({ error: 'Missing code or state' });
+
+    // Verify state against session
+    if (!state || state !== req.session?.oauthState) {
+        return res.status(403).json({ error: 'Invalid state' });
     }
 
-    // 2. Placeholder: Exchange code for tokens (would involve a fetch to provider)
+    if (!code) {
+        return res.status(400).json({ error: 'Missing code' });
+    }
+
+    // 2. Placeholder: Exchange code for tokens
     const tokens = { access_token: 'dummy_access_token', refresh_token: 'dummy_refresh_token', expires_in: 3600 };
 
-    // 3. Encrypt tokens using encrypt()
+    // 3. Encrypt tokens
     const encryptedToken = encrypt(JSON.stringify(tokens));
 
-    // 4. Store encrypted tokens securely
+    // 4. Store encrypted tokens
     try {
         const tokenData = { lastUpdated: new Date().toISOString(), data: encryptedToken };
         fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify(tokenData));
