@@ -14,5 +14,6 @@
 
 ### Q3/Q4 Backlog
 
+- [ ] Webhook-based or automated local sync templates for self-hosted data solutions.
 - [ ] Tax drag estimation engine with custom federal/state bracket support.
 - [ ] PWA packaging for offline access.

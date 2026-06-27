@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const net = require('net');
 const path = require('path');
+const session = require('express-session'); // Moved from further down
+const crypto = require('crypto'); // Moved from further down
 
 const app = express();
 const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
@@ -39,6 +41,7 @@ function initDatabase() {
                 spanYears: 30,
             },
             importedFiles: [],
+            webhookTemplates: [], // New: Store webhook templates
         };
         fs.writeFileSync(DB_FILE, JSON.stringify(defaultState, null, 2));
     }
@@ -71,6 +74,28 @@ function writeState(state) {
     }
 }
 
+// Encryption helpers (Moved from further down)
+const ALGORITHM = 'aes-256-gcm';
+const KEY = process.env.SYNC_MASTER_KEY ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex') : crypto.randomBytes(32);
+
+function encrypt(text) {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+    return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+function decrypt(text) {
+    const [iv, authTag, encrypted] = text.split(':');
+    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+}
+
 /* ==========================================================================
    REST API Endpoints
    ========================================================================== */
@@ -88,6 +113,195 @@ app.post('/api/state', (req, res) => {
     } else {
         res.status(500).json({ error: 'Failed to write database state.' });
     }
+});
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+    resave: false,
+    saveUninitialized: true
+}));
+
+// Sync OAuth routes
+app.get('/api/sync/init', (req, res) => {
+    // 1. Generate state for CSRF protection
+    const state = crypto.randomBytes(16).toString('hex');
+
+    // Store state in session (simplified for now)
+    req.session = { oauthState: state };
+
+    // 2. Construct OAuth URL (Example with placeholders)
+    const providerUrl = 'https://oauth.provider.com/authorize';
+    const params = new URLSearchParams({
+        client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
+        redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
+        response_type: 'code',
+        scope: 'read_only_accounts',
+        state: state
+    });
+
+    // 3. Redirect user
+    res.redirect(`${providerUrl}?${params.toString()}`);
+});
+
+// Placeholder token exchange logic
+app.post('/api/sync/callback', async (req, res) => {
+    // 1. Verify state parameter
+    const { code, state } = req.body;
+
+    if (!state || state !== req.session?.oauthState) {
+        return res.status(403).json({ error: 'Invalid or missing state' });
+    }
+
+    if (!code) {
+        return res.status(400).json({ error: 'Missing code' });
+    }
+
+    // 2. TODO: Implement actual token exchange (fetch to provider)
+    console.log('Exchanging code for tokens:', code);
+    const tokens = { access_token: 'actual_access_token_from_provider', refresh_token: 'actual_refresh_token', expires_in: 3600 };
+
+    // 3. Encrypt tokens
+    const encryptedToken = encrypt(JSON.stringify(tokens));
+
+    // 4. Store encrypted tokens
+    try {
+        const tokenData = { lastUpdated: new Date().toISOString(), data: encryptedToken };
+        fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify(tokenData));
+        res.json({ status: 'success', message: 'Tokens securely stored.' });
+    } catch (err) {
+        console.error('Failed to store tokens:', err);
+        res.status(500).json({ error: 'Failed to store tokens.' });
+    }
+});
+
+// Proxy API route to external platform (e.g. Fidelity)
+app.get('/api/sync/data', async (req, res) => {
+    // 1. Read stored tokens
+    const tokenFile = path.join(DATA_DIR, 'tokens.json');
+    if (!fs.existsSync(tokenFile)) {
+        return res.status(401).json({ error: 'No tokens found. Please authorize.' });
+    }
+
+    const { data: encryptedToken } = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+
+    // 2. Decrypt tokens
+    const tokens = JSON.parse(decrypt(encryptedToken));
+
+    // 3. Proxy request (Placeholder: add logic to call external API with tokens)
+    res.json({ status: 'success', data: 'Aggregated data (mock)', accessToken: tokens.access_token.substring(0, 5) + '...' });
+});
+
+// Webhook API Endpoints
+// 6. Webhook Templates Management APIs
+app.post('/api/sync/templates', (req, res) => {
+    const db = readState();
+    const newTemplate = {
+        id: crypto.randomBytes(8).toString('hex'), // Unique ID for the template
+        name: req.body.name,
+        source: req.body.source, // e.g., "Plaid", "Fidelity", "Custom"
+        type: req.body.type,     // e.g., "transactions", "positions", "net_worth"
+        mapping: req.body.mapping, // JSON object for data mapping rules
+        secret: req.body.secret || null, // Optional: for HMAC verification
+        createdAt: new Date().toISOString(),
+    };
+    db.webhookTemplates.push(newTemplate);
+    if (writeState(db)) {
+        res.status(201).json(newTemplate);
+    } else {
+        res.status(500).json({ error: 'Failed to save webhook template.' });
+    }
+});
+
+app.get('/api/sync/templates', (req, res) => {
+    const db = readState();
+    res.json(db.webhookTemplates.map(({ secret, ...rest }) => rest)); // Exclude secret from retrieval
+});
+
+app.put('/api/sync/templates/:id', (req, res) => {
+    const db = readState();
+    const templateIndex = db.webhookTemplates.findIndex(
+        (t) => t.id === req.params.id,
+    );
+
+    if (templateIndex === -1) {
+        return res.status(404).json({ error: 'Webhook template not found.' });
+    }
+
+    db.webhookTemplates[templateIndex] = {
+        ...db.webhookTemplates[templateIndex],
+        name: req.body.name || db.webhookTemplates[templateIndex].name,
+        source: req.body.source || db.webhookTemplates[templateIndex].source,
+        type: req.body.type || db.webhookTemplates[templateIndex].type,
+        mapping: req.body.mapping || db.webhookTemplates[templateIndex].mapping,
+        secret: req.body.secret || db.webhookTemplates[templateIndex].secret,
+    };
+
+    if (writeState(db)) {
+        const { secret, ...updatedTemplate } = db.webhookTemplates[templateIndex];
+        res.json(updatedTemplate);
+    } else {
+        res.status(500).json({ error: 'Failed to update webhook template.' });
+    }
+});
+
+app.delete('/api/sync/templates/:id', (req, res) => {
+    const db = readState();
+    const initialLength = db.webhookTemplates.length;
+    db.webhookTemplates = db.webhookTemplates.filter(
+        (t) => t.id !== req.params.id,
+    );
+
+    if (db.webhookTemplates.length === initialLength) {
+        return res.status(404).json({ error: 'Webhook template not found.' });
+    }
+
+    if (writeState(db)) {
+        res.json({ message: 'Webhook template successfully deleted.' });
+    } else {
+        res.status(500).json({ error: 'Failed to delete webhook template.' });
+    }
+});
+
+// 7. Generic Webhook Receiver Endpoint
+app.post('/api/sync/webhook/:templateId', (req, res) => {
+    const db = readState();
+    const template = db.webhookTemplates.find(
+        (t) => t.id === req.params.templateId,
+    );
+
+    if (!template) {
+        return res.status(404).json({ error: 'Webhook template not found.' });
+    }
+
+    // TODO: Implement HMAC verification if template.secret is set
+    // For now, assume valid or handle external auth middleware
+
+    // Apply mapping
+    let transformedData = {};
+    try {
+        // Very basic mapping for now.
+        // A more robust solution would involve a custom scripting engine (e.g., Jexl, custom JS vm)
+        // or a more expressive JSONPath-like mapping.
+        if (template.mapping && typeof template.mapping === 'object') {
+            for (const key in template.mapping) {
+                // Simple direct mapping for demonstration
+                if (req.body[key] !== undefined) {
+                    transformedData[template.mapping[key]] = req.body[key];
+                }
+            }
+        } else {
+            transformedData = req.body; // No specific mapping, take raw body
+        }
+    } catch (e) {
+        console.error('Error applying webhook mapping:', e);
+        return res.status(400).json({ error: 'Error processing webhook data.' });
+    }
+
+    // TODO: Integrate transformedData into the main application state (db.json)
+    // This will depend on template.type (e.g., 'transactions', 'positions')
+    console.log(`Received webhook for template ${template.name}, transformed data:`, transformedData);
+    // For now, just return success
+    res.json({ status: 'success', message: 'Webhook received and processed (data not yet integrated).' });
 });
 
 // 3. Accounts Management APIs
@@ -363,42 +577,201 @@ app.get('/api/prices', async (req, res) => {
     res.json(pricesCache.data);
 });
 
-function findAvailablePort(candidates) {
-    const [port, ...rest] = candidates;
-    return new Promise((resolve) => {
-        const probe = net.createServer();
-        probe.once('error', () => {
-            if (rest.length) resolve(findAvailablePort(rest));
-            else {
-                // Let OS assign an ephemeral port
-                const fallback = net.createServer();
-                fallback.listen(0, () => {
-                    const p = fallback.address().port;
-                    fallback.close(() => resolve(p));
-                });
-            }
-        });
-        probe.once('listening', () => {
-            probe.close(() => resolve(port));
-        });
-        probe.listen(port);
-    });
-}
-
-if (require.main === module) {
-    findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005]).then((port) => {
-        app.listen(port, () => {
-            if (port !== PREFERRED_PORT) {
-                console.warn(
-                    `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
-                );
-            }
-            console.log(
-                `🔥 FIRE Tracker Server running at http://localhost:${port}`,
-            );
-            refreshYahooCrumb().catch(() => {});
-        });
-    });
-}
-
 module.exports = app;
+
+
+    // Sync OAuth routes (from previous worktree)
+    // Additions to `app/server.js` for OAuth-based sync functionality.
+    // (Existing code from previous worktree goes here)
+    const session = require('express-session');
+    const crypto = require('crypto');
+
+    app.use(session({
+        secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+        resave: false,
+        saveUninitialized: true
+    }));
+
+    // Encryption helpers
+    const ALGORITHM = 'aes-256-gcm';
+    const KEY = process.env.SYNC_MASTER_KEY ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex') : crypto.randomBytes(32);
+
+    function encrypt(text) {
+        const iv = crypto.randomBytes(12);
+        const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        const authTag = cipher.getAuthTag().toString('hex');
+        return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+    }
+
+    function decrypt(text) {
+        const [iv, authTag, encrypted] = text.split(':');
+        const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
+        decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+    }
+
+    app.get('/api/sync/init', (req, res) => {
+        const state = crypto.randomBytes(16).toString('hex');
+        req.session = { oauthState: state };
+
+        const providerUrl = 'https://oauth.provider.com/authorize';
+        const params = new URLSearchParams({
+            client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
+            redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
+            response_type: 'code',
+            scope: 'read_only_accounts',
+            state: state
+        });
+        res.redirect(`${providerUrl}?${params.toString()}`);
+    });
+
+    app.post('/api/sync/callback', async (req, res) => {
+        const { code, state } = req.body;
+        if (!state || state !== req.session?.oauthState) {
+            return res.status(403).json({ error: 'Invalid or missing state' });
+        }
+        if (!code) {
+            return res.status(400).json({ error: 'Missing code' });
+        }
+        console.log('Exchanging code for tokens:', code);
+        const tokens = { access_token: 'actual_access_token_from_provider', refresh_token: 'actual_refresh_token', expires_in: 3600 };
+
+        const encryptedToken = encrypt(JSON.stringify(tokens));
+        try {
+            const tokenData = { lastUpdated: new Date().toISOString(), data: encryptedToken };
+            fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify(tokenData));
+            res.json({ status: 'success', message: 'Tokens securely stored.' });
+        } catch (err) {
+            console.error('Failed to store tokens:', err);
+            res.status(500).json({ error: 'Failed to store tokens.' });
+        }
+    });
+
+    app.get('/api/sync/data', async (req, res) => {
+        const tokenFile = path.join(DATA_DIR, 'tokens.json');
+        if (!fs.existsSync(tokenFile)) {
+            return res.status(401).json({ error: 'No tokens found. Please authorize.' });
+        }
+        const { data: encryptedToken } = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+        const tokens = JSON.parse(decrypt(encryptedToken));
+        res.json({ status: 'success', data: 'Aggregated data (mock)', accessToken: tokens.access_token.substring(0, 5) + '...' });
+    });
+
+    // Webhook API Endpoints
+    // (New code for webhook templates will go here)
+    // 6. Webhook Templates Management APIs
+    app.post('/api/sync/templates', (req, res) => {
+        const db = readState();
+        const newTemplate = {
+            id: crypto.randomBytes(8).toString('hex'), // Unique ID for the template
+            name: req.body.name,
+            source: req.body.source, // e.g., "Plaid", "Fidelity", "Custom"
+            type: req.body.type,     // e.g., "transactions", "positions", "net_worth"
+            mapping: req.body.mapping, // JSON object for data mapping rules
+            secret: req.body.secret || null, // Optional: for HMAC verification
+            createdAt: new Date().toISOString(),
+        };
+        db.webhookTemplates.push(newTemplate);
+        if (writeState(db)) {
+            res.status(201).json(newTemplate);
+        } else {
+            res.status(500).json({ error: 'Failed to save webhook template.' });
+        }
+    });
+
+    app.get('/api/sync/templates', (req, res) => {
+        const db = readState();
+        res.json(db.webhookTemplates.map(({ secret, ...rest }) => rest)); // Exclude secret from retrieval
+    });
+
+    app.put('/api/sync/templates/:id', (req, res) => {
+        const db = readState();
+        const templateIndex = db.webhookTemplates.findIndex(
+            (t) => t.id === req.params.id,
+        );
+
+        if (templateIndex === -1) {
+            return res.status(404).json({ error: 'Webhook template not found.' });
+        }
+
+        db.webhookTemplates[templateIndex] = {
+            ...db.webhookTemplates[templateIndex],
+            name: req.body.name || db.webhookTemplates[templateIndex].name,
+            source: req.body.source || db.webhookTemplates[templateIndex].source,
+            type: req.body.type || db.webhookTemplates[templateIndex].type,
+            mapping: req.body.mapping || db.webhookTemplates[templateIndex].mapping,
+            secret: req.body.secret || db.webhookTemplates[templateIndex].secret,
+        };
+
+        if (writeState(db)) {
+            const { secret, ...updatedTemplate } = db.webhookTemplates[templateIndex];
+            res.json(updatedTemplate);
+        } else {
+            res.status(500).json({ error: 'Failed to update webhook template.' });
+        }
+    });
+
+    app.delete('/api/sync/templates/:id', (req, res) => {
+        const db = readState();
+        const initialLength = db.webhookTemplates.length;
+        db.webhookTemplates = db.webhookTemplates.filter(
+            (t) => t.id !== req.params.id,
+        );
+
+        if (db.webhookTemplates.length === initialLength) {
+            return res.status(404).json({ error: 'Webhook template not found.' });
+        }
+
+        if (writeState(db)) {
+            res.json({ message: 'Webhook template successfully deleted.' });
+        } else {
+            res.status(500).json({ error: 'Failed to delete webhook template.' });
+        }
+    });
+
+    // 7. Generic Webhook Receiver Endpoint
+    app.post('/api/sync/webhook/:templateId', (req, res) => {
+        const db = readState();
+        const template = db.webhookTemplates.find(
+            (t) => t.id === req.params.templateId,
+        );
+
+        if (!template) {
+            return res.status(404).json({ error: 'Webhook template not found.' });
+        }
+
+        // TODO: Implement HMAC verification if template.secret is set
+        // For now, assume valid or handle external auth middleware
+
+        // Apply mapping
+        let transformedData = {};
+        try {
+            // Very basic mapping for now.
+            // A more robust solution would involve a custom scripting engine (e.g., Jexl, custom JS vm)
+            // or a more expressive JSONPath-like mapping.
+            if (template.mapping && typeof template.mapping === 'object') {
+                for (const key in template.mapping) {
+                    // Simple direct mapping for demonstration
+                    if (req.body[key] !== undefined) {
+                        transformedData[template.mapping[key]] = req.body[key];
+                    }
+                }
+            } else {
+                transformedData = req.body; // No specific mapping, take raw body
+            }
+        } catch (e) {
+            console.error('Error applying webhook mapping:', e);
+            return res.status(400).json({ error: 'Error processing webhook data.' });
+        }
+
+        // TODO: Integrate transformedData into the main application state (db.json)
+        // This will depend on template.type (e.g., 'transactions', 'positions')
+        console.log(`Received webhook for template ${template.name}, transformed data:`, transformedData);
+        // For now, just return success
+        res.json({ status: 'success', message: 'Webhook received and processed (data not yet integrated).' });
+    });
+
