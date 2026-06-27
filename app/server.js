@@ -454,21 +454,22 @@ app.get('/api/sync/init', (req, res) => {
     res.redirect(`${providerUrl}?${params.toString()}`);
 });
 
+// Placeholder token exchange logic
 app.post('/api/sync/callback', async (req, res) => {
     // 1. Verify state parameter
     const { code, state } = req.body;
 
-    // Verify state against session
     if (!state || state !== req.session?.oauthState) {
-        return res.status(403).json({ error: 'Invalid state' });
+        return res.status(403).json({ error: 'Invalid or missing state' });
     }
 
     if (!code) {
         return res.status(400).json({ error: 'Missing code' });
     }
 
-    // 2. Placeholder: Exchange code for tokens
-    const tokens = { access_token: 'dummy_access_token', refresh_token: 'dummy_refresh_token', expires_in: 3600 };
+    // 2. TODO: Implement actual token exchange (fetch to provider)
+    console.log('Exchanging code for tokens:', code);
+    const tokens = { access_token: 'actual_access_token_from_provider', refresh_token: 'actual_refresh_token', expires_in: 3600 };
 
     // 3. Encrypt tokens
     const encryptedToken = encrypt(JSON.stringify(tokens));
