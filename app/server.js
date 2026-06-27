@@ -15,11 +15,13 @@ console.log(`[Server Init] DATA_DIR: ${DATA_DIR}`);
 console.log(`[Server Init] DB_FILE: ${DB_FILE}`);
 
 app.use(express.json());
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'a-very-secret-key',
-    resave: false,
-    saveUninitialized: true
-}));
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+        resave: false,
+        saveUninitialized: true,
+    }),
+);
 app.use(express.static(__dirname));
 
 // Ensure database directory and file exist on startup
@@ -85,7 +87,9 @@ function writeState(state) {
 
 // Encryption helpers (Moved from further down)
 const ALGORITHM = 'aes-256-gcm';
-const KEY = process.env.SYNC_MASTER_KEY ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex') : crypto.randomBytes(32);
+const KEY = process.env.SYNC_MASTER_KEY
+    ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex')
+    : crypto.randomBytes(32);
 
 function encrypt(text) {
     const iv = crypto.randomBytes(12);
@@ -98,7 +102,11 @@ function encrypt(text) {
 
 function decrypt(text) {
     const [iv, authTag, encrypted] = text.split(':');
-    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
+    const decipher = crypto.createDecipheriv(
+        ALGORITHM,
+        KEY,
+        Buffer.from(iv, 'hex'),
+    );
     decipher.setAuthTag(Buffer.from(authTag, 'hex'));
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
@@ -109,58 +117,95 @@ function decrypt(text) {
 function integrateWebhookData(db, type, data) {
     try {
         switch (type) {
-            case 'accounts':
+            case 'accounts': {
                 const incomingAccounts = Array.isArray(data) ? data : [data];
-                incomingAccounts.forEach(incomingAcc => {
-                    const existingIndex = db.customAccounts.findIndex(acc => acc.id === incomingAcc.id);
+                incomingAccounts.forEach((incomingAcc) => {
+                    const existingIndex = db.customAccounts.findIndex(
+                        (acc) => acc.id === incomingAcc.id,
+                    );
                     if (existingIndex !== -1) {
                         // Update existing account
-                        db.customAccounts[existingIndex] = { ...db.customAccounts[existingIndex], ...incomingAcc };
+                        db.customAccounts[existingIndex] = {
+                            ...db.customAccounts[existingIndex],
+                            ...incomingAcc,
+                        };
                     } else {
                         // Add new account, using provided ID if available, otherwise generate one
-                        const newAccId = incomingAcc.id || crypto.randomBytes(8).toString('hex');
-                        db.customAccounts.push({ id: newAccId, ...incomingAcc });
+                        const newAccId =
+                            incomingAcc.id ||
+                            crypto.randomBytes(8).toString('hex');
+                        db.customAccounts.push({
+                            id: newAccId,
+                            ...incomingAcc,
+                        });
                     }
                 });
                 break;
-            case 'cds':
+            }
+            case 'cds': {
                 const incomingCds = Array.isArray(data) ? data : [data];
-                incomingCds.forEach(incomingCd => {
-                    const existingIndex = db.cds.findIndex(cd => cd.id === incomingCd.id);
+                incomingCds.forEach((incomingCd) => {
+                    const existingIndex = db.cds.findIndex(
+                        (cd) => cd.id === incomingCd.id,
+                    );
                     if (existingIndex !== -1) {
-                        db.cds[existingIndex] = { ...db.cds[existingIndex], ...incomingCd };
+                        db.cds[existingIndex] = {
+                            ...db.cds[existingIndex],
+                            ...incomingCd,
+                        };
                     } else {
-                        db.cds.push({ id: crypto.randomBytes(8).toString('hex'), ...incomingCd });
+                        db.cds.push({
+                            id: crypto.randomBytes(8).toString('hex'),
+                            ...incomingCd,
+                        });
                     }
                 });
                 break;
-            case 'positions':
+            }
+            case 'positions': {
                 const incomingPositions = Array.isArray(data) ? data : [data];
-                incomingPositions.forEach(incomingPos => {
-                    const existingIndex = db.importedPositions.findIndex(pos => pos.symbol === incomingPos.symbol);
+                incomingPositions.forEach((incomingPos) => {
+                    const existingIndex = db.importedPositions.findIndex(
+                        (pos) => pos.symbol === incomingPos.symbol,
+                    );
                     if (existingIndex !== -1) {
-                        db.importedPositions[existingIndex] = { ...db.importedPositions[existingIndex], ...incomingPos };
+                        db.importedPositions[existingIndex] = {
+                            ...db.importedPositions[existingIndex],
+                            ...incomingPos,
+                        };
                     } else {
-                        db.importedPositions.push(incomingPos);
+                        db.importedPositions.push({
+                            id: crypto.randomBytes(8).toString('hex'),
+                            ...incomingPos,
+                        });
                     }
                 });
                 break;
-            case 'expenses':
+            }
+            case 'expenses': {
                 db.expenses = { ...db.expenses, ...data };
                 break;
-            case 'sideGigLedger':
-                const incomingLedgerEntries = Array.isArray(data) ? data : [data];
-                incomingLedgerEntries.forEach(entry => {
-                    db.sideGigLedger.push({ id: crypto.randomBytes(8).toString('hex'), ...entry });
+            }
+            case 'sideGigLedger': {
+                const incomingLedgerEntries = Array.isArray(data)
+                    ? data
+                    : [data];
+                incomingLedgerEntries.forEach((entry) => {
+                    db.sideGigLedger.push({
+                        id: crypto.randomBytes(8).toString('hex'),
+                        ...entry,
+                    });
                 });
                 break;
-            case 'importedFiles':
+            }
+            case 'importedFiles': {
                 const incomingFiles = Array.isArray(data) ? data : [data];
-                incomingFiles.forEach(file => {
+                incomingFiles.forEach((file) => {
                     db.importedFiles.push(file);
                 });
                 break;
-            case 'taxRate':
+            }
+            case 'taxRate': {
                 if (typeof data === 'number') {
                     db.taxRate = data;
                 } else {
@@ -168,21 +213,49 @@ function integrateWebhookData(db, type, data) {
                     return false;
                 }
                 break;
-            case 'projectionSettings':
+            }
+            case 'projectionSettings': {
                 if (typeof data === 'object' && data !== null) {
-                    db.projectionSettings = { ...db.projectionSettings, ...data };
+                    db.projectionSettings = {
+                        ...db.projectionSettings,
+                        ...data,
+                    };
                 } else {
-                    console.warn(`[Webhook] Invalid data for projectionSettings:`, data);
+                    console.warn(
+                        `[Webhook] Invalid data for projectionSettings:`,
+                        data,
+                    );
+                    return false;
+                }
+                break;
+            }
+            default:
+                if (typeof data === 'object' && data !== null) {
+                    db.projectionSettings = {
+                        ...db.projectionSettings,
+                        ...data,
+                    };
+                } else {
+                    console.warn(
+                        `[Webhook] Invalid data for projectionSettings:`,
+                        data,
+                    );
                     return false;
                 }
                 break;
             default:
-                console.warn(`[Webhook] Unhandled webhook type: ${type}. Data:`, data);
+                console.warn(
+                    `[Webhook] Unhandled webhook type: ${type}. Data:`,
+                    data,
+                );
                 return false;
         }
         return true;
     } catch (error) {
-        console.error(`[Webhook] Error integrating data of type ${type}:`, error);
+        console.error(
+            `[Webhook] Error integrating data of type ${type}:`,
+            error,
+        );
         return false;
     }
 }
@@ -229,11 +302,13 @@ app.post('/api/state', (req, res) => {
     }
 });
 
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'a-very-secret-key',
-    resave: false,
-    saveUninitialized: true
-}));
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+        resave: false,
+        saveUninitialized: true,
+    }),
+);
 
 // Sync OAuth routes
 app.get('/api/sync/init', (req, res) => {
@@ -250,7 +325,7 @@ app.get('/api/sync/init', (req, res) => {
         redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
         response_type: 'code',
         scope: 'read_only_accounts',
-        state: state
+        state: state,
     });
 
     // 3. Redirect user
@@ -272,15 +347,25 @@ app.post('/api/sync/callback', async (req, res) => {
 
     // 2. TODO: Implement actual token exchange (fetch to provider)
     console.log('Exchanging code for tokens:', code);
-    const tokens = { access_token: 'actual_access_token_from_provider', refresh_token: 'actual_refresh_token', expires_in: 3600 };
+    const tokens = {
+        access_token: 'actual_access_token_from_provider',
+        refresh_token: 'actual_refresh_token',
+        expires_in: 3600,
+    };
 
     // 3. Encrypt tokens
     const encryptedToken = encrypt(JSON.stringify(tokens));
 
     // 4. Store encrypted tokens
     try {
-        const tokenData = { lastUpdated: new Date().toISOString(), data: encryptedToken };
-        fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify(tokenData));
+        const tokenData = {
+            lastUpdated: new Date().toISOString(),
+            data: encryptedToken,
+        };
+        fs.writeFileSync(
+            path.join(DATA_DIR, 'tokens.json'),
+            JSON.stringify(tokenData),
+        );
         res.json({ status: 'success', message: 'Tokens securely stored.' });
     } catch (err) {
         console.error('Failed to store tokens:', err);
@@ -293,16 +378,24 @@ app.get('/api/sync/data', async (req, res) => {
     // 1. Read stored tokens
     const tokenFile = path.join(DATA_DIR, 'tokens.json');
     if (!fs.existsSync(tokenFile)) {
-        return res.status(401).json({ error: 'No tokens found. Please authorize.' });
+        return res
+            .status(401)
+            .json({ error: 'No tokens found. Please authorize.' });
     }
 
-    const { data: encryptedToken } = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    const { data: encryptedToken } = JSON.parse(
+        fs.readFileSync(tokenFile, 'utf8'),
+    );
 
     // 2. Decrypt tokens
     const tokens = JSON.parse(decrypt(encryptedToken));
 
     // 3. Proxy request (Placeholder: add logic to call external API with tokens)
-    res.json({ status: 'success', data: 'Aggregated data (mock)', accessToken: tokens.access_token.substring(0, 5) + '...' });
+    res.json({
+        status: 'success',
+        data: 'Aggregated data (mock)',
+        accessToken: tokens.access_token.substring(0, 5) + '...',
+    });
 });
 
 // Webhook API Endpoints
@@ -313,7 +406,7 @@ app.post('/api/sync/templates', (req, res) => {
         id: crypto.randomBytes(8).toString('hex'), // Unique ID for the template
         name: req.body.name,
         source: req.body.source, // e.g., "Plaid", "Fidelity", "Custom"
-        type: req.body.type,     // e.g., "transactions", "positions", "net_worth"
+        type: req.body.type, // e.g., "transactions", "positions", "net_worth"
         mapping: req.body.mapping, // JSON object for data mapping rules
         secret: req.body.secret || null, // Optional: for HMAC verification
         createdAt: new Date().toISOString(),
@@ -328,7 +421,7 @@ app.post('/api/sync/templates', (req, res) => {
 
 app.get('/api/sync/templates', (req, res) => {
     const db = readState();
-    res.json(db.webhookTemplates.map(({ secret, ...rest }) => rest)); // Exclude secret from retrieval
+    res.json(db.webhookTemplates.map(({ secret: _secret, ...rest }) => rest)); // Exclude secret from retrieval
 });
 
 app.put('/api/sync/templates/:id', (req, res) => {
@@ -351,7 +444,8 @@ app.put('/api/sync/templates/:id', (req, res) => {
     };
 
     if (writeState(db)) {
-        const { secret, ...updatedTemplate } = db.webhookTemplates[templateIndex];
+        const { secret, ...updatedTemplate } =
+            db.webhookTemplates[templateIndex];
         res.json(updatedTemplate);
     } else {
         res.status(500).json({ error: 'Failed to update webhook template.' });
@@ -391,14 +485,18 @@ app.post('/api/sync/webhook/:templateId', async (req, res) => {
     if (template.secret) {
         const signature = req.headers['x-webhook-signature'];
         if (!signature) {
-            return res.status(401).json({ error: 'Missing webhook signature.' });
+            return res
+                .status(401)
+                .json({ error: 'Missing webhook signature.' });
         }
 
         const hmac = crypto.createHmac('sha256', template.secret);
         const digest = hmac.update(JSON.stringify(req.body)).digest('hex');
 
         if (signature !== `sha256=${digest}`) {
-            return res.status(403).json({ error: 'Invalid webhook signature.' });
+            return res
+                .status(403)
+                .json({ error: 'Invalid webhook signature.' });
         }
     }
 
@@ -413,18 +511,30 @@ app.post('/api/sync/webhook/:templateId', async (req, res) => {
         }
     } catch (e) {
         console.error('Error applying webhook mapping:', e);
-        return res.status(400).json({ error: 'Error processing webhook data.', details: e.message });
+        return res.status(400).json({
+            error: 'Error processing webhook data.',
+            details: e.message,
+        });
     }
 
     console.log('[Webhook] Transformed Data:', transformedData); // Log the transformed data
 
     // Integrate transformedData into the main application state (db.json)
     const dbUpdated = readState(); // Re-read to ensure we have the latest state
-    const integrationSuccess = integrateWebhookData(dbUpdated, template.type, transformedData);
+    const integrationSuccess = integrateWebhookData(
+        dbUpdated,
+        template.type,
+        transformedData,
+    );
 
     if (integrationSuccess && writeState(dbUpdated)) {
-        console.log(`Received webhook for template ${template.name}, integrated data of type ${template.type}.`);
-        res.json({ status: 'success', message: `Webhook data for ${template.type} integrated successfully.` });
+        console.log(
+            `Received webhook for template ${template.name}, integrated data of type ${template.type}.`,
+        );
+        res.json({
+            status: 'success',
+            message: `Webhook data for ${template.type} integrated successfully.`,
+        });
     } else {
         res.status(500).json({ error: 'Failed to integrate webhook data.' });
     }
