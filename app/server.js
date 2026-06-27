@@ -99,7 +99,8 @@ function decrypt(text) {
 
 // Function to integrate webhook data into the main application state
 function integrateWebhookData(db, type, data) {
-    switch (type) {
+    try {
+        switch (type) {
         case 'accounts':
             // Assuming data is an array of accounts or a single account object
             const incomingAccounts = Array.isArray(data) ? data : [data];
