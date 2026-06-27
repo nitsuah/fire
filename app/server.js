@@ -101,83 +101,99 @@ function decrypt(text) {
 function integrateWebhookData(db, type, data) {
     try {
         switch (type) {
-        case 'accounts':
-            // Assuming data is an array of accounts or a single account object
-            const incomingAccounts = Array.isArray(data) ? data : [data];
-            incomingAccounts.forEach(incomingAcc => {
-                const existingIndex = db.customAccounts.findIndex(acc => acc.id === incomingAcc.id);
-                if (existingIndex !== -1) {
-                    // Update existing account
-                    db.customAccounts[existingIndex] = { ...db.customAccounts[existingIndex], ...incomingAcc };
+            case 'accounts':
+                const incomingAccounts = Array.isArray(data) ? data : [data];
+                incomingAccounts.forEach(incomingAcc => {
+                    const existingIndex = db.customAccounts.findIndex(acc => acc.id === incomingAcc.id);
+                    if (existingIndex !== -1) {
+                        db.customAccounts[existingIndex] = { ...db.customAccounts[existingIndex], ...incomingAcc };
+                    } else {
+                        db.customAccounts.push({ id: crypto.randomBytes(8).toString('hex'), ...incomingAcc });
+                    }
+                });
+                break;
+            case 'cds':
+                const incomingCds = Array.isArray(data) ? data : [data];
+                incomingCds.forEach(incomingCd => {
+                    const existingIndex = db.cds.findIndex(cd => cd.id === incomingCd.id);
+                    if (existingIndex !== -1) {
+                        db.cds[existingIndex] = { ...db.cds[existingIndex], ...incomingCd };
+                    } else {
+                        db.cds.push({ id: crypto.randomBytes(8).toString('hex'), ...incomingCd });
+                    }
+                });
+                break;
+            case 'positions':
+                const incomingPositions = Array.isArray(data) ? data : [data];
+                incomingPositions.forEach(incomingPos => {
+                    const existingIndex = db.importedPositions.findIndex(pos => pos.symbol === incomingPos.symbol);
+                    if (existingIndex !== -1) {
+                        db.importedPositions[existingIndex] = { ...db.importedPositions[existingIndex], ...incomingPos };
+                    } else {
+                        db.importedPositions.push(incomingPos);
+                    }
+                });
+                break;
+            case 'expenses':
+                db.expenses = { ...db.expenses, ...data };
+                break;
+            case 'sideGigLedger':
+                const incomingLedgerEntries = Array.isArray(data) ? data : [data];
+                incomingLedgerEntries.forEach(entry => {
+                    db.sideGigLedger.push({ id: crypto.randomBytes(8).toString('hex'), ...entry });
+                });
+                break;
+            case 'importedFiles':
+                const incomingFiles = Array.isArray(data) ? data : [data];
+                incomingFiles.forEach(file => {
+                    db.importedFiles.push(file);
+                });
+                break;
+            case 'taxRate':
+                if (typeof data === 'number') {
+                    db.taxRate = data;
                 } else {
-                    // Add new account
-                    db.customAccounts.push({ id: crypto.randomBytes(8).toString('hex'), ...incomingAcc });
+                    console.warn(`[Webhook] Invalid data for taxRate:`, data);
+                    return false;
                 }
-            });
-            break;
-        case 'cds':
-            const incomingCds = Array.isArray(data) ? data : [data];
-            incomingCds.forEach(incomingCd => {
-                const existingIndex = db.cds.findIndex(cd => cd.id === incomingCd.id);
-                if (existingIndex !== -1) {
-                    db.cds[existingIndex] = { ...db.cds[existingIndex], ...incomingCd };
+                break;
+            case 'projectionSettings':
+                if (typeof data === 'object' && data !== null) {
+                    db.projectionSettings = { ...db.projectionSettings, ...data };
                 } else {
-                    db.cds.push({ id: crypto.randomBytes(8).toString('hex'), ...incomingCd });
+                    console.warn(`[Webhook] Invalid data for projectionSettings:`, data);
+                    return false;
                 }
-            });
-            break;
-        case 'positions':
-            const incomingPositions = Array.isArray(data) ? data : [data];
-            incomingPositions.forEach(incomingPos => {
-                // Assuming 'symbol' is the unique identifier for positions
-                const existingIndex = db.importedPositions.findIndex(pos => pos.symbol === incomingPos.symbol);
-                if (existingIndex !== -1) {
-                    db.importedPositions[existingIndex] = { ...db.importedPositions[existingIndex], ...incomingPos };
-                } else {
-                    db.importedPositions.push(incomingPos);
-                }
-            });
-            break;
-        case 'expenses':
-            // Assuming data is an object with expense categories and values
-            db.expenses = { ...db.expenses, ...data };
-            break;
-        case 'sideGigLedger':
-            const incomingLedgerEntries = Array.isArray(data) ? data : [data];
-            incomingLedgerEntries.forEach(entry => {
-                // Assuming new entries are always appended, or a unique ID is provided for updates if needed
-                // For now, just append
-                db.sideGigLedger.push({ id: crypto.randomBytes(8).toString('hex'), ...entry });
-            });
-            break;
-        case 'importedFiles':
-            const incomingFiles = Array.isArray(data) ? data : [data];
-            incomingFiles.forEach(file => {
-                db.importedFiles.push(file);
-            });
-            break;
-        case 'taxRate':
-            if (typeof data === 'number') {
-                db.taxRate = data;
-            } else {
-                console.warn(`[Webhook] Invalid data for taxRate:`, data);
+                break;
+            default:
+                console.warn(`[Webhook] Unhandled webhook type: ${type}. Data:`, data);
                 return false;
-            }
-            break;
-        case 'projectionSettings':
-            if (typeof data === 'object' && data !== null) {
-                db.projectionSettings = { ...db.projectionSettings, ...data };
-            } else {
-                console.warn(`[Webhook] Invalid data for projectionSettings:`, data);
-                return false;
-            }
-            break;
-        // TODO: Add cases for 'transactions', 'net_worth' etc.
-        default:
-            console.warn(`[Webhook] Unhandled webhook type: ${type}. Data:`, data);
-            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error(`[Webhook] Error integrating data of type ${type}:`, error);
+        return false;
     }
-    return true;
+}
+const ALGORITHM = 'aes-256-gcm';
+const KEY = process.env.SYNC_MASTER_KEY ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex') : crypto.randomBytes(32);
+
+function encrypt(text) {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+    return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+function decrypt(text) {
+    const [iv, authTag, encrypted] = text.split(':');
+    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
 }
 
 /* ==========================================================================
@@ -347,7 +363,7 @@ app.delete('/api/sync/templates/:id', (req, res) => {
 });
 
 // 7. Generic Webhook Receiver Endpoint
-app.post('/api/sync/webhook/:templateId', (req, res) => {
+app.post('/api/sync/webhook/:templateId', async (req, res) => {
     const db = readState();
     const template = db.webhookTemplates.find(
         (t) => t.id === req.params.templateId,
@@ -375,29 +391,27 @@ app.post('/api/sync/webhook/:templateId', (req, res) => {
     // Apply mapping
     let transformedData = {};
     try {
-        // Very basic mapping for now.
-        // A more robust solution would involve a custom scripting engine (e.g., Jexl, custom JS vm)
-        // or a more expressive JSONPath-like mapping.
-        if (template.mapping && typeof template.mapping === 'object') {
-            for (const key in template.mapping) {
-                // Simple direct mapping for demonstration
-                if (req.body[key] !== undefined) {
-                    transformedData[template.mapping[key]] = req.body[key];
-                }
-            }
+        if (template.mapping && typeof template.mapping === 'string') {
+            const expression = jsonata(template.mapping);
+            transformedData = await expression.evaluate(req.body);
         } else {
             transformedData = req.body; // No specific mapping, take raw body
         }
     } catch (e) {
         console.error('Error applying webhook mapping:', e);
-        return res.status(400).json({ error: 'Error processing webhook data.' });
+        return res.status(400).json({ error: 'Error processing webhook data.', details: e.message });
     }
 
-    // TODO: Integrate transformedData into the main application state (db.json)
-    // This will depend on template.type (e.g., 'transactions', 'positions')
-    console.log(`Received webhook for template ${template.name}, transformed data:`, transformedData);
-    // For now, just return success
-    res.json({ status: 'success', message: 'Webhook received and processed (data not yet integrated).' });
+    // Integrate transformedData into the main application state (db.json)
+    const dbUpdated = readState(); // Re-read to ensure we have the latest state
+    const integrationSuccess = integrateWebhookData(dbUpdated, template.type, transformedData);
+
+    if (integrationSuccess && writeState(dbUpdated)) {
+        console.log(`Received webhook for template ${template.name}, integrated data of type ${template.type}.`);
+        res.json({ status: 'success', message: `Webhook data for ${template.type} integrated successfully.` });
+    } else {
+        res.status(500).json({ error: 'Failed to integrate webhook data.' });
+    }
 });
 
 // 3. Accounts Management APIs
@@ -674,198 +688,3 @@ app.get('/api/prices', async (req, res) => {
 });
 
 module.exports = app;
-
-
-    // Sync OAuth routes (from previous worktree)
-    // Additions to `app/server.js` for OAuth-based sync functionality.
-    // (Existing code from previous worktree goes here)
-    const session = require('express-session');
-    const crypto = require('crypto');
-
-    app.use(session({
-        secret: process.env.SESSION_SECRET || 'a-very-secret-key',
-        resave: false,
-        saveUninitialized: true
-    }));
-
-    // Encryption helpers
-    const ALGORITHM = 'aes-256-gcm';
-    const KEY = process.env.SYNC_MASTER_KEY ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex') : crypto.randomBytes(32);
-
-    function encrypt(text) {
-        const iv = crypto.randomBytes(12);
-        const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
-        let encrypted = cipher.update(text, 'utf8', 'hex');
-        encrypted += cipher.final('hex');
-        const authTag = cipher.getAuthTag().toString('hex');
-        return `${iv.toString('hex')}:${authTag}:${encrypted}`;
-    }
-
-    function decrypt(text) {
-        const [iv, authTag, encrypted] = text.split(':');
-        const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
-        decipher.setAuthTag(Buffer.from(authTag, 'hex'));
-        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        return decrypted;
-    }
-
-    app.get('/api/sync/init', (req, res) => {
-        const state = crypto.randomBytes(16).toString('hex');
-        req.session = { oauthState: state };
-
-        const providerUrl = 'https://oauth.provider.com/authorize';
-        const params = new URLSearchParams({
-            client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
-            redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
-            response_type: 'code',
-            scope: 'read_only_accounts',
-            state: state
-        });
-        res.redirect(`${providerUrl}?${params.toString()}`);
-    });
-
-    app.post('/api/sync/callback', async (req, res) => {
-        const { code, state } = req.body;
-        if (!state || state !== req.session?.oauthState) {
-            return res.status(403).json({ error: 'Invalid or missing state' });
-        }
-        if (!code) {
-            return res.status(400).json({ error: 'Missing code' });
-        }
-        console.log('Exchanging code for tokens:', code);
-        const tokens = { access_token: 'actual_access_token_from_provider', refresh_token: 'actual_refresh_token', expires_in: 3600 };
-
-        const encryptedToken = encrypt(JSON.stringify(tokens));
-        try {
-            const tokenData = { lastUpdated: new Date().toISOString(), data: encryptedToken };
-            fs.writeFileSync(path.join(DATA_DIR, 'tokens.json'), JSON.stringify(tokenData));
-            res.json({ status: 'success', message: 'Tokens securely stored.' });
-        } catch (err) {
-            console.error('Failed to store tokens:', err);
-            res.status(500).json({ error: 'Failed to store tokens.' });
-        }
-    });
-
-    app.get('/api/sync/data', async (req, res) => {
-        const tokenFile = path.join(DATA_DIR, 'tokens.json');
-        if (!fs.existsSync(tokenFile)) {
-            return res.status(401).json({ error: 'No tokens found. Please authorize.' });
-        }
-        const { data: encryptedToken } = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
-        const tokens = JSON.parse(decrypt(encryptedToken));
-        res.json({ status: 'success', data: 'Aggregated data (mock)', accessToken: tokens.access_token.substring(0, 5) + '...' });
-    });
-
-    // Webhook API Endpoints
-    // (New code for webhook templates will go here)
-    // 6. Webhook Templates Management APIs
-    app.post('/api/sync/templates', (req, res) => {
-        const db = readState();
-        const newTemplate = {
-            id: crypto.randomBytes(8).toString('hex'), // Unique ID for the template
-            name: req.body.name,
-            source: req.body.source, // e.g., "Plaid", "Fidelity", "Custom"
-            type: req.body.type,     // e.g., "transactions", "positions", "net_worth"
-            mapping: req.body.mapping, // JSON object for data mapping rules
-            secret: req.body.secret || null, // Optional: for HMAC verification
-            createdAt: new Date().toISOString(),
-        };
-        db.webhookTemplates.push(newTemplate);
-        if (writeState(db)) {
-            res.status(201).json(newTemplate);
-        } else {
-            res.status(500).json({ error: 'Failed to save webhook template.' });
-        }
-    });
-
-    app.get('/api/sync/templates', (req, res) => {
-        const db = readState();
-        res.json(db.webhookTemplates.map(({ secret, ...rest }) => rest)); // Exclude secret from retrieval
-    });
-
-    app.put('/api/sync/templates/:id', (req, res) => {
-        const db = readState();
-        const templateIndex = db.webhookTemplates.findIndex(
-            (t) => t.id === req.params.id,
-        );
-
-        if (templateIndex === -1) {
-            return res.status(404).json({ error: 'Webhook template not found.' });
-        }
-
-        db.webhookTemplates[templateIndex] = {
-            ...db.webhookTemplates[templateIndex],
-            name: req.body.name || db.webhookTemplates[templateIndex].name,
-            source: req.body.source || db.webhookTemplates[templateIndex].source,
-            type: req.body.type || db.webhookTemplates[templateIndex].type,
-            mapping: req.body.mapping || db.webhookTemplates[templateIndex].mapping,
-            secret: req.body.secret || db.webhookTemplates[templateIndex].secret,
-        };
-
-        if (writeState(db)) {
-            const { secret, ...updatedTemplate } = db.webhookTemplates[templateIndex];
-            res.json(updatedTemplate);
-        } else {
-            res.status(500).json({ error: 'Failed to update webhook template.' });
-        }
-    });
-
-    app.delete('/api/sync/templates/:id', (req, res) => {
-        const db = readState();
-        const initialLength = db.webhookTemplates.length;
-        db.webhookTemplates = db.webhookTemplates.filter(
-            (t) => t.id !== req.params.id,
-        );
-
-        if (db.webhookTemplates.length === initialLength) {
-            return res.status(404).json({ error: 'Webhook template not found.' });
-        }
-
-        if (writeState(db)) {
-            res.json({ message: 'Webhook template successfully deleted.' });
-        } else {
-            res.status(500).json({ error: 'Failed to delete webhook template.' });
-        }
-    });
-
-    // 7. Generic Webhook Receiver Endpoint
-    app.post('/api/sync/webhook/:templateId', (req, res) => {
-        const db = readState();
-        const template = db.webhookTemplates.find(
-            (t) => t.id === req.params.templateId,
-        );
-
-        if (!template) {
-            return res.status(404).json({ error: 'Webhook template not found.' });
-        }
-
-        // TODO: Implement HMAC verification if template.secret is set
-        // For now, assume valid or handle external auth middleware
-
-        // Apply mapping
-        let transformedData = {};
-        try {
-            if (template.mapping && typeof template.mapping === 'string') {
-                const expression = jsonata(template.mapping);
-                transformedData = await expression.evaluate(req.body);
-            } else {
-                transformedData = req.body; // No specific mapping, take raw body
-            }
-        } catch (e) {
-            console.error('Error applying webhook mapping:', e);
-            return res.status(400).json({ error: 'Error processing webhook data.', details: e.message });
-        }
-
-        // Integrate transformedData into the main application state (db.json)
-        const db = readState(); // Re-read to ensure we have the latest state
-        const integrationSuccess = integrateWebhookData(db, template.type, transformedData);
-
-        if (integrationSuccess && writeState(db)) {
-            console.log(`Received webhook for template ${template.name}, integrated data of type ${template.type}.`);
-            res.json({ status: 'success', message: `Webhook data for ${template.type} integrated successfully.` });
-        } else {
-            res.status(500).json({ error: 'Failed to integrate webhook data.' });
-        }
-    });
-
