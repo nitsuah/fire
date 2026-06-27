@@ -175,26 +175,6 @@ function integrateWebhookData(db, type, data) {
         return false;
     }
 }
-const ALGORITHM = 'aes-256-gcm';
-const KEY = process.env.SYNC_MASTER_KEY ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex') : crypto.randomBytes(32);
-
-function encrypt(text) {
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    const authTag = cipher.getAuthTag().toString('hex');
-    return `${iv.toString('hex')}:${authTag}:${encrypted}`;
-}
-
-function decrypt(text) {
-    const [iv, authTag, encrypted] = text.split(':');
-    const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'));
-    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-}
 
 /* ==========================================================================
    REST API Endpoints
@@ -688,3 +668,19 @@ app.get('/api/prices', async (req, res) => {
 });
 
 module.exports = app;
+
+if (require.main === module) {
+    findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005]).then((port) => {
+        app.listen(port, '0.0.0.0', () => {
+            if (port !== PREFERRED_PORT) {
+                console.warn(
+                    `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
+                );
+            }
+            console.log(
+                `🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`,
+            );
+            refreshYahooCrumb().catch(() => {});
+        });
+    });
+}
