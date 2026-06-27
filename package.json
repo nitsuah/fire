@@ -11,17 +11,18 @@
     "build": "echo 'No build step required for this project' && exit 0"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-session": "^1.19.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^10.5.0",
-    "globals": "^17.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.2.1",
+    "globals": "^17.6.0",
     "prettier": "^3.8.4",
     "supertest": "^7.0.0",
-    "vitest": "^4.1.9",
-    "@vitest/coverage-v8": "^4.1.9"
+    "vitest": "^4.1.9"
   }
 }
