@@ -8,63 +8,41 @@ const {
 // ─── getMonthlyExpensesBase ───────────────────────────────────────────────────────
 
 describe('getMonthlyExpensesBase', () => {
-    it('calculates monthly for empty state', () => {
-        const result = getMonthlyExpensesBase({});
-        expect(result).toBe(0);
-    });
-
-    it('calculates car payment monthly', () => {
-        const state = { insurances: { car: { amt: 1200, freq: '6month' } } };
-        const result = getMonthlyExpensesBase(state);
-        expect(result).toBe(600);
-    });
-
-    it('calculates home payment monthly', () => {
-        const state = { insurances: { home: { amt: 1800, freq: 'monthly' } } };
-        const result = getMonthlyExpensesBase(state);
-        expect(result).toBe(1800);
-    });
-
-    it('sums multiple insurance types', () => {
-        const state = {
-            insurances: {
-                car: { amt: 1200, freq: '6month' },
-                home: { amt: 1800, freq: 'monthly' },
-            }
+    it('sums all expense categories plus insurance', () => {
+        const expenses = { housing: 1000, food: 500, transport: 200 };
+        const insurances = {
+            car: { amt: 0, freq: 'monthly' },
+            home: { amt: 0, freq: 'monthly' },
         };
-        const result = getMonthlyExpensesBase(state);
-        expect(result).toBe(2400);
+        expect(getMonthlyExpensesBase(expenses, insurances)).toBe(1700);
+    });
+
+    it('includes car insurance in total', () => {
+        const expenses = { housing: 1000 };
+        const insurances = {
+            car: { amt: 120, freq: 'monthly' },
+            home: { amt: 0, freq: 'monthly' },
+        };
+        expect(getMonthlyExpensesBase(expenses, insurances)).toBe(1120);
     });
 });
 
 // ─── getAnnualExpensesTotal ───────────────────────────────────────────────────────
 
 describe('getAnnualExpensesTotal', () => {
-    it('calculates annual total for empty state', () => {
-        const result = getAnnualExpensesTotal({});
-        expect(result).toBe(0);
-    });
-
-    it('calculates annual car insurance', () => {
-        const state = { insurances: { car: { amt: 1200, freq: '6month' } } };
-        const result = getAnnualExpensesTotal(state);
-        expect(result).toBe(2400);
-    });
-
-    it('calculates annual home insurance', () => {
-        const state = { insurances: { home: { amt: 1800, freq: 'monthly' } } };
-        const result = getAnnualExpensesTotal(state);
-        expect(result).toBe(21600);
-    });
-
-    it('sums multiple insurance types', () => {
-        const state = {
-            insurances: {
-                car: { amt: 1200, freq: '6month' },
-                home: { amt: 1800, freq: 'monthly' },
-            }
+    it('multiplies monthly base by 12 and adds tax drag', () => {
+        const expenses = { housing: 1000 };
+        const insurances = {
+            car: { amt: 0, freq: 'monthly' },
+            home: { amt: 0, freq: 'monthly' },
         };
-        const result = getAnnualExpensesTotal(state);
-        expect(result).toBe(24000);
+        // monthly base = 1000, annual = 12000, tax drag 20% = 2400, total = 14400
+        expect(getAnnualExpensesTotal(expenses, insurances, 20)).toBe(14400);
+    });
+
+    it('handles 0% tax rate', () => {
+        const expenses = { housing: 1000 };
+        const insurances = {};
+        expect(getAnnualExpensesTotal(expenses, insurances, 0)).toBe(12000);
     });
 });

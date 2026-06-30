@@ -15,168 +15,231 @@ const {
 // ─── isSettledCash ─────────────────────────────────────────────────────────────────
 
 describe('isSettledCash', () => {
-    it('returns true for settled cash', () => {
-        expect(isSettledCash('Cash', 'Settled')).toBe(true);
+    it('identifies SPAXX as settled cash', () => {
+        expect(isSettledCash({ symbol: 'SPAXX', description: '' })).toBe(true);
     });
 
-    it('returns true for cash account settled today', () => {
-        expect(isSettledCash('Cash', '2024-01-01')).toBe(true);
+    it('identifies FDRXX as settled cash', () => {
+        expect(isSettledCash({ symbol: 'FDRXX', description: '' })).toBe(true);
     });
 
-    it('returns false for unsettled cash', () => {
-        expect(isSettledCash('Cash', 'Unreviewed')).toBe(false);
+    it('identifies money market descriptions', () => {
+        expect(
+            isSettledCash({
+                symbol: 'XX',
+                description: 'Fidelity Money Market Fund',
+            }),
+        ).toBe(true);
     });
 
-    it('returns false for non-cash account', () => {
-        expect(isSettledCash('Stock', 'Settled')).toBe(false);
+    it('identifies pending activity', () => {
+        expect(
+            isSettledCash({ symbol: 'XX', description: 'Pending Activity' }),
+        ).toBe(true);
+    });
+
+    it('identifies core position', () => {
+        expect(
+            isSettledCash({ symbol: 'XX', description: 'Core Position' }),
+        ).toBe(true);
+    });
+
+    it('does not flag regular equities', () => {
+        expect(
+            isSettledCash({ symbol: 'AAPL', description: 'Apple Inc' }),
+        ).toBe(false);
+    });
+
+    it('identifies ** symbol as settled', () => {
+        expect(isSettledCash({ symbol: '**', description: '' })).toBe(true);
+    });
+
+    it('is case-insensitive for symbol', () => {
+        expect(isSettledCash({ symbol: 'spaxx', description: '' })).toBe(true);
     });
 });
 
-// ─── getAggregateCash ─────────────────────────────────────────────────────────────────
+// ─── getAggregateCash ──────────────────────────────────────────────────────────
 
 describe('getAggregateCash', () => {
-    it('returns 0 when no cash accounts', () => {
-        expect(getAggregateCash([])).toBe(0);
-    });
-
-    it('sums cash values', () => {
-        const cashAccounts = [
-            { value: 1000, type: 'Cash' },
-            { value: 2000, type: 'Savings' },
+    it('sums SPAXX positions and Cash/Savings accounts', () => {
+        const positions = [
+            { symbol: 'SPAXX', description: '', value: 5000 },
+            { symbol: 'AAPL', description: '', value: 2000 },
         ];
-        expect(getAggregateCash(cashAccounts)).toBe(3000);
+        const accounts = [
+            { type: 'Cash', value: 3000 },
+            { type: 'Brokerage', value: 10000 },
+        ];
+        expect(getAggregateCash(positions, accounts)).toBe(8000); // 5000 + 3000
     });
 
-    it('includes cash accounts with zero value', () => {
-        const cashAccounts = [{ value: 0, type: 'Cash' }];
-        expect(getAggregateCash(cashAccounts)).toBe(0);
+    it('handles empty arrays', () => {
+        expect(getAggregateCash([], [])).toBe(0);
+    });
+
+    it('includes FDRXX positions', () => {
+        const positions = [{ symbol: 'FDRXX', description: '', value: 1500 }];
+        expect(getAggregateCash(positions, [])).toBe(1500);
+    });
+
+    it('includes MONEY MARKET descriptions', () => {
+        const positions = [
+            {
+                symbol: 'XX',
+                description: 'FIDELITY MONEY MARKET CORE',
+                value: 750,
+            },
+        ];
+        expect(getAggregateCash(positions, [])).toBe(750);
+    });
+
+    it('includes Savings account type', () => {
+        const accounts = [{ type: 'Savings', value: 12000 }];
+        expect(getAggregateCash([], accounts)).toBe(12000);
     });
 });
 
-// ─── getAggregateCDs ─────────────────────────────────────────────────────────────────
+// ─── getAggregateCDs ───────────────────────────────────────────────────────────
 
 describe('getAggregateCDs', () => {
-    it('returns 0 when no CDs', () => {
-        expect(getAggregateCDs([])).toBe(0);
-    });
-
-    it('sums CD principal values', () => {
+    it('sums all CD principals', () => {
         const cds = [
-            { principal: 5000, type: 'CD' },
-            { principal: 10000, type: 'CD' },
+            { principal: 10000, rate: 5 },
+            { principal: 5000, rate: 4.5 },
         ];
         expect(getAggregateCDs(cds)).toBe(15000);
     });
+
+    it('returns 0 for empty array', () => {
+        expect(getAggregateCDs([])).toBe(0);
+    });
+
+    it('handles undefined principal gracefully', () => {
+        const cds = [{ bank: 'Test' }];
+        expect(getAggregateCDs(cds)).toBe(0);
+    });
 });
 
-// ─── getAggregateEquities ─────────────────────────────────────────────────────────────────
+// ─── getAggregateEquities ──────────────────────────────────────────────────────
 
 describe('getAggregateEquities', () => {
-    it('returns 0 when no equities', () => {
-        expect(getAggregateEquities([])).toBe(0);
+    it('sums non-cash imported positions and Brokerage/Crypto accounts', () => {
+        const positions = [
+            { symbol: 'AAPL', description: '', value: 5000 },
+            { symbol: 'SPAXX', description: '', value: 2000 },
+        ];
+        const accounts = [
+            { type: 'Brokerage', value: 3000 },
+            { type: 'Crypto', value: 1000 },
+            { type: 'Savings', value: 500 },
+        ];
+        expect(getAggregateEquities(positions, accounts)).toBe(9000); // 5000 + 3000 + 1000
     });
 
-    it('sums equity values', () => {
-        const equities = [
-            { value: 5000, type: 'Stock' },
-            { value: 10000, type: 'ETF' },
-        ];
-        expect(getAggregateEquities(equities)).toBe(15000);
+    it('returns 0 for empty inputs', () => {
+        expect(getAggregateEquities([], [])).toBe(0);
     });
 });
 
-// ─── getAggregateOtherAssets ─────────────────────────────────────────────────────────────────
+// ─── getAggregateOtherAssets ───────────────────────────────────────────────────
 
 describe('getAggregateOtherAssets', () => {
-    it('returns 0 when no other assets', () => {
-        expect(getAggregateOtherAssets([])).toBe(0);
+    it('sums accounts that are not Cash/Savings/Brokerage/Crypto', () => {
+        const accounts = [
+            { type: 'Other', value: 2000 },
+            { type: 'RealEstate', value: 5000 },
+            { type: 'Cash', value: 1000 },
+            { type: 'Savings', value: 500 },
+        ];
+        expect(getAggregateOtherAssets(accounts)).toBe(7000);
     });
 
-    it('sums other asset values', () => {
-        const otherAssets = [
-            { value: 2000, type: 'Crypto' },
-            { value: 3000, type: 'NFT' },
-        ];
-        expect(getAggregateOtherAssets(otherAssets)).toBe(5000);
+    it('returns 0 for empty or all-excluded types', () => {
+        expect(getAggregateOtherAssets([])).toBe(0);
+        expect(getAggregateOtherAssets([{ type: 'Cash', value: 100 }])).toBe(0);
     });
 });
 
-// ─── getSideGigYTDNet ─────────────────────────────────────────────────────────────────
+// ─── getSideGigYTDNet ─────────────────────────────────────────────────────────
 
 describe('getSideGigYTDNet', () => {
-    it('returns 0 when no side gig activity', () => {
+    it('sums net values from ledger', () => {
+        const ledger = [{ net: 150 }, { net: -30 }, { net: 200 }];
+        expect(getSideGigYTDNet(ledger)).toBe(320);
+    });
+
+    it('returns 0 for empty ledger', () => {
         expect(getSideGigYTDNet([])).toBe(0);
     });
-
-    it('sums side gig income and expenses', () => {
-        const sideGig = [
-            { income: 5000, expenses: 1000 },
-            { income: 3000, expenses: 500 },
-        ];
-        expect(getSideGigYTDNet(sideGig)).toBe(6500);
-    });
 });
 
-// ─── getAggregateRealEstate ─────────────────────────────────────────────────────────────────
+// ─── getAggregateRealEstate ────────────────────────────────────────────────────
 
 describe('getAggregateRealEstate', () => {
-    it('returns 0 when no real estate', () => {
+    it('computes equity (market value - mortgage)', () => {
+        const re = [
+            { marketValue: 400000, mortgageBalance: 250000 },
+            { marketValue: 200000, mortgageBalance: 180000 },
+        ];
+        expect(getAggregateRealEstate(re)).toBe(170000); // 150000 + 20000
+    });
+
+    it('floors negative equity at 0', () => {
+        const re = [{ marketValue: 100000, mortgageBalance: 120000 }];
+        expect(getAggregateRealEstate(re)).toBe(0);
+    });
+
+    it('returns 0 for empty list', () => {
         expect(getAggregateRealEstate([])).toBe(0);
     });
-
-    it('sums real estate values', () => {
-        const realEstate = [
-            { value: 300000, type: 'Primary Home' },
-            { value: 200000, type: 'Investment Property' },
-        ];
-        expect(getAggregateRealEstate(realEstate)).toBe(500000);
-    });
 });
 
-// ─── getAggregateVehicles ─────────────────────────────────────────────────────────────────
+// ─── getAggregateVehicles ──────────────────────────────────────────────────────
 
 describe('getAggregateVehicles', () => {
-    it('returns 0 when no vehicles', () => {
-        expect(getAggregateVehicles([])).toBe(0);
+    it('computes equity (current value - loan balance)', () => {
+        const vehicles = [
+            { currentValue: 25000, loanBalance: 15000 },
+            { currentValue: 12000, loanBalance: 0 },
+        ];
+        expect(getAggregateVehicles(vehicles)).toBe(22000); // 10000 + 12000
     });
 
-    it('sums vehicle values', () => {
-        const vehicles = [
-            { currentValue: 25000, make: 'Toyota' },
-            { currentValue: 40000, make: 'Honda' },
-        ];
-        expect(getAggregateVehicles(vehicles)).toBe(65000);
+    it('floors negative equity at 0 (underwater loan)', () => {
+        const vehicles = [{ currentValue: 8000, loanBalance: 12000 }];
+        expect(getAggregateVehicles(vehicles)).toBe(0);
     });
 });
 
-// ─── getAggregateNetWorth ─────────────────────────────────────────────────────────────────
+// ─── getAggregateNetWorth ──────────────────────────────────────────────────────
 
 describe('getAggregateNetWorth', () => {
-    it('calculates net worth from all asset types', () => {
+    it('sums all asset categories', () => {
         const state = {
-            customAccounts: [
-                { value: 10000, type: 'Cash' },
-                { value: 5000, type: 'Investment' },
+            importedPositions: [
+                { symbol: 'AAPL', description: '', value: 10000 },
             ],
-            cds: [
-                { principal: 20000, type: 'CD' },
-            ],
-            equities: [
-                { value: 50000, type: 'Stock' },
-            ],
-            realEstate: [
-                { value: 300000, type: 'Primary Home' },
-            ],
-            vehicles: [
-                { currentValue: 25000, make: 'Toyota' },
-            ],
-            insurances: {
-                car: { amt: 1200, freq: '6month' },
-                home: { amt: 1800, freq: 'monthly' },
-            },
+            customAccounts: [{ type: 'Cash', value: 5000 }],
+            cds: [{ principal: 8000 }],
+            realEstate: [{ marketValue: 300000, mortgageBalance: 200000 }],
+            vehicles: [{ currentValue: 20000, loanBalance: 10000 }],
+            sideGigLedger: [{ net: 500 }],
         };
-        const result = getAggregateNetWorth(state);
-        expect(result.totalValue).toBe(510200);
-        expect(result.totalMonthlyExpenses).toBe(2400);
+        const nw = getAggregateNetWorth(state);
+        // equities: 10000, cash: 5000, CDs: 8000, RE equity: 100000, vehicles: 10000, side: 500
+        expect(nw).toBe(133500);
+    });
+
+    it('returns 0 when state has no assets', () => {
+        const state = {
+            importedPositions: [],
+            customAccounts: [],
+            cds: [],
+            realEstate: [],
+            vehicles: [],
+            sideGigLedger: [],
+        };
+        expect(getAggregateNetWorth(state)).toBe(0);
     });
 });

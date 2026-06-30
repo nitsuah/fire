@@ -8,41 +8,40 @@ const {
 // ─── insuranceToMonthly ───────────────────────────────────────────────────────
 
 describe('insuranceToMonthly', () => {
-    it('converts annual car insurance to monthly', () => {
-        expect(insuranceToMonthly(1200, 'car', '6month')).toBe(600);
+    it('divides 6-month amount by 6', () => {
+        expect(insuranceToMonthly({ amt: 600, freq: '6month' })).toBe(100);
     });
 
-    it('converts annual car insurance to monthly (12month freq)', () => {
-        expect(insuranceToMonthly(1200, 'car', '12month')).toBe(1200);
+    it('divides annual amount by 12', () => {
+        expect(insuranceToMonthly({ amt: 1200, freq: 'annual' })).toBe(100);
     });
 
-    it('converts annual home insurance to monthly', () => {
-        expect(insuranceToMonthly(1800, 'home', 'monthly')).toBe(150);
+    it('returns monthly amount as-is', () => {
+        expect(insuranceToMonthly({ amt: 150, freq: 'monthly' })).toBe(150);
     });
 
-    it('handles car insurance with monthly frequency', () => {
-        expect(insuranceToMonthly(1200, 'car', 'monthly')).toBe(1200);
+    it('returns 0 for missing amt', () => {
+        expect(insuranceToMonthly({ freq: 'monthly' })).toBe(0);
+    });
+
+    it('returns monthly for unrecognised freq', () => {
+        expect(insuranceToMonthly({ amt: 100, freq: 'weekly' })).toBe(100);
     });
 });
 
 // ─── getInsuranceMonthly ───────────────────────────────────────────────────────
 
 describe('getInsuranceMonthly', () => {
-    it('calculates car insurance monthly payment', () => {
-        const result = getInsuranceMonthly(1200, 'car');
-        expect(result.freq).toBe('6month');
-        expect(result.amt).toBe(1200);
+    it('sums car and home insurance monthly', () => {
+        const ins = {
+            car: { amt: 600, freq: '6month' },
+            home: { amt: 1200, freq: 'annual' },
+        };
+        expect(getInsuranceMonthly(ins)).toBe(200); // 100 + 100
     });
 
-    it('calculates home insurance monthly payment', () => {
-        const result = getInsuranceMonthly(1800, 'home');
-        expect(result.freq).toBe('monthly');
-        expect(result.amt).toBe(1800);
-    });
-
-    it('returns defaults when none specified', () => {
-        const result = getInsuranceMonthly(0, 'unknown');
-        expect(result.amt).toBe(0);
-        expect(result.freq).toBe('monthly');
+    it('handles missing insurance object', () => {
+        expect(getInsuranceMonthly(null)).toBe(0);
+        expect(getInsuranceMonthly({})).toBe(0);
     });
 });

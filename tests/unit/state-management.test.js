@@ -28,10 +28,16 @@ describe('sanitizeState', () => {
         const result = sanitizeState(state);
         const v = result.vehicles[0];
         expect(v.year).toBe(new Date().getFullYear());
+        expect(v.make).toBe('Toyota');
+        expect(v.model).toBe('Camry');
+        expect(v.trim).toBe('');
         expect(v.mileage).toBe(0);
         expect(v.condition).toBe('Good');
         expect(v.currentValue).toBe(0);
+        expect(v.purchasePrice).toBe(0);
         expect(v.loanBalance).toBe(0);
+        expect(v.monthlyPayment).toBe(0);
+        expect(v.notes).toBe('');
     });
 
     it('does not overwrite existing vehicle fields', () => {
@@ -53,13 +59,17 @@ describe('sanitizeState', () => {
         expect(result.vehicles[0].currentValue).toBe(18000);
     });
 
-    it('fills missing realEstate fields', () => {
+    it('fills missing realEstate fields with defaults', () => {
         const state = { realEstate: [{ name: 'Home' }] };
         const result = sanitizeState(state);
         const re = result.realEstate[0];
         expect(re.marketValue).toBe(0);
+        expect(re.purchasePrice).toBe(0);
         expect(re.mortgageBalance).toBe(0);
+        expect(re.monthlyPayment).toBe(0);
         expect(re.type).toBe('Primary Home');
+        expect(re.address).toBe('');
+        expect(re.notes).toBe('');
     });
 
     it('fills null apy and value in customAccounts', () => {
