@@ -65,6 +65,8 @@ describe('calculateEbayNetProfit', () => {
 // ─── US_MEDIAN_SAVINGS constant ────────────────────────────────────────────────
 
 describe('US_MEDIAN_SAVINGS', () => {
+    // Smoke tests pinned to current dataset values. Update these if the
+    // US_MEDIAN_SAVINGS constant in finance-core.js is refreshed.
     it('has entries for key ages', () => {
         expect(US_MEDIAN_SAVINGS[30]).toBe(45000);
         expect(US_MEDIAN_SAVINGS[65]).toBe(400000);

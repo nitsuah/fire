@@ -1,9 +1,6 @@
 'use strict';
 
-const {
-    formatCurrency,
-    pnlColorStyle,
-} = require('../../app/lib/finance-core');
+const { formatCurrency, pnlColorStyle } = require('../../app/lib/finance-core');
 
 // ─── formatCurrency ────────────────────────────────────────────────────────────
 

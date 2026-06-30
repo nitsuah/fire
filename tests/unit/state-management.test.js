@@ -1,8 +1,6 @@
 'use strict';
 
-const {
-    sanitizeState,
-} = require('../../app/lib/finance-core');
+const { sanitizeState } = require('../../app/lib/finance-core');
 
 // ─── sanitizeState ─────────────────────────────────────────────────────────────
 

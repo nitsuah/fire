@@ -1,8 +1,6 @@
 'use strict';
 
-const {
-    computeEffectiveTaxRate,
-} = require('../../app/lib/finance-core');
+const { computeEffectiveTaxRate } = require('../../app/lib/finance-core');
 
 // ─── computeEffectiveTaxRate ───────────────────────────────────────────────────────
 

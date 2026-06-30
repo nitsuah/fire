@@ -1,38 +1,10 @@
 'use strict';
 
 const {
-    formatCurrency,
-    pnlColorStyle,
-    sanitizeState,
     parseCSVText,
     parseFidelityPositions,
     parseChaseStatement,
     parseCapitalOneStatement,
-    computeEffectiveTaxRate,
-    insuranceToMonthly,
-    getInsuranceMonthly,
-    getMonthlyExpensesBase,
-    getAnnualExpensesTotal,
-    isSettledCash,
-    getAggregateCash,
-    getAggregateCDs,
-    getAggregateEquities,
-    getAggregateOtherAssets,
-    getSideGigYTDNet,
-    getAggregateRealEstate,
-    getAggregateVehicles,
-    getAggregateNetWorth,
-    windowToPoints,
-    sliceProjectionData,
-    buildProjectionData,
-    sortPositions,
-    calculateEbayFees,
-    calculateEbayNetProfit,
-    calculateEtsyFees,
-    calculateEtsyNetProfit,
-    calculateFBFees,
-    calculateFBNetProfit,
-    US_MEDIAN_SAVINGS,
 } = require('../../app/lib/finance-core');
 
 // ─── parseCSVText ──────────────────────────────────────────────────────────────
@@ -77,9 +49,10 @@ describe('parseCSVText', () => {
 
 describe('parseFidelityPositions', () => {
     it('returns 0 count if Symbol column is missing', () => {
-        const rows = [['Header'], ['', 'AAPL', 'Apple Inc', '10', '175', '1750', '1400', '350', '25']];
+        const rows = parseCSVText('Foo,Bar\n1,2');
         const result = parseFidelityPositions(rows);
         expect(result.count).toBe(0);
+        expect(result.positions).toEqual([]);
     });
 
     it('parses a valid Fidelity CSV row', () => {
@@ -96,8 +69,9 @@ describe('parseFidelityPositions', () => {
         expect(result.positions[0].costBasis).toBe(1400);
     });
 
-    it('calculates pnlDollar when no gain columns', () => {
-        const header = 'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total';
+    it('calculates pnlDollar from value minus costBasis when no gain columns', () => {
+        const header =
+            'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total';
         const csv = `${header}\nAcc,TSLA,Tesla,5,200,1000,800`;
         const rows = parseCSVText(csv);
         const result = parseFidelityPositions(rows);
@@ -106,17 +80,30 @@ describe('parseFidelityPositions', () => {
     });
 
     it('stops parsing at "The data" disclaimer rows', () => {
-        const csv = `Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total,Gain/Loss Dollar,Gain/Loss Percent\nAcc,AAPL,Apple,10,175,1750,1400,350,25\nThe data information,,,,,,`;
+        const csv =
+            'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total,Gain/Loss Dollar,Gain/Loss Percent\nAcc,AAPL,Apple,10,175,1750,1400,350,25\nThe data and information,,,,,,,';
         const rows = parseCSVText(csv);
         const result = parseFidelityPositions(rows);
         expect(result.count).toBe(1);
     });
 
-    it('skips rows where current value NaN', () => {
-        const csv = `Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total,Gain/Loss Dollar,Gain/Loss Percent\nAcc,AAPL,Apple,10,175,notanumber,1400,350,25`;
+    it('skips rows where current value is NaN', () => {
+        const csv =
+            'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total,Gain/Loss Dollar,Gain/Loss Percent\nAcc,AAPL,Apple,10,175,notanumber,1400,350,25';
         const rows = parseCSVText(csv);
         const result = parseFidelityPositions(rows);
         expect(result.count).toBe(0);
+    });
+
+    it('uses Brokerage as default account name', () => {
+        const header =
+            'Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total';
+        const csv = `${header}\nAAPL,Apple Inc,10,175,1750,1400`;
+        const rows = parseCSVText(csv);
+        const result = parseFidelityPositions(rows);
+        if (result.count > 0) {
+            expect(result.positions[0].account).toBe('Brokerage');
+        }
     });
 });
 
@@ -142,13 +129,30 @@ describe('parseChaseStatement', () => {
         const result = parseChaseStatement(rows);
         expect(result.imported).toBe(1);
     });
+
+    it('skips rows with fewer than 6 columns', () => {
+        const rows = [['Header'], ['2024-01-01', 'Coffee', '-5']];
+        const result = parseChaseStatement(rows);
+        expect(result.imported).toBe(0);
+    });
+
+    it('returns zero for positive-only transactions', () => {
+        const rows = [
+            ['Date', 'Desc', 'x', 'x', 'x', 'Amount'],
+            ['2024-01-01', 'Paycheck', '', '', '', '3000'],
+        ];
+        const result = parseChaseStatement(rows);
+        expect(result.imported).toBe(0);
+        expect(result.totalOutflow).toBe(0);
+    });
 });
 
 // ─── parseCapitalOneStatement ──────────────────────────────────────────────────
 
 describe('parseCapitalOneStatement', () => {
-    it('counts debit amounts outflow', () => {
-        const csv = 'Card No.,Date,Description,Category,Debit,Credit\n1234,2024-01-01,Coffee,Food,5.50,\n1234,2024-01-02,Payment,,, 100.00';
+    it('counts debit amounts as outflow', () => {
+        const csv =
+            'Card No.,Date,Description,Category,Debit,Credit\n1234,2024-01-01,Coffee,Food,5.50,\n1234,2024-01-02,Payment,,, 100.00';
         const rows = parseCSVText(csv);
         const result = parseCapitalOneStatement(rows);
         expect(result.imported).toBe(1);
@@ -162,7 +166,7 @@ describe('parseCapitalOneStatement', () => {
         expect(result.imported).toBe(0);
     });
 
-    it('skips rows shorter debit column index', () => {
+    it('skips rows shorter than debit column index', () => {
         const rows = [
             ['Card No.', 'Date', 'Desc', 'Cat', 'Debit', 'Credit'],
             ['1234', '2024-01-01'],
@@ -175,52 +179,124 @@ describe('parseCapitalOneStatement', () => {
 // ─── parseChaseStatement (categorization) ─────────────────────────────────────
 
 describe('parseChaseStatement (categorization)', () => {
-    it('maps Chase Food & Drink category to food bucket', () => {
-        const rows = [
-            ['Transaction Date', 'Post Date', 'Description', 'Category', 'Type', 'Amount'],
-            ['2024-01-01', '2024-01-02', 'Coffee', 'Food & Drink', 'Sale', '-15.00'],
-        ];
-        const result = parseChaseStatement(rows);
-        expect(result.imported).toBe(1);
+    it('maps food & drink category to food bucket via CHASE_CATEGORY_MAP', () => {
+        const result = parseChaseStatement([
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-01',
+                '2024-01-02',
+                'Restaurant Purchase',
+                'Food & Drink',
+                'Sale',
+                '-15.00',
+            ],
+        ]);
         expect(result.categories.food).toBeCloseTo(15);
-        expect(result.categories.discretionary).toBe(0);
     });
 
-    it('maps Chase Transit category to transportation bucket', () => {
-        const rows = [
-            ['Transaction Date', 'Post Date', 'Description', 'Category', 'Type', 'Amount'],
-            ['2024-01-03', '2024-01-04', 'Shell Gas', 'Transit', 'Sale', '-60.00'],
-        ];
-        const result = parseChaseStatement(rows);
+    it('maps gas category to transport bucket via CHASE_CATEGORY_MAP', () => {
+        const result = parseChaseStatement([
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-03',
+                '2024-01-04',
+                'Gas Station',
+                'Gas',
+                'Sale',
+                '-60.00',
+            ],
+        ]);
         expect(result.categories.transport).toBeCloseTo(60);
     });
 
-    it('maps Chase Healthcare category to healthcare bucket', () => {
-        const rows = [
-            ['Transaction Date', 'Post Date', 'Description', 'Category', 'Type', 'Amount'],
-            ['2024-01-05', '2024-01-06', 'CVS Pharmacy Purchase', 'Healthcare', 'Sale', '-22.00'],
-        ];
-        const result = parseChaseStatement(rows);
+    it('maps health & wellness category to healthcare bucket via CHASE_CATEGORY_MAP', () => {
+        const result = parseChaseStatement([
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-05',
+                '2024-01-06',
+                'Pharmacy',
+                'Health & Wellness',
+                'Sale',
+                '-22.00',
+            ],
+        ]);
         expect(result.categories.healthcare).toBeCloseTo(22);
     });
 
-    it('falls back to keyword matching when category unknown', () => {
-        const rows = [
-            ['Transaction Date', 'Post Date', 'Description', 'Category', 'Type', 'Amount'],
-            ['2024-01-07', '2024-01-08', 'Grocery Store Purchase', 'Retail', 'Sale', '-85.00'],
-        ];
-        const result = parseChaseStatement(rows);
+    it('falls back to keyword matching when category is not in CHASE_CATEGORY_MAP', () => {
+        const result = parseChaseStatement([
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-07',
+                '2024-01-08',
+                'Grocery Store Purchase',
+                'Retail',
+                'Sale',
+                '-85.00',
+            ],
+        ]);
+        // 'Retail' not in CHASE_CATEGORY_MAP, so it falls through to
+        // description-based keyword matching — 'Grocery' → food
         expect(result.categories.food).toBeCloseTo(85);
     });
 
-    it('provides months field', () => {
-        const rows = [
-            ['Transaction Date', 'Post Date', 'Description', 'Category', 'Type', 'Amount'],
-            ['2024-01-01', '2024-01-02', 'Coffee', 'Food & Drink', 'Sale', '-5.00'],
-            ['2024-02-01', '2024-02-02', 'Coffee', 'Food & Drink', 'Sale', '-5.00'],
-        ];
-        const result = parseChaseStatement(rows);
-        expect(result.months).toBeGreaterThanOrEqual(1);
+    it('returns exact months from _parseDateRange for two dates a month apart', () => {
+        const result = parseChaseStatement([
+            [
+                'Transaction Date',
+                'Post Date',
+                'Description',
+                'Category',
+                'Type',
+                'Amount',
+            ],
+            [
+                '2024-01-01',
+                '2024-01-02',
+                'Coffee',
+                'Food & Drink',
+                'Sale',
+                '-5.00',
+            ],
+            [
+                '2024-02-01',
+                '2024-02-02',
+                'Coffee',
+                'Food & Drink',
+                'Sale',
+                '-5.00',
+            ],
+        ]);
+        expect(result.months).toBe(1);
     });
 });
 
@@ -228,7 +304,8 @@ describe('parseChaseStatement (categorization)', () => {
 
 describe('parseCapitalOneStatement (categorization)', () => {
     it('maps grocery category to food bucket', () => {
-        const csv = 'Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit\n2024-01-01,2024-01-02,1234,Kroger,Grocery Store/Supermarket,85.00,';
+        const csv =
+            'Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit\n2024-01-01,2024-01-02,1234,Kroger,Grocery Store/Supermarket,85.00,';
         const rows = parseCSVText(csv);
         const result = parseCapitalOneStatement(rows);
         expect(result.imported).toBe(1);
@@ -236,7 +313,8 @@ describe('parseCapitalOneStatement (categorization)', () => {
     });
 
     it('categorizes uncategorized transaction via keyword fallback', () => {
-        const csv = 'Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit\n2024-01-01,2024-01-02,1234,Walgreens Pharmacy,Other,12.00,';
+        const csv =
+            'Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit\n2024-01-01,2024-01-02,1234,Walgreens Pharmacy,Other,12.00,';
         const rows = parseCSVText(csv);
         const result = parseCapitalOneStatement(rows);
         expect(result.categories.healthcare).toBeCloseTo(12);

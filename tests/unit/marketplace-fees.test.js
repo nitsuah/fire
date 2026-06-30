@@ -1,8 +1,6 @@
 'use strict';
 
-const {
-    sortPositions,
-} = require('../../app/lib/finance-core');
+const { sortPositions } = require('../../app/lib/finance-core');
 
 // ─── sortPositions ─────────────────────────────────────────────────────────────
 

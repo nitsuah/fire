@@ -165,10 +165,10 @@ describe('buildProjectionData', () => {
         expect(data.bullData[lastIdx]).toBeGreaterThan(data.nwData[lastIdx]);
     });
 
-    it('bear scenario is lower than base', () => {
+    it('bear scenario is strictly lower than base', () => {
         const data = buildProjectionData(baseState, 0);
         const lastIdx = data.nwData.length - 1;
-        expect(data.bearData[lastIdx]).toBeLessThanOrEqual(
+        expect(data.bearData[lastIdx]).toBeLessThan(
             data.nwData[lastIdx],
         );
     });
