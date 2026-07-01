@@ -50,7 +50,7 @@ export default [
 
     // Test files (vitest globals are a superset of jest globals)
     {
-        files: ['**/*.test.js'],
+        files: ['**/*.test.{js,mjs}'],
         languageOptions: {
             globals: {
                 ...globals.node,

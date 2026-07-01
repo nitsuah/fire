@@ -1,11 +1,12 @@
-'use strict';
-
-/**
- * Tests for the GET /api/prices route with mocked fetch.
- * These cover the Yahoo Finance fetch logic that can't be hit in plain network tests.
- */
-
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+    vi,
+    describe,
+    it,
+    expect,
+    beforeEach,
+    afterEach,
+    afterAll,
+} from 'vitest';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
