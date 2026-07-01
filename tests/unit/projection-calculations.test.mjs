@@ -1,11 +1,10 @@
-'use strict';
-
-const {
+import { describe, it, expect } from 'vitest';
+import {
     windowToPoints,
     sliceProjectionData,
     buildProjectionData,
     getAnnualExpensesTotal,
-} = require('../../app/lib/finance-core');
+} from '../../app/lib/finance-core.js';
 
 // ─── windowToPoints ────────────────────────────────────────────────────────────
 
@@ -168,9 +167,7 @@ describe('buildProjectionData', () => {
     it('bear scenario is strictly lower than base', () => {
         const data = buildProjectionData(baseState, 0);
         const lastIdx = data.nwData.length - 1;
-        expect(data.bearData[lastIdx]).toBeLessThan(
-            data.nwData[lastIdx],
-        );
+        expect(data.bearData[lastIdx]).toBeLessThan(data.nwData[lastIdx]);
     });
 
     it('applies scenario offset to return rate', () => {

@@ -1,6 +1,5 @@
-'use strict';
-
-const {
+import { describe, it, expect } from 'vitest';
+import {
     formatCurrency,
     sanitizeState,
     parseCSVText,
@@ -33,14 +32,14 @@ const {
     calculateFBFees,
     calculateFBNetProfit,
     US_MEDIAN_SAVINGS,
-} = require('../../app/lib/finance-core');
+} from '../../app/lib/finance-core.js';
 
 // Tests have been extracted to focused files:
-//   currency-formatting.test.js   state-management.test.js   parse-csv.test.js
-//   tax-calculations.test.js      insurance-calculations.test.js
-//   expense-calculations.test.js  asset-aggregation.test.js
-//   projection-calculations.test.js  marketplace-fees.test.js
-//   platform-fees-profit.test.js
+//   currency-formatting.test.mjs   state-management.test.mjs   parse-csv.test.mjs
+//   tax-calculations.test.mjs      insurance-calculations.test.mjs
+//   expense-calculations.test.mjs  asset-aggregation.test.mjs
+//   projection-calculations.test.mjs  marketplace-fees.test.mjs
+//   platform-fees-profit.test.mjs
 
 describe('finance-core', () => {
     it('exports all expected functions', () => {

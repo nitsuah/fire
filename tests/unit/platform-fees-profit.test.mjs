@@ -1,6 +1,5 @@
-'use strict';
-
-const {
+import { describe, it, expect } from 'vitest';
+import {
     calculateEbayFees,
     calculateEbayNetProfit,
     calculateEtsyFees,
@@ -8,7 +7,7 @@ const {
     calculateFBFees,
     calculateFBNetProfit,
     US_MEDIAN_SAVINGS,
-} = require('../../app/lib/finance-core');
+} from '../../app/lib/finance-core.js';
 
 // ─── calculateEbayFees ─────────────────────────────────────────────────────────
 
@@ -84,7 +83,7 @@ describe('US_MEDIAN_SAVINGS', () => {
     });
 });
 
-// ─── calculateEtsyFees ────────────────────────────────────────────────────────
+// ─── calculateEtsyFees ─────────────────────────────────────────────────────────
 
 describe('calculateEtsyFees', () => {
     it('calculates listing, transaction, and payment fees', () => {
@@ -133,7 +132,7 @@ describe('calculateEtsyNetProfit', () => {
     });
 });
 
-// ─── calculateFBFees ──────────────────────────────────────────────────────────
+// ─── calculateFBFees ────────────────────────────────────────────────────────────
 
 describe('calculateFBFees', () => {
     it('returns zero fees for local pickup', () => {
@@ -153,7 +152,7 @@ describe('calculateFBFees', () => {
     });
 });
 
-// ─── calculateFBNetProfit ─────────────────────────────────────────────────────
+// ─── calculateFBNetProfit ───────────────────────────────────────────────────────
 
 describe('calculateFBNetProfit', () => {
     it('computes correct profit for local sale', () => {

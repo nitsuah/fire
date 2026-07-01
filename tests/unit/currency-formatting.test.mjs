@@ -1,6 +1,5 @@
-'use strict';
-
-const { formatCurrency, pnlColorStyle } = require('../../app/lib/finance-core');
+import { describe, it, expect } from 'vitest';
+import { formatCurrency, pnlColorStyle } from '../../app/lib/finance-core.js';
 
 // ─── formatCurrency ────────────────────────────────────────────────────────────
 

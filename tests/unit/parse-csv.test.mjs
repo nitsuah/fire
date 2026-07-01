@@ -1,11 +1,10 @@
-'use strict';
-
-const {
+import { describe, it, expect } from 'vitest';
+import {
     parseCSVText,
     parseFidelityPositions,
     parseChaseStatement,
     parseCapitalOneStatement,
-} = require('../../app/lib/finance-core');
+} from '../../app/lib/finance-core.js';
 
 // ─── parseCSVText ──────────────────────────────────────────────────────────────
 
@@ -81,7 +80,7 @@ describe('parseFidelityPositions', () => {
 
     it('stops parsing at "The data" disclaimer rows', () => {
         const csv =
-            'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total,Gain/Loss Dollar,Gain/Loss Percent\nAcc,AAPL,Apple,10,175,1750,1400,350,25\nThe data and information,,,,,,,';
+            'Account Name,Symbol,Description,Quantity,Last Price,Current Value,Cost Basis Total,Gain/Loss Dollar,Gain/Loss Percent\nAcc,AAPL,Apple,10,175,1750,1400,350,25\nThe data and information,,,,,,,,';
         const rows = parseCSVText(csv);
         const result = parseFidelityPositions(rows);
         expect(result.count).toBe(1);

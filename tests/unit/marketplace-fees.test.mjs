@@ -1,6 +1,5 @@
-'use strict';
-
-const { sortPositions } = require('../../app/lib/finance-core');
+import { describe, it, expect } from 'vitest';
+import { sortPositions } from '../../app/lib/finance-core.js';
 
 // ─── sortPositions ─────────────────────────────────────────────────────────────
 

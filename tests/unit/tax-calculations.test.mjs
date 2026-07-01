@@ -1,6 +1,5 @@
-'use strict';
-
-const { computeEffectiveTaxRate } = require('../../app/lib/finance-core');
+import { describe, it, expect } from 'vitest';
+import { computeEffectiveTaxRate } from '../../app/lib/finance-core.js';
 
 // ─── computeEffectiveTaxRate ───────────────────────────────────────────────────────
 

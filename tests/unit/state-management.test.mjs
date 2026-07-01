@@ -1,6 +1,5 @@
-'use strict';
-
-const { sanitizeState } = require('../../app/lib/finance-core');
+import { describe, it, expect } from 'vitest';
+import { sanitizeState } from '../../app/lib/finance-core.js';
 
 // ─── sanitizeState ─────────────────────────────────────────────────────────────
 

@@ -1,9 +1,8 @@
-'use strict';
-
-const {
+import { describe, it, expect } from 'vitest';
+import {
     getMonthlyExpensesBase,
     getAnnualExpensesTotal,
-} = require('../../app/lib/finance-core');
+} from '../../app/lib/finance-core.js';
 
 // ─── getMonthlyExpensesBase ───────────────────────────────────────────────────────
 

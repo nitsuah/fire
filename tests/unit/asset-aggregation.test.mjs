@@ -1,6 +1,5 @@
-'use strict';
-
-const {
+import { describe, it, expect } from 'vitest';
+import {
     isSettledCash,
     getAggregateCash,
     getAggregateCDs,
@@ -10,7 +9,7 @@ const {
     getAggregateRealEstate,
     getAggregateVehicles,
     getAggregateNetWorth,
-} = require('../../app/lib/finance-core');
+} from '../../app/lib/finance-core.js';
 
 // ─── isSettledCash ─────────────────────────────────────────────────────────────────
 
