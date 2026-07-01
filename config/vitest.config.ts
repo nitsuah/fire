@@ -5,8 +5,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: [
-      'app/**/*.test.{js,ts}',
-      'tests/**/*.test.{js,ts}',
+      'app/**/*.test.{js,ts,mjs}',
+      'tests/**/*.test.{js,ts,mjs}',
     ],
     coverage: {
       provider: 'v8',

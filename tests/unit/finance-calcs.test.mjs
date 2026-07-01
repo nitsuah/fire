@@ -1,9 +1,8 @@
-'use strict';
-
-const {
+import { describe, it, expect } from 'vitest';
+import {
     sliceProjectionData,
     buildProjectionData,
-} = require('../../app/lib/finance-calcs');
+} from '../../app/lib/finance-calcs.js';
 
 // ─── sliceProjectionData missing branches ─────────────────────────────────────
 
