@@ -100,9 +100,8 @@ describe('parseFidelityPositions', () => {
         const csv = `${header}\nAAPL,Apple Inc,10,175,1750,1400`;
         const rows = parseCSVText(csv);
         const result = parseFidelityPositions(rows);
-        if (result.count > 0) {
-            expect(result.positions[0].account).toBe('Brokerage');
-        }
+        expect(result.count).toBe(1);
+        expect(result.positions[0].account).toBe('Brokerage');
     });
 });
 

@@ -4,8 +4,10 @@ import { computeEffectiveTaxRate } from '../../app/lib/finance-core.js';
 // ─── computeEffectiveTaxRate ───────────────────────────────────────────────────────
 
 describe('computeEffectiveTaxRate', () => {
-    it('returns 0 for zero income states with no income', () => {
+    it('returns non-negative rate (floor at 0)', () => {
         const rate = computeEffectiveTaxRate(1, 'TX');
+        // With income=1: federal 10%, FICA 7.65% → ~18% effective rate
+        // Math.max(effectiveRate, 0) clamp ensures non-negative
         expect(rate).toBeGreaterThanOrEqual(0);
     });
 
@@ -29,16 +31,16 @@ describe('computeEffectiveTaxRate', () => {
         expect(rateIL).toBeGreaterThan(rateTX);
     });
 
-    it('uses high CA rate for income > 300k', () => {
-        const rateHigh = computeEffectiveTaxRate(400000, 'CA');
-        const rateLow = computeEffectiveTaxRate(80000, 'CA');
-        expect(rateHigh).toBeGreaterThan(rateLow);
+    it('jumps at CA threshold 300k (state rate 9.3% → 11.3%)', () => {
+        const rateBelow = computeEffectiveTaxRate(299999, 'CA');
+        const rateAbove = computeEffectiveTaxRate(300001, 'CA');
+        expect(rateAbove).toBeGreaterThan(rateBelow);
     });
 
-    it('uses high NY rate for income > 215400', () => {
-        const rateHigh = computeEffectiveTaxRate(300000, 'NY');
-        const rateMed = computeEffectiveTaxRate(100000, 'NY');
-        expect(rateHigh).toBeGreaterThan(rateMed);
+    it('jumps at NY threshold 215400 (state rate 6.85% → 10.9%)', () => {
+        const rateBelow = computeEffectiveTaxRate(215399, 'NY');
+        const rateAbove = computeEffectiveTaxRate(215401, 'NY');
+        expect(rateAbove).toBeGreaterThan(rateBelow);
     });
 
     it('defaults to 4% state for unknown state', () => {
@@ -47,14 +49,9 @@ describe('computeEffectiveTaxRate', () => {
         expect(rateOther).toBe(rateExplicit);
     });
 
-    it('caps result at 50', () => {
-        const rate = computeEffectiveTaxRate(10000000, 'CA');
-        expect(rate).toBeLessThanOrEqual(50);
-    });
-
-    it('floors result at 0', () => {
-        const rate = computeEffectiveTaxRate(1, 'TX');
-        expect(rate).toBeGreaterThanOrEqual(0);
+    it('caps result at 50 for extreme income', () => {
+        const rate = computeEffectiveTaxRate(50000000, 'CA');
+        expect(rate).toBe(50);
     });
 
     it('computes a reasonable rate for typical salary', () => {
