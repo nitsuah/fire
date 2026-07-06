@@ -22,7 +22,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.2.1",
     "globals": "^17.6.0",
-    "prettier": "^3.9.1",
+    "prettier": "^3.9.4",
     "supertest": "^7.0.0",
     "vitest": "^4.1.9"
   }
