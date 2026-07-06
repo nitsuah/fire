@@ -24,6 +24,6 @@
     "globals": "^17.6.0",
     "prettier": "^3.9.1",
     "supertest": "^7.0.0",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   }
 }
