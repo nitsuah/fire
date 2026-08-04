@@ -94,7 +94,9 @@ function integrateWebhookData(db, type, data) {
                 if (typeof data === 'number') {
                     db.taxRate = data;
                 } else {
-                    console.warn(`[Webhook] Invalid data for taxRate (expected number, got ${typeof data})`);
+                    console.warn(
+                        `[Webhook] Invalid data for taxRate (expected number, got ${typeof data})`,
+                    );
 
                     return false;
                 }

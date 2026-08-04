@@ -6,10 +6,16 @@ import prettierConfig from 'eslint-config-prettier';
 export default [
     js.configs.recommended,
 
-    // Node.js files (server + CommonJS finance modules)
+    // Node.js files (server, routes, and CommonJS lib modules)
     {
         files: [
             'app/server.js',
+            'app/routes/**/*.js',
+            'app/lib/db.js',
+            'app/lib/server-utils.js',
+            'app/lib/crypto-utils.js',
+            'app/lib/webhook-integration.js',
+            'app/lib/yahoo-prices.js',
             'app/lib/finance-core.js',
             'app/lib/finance-calcs.js',
             'app/lib/finance-parsing.js',
@@ -25,6 +31,7 @@ export default [
     // Browser-side lib scripts (classic multi-file, cross-script globals)
     {
         files: [
+            // Legacy monolithic files (may still exist on older branches)
             'app/lib/charts.js',
             'app/lib/managers.js',
             'app/lib/state.js',
@@ -35,6 +42,10 @@ export default [
             'app/lib/projections.js',
             'app/lib/tables-assets.js',
             'app/lib/tables-positions.js',
+            // Modular components (refactored structure)
+            'app/lib/charts/**/*.js',
+            'app/lib/managers/**/*.js',
+            'app/lib/tables/**/*.js',
         ],
         languageOptions: {
             globals: {

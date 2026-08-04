@@ -5,8 +5,7 @@ const path = require('path');
 
 const DATA_DIR =
     process.env.FIRE_DATA_DIR || path.join(__dirname, '../../data');
-const DB_FILE =
-    process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
+const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
 function defaultState() {
     return {

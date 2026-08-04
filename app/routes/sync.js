@@ -12,7 +12,16 @@ const { integrateWebhookData } = require('../lib/webhook-integration');
 const router = express.Router();
 
 const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
-const SUPPORTED_WEBHOOK_TYPES = ['accounts', 'cds', 'positions', 'expenses', 'sideGigLedger', 'importedFiles', 'taxRate', 'projectionSettings'];
+const SUPPORTED_WEBHOOK_TYPES = [
+    'accounts',
+    'cds',
+    'positions',
+    'expenses',
+    'sideGigLedger',
+    'importedFiles',
+    'taxRate',
+    'projectionSettings',
+];
 
 function omitSecret(template) {
     const cleaned = { ...template };
@@ -27,7 +36,9 @@ router.get('/init', (req, res) => {
     const providerUrl = 'https://oauth.provider.com/authorize';
     const params = new URLSearchParams({
         client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
-        redirect_uri: process.env.OAUTH_CALLBACK_URL || `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
+        redirect_uri:
+            process.env.OAUTH_CALLBACK_URL ||
+            `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
         response_type: 'code',
         scope: 'read_only_accounts',
         state: state,
@@ -100,13 +111,17 @@ router.get('/data', async (req, res) => {
 
 router.post('/templates', (req, res) => {
     if (!SUPPORTED_WEBHOOK_TYPES.includes(req.body.type)) {
-        return res.status(400).json({ error: `Unsupported type. Must be one of: ${SUPPORTED_WEBHOOK_TYPES.join(', ')}.` });
+        return res.status(400).json({
+            error: `Unsupported type. Must be one of: ${SUPPORTED_WEBHOOK_TYPES.join(', ')}.`,
+        });
     }
     if (req.body.mapping) {
         try {
             jsonata(req.body.mapping);
-        } catch (e) {
-            return res.status(400).json({ error: 'Invalid JSONata mapping expression.' });
+        } catch {
+            return res
+                .status(400)
+                .json({ error: 'Invalid JSONata mapping expression.' });
         }
     }
     const db = readState();
@@ -147,10 +162,8 @@ router.put('/templates/:id', (req, res) => {
         name: req.body.name || db.webhookTemplates[templateIndex].name,
         source: req.body.source || db.webhookTemplates[templateIndex].source,
         type: req.body.type || db.webhookTemplates[templateIndex].type,
-        mapping:
-            req.body.mapping || db.webhookTemplates[templateIndex].mapping,
-        secret:
-            req.body.secret || db.webhookTemplates[templateIndex].secret,
+        mapping: req.body.mapping || db.webhookTemplates[templateIndex].mapping,
+        secret: req.body.secret || db.webhookTemplates[templateIndex].secret,
     };
 
     if (writeState(db)) {
@@ -213,7 +226,10 @@ router.post('/webhook/:templateId', async (req, res) => {
             transformedData = await Promise.race([
                 expression.evaluate(req.body),
                 new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('JSONata evaluation timed out')), 5000),
+                    setTimeout(
+                        () => reject(new Error('JSONata evaluation timed out')),
+                        5000,
+                    ),
                 ),
             ]);
         } else {

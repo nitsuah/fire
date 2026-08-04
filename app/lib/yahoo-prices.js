@@ -14,9 +14,10 @@ async function refreshYahooCrumb() {
             },
             redirect: 'follow',
         });
-        const rawCookies = typeof consentRes.headers.getSetCookie === 'function'
-            ? consentRes.headers.getSetCookie()
-            : [consentRes.headers.get('set-cookie') || ''];
+        const rawCookies =
+            typeof consentRes.headers.getSetCookie === 'function'
+                ? consentRes.headers.getSetCookie()
+                : [consentRes.headers.get('set-cookie') || ''];
         const cookieMatch = rawCookies.join('; ').match(/(A1=[^;]+|A3=[^;]+)/g);
         const cookie = cookieMatch ? cookieMatch.join('; ') : '';
 
