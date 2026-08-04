@@ -12,6 +12,7 @@ const { integrateWebhookData } = require('../lib/webhook-integration');
 const router = express.Router();
 
 const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
+const SUPPORTED_WEBHOOK_TYPES = ['accounts', 'cds', 'positions', 'expenses', 'sideGigLedger', 'importedFiles', 'taxRate', 'projectionSettings'];
 
 function omitSecret(template) {
     const cleaned = { ...template };
@@ -21,12 +22,12 @@ function omitSecret(template) {
 
 router.get('/init', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
-    req.session = { oauthState: state };
+    req.session.oauthState = state;
 
     const providerUrl = 'https://oauth.provider.com/authorize';
     const params = new URLSearchParams({
         client_id: process.env.SYNC_CLIENT_ID || 'dummy_client_id',
-        redirect_uri: `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
+        redirect_uri: process.env.OAUTH_CALLBACK_URL || `http://localhost:${PREFERRED_PORT}/api/sync/callback`,
         response_type: 'code',
         scope: 'read_only_accounts',
         state: state,
@@ -79,11 +80,16 @@ router.get('/data', async (req, res) => {
             .json({ error: 'No tokens found. Please authorize.' });
     }
 
-    const { data: encryptedToken } = JSON.parse(
-        fs.readFileSync(tokenFile, 'utf8'),
-    );
-
-    const tokens = JSON.parse(decrypt(encryptedToken));
+    let tokens;
+    try {
+        const { data: encryptedToken } = JSON.parse(
+            fs.readFileSync(tokenFile, 'utf8'),
+        );
+        tokens = JSON.parse(decrypt(encryptedToken));
+    } catch (err) {
+        console.error('Failed to read or decrypt tokens:', err);
+        return res.status(500).json({ error: 'Failed to read stored tokens.' });
+    }
 
     res.json({
         status: 'success',
@@ -93,6 +99,16 @@ router.get('/data', async (req, res) => {
 });
 
 router.post('/templates', (req, res) => {
+    if (!SUPPORTED_WEBHOOK_TYPES.includes(req.body.type)) {
+        return res.status(400).json({ error: `Unsupported type. Must be one of: ${SUPPORTED_WEBHOOK_TYPES.join(', ')}.` });
+    }
+    if (req.body.mapping) {
+        try {
+            jsonata(req.body.mapping);
+        } catch (e) {
+            return res.status(400).json({ error: 'Invalid JSONata mapping expression.' });
+        }
+    }
     const db = readState();
     const newTemplate = {
         id: crypto.randomBytes(8).toString('hex'),
@@ -194,7 +210,12 @@ router.post('/webhook/:templateId', async (req, res) => {
     try {
         if (template.mapping && typeof template.mapping === 'string') {
             const expression = jsonata(template.mapping);
-            transformedData = await expression.evaluate(req.body);
+            transformedData = await Promise.race([
+                expression.evaluate(req.body),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('JSONata evaluation timed out')), 5000),
+                ),
+            ]);
         } else {
             transformedData = req.body;
         }

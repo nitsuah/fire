@@ -2,7 +2,7 @@
    charts/cd-ladder.js — CD Ladder bar chart renderer
    ========================================================================== */
 
-var cdLadderChart = null;
+let cdLadderChart = null;
 
 function renderCDLadderChart() {
     const ctx = document.getElementById('chart-cd-ladder');
@@ -19,10 +19,20 @@ function renderCDLadderChart() {
     );
 
     if (cds.length === 0) {
-        ctx.parentElement.innerHTML =
-            '<p class="text-muted text-center" style="padding:20px 0;font-size:12px;">Add CDs to see the ladder visualization.</p>';
+        ctx.style.display = 'none';
+        let ph = ctx.parentElement.querySelector('.cd-ladder-empty');
+        if (!ph) {
+            ph = document.createElement('p');
+            ph.className = 'cd-ladder-empty text-muted text-center';
+            ph.style.cssText = 'padding:20px 0;font-size:12px;';
+            ph.textContent = 'Add CDs to see the ladder visualization.';
+            ctx.parentElement.appendChild(ph);
+        }
         return;
     }
+    const empty = ctx.parentElement.querySelector('.cd-ladder-empty');
+    if (empty) empty.remove();
+    ctx.style.display = '';
 
     const sorted = [...cds].sort(
         (a, b) => new Date(a.maturity) - new Date(b.maturity),
@@ -82,7 +92,7 @@ function renderCDLadderChart() {
                             const status = d <= 0 ? 'Matured' : `${d}d left`;
                             return [
                                 ` Principal: ${formatCurrency(cd.principal)}`,
-                                ` Rate: ${Number(cd.rate).toFixed(2)}%  |  Yield: $${annualYields[ctx.dataIndex]}/yr`,
+                                ` Rate: ${Number(cd.rate || 0).toFixed(2)}%  |  Yield: $${annualYields[ctx.dataIndex]}/yr`,
                                 ` Status: ${status}`,
                             ];
                         },

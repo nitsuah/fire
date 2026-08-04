@@ -5,9 +5,8 @@
 function initCDManager() {
     const form = document.getElementById('form-cd-entry');
 
-    document.getElementById('cd-start').value = new Date()
-        .toISOString()
-        .slice(0, 10);
+    const _today = new Date();
+    document.getElementById('cd-start').value = `${_today.getFullYear()}-${String(_today.getMonth() + 1).padStart(2, '0')}-${String(_today.getDate()).padStart(2, '0')}`;
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -38,9 +37,8 @@ function initCDManager() {
             await saveState();
             refreshAllUI();
             form.reset();
-            document.getElementById('cd-start').value = new Date()
-                .toISOString()
-                .slice(0, 10);
+            const _d = new Date();
+            document.getElementById('cd-start').value = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
         }
     });
 }

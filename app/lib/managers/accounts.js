@@ -77,7 +77,8 @@ window.saveEditAccount = async function (id) {
 
     const name = nameInput.value;
     const apy = parseFloat(apyInput.value) || 0;
-    const value = parseFloat(valInput.value) || 0;
+    const value = parseFloat(valInput.value);
+    if (!Number.isFinite(value)) return;
 
     const accIndex = state.customAccounts.findIndex((acc) => acc.id === id);
     if (accIndex !== -1) {

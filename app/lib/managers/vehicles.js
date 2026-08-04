@@ -13,7 +13,7 @@ function initVehiclesManager() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const entry = {
-            id: Date.now().toString(),
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
             year:
                 parseInt(document.getElementById('veh-year').value) ||
                 new Date().getFullYear(),
@@ -75,15 +75,15 @@ window.saveEditVehicle = async function (id) {
         year: parseInt(g('year')?.value) || state.vehicles[idx].year,
         make: g('make')?.value.trim() || state.vehicles[idx].make,
         model: g('model')?.value.trim() || state.vehicles[idx].model,
-        trim: g('trim')?.value.trim() || '',
-        color: g('color')?.value.trim() || '',
+        trim: g('trim') != null ? g('trim').value.trim() : (state.vehicles[idx].trim ?? ''),
+        color: g('color') != null ? g('color').value.trim() : (state.vehicles[idx].color ?? ''),
         mileage: parseInt(g('mileage')?.value) || 0,
         condition: g('condition')?.value || state.vehicles[idx].condition,
         currentValue: parseFloat(g('value')?.value) || 0,
         purchasePrice: parseFloat(g('purchase')?.value) || 0,
         loanBalance: parseFloat(g('loan')?.value) || 0,
-        monthlyPayment: parseFloat(g('payment')?.value) || 0,
-        notes: g('notes')?.value.trim() || '',
+        monthlyPayment: g('payment') != null ? (parseFloat(g('payment').value) || 0) : (state.vehicles[idx].monthlyPayment || 0),
+        notes: g('notes') != null ? g('notes').value.trim() : (state.vehicles[idx].notes ?? ''),
     };
     editingVehicles = editingVehicles.filter((x) => x !== id);
     await saveState();

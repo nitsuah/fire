@@ -244,9 +244,9 @@ describe('DELETE /api/accounts/:id', () => {
         expect(found).toBeUndefined();
     });
 
-    it('returns 444 for non-existent account', async () => {
+    it('returns 404 for non-existent account', async () => {
         const res = await request(app).delete('/api/accounts/ghost-id');
-        expect(res.status).toBe(444);
+        expect(res.status).toBe(404);
         expect(res.body.error).toBeDefined();
     });
 });

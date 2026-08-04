@@ -138,19 +138,16 @@ function renderDiversificationSuggestions(totalPortfolioValue) {
 }
 
 function renderQuickStatsList() {
-    document.getElementById('stat-cash').textContent =
-        formatCurrency(getAggregateCash());
-    document.getElementById('stat-cds').textContent =
-        formatCurrency(getAggregateCDs());
-    document.getElementById('stat-equities').textContent = formatCurrency(
-        getAggregateEquities(),
-    );
-    document.getElementById('stat-sidegig').textContent =
-        formatCurrency(getSideGigYTDNet());
-    const reEl = document.getElementById('stat-realestate');
-    if (reEl) reEl.textContent = formatCurrency(getAggregateRealEstate());
-    const vEl = document.getElementById('stat-vehicles');
-    if (vEl) vEl.textContent = formatCurrency(getAggregateVehicles());
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+    set('stat-cash', formatCurrency(getAggregateCash()));
+    set('stat-cds', formatCurrency(getAggregateCDs()));
+    set('stat-equities', formatCurrency(getAggregateEquities()));
+    set('stat-sidegig', formatCurrency(getSideGigYTDNet()));
+    set('stat-realestate', formatCurrency(getAggregateRealEstate()));
+    set('stat-vehicles', formatCurrency(getAggregateVehicles()));
 }
 
 function renderMonthlyCashFlow() {

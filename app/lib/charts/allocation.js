@@ -11,7 +11,6 @@ const ALLOC_SLICE_MAP = {
     Other: { color: '#3b82f6', label: 'Other Assets' },
 };
 const ALLOC_GREY = 'rgba(120,120,140,0.25)';
-const ALLOC_CATEGORY_KEYS = ['Cash', 'CDs', 'Equities', 'Other'];
 
 function renderAssetAllocationChart() {
     const ctx = document.getElementById('chart-asset-allocation');

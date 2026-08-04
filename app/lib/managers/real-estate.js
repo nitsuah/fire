@@ -85,7 +85,9 @@ window.saveEditRealEstate = async function (id) {
                 document.getElementById(`re-edit-payment-${id}`)?.value,
             ) || 0,
         notes:
-            document.getElementById(`re-edit-notes-${id}`)?.value.trim() || '',
+            document.getElementById(`re-edit-notes-${id}`)?.value.trim() ??
+            state.realEstate[idx].notes ??
+            '',
     };
     editingRealEstate = editingRealEstate.filter((x) => x !== id);
     await saveState();

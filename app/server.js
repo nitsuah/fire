@@ -38,6 +38,12 @@ app.use('/api/accounts', accountsRouter);
 app.use('/api/cds', cdsRouter);
 app.use('/api/prices', pricesRouter);
 
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+    console.error('[Server] Unhandled error:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+});
+
 module.exports = app;
 
 if (require.main === module) {

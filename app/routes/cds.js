@@ -31,17 +31,24 @@ router.put('/:id', (req, res) => {
         return res.status(404).json({ error: 'CD not found.' });
     }
 
+    const principal = req.body.principal !== undefined
+        ? parseFloat(req.body.principal)
+        : db.cds[cdIndex].principal;
+    if (req.body.principal !== undefined && !Number.isFinite(principal)) {
+        return res.status(400).json({ error: 'Invalid principal.' });
+    }
+    const rate = req.body.rate !== undefined
+        ? parseFloat(req.body.rate)
+        : db.cds[cdIndex].rate;
+    if (req.body.rate !== undefined && !Number.isFinite(rate)) {
+        return res.status(400).json({ error: 'Invalid rate.' });
+    }
+
     db.cds[cdIndex] = {
         ...db.cds[cdIndex],
         bank: req.body.bank || db.cds[cdIndex].bank,
-        principal:
-            req.body.principal !== undefined
-                ? parseFloat(req.body.principal)
-                : db.cds[cdIndex].principal,
-        rate:
-            req.body.rate !== undefined
-                ? parseFloat(req.body.rate)
-                : db.cds[cdIndex].rate,
+        principal,
+        rate,
         startDate: req.body.startDate || db.cds[cdIndex].startDate,
         maturity: req.body.maturity || db.cds[cdIndex].maturity,
     };

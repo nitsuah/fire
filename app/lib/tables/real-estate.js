@@ -2,6 +2,15 @@
    tables/real-estate.js — Real estate table and stats renderers
    ========================================================================== */
 
+function _reEscHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 function renderRealEstateTable() {
     const tbody = document.querySelector('#table-real-estate tbody');
     if (!tbody) return;
@@ -48,9 +57,9 @@ function renderRealEstateTable() {
         } else {
             html += `
             <tr class="position-row">
-                <td class="font-bold">${re.name}</td>
-                <td><span class="tag-badge">${re.type}</span></td>
-                <td class="text-muted" style="font-size:11px;">${re.address || '—'}</td>
+                <td class="font-bold">${_reEscHtml(re.name)}</td>
+                <td><span class="tag-badge">${_reEscHtml(re.type)}</span></td>
+                <td class="text-muted" style="font-size:11px;">${_reEscHtml(re.address) || '—'}</td>
                 <td class="text-right font-bold">${formatCurrency(re.marketValue || 0)}</td>
                 <td class="text-right" style="${equity >= 0 ? 'color:var(--color-success)' : 'color:var(--color-danger)'};">${formatCurrency(equity)}</td>
                 <td class="text-right text-muted">${(re.purchasePrice || 0) > 0 ? formatCurrency(re.purchasePrice) : '—'}</td>

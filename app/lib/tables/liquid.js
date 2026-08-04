@@ -37,7 +37,7 @@ function renderDashboardLiquidPanel() {
     if (state.cds.length > 0) {
         html += `<div class="liquid-section-label mt-2">Certificates of Deposit</div>`;
         state.cds.forEach((cd) => {
-            if (!cd || cd.principal === undefined) return;
+            if (!cd || cd.principal === undefined || !cd.maturity || cd.rate === undefined) return;
             const matDate = new Date(cd.maturity);
             const daysLeft = Math.ceil((matDate - today) / 86400000);
             const isMatured = daysLeft < 0;

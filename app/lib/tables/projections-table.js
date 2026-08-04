@@ -118,7 +118,7 @@ function renderMilestones(
 
     const retireAge = state.projectionSettings.retireAge || 60;
     const currentAge = state.projectionSettings.currentAge || 30;
-    const coastYears = retireAge - currentAge;
+    const coastYears = Math.max(0, retireAge - currentAge);
     const coastFireTarget =
         coastYears > 0
             ? targetFireNw /

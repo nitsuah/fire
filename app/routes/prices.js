@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
     const rawSymbols = req.query.symbols;
-    if (!rawSymbols) return res.json({});
+    if (!rawSymbols || typeof rawSymbols !== 'string') return res.json({});
 
     const symbolsArr = rawSymbols
         .split(',')

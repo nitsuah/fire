@@ -40,8 +40,8 @@ function integrateWebhookData(db, type, data) {
                         };
                     } else {
                         db.cds.push({
-                            id: crypto.randomBytes(8).toString('hex'),
                             ...incomingCd,
+                            id: crypto.randomBytes(8).toString('hex'),
                         });
                     }
                 });
@@ -94,7 +94,8 @@ function integrateWebhookData(db, type, data) {
                 if (typeof data === 'number') {
                     db.taxRate = data;
                 } else {
-                    console.warn(`[Webhook] Invalid data for taxRate:`, data);
+                    console.warn(`[Webhook] Invalid data for taxRate (expected number, got ${typeof data})`);
+
                     return false;
                 }
                 break;
@@ -107,18 +108,14 @@ function integrateWebhookData(db, type, data) {
                     };
                 } else {
                     console.warn(
-                        `[Webhook] Invalid data for projectionSettings:`,
-                        data,
+                        `[Webhook] Invalid data for projectionSettings (expected object, got ${typeof data})`,
                     );
                     return false;
                 }
                 break;
             }
             default:
-                console.warn(
-                    `[Webhook] Unhandled webhook type: ${type}. Data:`,
-                    data,
-                );
+                console.warn(`[Webhook] Unhandled webhook type: ${type}`);
                 return false;
         }
         return true;

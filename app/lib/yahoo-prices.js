@@ -5,6 +5,7 @@ const pricesCache = { timestamp: 0, data: {}, cookie: '', crumb: '' };
 async function refreshYahooCrumb() {
     try {
         const consentRes = await fetch('https://finance.yahoo.com/quote/AAPL', {
+            signal: AbortSignal.timeout(10000),
             headers: {
                 'User-Agent':
                     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -13,13 +14,16 @@ async function refreshYahooCrumb() {
             },
             redirect: 'follow',
         });
-        const rawCookie = consentRes.headers.get('set-cookie') || '';
-        const cookieMatch = rawCookie.match(/(A1=[^;]+|A3=[^;]+)/g);
+        const rawCookies = typeof consentRes.headers.getSetCookie === 'function'
+            ? consentRes.headers.getSetCookie()
+            : [consentRes.headers.get('set-cookie') || ''];
+        const cookieMatch = rawCookies.join('; ').match(/(A1=[^;]+|A3=[^;]+)/g);
         const cookie = cookieMatch ? cookieMatch.join('; ') : '';
 
         const crumbRes = await fetch(
             'https://query1.finance.yahoo.com/v1/test/csrfToken',
             {
+                signal: AbortSignal.timeout(10000),
                 headers: {
                     'User-Agent':
                         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',

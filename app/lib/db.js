@@ -8,36 +8,39 @@ const DATA_DIR =
 const DB_FILE =
     process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
+function defaultState() {
+    return {
+        importedPositions: [],
+        customAccounts: [],
+        cds: [],
+        expenses: {
+            housing: 1500,
+            utilities: 250,
+            food: 400,
+            transport: 300,
+            healthcare: 150,
+            discretionary: 500,
+        },
+        taxRate: 20,
+        sideGigLedger: [],
+        projectionSettings: {
+            annualSavings: 25000,
+            expectedReturn: 8.0,
+            inflationRate: 2.5,
+            swr: 4.0,
+            spanYears: 30,
+        },
+        importedFiles: [],
+        webhookTemplates: [],
+    };
+}
+
 function initDatabase() {
     if (!fs.existsSync(DATA_DIR)) {
         fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     if (!fs.existsSync(DB_FILE)) {
-        const defaultState = {
-            importedPositions: [],
-            customAccounts: [],
-            cds: [],
-            expenses: {
-                housing: 1500,
-                utilities: 250,
-                food: 400,
-                transport: 300,
-                healthcare: 150,
-                discretionary: 500,
-            },
-            taxRate: 20,
-            sideGigLedger: [],
-            projectionSettings: {
-                annualSavings: 25000,
-                expectedReturn: 8.0,
-                inflationRate: 2.5,
-                swr: 4.0,
-                spanYears: 30,
-            },
-            importedFiles: [],
-            webhookTemplates: [],
-        };
-        fs.writeFileSync(DB_FILE, JSON.stringify(defaultState, null, 2));
+        fs.writeFileSync(DB_FILE, JSON.stringify(defaultState(), null, 2));
     }
 }
 
@@ -50,7 +53,7 @@ function readState() {
             'Error reading database, returning default fallback state',
             e,
         );
-        return {};
+        return defaultState();
     }
 }
 

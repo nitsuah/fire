@@ -47,11 +47,7 @@ function renderDashboardTopPositionsTable() {
                   accCostBasis
                 : nonCash.reduce((sum, p) => sum + (p.pnlDollar || 0), 0);
         const accPnLPct = accCostBasis > 0 ? (accPnL / accCostBasis) * 100 : 0;
-        const accPnLStyle = pnlColorStyle(
-            accPnLPct,
-            maxAbsPct || Math.abs(accPnLPct),
-        );
-        const accValStyle = pnlColorStyle(
+        const accStyle = pnlColorStyle(
             accPnLPct,
             maxAbsPct || Math.abs(accPnLPct),
         );
@@ -70,8 +66,8 @@ function renderDashboardTopPositionsTable() {
             <tr class="table-group-header" onclick="toggleAccountGroup('${safeAccName}')">
                 <td colspan="4"><span class="${chevronClass}">▼</span> <strong>${accName}</strong></td>
                 <td class="text-right font-bold text-muted">${accCostBasis > 0 ? formatCurrency(accCostBasis) : '—'}</td>
-                <td class="text-right font-bold" style="${accValStyle}">${formatCurrency(accTotalVal)}</td>
-                <td class="text-right font-bold" style="${accPnLStyle}">${accPnLStr}</td>
+                <td class="text-right font-bold" style="${accStyle}">${formatCurrency(accTotalVal)}</td>
+                <td class="text-right font-bold" style="${accStyle}">${accPnLStr}</td>
             </tr>
         `;
 
@@ -79,8 +75,7 @@ function renderDashboardTopPositionsTable() {
             positions.forEach((pos) => {
                 const pnlVal = pos.pnlDollar || 0;
                 const pnlPct = pos.pnlPercent || 0;
-                const pnlStyle = pnlColorStyle(pnlPct, maxAbsPct);
-                const valStyle = pnlColorStyle(pnlPct, maxAbsPct);
+                const posStyle = pnlColorStyle(pnlPct, maxAbsPct);
                 const settled = isSettledCash(pos);
 
                 let pnlText = '—';
@@ -118,8 +113,8 @@ function renderDashboardTopPositionsTable() {
                         <td class="text-right">${(pos.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
                         <td class="text-right">${formatCurrency(pos.lastPrice || 0)}</td>
                         <td class="text-right text-muted">${(pos.costBasis || 0) > 0 ? formatCurrency(pos.costBasis) : '—'}</td>
-                        <td class="text-right font-bold" style="${valStyle}">${formatCurrency(pos.value || 0)}</td>
-                        <td class="text-right font-bold" style="${pnlStyle}">${pnlText} ${mktBadge}</td>
+                        <td class="text-right font-bold" style="${posStyle}">${formatCurrency(pos.value || 0)}</td>
+                        <td class="text-right font-bold" style="${posStyle}">${pnlText} ${mktBadge}</td>
                     </tr>
                 `;
             });

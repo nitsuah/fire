@@ -32,18 +32,25 @@ router.put('/:id', (req, res) => {
         return res.status(404).json({ error: 'Account not found.' });
     }
 
+    const value = req.body.value !== undefined
+        ? parseFloat(req.body.value)
+        : db.customAccounts[accountIndex].value;
+    if (req.body.value !== undefined && !Number.isFinite(value)) {
+        return res.status(400).json({ error: 'Invalid value.' });
+    }
+    const apy = req.body.apy !== undefined
+        ? parseFloat(req.body.apy)
+        : db.customAccounts[accountIndex].apy;
+    if (req.body.apy !== undefined && !Number.isFinite(apy)) {
+        return res.status(400).json({ error: 'Invalid apy.' });
+    }
+
     db.customAccounts[accountIndex] = {
         ...db.customAccounts[accountIndex],
         name: req.body.name || db.customAccounts[accountIndex].name,
         type: req.body.type || db.customAccounts[accountIndex].type,
-        value:
-            req.body.value !== undefined
-                ? parseFloat(req.body.value)
-                : db.customAccounts[accountIndex].value,
-        apy:
-            req.body.apy !== undefined
-                ? parseFloat(req.body.apy)
-                : db.customAccounts[accountIndex].apy,
+        value,
+        apy,
     };
 
     if (writeState(db)) {
@@ -61,7 +68,7 @@ router.delete('/:id', (req, res) => {
     );
 
     if (db.customAccounts.length === initialLength) {
-        return res.status(444).json({ error: 'Account not found.' });
+        return res.status(404).json({ error: 'Account not found.' });
     }
 
     if (writeState(db)) {
