@@ -35,7 +35,7 @@ function renderDashboardLiquidPanel() {
     }
 
     const validCDs = state.cds.reduce((acc, cd) => {
-        if (!cd || !cd.maturity) return acc;
+        if (!cd || typeof cd.maturity !== 'string' || !cd.maturity) return acc;
         // Parse date-only strings as local time (not UTC) to avoid midnight/DST shifts
         const matDate = new Date(cd.maturity.replace(/-/g, '/'));
         const principal = parseFloat(cd.principal);
