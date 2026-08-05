@@ -13,12 +13,20 @@ function strictNum(v) {
 
 router.post('/', (req, res) => {
     const db = readState();
+    const value = req.body.value !== undefined ? strictNum(req.body.value) : 0;
+    if (req.body.value !== undefined && !Number.isFinite(value)) {
+        return res.status(400).json({ error: 'Invalid value.' });
+    }
+    const apy = req.body.apy !== undefined ? strictNum(req.body.apy) : 0;
+    if (req.body.apy !== undefined && !Number.isFinite(apy)) {
+        return res.status(400).json({ error: 'Invalid apy.' });
+    }
     const newAcc = {
         id: Date.now().toString(),
         name: req.body.name,
         type: req.body.type || 'Cash',
-        value: parseFloat(req.body.value) || 0,
-        apy: parseFloat(req.body.apy) || 0,
+        value,
+        apy,
     };
     db.customAccounts.push(newAcc);
     if (writeState(db)) {

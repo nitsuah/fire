@@ -49,7 +49,7 @@ module.exports = app;
 if (require.main === module) {
     findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005])
         .then((port) => {
-            app.listen(port, '0.0.0.0', () => {
+            const server = app.listen(port, '0.0.0.0', () => {
                 if (port !== PREFERRED_PORT) {
                     console.warn(
                         `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
@@ -59,6 +59,10 @@ if (require.main === module) {
                     `🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`,
                 );
                 refreshYahooCrumb().catch(() => {});
+            });
+            server.on('error', (err) => {
+                console.error('[Server] Listen error:', err);
+                process.exit(1);
             });
         })
         .catch((err) => {

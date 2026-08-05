@@ -140,12 +140,11 @@ describe('POST /api/accounts', () => {
         expect(res.body.type).toBe('Cash');
     });
 
-    it('defaults value to 0 for non-numeric input', async () => {
+    it('rejects non-numeric value with 400', async () => {
         const res = await request(app)
             .post('/api/accounts')
             .send({ name: 'Test', type: 'Cash', value: 'invalid' });
-        expect(res.status).toBe(201);
-        expect(res.body.value).toBe(0);
+        expect(res.status).toBe(400);
     });
 
     it('persists the account so GET /api/state reflects it', async () => {

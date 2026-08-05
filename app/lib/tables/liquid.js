@@ -34,19 +34,23 @@ function renderDashboardLiquidPanel() {
         });
     }
 
-    if (state.cds.length > 0) {
+    const validCDs = state.cds.reduce((acc, cd) => {
+        if (!cd || !cd.maturity) return acc;
+        // Parse date-only strings as local time (not UTC) to avoid midnight/DST shifts
+        const matDate = new Date(cd.maturity.replace(/-/g, '/'));
+        const principal = parseFloat(cd.principal);
+        const rate = parseFloat(cd.rate);
+        if (
+            !isNaN(matDate.getTime()) &&
+            Number.isFinite(principal) &&
+            Number.isFinite(rate)
+        )
+            acc.push({ cd, matDate, principal, rate });
+        return acc;
+    }, []);
+    if (validCDs.length > 0) {
         html += `<div class="liquid-section-label mt-2">Certificates of Deposit</div>`;
-        state.cds.forEach((cd) => {
-            if (!cd || !cd.maturity) return;
-            const matDate = new Date(cd.maturity);
-            const principal = parseFloat(cd.principal);
-            const rate = parseFloat(cd.rate);
-            if (
-                isNaN(matDate.getTime()) ||
-                !Number.isFinite(principal) ||
-                !Number.isFinite(rate)
-            )
-                return;
+        validCDs.forEach(({ cd, matDate, principal, rate }) => {
             const daysLeft = Math.ceil((matDate - today) / 86400000);
             const isMatured = daysLeft < 0;
             const isSoon = !isMatured && daysLeft <= 30;

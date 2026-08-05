@@ -13,11 +13,20 @@ function strictNum(v) {
 
 router.post('/', (req, res) => {
     const db = readState();
+    const principal =
+        req.body.principal !== undefined ? strictNum(req.body.principal) : 0;
+    if (req.body.principal !== undefined && !Number.isFinite(principal)) {
+        return res.status(400).json({ error: 'Invalid principal.' });
+    }
+    const rate = req.body.rate !== undefined ? strictNum(req.body.rate) : 0;
+    if (req.body.rate !== undefined && !Number.isFinite(rate)) {
+        return res.status(400).json({ error: 'Invalid rate.' });
+    }
     const newCD = {
         id: Date.now().toString(),
         bank: req.body.bank,
-        principal: parseFloat(req.body.principal) || 0,
-        rate: parseFloat(req.body.rate) || 0,
+        principal,
+        rate,
         startDate: req.body.startDate || new Date().toISOString().slice(0, 10),
         maturity: req.body.maturity,
     };
