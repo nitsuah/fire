@@ -69,8 +69,10 @@ window.saveEditCD = async function (id) {
     const matInput = document.getElementById(`edit-cd-maturity-${id}`);
 
     const bank = bankInput.value;
-    const principal = parseFloat(principalInput.value) || 0;
-    const rate = parseFloat(rateInput.value) || 0;
+    const principal = parseFloat(principalInput.value);
+    if (!Number.isFinite(principal)) return;
+    const rate = parseFloat(rateInput.value);
+    if (!Number.isFinite(rate)) return;
     const startDate = startInput.value;
     const maturity = matInput.value;
 

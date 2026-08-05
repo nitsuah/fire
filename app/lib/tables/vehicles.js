@@ -92,7 +92,7 @@ function renderVehicleStats() {
     set('veh-stat-loan', formatCurrency(totalLoan));
     set(
         'veh-stat-dep',
-        (totalDep >= 0 ? '-' : '+') + formatCurrency(Math.abs(totalDep)),
+        (totalDep > 0 ? '-' : '+') + formatCurrency(Math.abs(totalDep)),
     );
     const depEl = document.getElementById('veh-stat-dep');
     if (depEl)
