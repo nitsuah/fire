@@ -61,7 +61,10 @@ router.get('/', async (req, res) => {
 
     for (const url of endpoints) {
         try {
-            const response = await fetch(url, { headers: baseHeaders });
+            const response = await fetch(url, {
+                headers: baseHeaders,
+                signal: AbortSignal.timeout(10000),
+            });
             if (response.ok) {
                 const json = await response.json();
                 const quotes =
@@ -82,6 +85,12 @@ router.get('/', async (req, res) => {
                     `[Prices] Auth error ${response.status}, refreshing crumb...`,
                 );
                 await refreshYahooCrumb();
+                baseHeaders['Cookie'] = pricesCache.cookie;
+                const refreshedCrumb = pricesCache.crumb
+                    ? `&crumb=${encodeURIComponent(pricesCache.crumb)}`
+                    : '';
+                endpoints[0] = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${qStr}${refreshedCrumb}`;
+                endpoints[2] = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${qStr}&fields=regularMarketPrice,regularMarketChangePercent${refreshedCrumb}`;
             } else {
                 console.warn(`[Prices] Endpoint status: ${response.status}`);
             }

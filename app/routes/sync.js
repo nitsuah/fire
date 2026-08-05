@@ -157,6 +157,21 @@ router.put('/templates/:id', (req, res) => {
         return res.status(404).json({ error: 'Webhook template not found.' });
     }
 
+    if (req.body.mapping !== undefined && req.body.mapping !== null) {
+        if (typeof req.body.mapping !== 'string') {
+            return res
+                .status(400)
+                .json({ error: 'Invalid mapping: must be a string.' });
+        }
+        try {
+            jsonata(req.body.mapping);
+        } catch {
+            return res
+                .status(400)
+                .json({ error: 'Invalid JSONata mapping expression.' });
+        }
+    }
+
     db.webhookTemplates[templateIndex] = {
         ...db.webhookTemplates[templateIndex],
         name: req.body.name || db.webhookTemplates[templateIndex].name,

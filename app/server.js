@@ -47,17 +47,22 @@ app.use((err, req, res, _next) => {
 module.exports = app;
 
 if (require.main === module) {
-    findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005]).then((port) => {
-        app.listen(port, '0.0.0.0', () => {
-            if (port !== PREFERRED_PORT) {
-                console.warn(
-                    `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
+    findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005])
+        .then((port) => {
+            app.listen(port, '0.0.0.0', () => {
+                if (port !== PREFERRED_PORT) {
+                    console.warn(
+                        `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
+                    );
+                }
+                console.log(
+                    `🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`,
                 );
-            }
-            console.log(
-                `🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`,
-            );
-            refreshYahooCrumb().catch(() => {});
+                refreshYahooCrumb().catch(() => {});
+            });
+        })
+        .catch((err) => {
+            console.error('[Server] Failed to find available port:', err);
+            process.exit(1);
         });
-    });
 }

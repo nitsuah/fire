@@ -5,6 +5,12 @@ const { readState, writeState } = require('../lib/db');
 
 const router = express.Router();
 
+function strictNum(v) {
+    const s = String(v ?? '');
+    if (s !== s.trim() || s === '') return NaN;
+    return Number(s);
+}
+
 router.post('/', (req, res) => {
     const db = readState();
     const newAcc = {
@@ -34,14 +40,14 @@ router.put('/:id', (req, res) => {
 
     const value =
         req.body.value !== undefined
-            ? parseFloat(req.body.value)
+            ? strictNum(req.body.value)
             : db.customAccounts[accountIndex].value;
     if (req.body.value !== undefined && !Number.isFinite(value)) {
         return res.status(400).json({ error: 'Invalid value.' });
     }
     const apy =
         req.body.apy !== undefined
-            ? parseFloat(req.body.apy)
+            ? strictNum(req.body.apy)
             : db.customAccounts[accountIndex].apy;
     if (req.body.apy !== undefined && !Number.isFinite(apy)) {
         return res.status(400).json({ error: 'Invalid apy.' });

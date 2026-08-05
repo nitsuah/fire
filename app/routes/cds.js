@@ -5,6 +5,12 @@ const { readState, writeState } = require('../lib/db');
 
 const router = express.Router();
 
+function strictNum(v) {
+    const s = String(v ?? '');
+    if (s !== s.trim() || s === '') return NaN;
+    return Number(s);
+}
+
 router.post('/', (req, res) => {
     const db = readState();
     const newCD = {
@@ -33,14 +39,14 @@ router.put('/:id', (req, res) => {
 
     const principal =
         req.body.principal !== undefined
-            ? parseFloat(req.body.principal)
+            ? strictNum(req.body.principal)
             : db.cds[cdIndex].principal;
     if (req.body.principal !== undefined && !Number.isFinite(principal)) {
         return res.status(400).json({ error: 'Invalid principal.' });
     }
     const rate =
         req.body.rate !== undefined
-            ? parseFloat(req.body.rate)
+            ? strictNum(req.body.rate)
             : db.cds[cdIndex].rate;
     if (req.body.rate !== undefined && !Number.isFinite(rate)) {
         return res.status(400).json({ error: 'Invalid rate.' });

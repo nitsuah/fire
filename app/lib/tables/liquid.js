@@ -37,18 +37,20 @@ function renderDashboardLiquidPanel() {
     if (state.cds.length > 0) {
         html += `<div class="liquid-section-label mt-2">Certificates of Deposit</div>`;
         state.cds.forEach((cd) => {
+            if (!cd || !cd.maturity) return;
+            const matDate = new Date(cd.maturity);
+            const principal = parseFloat(cd.principal);
+            const rate = parseFloat(cd.rate);
             if (
-                !cd ||
-                cd.principal === undefined ||
-                !cd.maturity ||
-                cd.rate === undefined
+                isNaN(matDate.getTime()) ||
+                !Number.isFinite(principal) ||
+                !Number.isFinite(rate)
             )
                 return;
-            const matDate = new Date(cd.maturity);
             const daysLeft = Math.ceil((matDate - today) / 86400000);
             const isMatured = daysLeft < 0;
             const isSoon = !isMatured && daysLeft <= 30;
-            const annualYield = (cd.principal || 0) * ((cd.rate || 0) / 100);
+            const annualYield = principal * (rate / 100);
             const statusColor = isMatured
                 ? 'var(--color-danger)'
                 : isSoon
@@ -61,11 +63,11 @@ function renderDashboardLiquidPanel() {
                   : `${daysLeft}d left`;
             html += `<div class="liquid-row">
                 <div class="liquid-name">
-                    ${cd.bank} <span class="liquid-type">CD · ${Number(cd.rate).toFixed(2)}%</span>
+                    ${cd.bank} <span class="liquid-type">CD · ${rate.toFixed(2)}%</span>
                     <span class="liquid-maturity" style="color:${statusColor};">${statusText}</span>
                 </div>
                 <div class="liquid-val">
-                    ${formatCurrency(cd.principal)}
+                    ${formatCurrency(principal)}
                     <span class="cd-yield-badge">${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></span>
                 </div>
             </div>`;

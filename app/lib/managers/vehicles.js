@@ -70,6 +70,8 @@ window.saveEditVehicle = async function (id) {
     const idx = state.vehicles.findIndex((v) => v.id === id);
     if (idx === -1) return;
     const g = (fId) => document.getElementById(`veh-edit-${fId}-${id}`);
+    const currentValue = parseFloat(g('value')?.value);
+    if (!Number.isFinite(currentValue) || currentValue <= 0) return;
     state.vehicles[idx] = {
         ...state.vehicles[idx],
         year: parseInt(g('year')?.value) || state.vehicles[idx].year,
@@ -85,7 +87,7 @@ window.saveEditVehicle = async function (id) {
                 : (state.vehicles[idx].color ?? ''),
         mileage: parseInt(g('mileage')?.value) || 0,
         condition: g('condition')?.value || state.vehicles[idx].condition,
-        currentValue: parseFloat(g('value')?.value) || 0,
+        currentValue,
         purchasePrice: parseFloat(g('purchase')?.value) || 0,
         loanBalance: parseFloat(g('loan')?.value) || 0,
         monthlyPayment:
