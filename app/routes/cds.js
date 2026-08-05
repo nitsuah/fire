@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const { readState, writeState } = require('../lib/db');
 
@@ -23,7 +24,7 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: 'Invalid rate.' });
     }
     const newCD = {
-        id: Date.now().toString(),
+        id: crypto.randomBytes(8).toString('hex'),
         bank: req.body.bank,
         principal,
         rate,

@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const { readState, writeState } = require('../lib/db');
 
@@ -22,7 +23,7 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: 'Invalid apy.' });
     }
     const newAcc = {
-        id: Date.now().toString(),
+        id: crypto.randomBytes(8).toString('hex'),
         name: req.body.name,
         type: req.body.type || 'Cash',
         value,
