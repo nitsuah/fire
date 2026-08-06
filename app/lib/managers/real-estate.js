@@ -57,6 +57,23 @@ window.cancelEditRealEstate = function (id) {
 window.saveEditRealEstate = async function (id) {
     const idx = state.realEstate.findIndex((re) => re.id === id);
     if (idx === -1) return;
+    const parseNum = (elId) => {
+        const s = (document.getElementById(elId)?.value ?? '').trim();
+        if (s === '') return 0;
+        const n = parseFloat(s);
+        return Number.isFinite(n) ? n : NaN;
+    };
+    const marketValue = parseNum(`re-edit-market-${id}`);
+    const purchasePrice = parseNum(`re-edit-purchase-${id}`);
+    const mortgageBalance = parseNum(`re-edit-mortgage-${id}`);
+    const monthlyPayment = parseNum(`re-edit-payment-${id}`);
+    if (
+        !Number.isFinite(marketValue) ||
+        !Number.isFinite(purchasePrice) ||
+        !Number.isFinite(mortgageBalance) ||
+        !Number.isFinite(monthlyPayment)
+    )
+        return;
     state.realEstate[idx] = {
         ...state.realEstate[idx],
         name:
@@ -68,22 +85,10 @@ window.saveEditRealEstate = async function (id) {
         address:
             document.getElementById(`re-edit-address-${id}`)?.value.trim() ||
             '',
-        marketValue:
-            parseFloat(
-                document.getElementById(`re-edit-market-${id}`)?.value,
-            ) || 0,
-        purchasePrice:
-            parseFloat(
-                document.getElementById(`re-edit-purchase-${id}`)?.value,
-            ) || 0,
-        mortgageBalance:
-            parseFloat(
-                document.getElementById(`re-edit-mortgage-${id}`)?.value,
-            ) || 0,
-        monthlyPayment:
-            parseFloat(
-                document.getElementById(`re-edit-payment-${id}`)?.value,
-            ) || 0,
+        marketValue,
+        purchasePrice,
+        mortgageBalance,
+        monthlyPayment,
         notes:
             document.getElementById(`re-edit-notes-${id}`)?.value.trim() ??
             state.realEstate[idx].notes ??

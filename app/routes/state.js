@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { readState, writeState } = require('../lib/db');
+const { defaultState, readState, writeState } = require('../lib/db');
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ router.post('/', (req, res) => {
             .status(400)
             .json({ error: 'Request body must be a JSON object.' });
     }
-    const success = writeState(req.body);
+    const success = writeState({ ...defaultState(), ...req.body });
     if (success) {
         res.json({ message: 'State successfully updated.', state: req.body });
     } else {

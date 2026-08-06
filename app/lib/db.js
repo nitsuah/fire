@@ -66,4 +66,11 @@ function writeState(state) {
     }
 }
 
-module.exports = { DATA_DIR, DB_FILE, initDatabase, readState, writeState };
+module.exports = {
+    DATA_DIR,
+    DB_FILE,
+    defaultState,
+    initDatabase,
+    readState,
+    writeState,
+};

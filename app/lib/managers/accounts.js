@@ -76,7 +76,9 @@ window.saveEditAccount = async function (id) {
     const valInput = document.getElementById(`edit-acc-val-${id}`);
 
     const name = nameInput.value;
-    const apy = parseFloat(apyInput.value) || 0;
+    const apyRaw = apyInput.value.trim();
+    const apy = apyRaw === '' ? 0 : parseFloat(apyRaw);
+    if (!Number.isFinite(apy)) return;
     const value = parseFloat(valInput.value);
     if (!Number.isFinite(value)) return;
 
