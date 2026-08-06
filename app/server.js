@@ -20,7 +20,13 @@ console.log(`[Server Init] DB_FILE: ${DB_FILE}`);
 
 const app = express();
 
-app.use(express.json());
+app.use(
+    express.json({
+        verify: (req, _res, buf) => {
+            req.rawBody = buf;
+        },
+    }),
+);
 app.use(
     session({
         secret: process.env.SESSION_SECRET || 'a-very-secret-key',

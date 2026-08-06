@@ -225,9 +225,14 @@ router.post('/webhook/:templateId', async (req, res) => {
         }
 
         const hmac = crypto.createHmac('sha256', template.secret);
-        const digest = hmac.update(JSON.stringify(req.body)).digest('hex');
-
-        if (signature !== `sha256=${digest}`) {
+        const payload = req.rawBody ?? Buffer.from(JSON.stringify(req.body));
+        const digest = hmac.update(payload).digest('hex');
+        const expected = Buffer.from(`sha256=${digest}`);
+        const actual = Buffer.from(signature);
+        if (
+            actual.length !== expected.length ||
+            !crypto.timingSafeEqual(actual, expected)
+        ) {
             return res
                 .status(403)
                 .json({ error: 'Invalid webhook signature.' });
