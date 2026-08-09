@@ -6,10 +6,11 @@ import prettierConfig from 'eslint-config-prettier';
 export default [
     js.configs.recommended,
 
-    // Node.js files (server, routes, and CommonJS lib modules)
+    // Node.js files (server, routes, CommonJS lib modules, and ESM MCP server)
     {
         files: [
             'app/server.js',
+            'app/mcp-server.mjs',
             'app/routes/**/*.js',
             'app/lib/db.js',
             'app/lib/server-utils.js',

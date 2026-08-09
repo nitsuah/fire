@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "fire-tracker": {
+      "command": "node",
+      "args": ["app/mcp-server.mjs"]
+    }
+  }
+}

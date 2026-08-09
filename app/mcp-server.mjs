@@ -1,0 +1,310 @@
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+    CallToolRequestSchema,
+    ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { readState, initDatabase } = require('./lib/db.js');
+const { buildProjectionData } = require('./lib/finance-calcs.js');
+
+const TOOLS = [
+    {
+        name: 'fire_status_summary',
+        description:
+            'High-level FIRE status: FIRE number, current net worth, progress %, years to FIRE, and Coast FIRE status. Start here.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_net_worth',
+        description:
+            'Net worth broken down by category: equities, cash, CDs, real estate, and vehicles.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_accounts',
+        description:
+            'All custom accounts (cash, savings, brokerage, crypto, etc.) with type and current value.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_portfolio',
+        description:
+            'Imported Fidelity brokerage positions with symbol, value, cost basis, and unrealized P&L.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_cds',
+        description:
+            'Certificate of Deposit holdings with bank, principal, yield rate, maturity date, and days to maturity.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_expenses',
+        description:
+            'Monthly expense breakdown (housing, food, transport, etc.) with monthly and annual totals.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_projection_settings',
+        description:
+            'FIRE projection configuration: annual savings, expected return rate, inflation rate, SWR, and time span.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_side_gig_income',
+        description:
+            'Side hustle income log grouped by platform with per-platform and overall totals.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+];
+
+function computeNetWorthBreakdown(state) {
+    let cash = 0,
+        equities = 0;
+    for (const pos of state.importedPositions || []) {
+        const sym = pos.symbol || '';
+        const desc = pos.description || '';
+        if (
+            sym.includes('SPAXX') ||
+            sym.includes('FDRXX') ||
+            desc.includes('MONEY MARKET')
+        ) {
+            cash += pos.value || 0;
+        } else {
+            equities += pos.value || 0;
+        }
+    }
+    for (const acc of state.customAccounts || []) {
+        if (acc.type === 'Cash' || acc.type === 'Savings') {
+            cash += acc.value || 0;
+        } else if (acc.type === 'Brokerage' || acc.type === 'Crypto') {
+            equities += acc.value || 0;
+        } else {
+            cash += acc.value || 0;
+        }
+    }
+    const cds = (state.cds || []).reduce((s, cd) => s + (cd.principal || 0), 0);
+    const realEstate = (state.realEstate || []).reduce(
+        (s, r) =>
+            s + Math.max(0, (r.marketValue || 0) - (r.mortgageBalance || 0)),
+        0,
+    );
+    const vehicles = (state.vehicles || []).reduce(
+        (s, v) => s + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)),
+        0,
+    );
+    const total = cash + equities + cds + realEstate + vehicles;
+    return { total, cash, equities, cds, realEstate, vehicles };
+}
+
+function handleTool(name, state) {
+    switch (name) {
+        case 'fire_status_summary': {
+            const proj = buildProjectionData(state);
+            const { networth, fireNumber, nwData, coastFireLine } = proj;
+            const progressPercent =
+                fireNumber > 0
+                    ? Math.round((networth / fireNumber) * 1000) / 10
+                    : 0;
+            const yearsIdx = nwData.findIndex((nw) => nw >= fireNumber);
+            const expenses = state.expenses || {};
+            const monthlyExpenses = Object.values(expenses).reduce(
+                (s, v) => s + (v || 0),
+                0,
+            );
+            const settings = state.projectionSettings || {};
+            const coastFireNumber = coastFireLine[0] || 0;
+            return {
+                fireNumber: Math.round(fireNumber),
+                currentNetWorth: Math.round(networth),
+                progressPercent,
+                yearsToFire: yearsIdx >= 0 ? yearsIdx : null,
+                currentAge: settings.currentAge || null,
+                retireAge: settings.retireAge || null,
+                monthlyExpenses: Math.round(monthlyExpenses),
+                annualExpenses: Math.round(monthlyExpenses * 12),
+                swr: settings.swr || 4.0,
+                coastFireNumber: Math.round(coastFireNumber),
+                coastFireReached: networth >= coastFireNumber,
+            };
+        }
+
+        case 'get_net_worth': {
+            const b = computeNetWorthBreakdown(state);
+            return {
+                total: Math.round(b.total),
+                breakdown: {
+                    equities: Math.round(b.equities),
+                    cash: Math.round(b.cash),
+                    cds: Math.round(b.cds),
+                    realEstate: Math.round(b.realEstate),
+                    vehicles: Math.round(b.vehicles),
+                },
+            };
+        }
+
+        case 'get_accounts': {
+            const accounts = (state.customAccounts || []).map((a) => ({
+                id: a.id,
+                name: a.name,
+                type: a.type,
+                value: a.value || 0,
+                apy: a.apy || 0,
+            }));
+            return {
+                accounts,
+                total: Math.round(accounts.reduce((s, a) => s + a.value, 0)),
+                count: accounts.length,
+            };
+        }
+
+        case 'get_portfolio': {
+            const positions = (state.importedPositions || []).map((p) => {
+                const pl =
+                    p.value != null && p.costBasis != null
+                        ? Math.round((p.value - p.costBasis) * 100) / 100
+                        : null;
+                const plPercent =
+                    p.costBasis && p.costBasis !== 0
+                        ? Math.round(
+                              ((p.value - p.costBasis) / p.costBasis) * 1000,
+                          ) / 10
+                        : null;
+                return {
+                    symbol: p.symbol,
+                    description: p.description,
+                    quantity: p.quantity,
+                    value: p.value,
+                    costBasis: p.costBasis,
+                    pl,
+                    plPercent,
+                };
+            });
+            return {
+                positions,
+                totalValue: Math.round(
+                    positions.reduce((s, p) => s + (p.value || 0), 0),
+                ),
+                totalPL:
+                    Math.round(
+                        positions.reduce((s, p) => s + (p.pl || 0), 0) * 100,
+                    ) / 100,
+                count: positions.length,
+            };
+        }
+
+        case 'get_cds': {
+            const now = Date.now();
+            const cds = (state.cds || []).map((cd) => ({
+                id: cd.id,
+                bank: cd.bank,
+                principal: cd.principal || 0,
+                rate: cd.rate || 0,
+                maturity: cd.maturity,
+                daysToMaturity: cd.maturity
+                    ? Math.ceil(
+                          (new Date(cd.maturity).getTime() - now) /
+                              (1000 * 60 * 60 * 24),
+                      )
+                    : null,
+            }));
+            const sorted = [...cds].sort(
+                (a, b) =>
+                    (a.daysToMaturity ?? Infinity) -
+                    (b.daysToMaturity ?? Infinity),
+            );
+            return {
+                cds,
+                totalPrincipal: cds.reduce((s, cd) => s + cd.principal, 0),
+                count: cds.length,
+                nextMaturity: sorted[0] || null,
+            };
+        }
+
+        case 'get_expenses': {
+            const expenses = state.expenses || {};
+            const monthlyTotal = Object.values(expenses).reduce(
+                (s, v) => s + (v || 0),
+                0,
+            );
+            return {
+                breakdown: expenses,
+                monthlyTotal: Math.round(monthlyTotal),
+                annualTotal: Math.round(monthlyTotal * 12),
+                taxRate: state.taxRate || 0,
+            };
+        }
+
+        case 'get_projection_settings': {
+            return { ...(state.projectionSettings || {}) };
+        }
+
+        case 'get_side_gig_income': {
+            const ledger = state.sideGigLedger || [];
+            const byPlatform = {};
+            for (const entry of ledger) {
+                const platform = entry.platform || 'Other';
+                if (!byPlatform[platform]) {
+                    byPlatform[platform] = { count: 0, gross: 0, net: 0 };
+                }
+                byPlatform[platform].count++;
+                byPlatform[platform].gross += entry.gross || 0;
+                byPlatform[platform].net += entry.net || 0;
+            }
+            return {
+                entries: ledger,
+                byPlatform,
+                totalNet:
+                    Math.round(
+                        ledger.reduce((s, e) => s + (e.net || 0), 0) * 100,
+                    ) / 100,
+                count: ledger.length,
+            };
+        }
+
+        default:
+            throw new Error(`Unknown tool: ${name}`);
+    }
+}
+
+async function main() {
+    initDatabase();
+
+    const server = new Server(
+        { name: 'fire-tracker', version: '1.0.0' },
+        { capabilities: { tools: {} } },
+    );
+
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({
+        tools: TOOLS,
+    }));
+
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+        const { name } = request.params;
+        try {
+            const state = readState();
+            const result = handleTool(name, state);
+            return {
+                content: [
+                    { type: 'text', text: JSON.stringify(result, null, 2) },
+                ],
+            };
+        } catch (err) {
+            return {
+                content: [{ type: 'text', text: `Error: ${err.message}` }],
+                isError: true,
+            };
+        }
+    });
+
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+}
+
+main().catch((err) => {
+    console.error('[MCP] Fatal:', err);
+    process.exit(1);
+});
