@@ -9,13 +9,13 @@
 | CI/CD Build Status                | Passing (GitHub Actions)                 | Passing | Met          |
 | ESLint Violations                 | 0                                        | 0       | Met          |
 | Dependency Vulnerabilities        | 6 moderate/critical (dev deps only)      | 0       | Below Target |
-| Total Lines of Code (LOC)         | ~3,400 JS / ~5,900 all files             | N/A     | Tracked      |
+| Total Lines of Code (LOC)         | TBD (run `cloc app/`)                    | N/A     | Tracked      |
 | Cyclomatic Complexity             | TBD                                      | <10     | Untracked    |
 | API Average Response Time         | TBD                                      | <100ms  | Untracked    |
-| Client Bundle Size (app.js)       | ~117 KB                                  | <500 KB | Met          |
+| Client JS Size (app/lib/)         | TBD (no build step, modules served raw)  | N/A     | N/A          |
 | Build Success Rate                | N/A (no build step)                      | 99%     | N/A          |
 | Deployment Frequency              | TBD                                      | Weekly  | Untracked    |
-| Last updated                      | 2026-06-25                               |         |              |
+| Last updated                      | 2026-08-09                               |         |              |
 
 ## How to Update
 
