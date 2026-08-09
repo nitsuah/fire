@@ -65,10 +65,15 @@ router.put('/:id', (req, res) => {
     if (req.body.apy !== undefined && !Number.isFinite(apy)) {
         return res.status(400).json({ error: 'Invalid apy.' });
     }
+    if (req.body.name !== undefined) {
+        if (typeof req.body.name !== 'string' || req.body.name.trim() === '') {
+            return res.status(400).json({ error: 'Account name is required.' });
+        }
+    }
 
     db.customAccounts[accountIndex] = {
         ...db.customAccounts[accountIndex],
-        name: req.body.name || db.customAccounts[accountIndex].name,
+        name: req.body.name !== undefined ? req.body.name.trim() : db.customAccounts[accountIndex].name,
         type: req.body.type || db.customAccounts[accountIndex].type,
         value,
         apy,

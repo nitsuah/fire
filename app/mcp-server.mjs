@@ -207,7 +207,7 @@ function handleTool(name, state) {
                       )
                     : null,
             }));
-            const dated = cds.filter((cd) => cd.daysToMaturity !== null);
+            const dated = cds.filter((cd) => Number.isFinite(cd.daysToMaturity));
             const sorted = [...dated].sort(
                 (a, b) => a.daysToMaturity - b.daysToMaturity,
             );

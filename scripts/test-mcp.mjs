@@ -11,7 +11,25 @@ import { dirname, join } from 'path';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const serverPath = join(__dir, '../app/mcp-server.mjs');
 
-async function main() {
+const EXPECTED_TOOLS = [
+    'fire_status_summary',
+    'get_net_worth',
+    'get_accounts',
+    'get_portfolio',
+    'get_cds',
+    'get_expenses',
+    'get_projection_settings',
+    'get_side_gig_income',
+];
+
+function assertOk(result, toolName) {
+    if (!result?.content?.[0]?.text) throw new Error(`${toolName}: empty response`);
+    const parsed = JSON.parse(result.content[0].text);
+    if (parsed?.error) throw new Error(`${toolName}: MCP error — ${parsed.error}`);
+    return parsed;
+}
+
+try {
     console.log('Starting FIRE MCP server…\n');
 
     const transport = new StdioClientTransport({
@@ -27,38 +45,26 @@ async function main() {
     await client.connect(transport);
     console.log('Connected.\n');
 
-    // 1. List tools
+    // 1. Verify all tools are advertised
     const { tools } = await client.listTools();
+    const toolNames = tools.map((t) => t.name);
+    const missing = EXPECTED_TOOLS.filter((n) => !toolNames.includes(n));
+    if (missing.length) throw new Error(`Missing tools: ${missing.join(', ')}`);
     console.log(`── tools/list (${tools.length} tools) ──`);
-    console.log(tools.map(t => `  • ${t.name}`).join('\n'), '\n');
+    console.log(toolNames.map((n) => `  • ${n}`).join('\n'), '\n');
 
-    // 2. fire_status_summary
-    const status = await client.callTool({ name: 'fire_status_summary', arguments: {} });
-    const statusData = JSON.parse(status.content[0].text);
-    console.log('── fire_status_summary ──');
-    console.log(JSON.stringify(statusData, null, 2), '\n');
+    // 2. Call each tool and validate response
+    for (const name of EXPECTED_TOOLS) {
+        const result = await client.callTool({ name, arguments: {} });
+        const data = assertOk(result, name);
+        console.log(`── ${name} ──`);
+        console.log(JSON.stringify(data, null, 2), '\n');
+    }
 
-    // 3. get_net_worth
-    const nw = await client.callTool({ name: 'get_net_worth', arguments: {} });
-    const nwData = JSON.parse(nw.content[0].text);
-    console.log('── get_net_worth ──');
-    console.log(JSON.stringify(nwData, null, 2), '\n');
-
-    // 4. get_expenses
-    const exp = await client.callTool({ name: 'get_expenses', arguments: {} });
-    const expData = JSON.parse(exp.content[0].text);
-    console.log('── get_expenses ──');
-    console.log(JSON.stringify(expData, null, 2), '\n');
-
-    // 5. get_accounts
-    const accts = await client.callTool({ name: 'get_accounts', arguments: {} });
-    const acctData = JSON.parse(accts.content[0].text);
-    console.log('── get_accounts ──');
-    console.log(JSON.stringify(acctData, null, 2), '\n');
-
-    console.log('✓ All MCP tools tested successfully.');
+    console.log('✓ All 8 MCP tools tested successfully.');
     await client.close();
     process.exit(0);
+} catch (err) {
+    console.error('FAIL:', err);
+    process.exit(1);
 }
-
-main().catch(err => { console.error('FAIL:', err); process.exit(1); });
