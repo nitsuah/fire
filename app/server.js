@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const path = require('path');
 const session = require('express-session');
 
 const { DATA_DIR, DB_FILE, initDatabase } = require('./lib/db');
@@ -35,6 +36,18 @@ app.use(
     }),
 );
 app.use(express.static(__dirname));
+app.use('/docs', express.static(path.join(__dirname, '../docs')));
+
+const API_KEY = process.env.FIRE_API_KEY || null;
+if (API_KEY) {
+    app.use('/api', (req, res, next) => {
+        const key = req.headers['x-api-key'];
+        if (!key || key !== API_KEY) {
+            return res.status(401).json({ error: 'Unauthorized.' });
+        }
+        next();
+    });
+}
 
 initDatabase();
 

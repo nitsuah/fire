@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fire",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": [
+        "run", "--rm",
+        "-p", "3001:3001",
+        "-v", "${workspaceFolder}:/app",
+        "-v", "/app/node_modules",
+        "-w", "/app",
+        "node:22-alpine",
+        "node", "app/server.js"
+      ],
+      "port": 3001
+    }
+  ]
+}
