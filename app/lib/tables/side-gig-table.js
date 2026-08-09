@@ -15,8 +15,8 @@ function renderSideGigLedgerTable() {
     state.sideGigLedger.forEach((sg) => {
         html += `
             <tr>
-                <td class="font-bold">${sg.desc}</td>
-                <td><span class="text-muted">${sg.category}</span></td>
+                <td class="font-bold">${escHtml(sg.desc)}</td>
+                <td><span class="text-muted">${escHtml(sg.category)}</span></td>
                 <td class="text-right text-white">${formatCurrency(sg.revenue)}</td>
                 <td class="text-right text-coral">${formatCurrency(sg.expenses)}</td>
                 <td class="text-right font-bold text-emerald">${formatCurrency(sg.net)}</td>

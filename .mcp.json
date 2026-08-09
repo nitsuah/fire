@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "fire-tracker": {
+      "command": "node",
+      "args": ["app/mcp-server.mjs"],
+      "cwd": "C:\\Users\\ajhar\\code\\fire"
+    }
+  }
+}

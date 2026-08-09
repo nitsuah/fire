@@ -22,9 +22,13 @@ router.post('/', (req, res) => {
     if (req.body.apy !== undefined && !Number.isFinite(apy)) {
         return res.status(400).json({ error: 'Invalid apy.' });
     }
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    if (!name) {
+        return res.status(400).json({ error: 'Account name is required.' });
+    }
     const newAcc = {
         id: crypto.randomBytes(8).toString('hex'),
-        name: req.body.name,
+        name,
         type: req.body.type || 'Cash',
         value,
         apy,

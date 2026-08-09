@@ -8,9 +8,17 @@ const DATA_DIR =
     process.env.FIRE_DATA_DIR || path.join(__dirname, '../../data');
 const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
 
-const MASTER_KEY = process.env.SYNC_MASTER_KEY
-    ? Buffer.from(process.env.SYNC_MASTER_KEY, 'hex')
-    : null;
+let MASTER_KEY = null;
+if (process.env.SYNC_MASTER_KEY) {
+    const raw = process.env.SYNC_MASTER_KEY;
+    if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+        throw new Error(
+            'SYNC_MASTER_KEY must be exactly 64 hexadecimal characters (32 bytes). ' +
+            'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"',
+        );
+    }
+    MASTER_KEY = Buffer.from(raw, 'hex');
+}
 
 function encryptState(json) {
     const iv = crypto.randomBytes(12);
@@ -72,23 +80,21 @@ function initDatabase() {
 }
 
 function readState() {
-    try {
-        let raw = fs.readFileSync(DB_FILE, 'utf8');
-        if (MASTER_KEY) raw = decryptState(raw);
-        return JSON.parse(raw);
-    } catch (e) {
-        console.error(
-            'Error reading database, returning default fallback state',
-            e,
-        );
+    if (!fs.existsSync(DB_FILE)) {
         return defaultState();
     }
+    let raw = fs.readFileSync(DB_FILE, 'utf8');
+    if (MASTER_KEY) raw = decryptState(raw);
+    return JSON.parse(raw);
 }
 
 function writeState(state) {
     try {
         const json = JSON.stringify(state, null, 2);
-        fs.writeFileSync(DB_FILE, MASTER_KEY ? encryptState(json) : json);
+        const content = MASTER_KEY ? encryptState(json) : json;
+        const tmp = DB_FILE + '.tmp';
+        fs.writeFileSync(tmp, content);
+        fs.renameSync(tmp, DB_FILE);
         return true;
     } catch (e) {
         console.error('Error writing to database', e);

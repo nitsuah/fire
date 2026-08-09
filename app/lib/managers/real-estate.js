@@ -9,7 +9,7 @@ function initRealEstateManager() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const entry = {
-            id: Date.now().toString(),
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
             name: document.getElementById('re-name').value.trim(),
             type: document.getElementById('re-type').value,
             address: document.getElementById('re-address').value.trim(),

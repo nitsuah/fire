@@ -19,9 +19,17 @@ router.post('/', (req, res) => {
             .status(400)
             .json({ error: 'Request body must be a JSON object.' });
     }
-    const success = writeState({ ...defaultState(), ...req.body });
+    const current = readState();
+    const merged = {
+        ...defaultState(),
+        ...current,
+        ...req.body,
+        expenses: { ...current.expenses, ...(req.body.expenses || {}) },
+        projectionSettings: { ...current.projectionSettings, ...(req.body.projectionSettings || {}) },
+    };
+    const success = writeState(merged);
     if (success) {
-        res.json({ message: 'State successfully updated.', state: req.body });
+        res.json({ message: 'State successfully updated.', state: merged });
     } else {
         res.status(500).json({ error: 'Failed to write database state.' });
     }

@@ -125,7 +125,7 @@ function renderDiversificationSuggestions(totalPortfolioValue) {
             const w = ((pos.value || 0) / totalPortfolioValue) * 100;
             if (w >= 20 && !isSettledCash(pos))
                 suggestions.push(
-                    `${pos.symbol} is ${w.toFixed(1)}% of your equity — concentration above 20% increases single-stock risk.`,
+                    `${escHtml(pos.symbol)} is ${w.toFixed(1)}% of your equity — concentration above 20% increases single-stock risk.`,
                 );
         });
     }

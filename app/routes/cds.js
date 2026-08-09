@@ -23,6 +23,9 @@ router.post('/', (req, res) => {
     if (req.body.rate !== undefined && !Number.isFinite(rate)) {
         return res.status(400).json({ error: 'Invalid rate.' });
     }
+    if (!req.body.maturity || isNaN(new Date(req.body.maturity).getTime())) {
+        return res.status(400).json({ error: 'A valid maturity date is required.' });
+    }
     const newCD = {
         id: crypto.randomBytes(8).toString('hex'),
         bank: req.body.bank,

@@ -45,8 +45,8 @@ function renderCustomAccountsTable() {
         if (isEditing) {
             html += `
                 <tr>
-                    <td><input type="text" class="inline-edit-input" id="edit-acc-name-${acc.id}" value="${acc.name}"></td>
-                    <td><span class="text-muted">${acc.type}</span></td>
+                    <td><input type="text" class="inline-edit-input" id="edit-acc-name-${acc.id}" value="${escHtml(acc.name)}"></td>
+                    <td><span class="text-muted">${escHtml(acc.type)}</span></td>
                     <td class="text-right">
                         <input type="number" class="inline-edit-input text-right" style="width: 80px;" id="edit-acc-apy-${acc.id}" step="0.01" value="${Number(acc.apy).toFixed(2)}" ${acc.type === 'Savings' || acc.type === 'Cash' ? '' : 'disabled'}>
                     </td>
@@ -63,8 +63,8 @@ function renderCustomAccountsTable() {
             const hasYield = acc.type === 'Savings' || acc.type === 'Cash';
             html += `
                 <tr>
-                    <td class="font-bold">${acc.name}</td>
-                    <td><span class="text-muted">${acc.type}</span></td>
+                    <td class="font-bold">${escHtml(acc.name)}</td>
+                    <td><span class="text-muted">${escHtml(acc.type)}</span></td>
                     <td class="text-right text-amber font-bold">${hasYield ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
                     <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
                     <td class="text-right">
@@ -124,7 +124,7 @@ function renderCDTable() {
         if (isEditing) {
             html += `
                 <tr>
-                    <td><input type="text" class="inline-edit-input" id="edit-cd-bank-${cd.id}" value="${cd.bank}"></td>
+                    <td><input type="text" class="inline-edit-input" id="edit-cd-bank-${cd.id}" value="${escHtml(cd.bank)}"></td>
                     <td class="text-right">
                         <input type="number" class="inline-edit-input text-right" style="width: 100px;" id="edit-cd-principal-${cd.id}" step="0.01" value="${Number(cd.principal).toFixed(2)}">
                     </td>
@@ -147,7 +147,7 @@ function renderCDTable() {
 
             html += `
                 <tr>
-                    <td class="font-bold">${cd.bank}</td>
+                    <td class="font-bold">${escHtml(cd.bank)}</td>
                     <td class="text-right font-bold">${formatCurrency(cd.principal)}</td>
                     <td class="text-right text-amber font-bold">${Number(cd.rate).toFixed(2)}%</td>
                     <td>${cd.startDate || '—'}</td>
@@ -187,8 +187,8 @@ function renderUnifiedHoldingsTable() {
         const hasYield = acc.type === 'Savings' || acc.type === 'Cash';
         if (isEditing) {
             html += `<tr>
-                <td><input type="text" class="inline-edit-input" id="edit-acc-name-${acc.id}" value="${acc.name}"></td>
-                <td><span class="text-muted">${acc.type}</span></td>
+                <td><input type="text" class="inline-edit-input" id="edit-acc-name-${acc.id}" value="${escHtml(acc.name)}"></td>
+                <td><span class="text-muted">${escHtml(acc.type)}</span></td>
                 <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:110px;" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}"></td>
                 <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-acc-apy-${acc.id}" step="0.01" value="${Number(acc.apy).toFixed(2)}" ${hasYield ? '' : 'disabled'}></td>
                 <td>—</td>
@@ -199,8 +199,8 @@ function renderUnifiedHoldingsTable() {
             </tr>`;
         } else {
             html += `<tr>
-                <td class="font-bold">${acc.name}</td>
-                <td><span class="badge-type">${acc.type}</span></td>
+                <td class="font-bold">${escHtml(acc.name)}</td>
+                <td><span class="badge-type">${escHtml(acc.type)}</span></td>
                 <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
                 <td class="text-right text-amber">${hasYield ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
                 <td class="text-muted">—</td>
@@ -219,7 +219,7 @@ function renderUnifiedHoldingsTable() {
         const interest = (cd.principal || 0) * ((cd.rate || 0) / 100);
         if (isEditing) {
             html += `<tr>
-                <td><input type="text" class="inline-edit-input" id="edit-cd-bank-${cd.id}" value="${cd.bank}"></td>
+                <td><input type="text" class="inline-edit-input" id="edit-cd-bank-${cd.id}" value="${escHtml(cd.bank)}"></td>
                 <td><span class="badge-type badge-cd">CD</span></td>
                 <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:110px;" id="edit-cd-principal-${cd.id}" step="0.01" value="${Number(cd.principal).toFixed(2)}"></td>
                 <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-cd-rate-${cd.id}" step="0.01" value="${Number(cd.rate).toFixed(2)}"></td>
@@ -231,7 +231,7 @@ function renderUnifiedHoldingsTable() {
             </tr>`;
         } else {
             html += `<tr>
-                <td class="font-bold">${cd.bank} <span class="text-muted" style="font-size:10px;">+${formatCurrency(interest)}/yr</span></td>
+                <td class="font-bold">${escHtml(cd.bank)} <span class="text-muted" style="font-size:10px;">+${formatCurrency(interest)}/yr</span></td>
                 <td><span class="badge-type badge-cd">CD</span></td>
                 <td class="text-right font-bold">${formatCurrency(cd.principal)}</td>
                 <td class="text-right text-amber">${Number(cd.rate).toFixed(2)}%</td>

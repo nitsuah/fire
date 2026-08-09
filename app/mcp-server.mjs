@@ -88,12 +88,11 @@ function computeNetWorthBreakdown(state) {
     }
     const cds = (state.cds || []).reduce((s, cd) => s + (cd.principal || 0), 0);
     const realEstate = (state.realEstate || []).reduce(
-        (s, r) =>
-            s + Math.max(0, (r.marketValue || 0) - (r.mortgageBalance || 0)),
+        (s, r) => s + ((r.marketValue || 0) - (r.mortgageBalance || 0)),
         0,
     );
     const vehicles = (state.vehicles || []).reduce(
-        (s, v) => s + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)),
+        (s, v) => s + ((v.currentValue || 0) - (v.loanBalance || 0)),
         0,
     );
     const total = cash + equities + cds + realEstate + vehicles;
@@ -110,11 +109,8 @@ function handleTool(name, state) {
                     ? Math.round((networth / fireNumber) * 1000) / 10
                     : 0;
             const yearsIdx = nwData.findIndex((nw) => nw >= fireNumber);
-            const expenses = state.expenses || {};
-            const monthlyExpenses = Object.values(expenses).reduce(
-                (s, v) => s + (v || 0),
-                0,
-            );
+            const annualExpenses = fireNumber * ((state.projectionSettings?.swr || 4.0) / 100);
+            const monthlyExpenses = annualExpenses / 12;
             const settings = state.projectionSettings || {};
             const coastFireNumber = coastFireLine[0] || 0;
             return {
@@ -211,10 +207,9 @@ function handleTool(name, state) {
                       )
                     : null,
             }));
-            const sorted = [...cds].sort(
-                (a, b) =>
-                    (a.daysToMaturity ?? Infinity) -
-                    (b.daysToMaturity ?? Infinity),
+            const dated = cds.filter((cd) => cd.daysToMaturity !== null);
+            const sorted = [...dated].sort(
+                (a, b) => a.daysToMaturity - b.daysToMaturity,
             );
             return {
                 cds,

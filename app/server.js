@@ -28,11 +28,19 @@ app.use(
         },
     }),
 );
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET || SESSION_SECRET === 'change_me_in_production') {
+    console.warn(
+        '[Server] WARNING: SESSION_SECRET is not set or is using the default placeholder. ' +
+        'Set a strong random value in production.',
+    );
+}
 app.use(
     session({
-        secret: process.env.SESSION_SECRET || 'a-very-secret-key',
+        secret: SESSION_SECRET || 'a-very-secret-key',
         resave: false,
         saveUninitialized: true,
+        cookie: { httpOnly: true, sameSite: 'lax' },
     }),
 );
 app.use(express.static(__dirname));
