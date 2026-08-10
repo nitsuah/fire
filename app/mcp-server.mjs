@@ -109,7 +109,8 @@ function handleTool(name, state) {
                     ? Math.round((networth / fireNumber) * 1000) / 10
                     : 0;
             const yearsIdx = nwData.findIndex((nw) => nw >= fireNumber);
-            const annualExpenses = fireNumber * ((state.projectionSettings?.swr || 4.0) / 100);
+            const annualExpenses =
+                fireNumber * ((state.projectionSettings?.swr || 4.0) / 100);
             const monthlyExpenses = annualExpenses / 12;
             const settings = state.projectionSettings || {};
             const coastFireNumber = coastFireLine[0] || 0;
@@ -207,7 +208,9 @@ function handleTool(name, state) {
                       )
                     : null,
             }));
-            const dated = cds.filter((cd) => Number.isFinite(cd.daysToMaturity));
+            const dated = cds.filter((cd) =>
+                Number.isFinite(cd.daysToMaturity),
+            );
             const sorted = [...dated].sort(
                 (a, b) => a.daysToMaturity - b.daysToMaturity,
             );

@@ -73,7 +73,10 @@ router.put('/:id', (req, res) => {
 
     db.customAccounts[accountIndex] = {
         ...db.customAccounts[accountIndex],
-        name: req.body.name !== undefined ? req.body.name.trim() : db.customAccounts[accountIndex].name,
+        name:
+            req.body.name !== undefined
+                ? req.body.name.trim()
+                : db.customAccounts[accountIndex].name,
         type: req.body.type || db.customAccounts[accountIndex].type,
         value,
         apy,

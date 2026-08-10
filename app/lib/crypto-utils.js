@@ -9,7 +9,7 @@ function getKey() {
     if (!raw) {
         throw new Error(
             'SYNC_MASTER_KEY is required for sync token encryption. ' +
-            'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"',
+                "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
         );
     }
     if (!/^[0-9a-fA-F]{64}$/.test(raw)) {

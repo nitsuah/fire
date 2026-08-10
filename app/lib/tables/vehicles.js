@@ -29,7 +29,9 @@ function renderVehiclesTable() {
             equity >= 0
                 ? 'color:var(--color-success)'
                 : 'color:var(--color-danger)';
-        const displayName = escHtml(`${v.year} ${v.make} ${v.model}${v.trim ? ' ' + v.trim : ''}`);
+        const displayName = escHtml(
+            `${v.year} ${v.make} ${v.model}${v.trim ? ' ' + v.trim : ''}`,
+        );
 
         if (editingVehicles.includes(v.id)) {
             html += `

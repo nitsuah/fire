@@ -68,8 +68,14 @@ function integrateWebhookData(db, type, data) {
                 break;
             }
             case 'expenses': {
-                if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-                    console.warn(`[Webhook] Invalid data for expenses (expected object, got ${typeof data})`);
+                if (
+                    typeof data !== 'object' ||
+                    data === null ||
+                    Array.isArray(data)
+                ) {
+                    console.warn(
+                        `[Webhook] Invalid data for expenses (expected object, got ${typeof data})`,
+                    );
                     return false;
                 }
                 db.expenses = { ...db.expenses, ...data };
@@ -80,11 +86,15 @@ function integrateWebhookData(db, type, data) {
                     ? data
                     : [data];
                 incomingLedgerEntries.forEach((entry) => {
-                    const key = entry.id ||
+                    const key =
+                        entry.id ||
                         `${entry.platform || ''}:${entry.gross || ''}:${entry.net || ''}:${entry.date || ''}`;
                     const exists = db.sideGigLedger.some(
-                        (e) => (e.id && e.id === entry.id) ||
-                            (!entry.id && `${e.platform || ''}:${e.gross || ''}:${e.net || ''}:${e.date || ''}` === key),
+                        (e) =>
+                            (e.id && e.id === entry.id) ||
+                            (!entry.id &&
+                                `${e.platform || ''}:${e.gross || ''}:${e.net || ''}:${e.date || ''}` ===
+                                    key),
                     );
                     if (!exists) {
                         db.sideGigLedger.push({

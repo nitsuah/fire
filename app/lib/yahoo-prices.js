@@ -35,7 +35,9 @@ async function refreshYahooCrumb() {
         if (crumbRes.ok) {
             const crumb = (await crumbRes.text()).trim();
             if (!crumb || crumb.startsWith('<') || crumb.length > 100) {
-                console.warn('[Prices] Yahoo crumb response was empty or invalid HTML.');
+                console.warn(
+                    '[Prices] Yahoo crumb response was empty or invalid HTML.',
+                );
                 return false;
             }
             pricesCache.cookie = cookie;

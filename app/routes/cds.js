@@ -30,7 +30,9 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: 'Invalid rate.' });
     }
     if (!isValidYMD(req.body.maturity)) {
-        return res.status(400).json({ error: 'A valid maturity date is required (YYYY-MM-DD).' });
+        return res
+            .status(400)
+            .json({ error: 'A valid maturity date is required (YYYY-MM-DD).' });
     }
     const newCD = {
         id: crypto.randomBytes(8).toString('hex'),
@@ -71,7 +73,9 @@ router.put('/:id', (req, res) => {
         return res.status(400).json({ error: 'Invalid rate.' });
     }
     if (req.body.maturity !== undefined && !isValidYMD(req.body.maturity)) {
-        return res.status(400).json({ error: 'A valid maturity date is required (YYYY-MM-DD).' });
+        return res
+            .status(400)
+            .json({ error: 'A valid maturity date is required (YYYY-MM-DD).' });
     }
 
     db.cds[cdIndex] = {

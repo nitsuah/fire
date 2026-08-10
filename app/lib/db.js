@@ -14,7 +14,7 @@ if (process.env.SYNC_MASTER_KEY) {
     if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
         throw new Error(
             'SYNC_MASTER_KEY must be exactly 64 hexadecimal characters (32 bytes). ' +
-            'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"',
+                "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
         );
     }
     MASTER_KEY = Buffer.from(raw, 'hex');
@@ -26,7 +26,12 @@ function encryptState(json) {
     let enc = cipher.update(json, 'utf8', 'hex');
     enc += cipher.final('hex');
     const tag = cipher.getAuthTag().toString('hex');
-    return JSON.stringify({ enc: true, iv: iv.toString('hex'), tag, data: enc });
+    return JSON.stringify({
+        enc: true,
+        iv: iv.toString('hex'),
+        tag,
+        data: enc,
+    });
 }
 
 function decryptState(raw) {

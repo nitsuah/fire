@@ -23,9 +23,11 @@ const EXPECTED_TOOLS = [
 ];
 
 function assertOk(result, toolName) {
-    if (!result?.content?.[0]?.text) throw new Error(`${toolName}: empty response`);
+    if (!result?.content?.[0]?.text)
+        throw new Error(`${toolName}: empty response`);
     const parsed = JSON.parse(result.content[0].text);
-    if (parsed?.error) throw new Error(`${toolName}: MCP error — ${parsed.error}`);
+    if (parsed?.error)
+        throw new Error(`${toolName}: MCP error — ${parsed.error}`);
     return parsed;
 }
 

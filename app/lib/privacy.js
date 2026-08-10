@@ -61,11 +61,16 @@ document.getElementById('btn-nav-privacy').addEventListener('click', () => {
     openPrivacyModal(false);
 });
 
-document.getElementById('privacy-modal-overlay').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget && localStorage.getItem(PRIVACY_ACCEPTED_KEY)) {
-        closePrivacyModal();
-    }
-});
+document
+    .getElementById('privacy-modal-overlay')
+    .addEventListener('click', (e) => {
+        if (
+            e.target === e.currentTarget &&
+            localStorage.getItem(PRIVACY_ACCEPTED_KEY)
+        ) {
+            closePrivacyModal();
+        }
+    });
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', checkFirstLoad);

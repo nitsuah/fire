@@ -235,9 +235,18 @@ function buildProjectionData() {
         if (yr < span) {
             const isRetired = age >= retireAge;
             if (isRetired) {
-                currentNW = Math.max(0, currentNW * (1 + realReturn) - annualExpenses);
-                bullNW = Math.max(0, bullNW * (1 + bullReturn) - annualExpenses);
-                bearNW = Math.max(0, bearNW * (1 + bearReturn) - annualExpenses);
+                currentNW = Math.max(
+                    0,
+                    currentNW * (1 + realReturn) - annualExpenses,
+                );
+                bullNW = Math.max(
+                    0,
+                    bullNW * (1 + bullReturn) - annualExpenses,
+                );
+                bearNW = Math.max(
+                    0,
+                    bearNW * (1 + bearReturn) - annualExpenses,
+                );
             } else {
                 currentNW = currentNW * (1 + realReturn) + savings;
                 bullNW = bullNW * (1 + bullReturn) + savings;

@@ -118,7 +118,9 @@ router.post('/templates', (req, res) => {
     }
     if (req.body.mapping !== undefined && req.body.mapping !== null) {
         if (typeof req.body.mapping !== 'string') {
-            return res.status(400).json({ error: 'Invalid mapping: must be a string.' });
+            return res
+                .status(400)
+                .json({ error: 'Invalid mapping: must be a string.' });
         }
         try {
             jsonata(req.body.mapping);
@@ -229,7 +231,9 @@ router.post('/webhook/:templateId', async (req, res) => {
         }
 
         if (!req.rawBody) {
-            return res.status(400).json({ error: 'Missing raw request body for signature verification.' });
+            return res.status(400).json({
+                error: 'Missing raw request body for signature verification.',
+            });
         }
         const hmac = crypto.createHmac('sha256', template.secret);
         const payload = req.rawBody;
