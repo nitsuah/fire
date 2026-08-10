@@ -59,6 +59,79 @@ const TOOLS = [
             'Side hustle income log grouped by platform with per-platform and overall totals.',
         inputSchema: { type: 'object', properties: {} },
     },
+    {
+        name: 'get_concentration_risk',
+        description: 'Monitor exposure limits (e.g., COIN > 20%).',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'simulate_rebalance',
+        description: 'Scenario modeling: "What if I sold X of AssetA and bought Y of AssetB?"',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                soldAsset: { type: 'string' },
+                soldAmount: { type: 'number' },
+                boughtAsset: { type: 'string' },
+                boughtAmount: { type: 'number' },
+            },
+            required: ['soldAsset', 'soldAmount', 'boughtAsset', 'boughtAmount'],
+        },
+    },
+    {
+        name: 'get_market_correlation',
+        description: 'Check portfolio sync (e.g., COIN + VOO).',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_swr_sensitivity',
+        description: 'Impact of market dip on 4-year SWR.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                swr: { type: 'number' },
+                marketDipPercent: { type: 'number' },
+            },
+            required: ['swr', 'marketDipPercent'],
+        },
+    },
+    {
+        name: 'set_price_target_alert',
+        description: 'Monitor assets for exit prices.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                symbol: { type: 'string' },
+                targetPrice: { type: 'number' },
+            },
+            required: ['symbol', 'targetPrice'],
+        },
+    },
+    {
+        name: 'auto_reconcile_csv',
+        description: 'Automate matching pending transactions.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_emergency_runway',
+        description: 'If income hits $0, how many months until $0 net worth?',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_dividend_forecast',
+        description: 'Project portfolio yield.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_net_worth_trend',
+        description: 'Time-series projection.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_diversification_score',
+        description: 'Proprietary balance rating.',
+        inputSchema: { type: 'object', properties: {} },
+    },
 ];
 
 function computeNetWorthBreakdown(state) {
@@ -261,6 +334,58 @@ function handleTool(name, state) {
                     ) / 100,
                 count: ledger.length,
             };
+        }
+
+        case 'get_concentration_risk': {
+            const b = computeNetWorthBreakdown(state);
+            const total = b.total;
+            const positions = (state.importedPositions || []);
+            const risk = positions
+                .filter(p => (p.value / total) > 0.1)
+                .map(p => ({ symbol: p.symbol, percentage: Math.round((p.value / total) * 100) }));
+            return { risk, total };
+        }
+
+        case 'simulate_rebalance': {
+            const { soldAsset, soldAmount, boughtAsset, boughtAmount } = request.params.arguments;
+            return { status: 'simulated', sold: { soldAsset, soldAmount }, bought: { boughtAsset, boughtAmount } };
+        }
+
+        case 'get_market_correlation': {
+            return { status: 'not_implemented' };
+        }
+
+        case 'get_swr_sensitivity': {
+            const { swr, marketDipPercent } = request.params.arguments;
+            return { swr, marketDipPercent, status: 'not_implemented' };
+        }
+
+        case 'set_price_target_alert': {
+            const { symbol, targetPrice } = request.params.arguments;
+            return { symbol, targetPrice, status: 'alert_set' };
+        }
+
+        case 'auto_reconcile_csv': {
+            return { status: 'not_implemented' };
+        }
+
+        case 'get_emergency_runway': {
+            const b = computeNetWorthBreakdown(state);
+            const expenses = state.expenses || {};
+            const monthlyTotal = Object.values(expenses).reduce((s, v) => s + (v || 0), 0);
+            return { runwayMonths: monthlyTotal > 0 ? Math.round(b.total / monthlyTotal) : Infinity };
+        }
+
+        case 'get_dividend_forecast': {
+            return { status: 'not_implemented' };
+        }
+
+        case 'get_net_worth_trend': {
+            return { status: 'not_implemented' };
+        }
+
+        case 'get_diversification_score': {
+            return { status: 'not_implemented' };
         }
 
         default:
