@@ -9,7 +9,7 @@ function initRealEstateManager() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const entry = {
-            id: Date.now().toString(),
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
             name: document.getElementById('re-name').value.trim(),
             type: document.getElementById('re-type').value,
             address: document.getElementById('re-address').value.trim(),
@@ -32,15 +32,30 @@ function initRealEstateManager() {
         };
         if (!entry.name || entry.marketValue <= 0) return;
         state.realEstate.push(entry);
-        await saveState();
+        try {
+            await saveState();
+        } catch (err) {
+            state.realEstate = state.realEstate.filter(
+                (re) => re.id !== entry.id,
+            );
+            console.error('Failed to save real estate entry:', err);
+            return;
+        }
         refreshAllUI();
         form.reset();
     });
 }
 
 window.deleteRealEstate = async function (id) {
+    const prev = state.realEstate.slice();
     state.realEstate = state.realEstate.filter((re) => re.id !== id);
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        state.realEstate = prev;
+        console.error('Failed to delete real estate entry:', err);
+        return;
+    }
     refreshAllUI();
 };
 
@@ -74,6 +89,7 @@ window.saveEditRealEstate = async function (id) {
         !Number.isFinite(monthlyPayment)
     )
         return;
+    const prev = { ...state.realEstate[idx] };
     state.realEstate[idx] = {
         ...state.realEstate[idx],
         name:
@@ -95,6 +111,13 @@ window.saveEditRealEstate = async function (id) {
             '',
     };
     editingRealEstate = editingRealEstate.filter((x) => x !== id);
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        state.realEstate[idx] = prev;
+        editingRealEstate.push(id);
+        console.error('Failed to save real estate edit:', err);
+        return;
+    }
     refreshAllUI();
 };

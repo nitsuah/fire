@@ -8,9 +8,11 @@
     "lint": "eslint . --config config/eslint.config.mjs",
     "test": "vitest run --config config/vitest.config.ts",
     "test:coverage": "vitest run --coverage --config config/vitest.config.ts",
-    "build": "echo 'No build step required for this project' && exit 0"
+    "build": "echo 'No build step required for this project' && exit 0",
+    "mcp": "node app/mcp-server.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "jsonata": "^2.2.2"

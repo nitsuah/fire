@@ -14,6 +14,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Chart.js Annotation Plugin (for retirement line, CD markers) -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
+    <!-- Marked.js (markdown renderer for privacy policy) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="lib/css/base.css">
     <link rel="stylesheet" href="lib/css/layout.css">
     <link rel="stylesheet" href="lib/css/components.css">
@@ -61,6 +63,10 @@
                     <span>Import JSON Backup</span>
                 </button>
                 <input type="file" id="backup-file-input" style="display:none;" accept=".json">
+                <button class="backup-btn privacy-btn" id="btn-nav-privacy">
+                    <svg class="nav-icon" viewBox="0 0 24 24" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:5px;"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l6 2.67V11c0 3.97-2.7 7.7-6 8.93C8.7 18.7 6 14.97 6 11V7.67L12 5z"/></svg>
+                    <span>Privacy &amp; Terms</span>
+                </button>
             </div>
         </aside>
 
@@ -1055,7 +1061,24 @@
         </main>
     </div>
 
+    <!-- Privacy Policy Modal -->
+    <div id="privacy-modal-overlay" class="privacy-modal-overlay">
+        <div class="privacy-modal" id="privacy-modal">
+            <div class="privacy-modal-header">
+                <span class="privacy-modal-title">
+                    <svg viewBox="0 0 24 24" style="width:18px;height:18px;display:inline-block;vertical-align:middle;margin-right:8px;"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                    Privacy Policy &amp; Terms of Use
+                </span>
+            </div>
+            <div class="privacy-modal-body" id="privacy-modal-body">
+                <div class="privacy-loading">Loading…</div>
+            </div>
+            <div class="privacy-modal-footer" id="privacy-modal-footer"></div>
+        </div>
+    </div>
+
     <!-- Extracted modules (load before app.js) -->
+    <script src="lib/html-utils.js"></script>
     <script src="lib/state.js"></script>
     <script src="lib/prices.js"></script>
     <script src="lib/csv-import.js"></script>
@@ -1085,5 +1108,7 @@
     <script src="lib/managers/asset-form.js"></script>
     <!-- Main Controller Script -->
     <script src="app.js"></script>
+    <!-- Privacy policy modal (after DOM is ready) -->
+    <script src="lib/privacy.js"></script>
 </body>
 </html>

@@ -29,14 +29,16 @@ function renderVehiclesTable() {
             equity >= 0
                 ? 'color:var(--color-success)'
                 : 'color:var(--color-danger)';
-        const displayName = `${v.year} ${v.make} ${v.model}${v.trim ? ' ' + v.trim : ''}`;
+        const displayName = escHtml(
+            `${v.year} ${v.make} ${v.model}${v.trim ? ' ' + v.trim : ''}`,
+        );
 
         if (editingVehicles.includes(v.id)) {
             html += `
             <tr class="position-row">
                 <td><input class="inline-edit-input" id="veh-edit-year-${v.id}" type="number" value="${v.year}" style="width:70px;"></td>
-                <td><input class="inline-edit-input" id="veh-edit-make-${v.id}" value="${(v.make || '').replace(/"/g, '&quot;')}"></td>
-                <td><input class="inline-edit-input" id="veh-edit-model-${v.id}" value="${(v.model || '').replace(/"/g, '&quot;')}"></td>
+                <td><input class="inline-edit-input" id="veh-edit-make-${v.id}" value="${escHtml(v.make || '')}"></td>
+                <td><input class="inline-edit-input" id="veh-edit-model-${v.id}" value="${escHtml(v.model || '')}"></td>
                 <td><input class="inline-edit-input" id="veh-edit-mileage-${v.id}" type="number" value="${v.mileage || 0}"></td>
                 <td>
                     <select class="inline-edit-input" id="veh-edit-condition-${v.id}">
@@ -55,7 +57,7 @@ function renderVehiclesTable() {
             html += `
             <tr class="position-row">
                 <td class="font-bold">${displayName}</td>
-                <td><span class="tag-badge">${v.condition}</span></td>
+                <td><span class="tag-badge">${escHtml(v.condition)}</span></td>
                 <td class="text-right text-muted">${(v.mileage || 0).toLocaleString()} mi</td>
                 <td class="text-right font-bold">${formatCurrency(v.currentValue || 0)}</td>
                 <td class="text-right" style="${equityStyle}">${formatCurrency(equity)}</td>

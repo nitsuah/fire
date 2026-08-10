@@ -1,90 +1,158 @@
-# 🔥 FIRE Calculator & Tracker
+# 🔥 FIRE Tracker
 
 [![CI](https://github.com/nitsuah/fire/actions/workflows/ci.yml/badge.svg)](https://github.com/nitsuah/fire/actions/workflows/ci.yml)
-![Dashboard Preview](docs/assets/dashboard_preview.png) *(Placeholder for visual reference)*
 
-> A lightweight, secure, and privacy-preserving Financial Independence, Retire Early (FIRE) calculator and tracker. Built as a 100% client-side static web application with a premium dark-mode user interface, it runs locally via Docker and stores all data inside your browser's `localStorage`—ensuring complete data privacy with zero external server dependencies.
-
----
-
-## 🚀 Core Features
-
-### 1. Unified Net Worth Analytics & Projections
-
-- Real-time tracking of current assets and liabilities.
-- Rich interactive projection graphs using **Chart.js** detailing retirement horizons.
-- Toggleable withdrawal rates (3.0%, 3.5%, 4.0% SWR) and inflation-adjusted compound growth projections.
-
-### 2. Safe, Read-Only CSV Imports
-
-- Import investment portfolios directly from Fidelity exports (automatically maps Account Name, Symbol, Description, Quantity, Cost Basis, and Current Value).
-- Import credit card/banking statements from Chase and Capital One to track recent spending and balances.
-- All file processing happens locally in JavaScript; no financial data is ever transmitted over the network.
-
-### 3. CD & Fixed Income Tracker
-
-- Track Certificate of Deposits (CDs) with individual principal, yield, and maturity dates.
-- Interactive CD Ladder visualizer showing interest payouts over time and upcoming maturities.
-
-### 4. Side Gig & eBay Hub
-
-- Track side income streams dynamically (e.g. eBay, side gigs, freelancing).
-- Built-in **eBay Profit Calculator** (input sale price, item cost, shipping, and automatically compute eBay fees, margins, and ROI).
-- Log custom accounts and side income check-ins.
-
-### 5. Local Data Management
-
-- Persistent storage across sessions via `localStorage`.
-- Simple Backup utility allowing one-click export (JSON download) and restore (JSON upload) of your entire configuration.
+> A lightweight Financial Independence, Retire Early (FIRE) tracker and API server. Runs locally via Docker. Data is stored in `data/db.json` on your machine; optional AES-256-GCM encryption is available via `SYNC_MASTER_KEY`. The only outbound requests are optional Yahoo Finance price fetches and the MCP server exposes your financial data to any connected LLM client.
 
 ---
 
-## 🛠️ Tech Stack & Setup
+## Features
 
-- **Front-end**: HTML5, Vanilla JavaScript, CSS3 (Vanilla custom styling with HSL color tokens & Glassmorphic components)
-- **Charts**: [Chart.js](https://www.chartjs.org/) via CDN
-- **Environment**: Docker (Nginx Alpine)
+- **Net Worth Dashboard** — real-time tracking of accounts, CDs, real estate, vehicles, and investments
+- **Retirement Projections** — SWR curves (3 – 4%), bull/bear scenarios, portfolio drawdown after retirement age
+- **Investment P&L Table** — sortable, color-coded, allocation filter with pie chart, risk concentration badges
+- **CD Ladder Visualizer** — timeline of upcoming maturities with yield overlays
+- **Side Hustle Tracker** — income logs + built-in eBay/platform fee calculator
+- **CSV Imports** — Fidelity positions, Chase and Capital One statements (all processed locally)
+- **REST API** — full CRUD for accounts, CDs, state; optional `FIRE_API_KEY` header auth
+- **MCP Server** — 8 read-only tools for Claude/LLM integration via `app/mcp-server.mjs`
+- **Yahoo Finance prices** — live portfolio valuation with crumb-based auth and stale-data fallback
+- **Webhook sync framework** — JSON data-mapped templates for automated data ingestion
 
-### Running with Docker
+---
 
-Run the container using a simple volume mount so modifications to your files are reflected instantly in the browser:
+## Quick Start
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ```bash
-# Build the docker image
-docker build -t fire-calculator .
-
-# Run the container (binds to port 8080)
-docker run -d -p 8080:80 -v ${PWD}:/usr/share/nginx/html --name fire-app fire-calculator
+# Clone and start
+git clone https://github.com/nitsuah/fire.git
+cd fire
+docker compose -f config/docker-compose.yml up -d
 ```
 
-Once running, visit **`http://localhost:8080`** in your browser.
-
-To stop the container:
+Open **http://localhost:3001** in your browser.
 
 ```bash
-docker stop fire-app
-docker rm fire-app
+# Stop
+docker compose -f config/docker-compose.yml down
+
+# Rebuild after dependency changes
+docker compose -f config/docker-compose.yml build
+docker compose -f config/docker-compose.yml up -d --force-recreate
 ```
 
 ---
 
-## 📁 Directory Structure
+## Environment Variables
 
+Copy `.env.example` to `.env` and set values as needed. All are optional for basic local use.
+
+| Variable | Purpose |
+|---|---|
+| `PORT` | Server port (default `3001`) |
+| `FIRE_API_KEY` | When set, all `/api/*` routes require `X-Api-Key: <value>` |
+| `SYNC_MASTER_KEY` | 64-hex-char key to encrypt `db.json` at rest with AES-256-GCM |
+| `SESSION_SECRET` | Secret for signing session cookies (random string; warn logged if unset) |
+
+Generate keys:
 ```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+---
+
+## MCP Server (Claude Integration)
+
+Connect Claude Code to your live financial data. The project ships a `.mcp.json` that Claude Code picks up automatically on startup — edit the `cwd` to match your local path:
+
+```json
+{
+  "mcpServers": {
+    "fire-tracker": {
+      "command": "node",
+      "args": ["app/mcp-server.mjs"],
+      "cwd": "/your/path/to/fire"
+    }
+  }
+}
+```
+
+**Available tools:** `fire_status_summary`, `get_net_worth`, `get_accounts`, `get_portfolio`, `get_cds`, `get_expenses`, `get_projection_settings`, `get_side_gig_income`
+
+Smoke-test locally:
+```bash
+docker compose -f config/docker-compose.yml exec fire node scripts/test-mcp.mjs
+```
+
+---
+
+## Data & Privacy
+
+- All financial data is stored in `data/db.json` inside the project directory (Docker volume-mounted).
+- No data is ever transmitted to external services except optional Yahoo Finance price fetches.
+- Optionally encrypt `db.json` at rest with `SYNC_MASTER_KEY` (AES-256-GCM).
+- Export/restore a full JSON backup any time from the dashboard.
+
+---
+
+## Architecture
+
+```
 fire/
-├── index.html                           # Core layout & HTML structure
-├── styles.css                           # Premium glassmorphism design tokens & styles
-├── app.js                               # CSV parsing, state sync, and calculator engines
-├── Dockerfile                           # Alpine Nginx container setup
-├── README.md                            # Project overview (this file)
-├── ROADMAP.md                           # Q2-Q4 feature milestones
-├── TASKS.md                             # Detailed project task checklist
-└── Portfolio_Positions_Jun-02-2026.csv  # Sample Fidelity investment data
+├── app/
+│   ├── index.html              # Single-page app entry point
+│   ├── server.js               # Express server (port 3001)
+│   ├── mcp-server.mjs          # MCP server — 8 read-only tools
+│   ├── lib/
+│   │   ├── db.js               # State persistence (db.json, atomic writes)
+│   │   ├── crypto-utils.js     # AES-256-GCM encrypt/decrypt
+│   │   ├── finance-calcs.js    # Server-side projection engine
+│   │   ├── html-utils.js       # XSS escape utility (shared by table renderers)
+│   │   ├── yahoo-prices.js     # Yahoo Finance price fetcher
+│   │   ├── webhook-integration.js # Webhook payload handler
+│   │   ├── charts/             # Chart.js renderers
+│   │   ├── tables/             # Table renderers
+│   │   └── managers/           # UI CRUD managers
+│   └── routes/
+│       ├── state.js            # GET / POST /api/state
+│       ├── accounts.js         # CRUD /api/accounts
+│       ├── cds.js              # CRUD /api/cds
+│       ├── prices.js           # GET /api/prices
+│       └── sync.js             # Webhook / OAuth sync
+├── config/
+│   ├── docker-compose.yml
+│   ├── Dockerfile              # node:22-alpine
+│   └── eslint.config.mjs
+├── scripts/
+│   └── test-mcp.mjs            # MCP smoke test (all 8 tools)
+├── data/                       # db.json lives here (git-ignored)
+├── docs/                       # Architecture notes
+├── .env.example                # Environment variable reference
+├── .mcp.json                   # MCP server config for Claude Code
+└── package.json                # fire-tracker v1.1.0
 ```
 
 ---
 
-## 🗺️ Roadmap & Tasks
+## Development
 
-- View milestones in [ROADMAP.md](ROADMAP.md)
-- View active implementation checklist in [TASKS.md](TASKS.md)
+```bash
+# Run tests inside Docker
+docker compose -f config/docker-compose.yml exec fire npm test
+
+# Run tests with coverage
+docker compose -f config/docker-compose.yml exec fire npm run test:coverage
+
+# Lint
+docker compose -f config/docker-compose.yml exec fire npm run lint
+```
+
+---
+
+## Roadmap & Tasks
+
+- Milestones → [ROADMAP.md](ROADMAP.md)
+- Task backlog → [TASKS.md](TASKS.md)
+- Shipped features → [FEATURES.md](FEATURES.md)

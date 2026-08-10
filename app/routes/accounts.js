@@ -4,13 +4,9 @@ const crypto = require('crypto');
 const express = require('express');
 const { readState, writeState } = require('../lib/db');
 
-const router = express.Router();
+const { strictNum } = require('../lib/server-utils');
 
-function strictNum(v) {
-    const s = String(v ?? '');
-    if (s !== s.trim() || s === '') return NaN;
-    return Number(s);
-}
+const router = express.Router();
 
 router.post('/', (req, res) => {
     const db = readState();
@@ -22,9 +18,13 @@ router.post('/', (req, res) => {
     if (req.body.apy !== undefined && !Number.isFinite(apy)) {
         return res.status(400).json({ error: 'Invalid apy.' });
     }
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    if (!name) {
+        return res.status(400).json({ error: 'Account name is required.' });
+    }
     const newAcc = {
         id: crypto.randomBytes(8).toString('hex'),
-        name: req.body.name,
+        name,
         type: req.body.type || 'Cash',
         value,
         apy,
@@ -61,10 +61,18 @@ router.put('/:id', (req, res) => {
     if (req.body.apy !== undefined && !Number.isFinite(apy)) {
         return res.status(400).json({ error: 'Invalid apy.' });
     }
+    if (req.body.name !== undefined) {
+        if (typeof req.body.name !== 'string' || req.body.name.trim() === '') {
+            return res.status(400).json({ error: 'Account name is required.' });
+        }
+    }
 
     db.customAccounts[accountIndex] = {
         ...db.customAccounts[accountIndex],
-        name: req.body.name || db.customAccounts[accountIndex].name,
+        name:
+            req.body.name !== undefined
+                ? req.body.name.trim()
+                : db.customAccounts[accountIndex].name,
         type: req.body.type || db.customAccounts[accountIndex].type,
         value,
         apy,

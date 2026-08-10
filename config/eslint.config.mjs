@@ -6,10 +6,11 @@ import prettierConfig from 'eslint-config-prettier';
 export default [
     js.configs.recommended,
 
-    // Node.js files (server, routes, and CommonJS lib modules)
+    // Node.js files (server, routes, CommonJS lib modules, and ESM MCP server)
     {
         files: [
             'app/server.js',
+            'app/mcp-server.mjs',
             'app/routes/**/*.js',
             'app/lib/db.js',
             'app/lib/server-utils.js',
@@ -42,6 +43,9 @@ export default [
             'app/lib/projections.js',
             'app/lib/tables-assets.js',
             'app/lib/tables-positions.js',
+            // Shared browser utilities (loaded as <script> globals)
+            'app/lib/html-utils.js',
+            'app/lib/privacy.js',
             // Modular components (refactored structure)
             'app/lib/charts/**/*.js',
             'app/lib/managers/**/*.js',
@@ -59,9 +63,9 @@ export default [
         },
     },
 
-    // Test files (vitest globals are a superset of jest globals)
+    // Test files and scripts (vitest globals are a superset of jest globals)
     {
-        files: ['**/*.test.{js,mjs}'],
+        files: ['**/*.test.{js,mjs}', 'scripts/**/*.mjs'],
         languageOptions: {
             globals: {
                 ...globals.node,

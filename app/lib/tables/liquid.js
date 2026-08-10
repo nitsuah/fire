@@ -22,13 +22,13 @@ function renderDashboardLiquidPanel() {
                     ? `<span class="liquid-rate">${Number(acc.apy).toFixed(2)}% APY</span>`
                     : '';
             html += `<div class="liquid-row">
-                <div class="liquid-name">${acc.name} <span class="liquid-type">${acc.type}</span></div>
+                <div class="liquid-name">${escHtml(acc.name)} <span class="liquid-type">${escHtml(acc.type)}</span></div>
                 <div class="liquid-val">${formatCurrency(acc.value)} ${apyStr}</div>
             </div>`;
         });
         mmPositions.forEach((pos) => {
             html += `<div class="liquid-row">
-                <div class="liquid-name">${pos.symbol} <span class="liquid-type">Money Market</span></div>
+                <div class="liquid-name">${escHtml(pos.symbol)} <span class="liquid-type">Money Market</span></div>
                 <div class="liquid-val">${formatCurrency(pos.value)}</div>
             </div>`;
         });
@@ -67,7 +67,7 @@ function renderDashboardLiquidPanel() {
                   : `${daysLeft}d left`;
             html += `<div class="liquid-row">
                 <div class="liquid-name">
-                    ${cd.bank} <span class="liquid-type">CD · ${rate.toFixed(2)}%</span>
+                    ${escHtml(cd.bank)} <span class="liquid-type">CD · ${rate.toFixed(2)}%</span>
                     <span class="liquid-maturity" style="color:${statusColor};">${statusText}</span>
                 </div>
                 <div class="liquid-val">

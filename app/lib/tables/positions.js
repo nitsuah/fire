@@ -60,11 +60,10 @@ function renderDashboardTopPositionsTable() {
         const chevronClass = isCollapsed
             ? 'chevron-icon collapsed'
             : 'chevron-icon';
-        const safeAccName = accName.replace(/'/g, "\\'");
 
         html += `
-            <tr class="table-group-header" onclick="toggleAccountGroup('${safeAccName}')">
-                <td colspan="4"><span class="${chevronClass}">▼</span> <strong>${accName}</strong></td>
+            <tr class="table-group-header" data-acc-name="${escHtml(accName)}" onclick="toggleAccountGroup(this.dataset.accName)">
+                <td colspan="4"><span class="${chevronClass}">▼</span> <strong>${escHtml(accName)}</strong></td>
                 <td class="text-right font-bold text-muted">${accCostBasis > 0 ? formatCurrency(accCostBasis) : '—'}</td>
                 <td class="text-right font-bold" style="${accStyle}">${formatCurrency(accTotalVal)}</td>
                 <td class="text-right font-bold" style="${accStyle}">${accPnLStr}</td>
@@ -107,9 +106,9 @@ function renderDashboardTopPositionsTable() {
 
                 const sym = pos.symbol || '';
                 html += `
-                    <tr class="position-row" data-account="${accName.replace(/"/g, '&quot;')}" data-symbol="${sym}">
-                        <td class="font-bold text-purple">${sym} ${riskBadge}</td>
-                        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pos.description || ''}</td>
+                    <tr class="position-row" data-account="${escHtml(accName)}" data-symbol="${escHtml(sym)}">
+                        <td class="font-bold text-purple">${escHtml(sym)} ${riskBadge}</td>
+                        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(pos.description || '')}</td>
                         <td class="text-right">${(pos.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
                         <td class="text-right">${formatCurrency(pos.lastPrice || 0)}</td>
                         <td class="text-right text-muted">${(pos.costBasis || 0) > 0 ? formatCurrency(pos.costBasis) : '—'}</td>

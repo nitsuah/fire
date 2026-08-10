@@ -38,13 +38,13 @@ function renderRealEstateTable() {
         if (editingRealEstate.includes(re.id)) {
             html += `
             <tr class="position-row">
-                <td><input class="inline-edit-input" id="re-edit-name-${re.id}" value="${re.name.replace(/"/g, '&quot;')}" placeholder="Property Name"></td>
+                <td><input class="inline-edit-input" id="re-edit-name-${re.id}" value="${escHtml(re.name)}" placeholder="Property Name"></td>
                 <td>
                     <select class="inline-edit-input" id="re-edit-type-${re.id}">
                         ${['Primary Home', 'Investment', 'Rental', 'Land', 'Commercial'].map((t) => `<option${t === re.type ? ' selected' : ''}>${t}</option>`).join('')}
                     </select>
                 </td>
-                <td><input class="inline-edit-input" id="re-edit-address-${re.id}" value="${(re.address || '').replace(/"/g, '&quot;')}" placeholder="Address (optional)"></td>
+                <td><input class="inline-edit-input" id="re-edit-address-${re.id}" value="${escHtml(re.address || '')}" placeholder="Address (optional)"></td>
                 <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-market-${re.id}" type="number" value="${re.marketValue}" step="1000"></td>
                 <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-mortgage-${re.id}" type="number" value="${re.mortgageBalance}" step="1000"></td>
                 <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-purchase-${re.id}" type="number" value="${re.purchasePrice}" step="1000"></td>

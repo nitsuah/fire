@@ -4,12 +4,14 @@ const crypto = require('crypto');
 const express = require('express');
 const { readState, writeState } = require('../lib/db');
 
+const { strictNum } = require('../lib/server-utils');
+
 const router = express.Router();
 
-function strictNum(v) {
-    const s = String(v ?? '');
-    if (s !== s.trim() || s === '') return NaN;
-    return Number(s);
+function isValidYMD(v) {
+    if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const d = new Date(v + 'T00:00:00Z');
+    return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 }
 
 router.post('/', (req, res) => {
@@ -22,6 +24,11 @@ router.post('/', (req, res) => {
     const rate = req.body.rate !== undefined ? strictNum(req.body.rate) : 0;
     if (req.body.rate !== undefined && !Number.isFinite(rate)) {
         return res.status(400).json({ error: 'Invalid rate.' });
+    }
+    if (!isValidYMD(req.body.maturity)) {
+        return res
+            .status(400)
+            .json({ error: 'A valid maturity date is required (YYYY-MM-DD).' });
     }
     const newCD = {
         id: crypto.randomBytes(8).toString('hex'),
@@ -60,6 +67,11 @@ router.put('/:id', (req, res) => {
             : db.cds[cdIndex].rate;
     if (req.body.rate !== undefined && !Number.isFinite(rate)) {
         return res.status(400).json({ error: 'Invalid rate.' });
+    }
+    if (req.body.maturity !== undefined && !isValidYMD(req.body.maturity)) {
+        return res
+            .status(400)
+            .json({ error: 'A valid maturity date is required (YYYY-MM-DD).' });
     }
 
     db.cds[cdIndex] = {

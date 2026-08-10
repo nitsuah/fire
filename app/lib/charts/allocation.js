@@ -29,6 +29,8 @@ function renderAssetAllocationChart() {
             assetAllocationChart.destroy();
             assetAllocationChart = null;
         }
+        activeAllocationFilter = null;
+        applyAllocationFilter(null);
         return;
     }
 
@@ -130,13 +132,6 @@ function applyAllocationFilter(categoryKey) {
                 sym.includes('SPAXX') ||
                 sym.includes('FDRXX') ||
                 desc.includes('MONEY MARKET');
-        } else if (
-            categoryKey === 'CDs' ||
-            categoryKey === 'Other' ||
-            categoryKey === 'RealEstate' ||
-            categoryKey === 'Vehicles'
-        ) {
-            match = true;
         }
 
         if (match) {

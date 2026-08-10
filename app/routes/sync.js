@@ -53,12 +53,13 @@ router.post('/callback', async (req, res) => {
     if (!state || state !== req.session?.oauthState) {
         return res.status(403).json({ error: 'Invalid or missing state' });
     }
+    delete req.session.oauthState;
 
     if (!code) {
         return res.status(400).json({ error: 'Missing code' });
     }
 
-    console.log('Exchanging code for tokens:', code);
+    console.log('Exchanging code for tokens');
     const tokens = {
         access_token: 'actual_access_token_from_provider',
         refresh_token: 'actual_refresh_token',
@@ -115,7 +116,12 @@ router.post('/templates', (req, res) => {
             error: `Unsupported type. Must be one of: ${SUPPORTED_WEBHOOK_TYPES.join(', ')}.`,
         });
     }
-    if (req.body.mapping) {
+    if (req.body.mapping !== undefined && req.body.mapping !== null) {
+        if (typeof req.body.mapping !== 'string') {
+            return res
+                .status(400)
+                .json({ error: 'Invalid mapping: must be a string.' });
+        }
         try {
             jsonata(req.body.mapping);
         } catch {
@@ -224,8 +230,13 @@ router.post('/webhook/:templateId', async (req, res) => {
                 .json({ error: 'Missing webhook signature.' });
         }
 
+        if (!req.rawBody) {
+            return res.status(400).json({
+                error: 'Missing raw request body for signature verification.',
+            });
+        }
         const hmac = crypto.createHmac('sha256', template.secret);
-        const payload = req.rawBody ?? Buffer.from(JSON.stringify(req.body));
+        const payload = req.rawBody;
         const digest = hmac.update(payload).digest('hex');
         const expected = Buffer.from(`sha256=${digest}`);
         const actual = Buffer.from(signature);
@@ -243,15 +254,16 @@ router.post('/webhook/:templateId', async (req, res) => {
     try {
         if (template.mapping && typeof template.mapping === 'string') {
             const expression = jsonata(template.mapping);
+            let timeoutHandle;
             transformedData = await Promise.race([
                 expression.evaluate(req.body),
-                new Promise((_, reject) =>
-                    setTimeout(
+                new Promise((_, reject) => {
+                    timeoutHandle = setTimeout(
                         () => reject(new Error('JSONata evaluation timed out')),
                         5000,
-                    ),
-                ),
-            ]);
+                    );
+                }),
+            ]).finally(() => clearTimeout(timeoutHandle));
         } else {
             transformedData = req.body;
         }

@@ -40,8 +40,8 @@ function integrateWebhookData(db, type, data) {
                         };
                     } else {
                         db.cds.push({
-                            ...incomingCd,
                             id: crypto.randomBytes(8).toString('hex'),
+                            ...incomingCd,
                         });
                     }
                 });
@@ -68,6 +68,16 @@ function integrateWebhookData(db, type, data) {
                 break;
             }
             case 'expenses': {
+                if (
+                    typeof data !== 'object' ||
+                    data === null ||
+                    Array.isArray(data)
+                ) {
+                    console.warn(
+                        `[Webhook] Invalid data for expenses (expected object, got ${typeof data})`,
+                    );
+                    return false;
+                }
                 db.expenses = { ...db.expenses, ...data };
                 break;
             }
@@ -76,17 +86,41 @@ function integrateWebhookData(db, type, data) {
                     ? data
                     : [data];
                 incomingLedgerEntries.forEach((entry) => {
-                    db.sideGigLedger.push({
-                        id: crypto.randomBytes(8).toString('hex'),
-                        ...entry,
-                    });
+                    const key =
+                        entry.id ||
+                        `${entry.platform || ''}:${entry.gross || ''}:${entry.net || ''}:${entry.date || ''}`;
+                    const exists = db.sideGigLedger.some(
+                        (e) =>
+                            (e.id && e.id === entry.id) ||
+                            (!entry.id &&
+                                `${e.platform || ''}:${e.gross || ''}:${e.net || ''}:${e.date || ''}` ===
+                                    key),
+                    );
+                    if (!exists) {
+                        db.sideGigLedger.push({
+                            id: crypto.randomBytes(8).toString('hex'),
+                            ...entry,
+                        });
+                    }
                 });
                 break;
             }
             case 'importedFiles': {
                 const incomingFiles = Array.isArray(data) ? data : [data];
                 incomingFiles.forEach((file) => {
-                    db.importedFiles.push(file);
+                    const syntheticId =
+                        file.name || JSON.stringify(file).slice(0, 64);
+                    const exists = db.importedFiles.some(
+                        (f) =>
+                            (file.id &&
+                                (f.id === file.id || f.id === file.name)) ||
+                            (!file.id && (f.name || '') === (file.name || '')),
+                    );
+                    if (!exists) {
+                        db.importedFiles.push(
+                            file.id ? file : { id: syntheticId, ...file },
+                        );
+                    }
                 });
                 break;
             }

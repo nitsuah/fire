@@ -1,4 +1,4 @@
-## updated: 2026-06-25
+## updated: 2026-08-09
 
 # 🗺️ FIRE Calculator & Tracker Roadmap
 
@@ -19,3 +19,4 @@ Next Review: 2026-07-01
 - [ ] Webhook-based or automated local sync templates for self-hosted data solutions.
 - [x] Mobile-responsive adjustments.
 - [ ] Lightweight PWA packaging.
+- [x] MCP server (`app/mcp-server.mjs`) — read-only Claude/LLM integration via 8 tools; connect via `.mcp.json`.

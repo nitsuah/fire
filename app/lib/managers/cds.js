@@ -23,19 +23,28 @@ function initCDManager() {
         if (
             bank &&
             !isNaN(principal) &&
+            principal > 0 &&
             !isNaN(rate) &&
             startDate &&
-            maturity
+            maturity &&
+            startDate <= maturity
         ) {
-            state.cds.push({
+            const entry = {
                 id: Date.now().toString(),
                 bank: bank,
                 principal: principal,
                 rate: rate,
                 startDate: startDate,
                 maturity: maturity,
-            });
-            await saveState();
+            };
+            state.cds.push(entry);
+            try {
+                await saveState();
+            } catch (err) {
+                state.cds = state.cds.filter((cd) => cd.id !== entry.id);
+                console.error('Failed to save CD:', err);
+                return;
+            }
             refreshAllUI();
             form.reset();
             const _d = new Date();
@@ -46,8 +55,15 @@ function initCDManager() {
 }
 
 window.deleteCD = async function (id) {
+    const prev = state.cds.slice();
     state.cds = state.cds.filter((cd) => cd.id !== id);
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        state.cds = prev;
+        console.error('Failed to delete CD:', err);
+        return;
+    }
     refreshAllUI();
 };
 
@@ -70,14 +86,16 @@ window.saveEditCD = async function (id) {
 
     const bank = bankInput.value;
     const principal = parseFloat(principalInput.value);
-    if (!Number.isFinite(principal)) return;
+    if (!Number.isFinite(principal) || principal <= 0) return;
     const rate = parseFloat(rateInput.value);
     if (!Number.isFinite(rate)) return;
     const startDate = startInput.value;
     const maturity = matInput.value;
+    if (startDate && maturity && startDate > maturity) return;
 
     const cdIndex = state.cds.findIndex((cd) => cd.id === id);
     if (cdIndex !== -1) {
+        const prev = { ...state.cds[cdIndex] };
         state.cds[cdIndex].bank = bank;
         state.cds[cdIndex].principal = principal;
         state.cds[cdIndex].rate = rate;
@@ -85,7 +103,14 @@ window.saveEditCD = async function (id) {
         state.cds[cdIndex].maturity = maturity;
 
         editingCDs = editingCDs.filter((x) => x !== id);
-        await saveState();
+        try {
+            await saveState();
+        } catch (err) {
+            state.cds[cdIndex] = prev;
+            editingCDs.push(id);
+            console.error('Failed to save CD edit:', err);
+            return;
+        }
         refreshAllUI();
     }
 };

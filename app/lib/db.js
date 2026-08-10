@@ -2,10 +2,51 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const DATA_DIR =
     process.env.FIRE_DATA_DIR || path.join(__dirname, '../../data');
 const DB_FILE = process.env.FIRE_DB_FILE || path.join(DATA_DIR, 'db.json');
+
+let MASTER_KEY = null;
+if (process.env.SYNC_MASTER_KEY) {
+    const raw = process.env.SYNC_MASTER_KEY;
+    if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+        throw new Error(
+            'SYNC_MASTER_KEY must be exactly 64 hexadecimal characters (32 bytes). ' +
+                "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+        );
+    }
+    MASTER_KEY = Buffer.from(raw, 'hex');
+}
+
+function encryptState(json) {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', MASTER_KEY, iv);
+    let enc = cipher.update(json, 'utf8', 'hex');
+    enc += cipher.final('hex');
+    const tag = cipher.getAuthTag().toString('hex');
+    return JSON.stringify({
+        enc: true,
+        iv: iv.toString('hex'),
+        tag,
+        data: enc,
+    });
+}
+
+function decryptState(raw) {
+    const parsed = JSON.parse(raw);
+    if (!parsed.enc) return raw;
+    const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        MASTER_KEY,
+        Buffer.from(parsed.iv, 'hex'),
+    );
+    decipher.setAuthTag(Buffer.from(parsed.tag, 'hex'));
+    let dec = decipher.update(parsed.data, 'hex', 'utf8');
+    dec += decipher.final('utf8');
+    return dec;
+}
 
 function defaultState() {
     return {
@@ -44,26 +85,47 @@ function initDatabase() {
 }
 
 function readState() {
-    try {
-        const data = fs.readFileSync(DB_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (e) {
-        console.error(
-            'Error reading database, returning default fallback state',
-            e,
-        );
+    if (!fs.existsSync(DB_FILE)) {
         return defaultState();
     }
+    let raw = fs.readFileSync(DB_FILE, 'utf8');
+    if (MASTER_KEY) raw = decryptState(raw);
+    return JSON.parse(raw);
 }
 
 function writeState(state) {
     try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(state, null, 2));
+        const json = JSON.stringify(state, null, 2);
+        const content = MASTER_KEY ? encryptState(json) : json;
+        const tmp = DB_FILE + '.tmp';
+        fs.writeFileSync(tmp, content);
+        fs.renameSync(tmp, DB_FILE);
         return true;
     } catch (e) {
         console.error('Error writing to database', e);
         return false;
     }
+}
+
+let _mutateQueue = Promise.resolve();
+
+/**
+ * Serialize read-modify-write operations so concurrent requests cannot
+ * silently overwrite each other's changes.
+ *
+ * @param {function(Object): void} fn - Receives the current state object and
+ *   should mutate it in place. May be synchronous or return a Promise.
+ * @returns {Promise<boolean>} Resolves to true on success, false on failure.
+ */
+function mutateState(fn) {
+    const next = _mutateQueue.then(async () => {
+        const db = readState();
+        await fn(db);
+        return writeState(db);
+    });
+    // Recover the queue on failure so subsequent mutations still run.
+    _mutateQueue = next.catch(() => {});
+    return next;
 }
 
 module.exports = {
@@ -73,4 +135,5 @@ module.exports = {
     initDatabase,
     readState,
     writeState,
+    mutateState,
 };
