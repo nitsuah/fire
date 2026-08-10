@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/nitsuah/fire/actions/workflows/ci.yml/badge.svg)](https://github.com/nitsuah/fire/actions/workflows/ci.yml)
 
-> A lightweight, privacy-preserving Financial Independence, Retire Early (FIRE) tracker and API server. Runs locally via Docker — your data stays on your machine in an encrypted JSON file, never transmitted anywhere.
+> A lightweight Financial Independence, Retire Early (FIRE) tracker and API server. Runs locally via Docker. Data is stored in `data/db.json` on your machine; optional AES-256-GCM encryption is available via `SYNC_MASTER_KEY`. The only outbound requests are optional Yahoo Finance price fetches and the MCP server exposes your financial data to any connected LLM client.
 
 ---
 
@@ -17,7 +17,7 @@
 - **REST API** — full CRUD for accounts, CDs, state; optional `FIRE_API_KEY` header auth
 - **MCP Server** — 8 read-only tools for Claude/LLM integration via `app/mcp-server.mjs`
 - **Yahoo Finance prices** — live portfolio valuation with crumb-based auth and stale-data fallback
-- **Webhook sync framework** — JSONata-mapped templates for automated data ingestion
+- **Webhook sync framework** — JSON data-mapped templates for automated data ingestion
 
 ---
 
