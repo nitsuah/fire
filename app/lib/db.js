@@ -107,6 +107,27 @@ function writeState(state) {
     }
 }
 
+let _mutateQueue = Promise.resolve();
+
+/**
+ * Serialize read-modify-write operations so concurrent requests cannot
+ * silently overwrite each other's changes.
+ *
+ * @param {function(Object): void} fn - Receives the current state object and
+ *   should mutate it in place. May be synchronous or return a Promise.
+ * @returns {Promise<boolean>} Resolves to true on success, false on failure.
+ */
+function mutateState(fn) {
+    const next = _mutateQueue.then(async () => {
+        const db = readState();
+        await fn(db);
+        return writeState(db);
+    });
+    // Recover the queue on failure so subsequent mutations still run.
+    _mutateQueue = next.catch(() => {});
+    return next;
+}
+
 module.exports = {
     DATA_DIR,
     DB_FILE,
@@ -114,4 +135,5 @@ module.exports = {
     initDatabase,
     readState,
     writeState,
+    mutateState,
 };

@@ -27,4 +27,14 @@ function findAvailablePort(candidates) {
     });
 }
 
-module.exports = { findAvailablePort };
+/**
+ * Parse a numeric value strictly — rejects leading/trailing whitespace and
+ * empty strings, so '  3' or '' do not silently become NaN or 0.
+ */
+function strictNum(v) {
+    const s = String(v ?? '');
+    if (s !== s.trim() || s === '') return NaN;
+    return Number(s);
+}
+
+module.exports = { findAvailablePort, strictNum };

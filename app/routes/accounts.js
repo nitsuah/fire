@@ -4,13 +4,9 @@ const crypto = require('crypto');
 const express = require('express');
 const { readState, writeState } = require('../lib/db');
 
-const router = express.Router();
+const { strictNum } = require('../lib/server-utils');
 
-function strictNum(v) {
-    const s = String(v ?? '');
-    if (s !== s.trim() || s === '') return NaN;
-    return Number(s);
-}
+const router = express.Router();
 
 router.post('/', (req, res) => {
     const db = readState();

@@ -30,14 +30,23 @@ function initAccountsManager() {
         const apy = parseFloat(document.getElementById('acc-apy').value) || 0;
 
         if (name && !isNaN(val)) {
-            state.customAccounts.push({
+            const entry = {
                 id: Date.now().toString(),
                 name: name,
                 type: type,
                 value: val,
                 apy: type === 'Savings' || type === 'Cash' ? apy : 0,
-            });
-            await saveState();
+            };
+            state.customAccounts.push(entry);
+            try {
+                await saveState();
+            } catch (err) {
+                state.customAccounts = state.customAccounts.filter(
+                    (a) => a.id !== entry.id,
+                );
+                console.error('Failed to save account:', err);
+                return;
+            }
             refreshAllUI();
             form.reset();
             apyGroup.style.display = 'none';
@@ -46,17 +55,33 @@ function initAccountsManager() {
 }
 
 window.deleteCustomAccount = async function (id) {
+    const prev = state.customAccounts.slice();
     state.customAccounts = state.customAccounts.filter((acc) => acc.id !== id);
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        state.customAccounts = prev;
+        console.error('Failed to delete account:', err);
+        return;
+    }
     refreshAllUI();
 };
 
 window.deleteImportedFile = async function (index) {
+    const prevFiles = state.importedFiles.slice();
+    const prevPositions = state.importedPositions.slice();
     state.importedFiles.splice(index, 1);
     if (state.importedFiles.length === 0) {
         state.importedPositions = [];
     }
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        state.importedFiles = prevFiles;
+        state.importedPositions = prevPositions;
+        console.error('Failed to delete imported file:', err);
+        return;
+    }
     refreshAllUI();
 };
 
@@ -84,12 +109,20 @@ window.saveEditAccount = async function (id) {
 
     const accIndex = state.customAccounts.findIndex((acc) => acc.id === id);
     if (accIndex !== -1) {
+        const prev = { ...state.customAccounts[accIndex] };
         state.customAccounts[accIndex].name = name;
         state.customAccounts[accIndex].apy = apy;
         state.customAccounts[accIndex].value = value;
 
         editingAccounts = editingAccounts.filter((x) => x !== id);
-        await saveState();
+        try {
+            await saveState();
+        } catch (err) {
+            state.customAccounts[accIndex] = prev;
+            editingAccounts.push(id);
+            console.error('Failed to save account edit:', err);
+            return;
+        }
         refreshAllUI();
     }
 };

@@ -108,7 +108,19 @@ function integrateWebhookData(db, type, data) {
             case 'importedFiles': {
                 const incomingFiles = Array.isArray(data) ? data : [data];
                 incomingFiles.forEach((file) => {
-                    db.importedFiles.push(file);
+                    const syntheticId =
+                        file.name || JSON.stringify(file).slice(0, 64);
+                    const exists = db.importedFiles.some(
+                        (f) =>
+                            (file.id &&
+                                (f.id === file.id || f.id === file.name)) ||
+                            (!file.id && (f.name || '') === (file.name || '')),
+                    );
+                    if (!exists) {
+                        db.importedFiles.push(
+                            file.id ? file : { id: syntheticId, ...file },
+                        );
+                    }
                 });
                 break;
             }
