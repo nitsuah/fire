@@ -172,7 +172,7 @@ function computeNetWorthBreakdown(state) {
     return { total, cash, equities, cds, realEstate, vehicles };
 }
 
-function handleTool(name, state) {
+function handleTool(name, state, toolArgs = {}) {
     switch (name) {
         case 'fire_status_summary': {
             const proj = buildProjectionData(state);
@@ -339,16 +339,30 @@ function handleTool(name, state) {
         case 'get_concentration_risk': {
             const b = computeNetWorthBreakdown(state);
             const total = b.total;
-            const positions = (state.importedPositions || []);
+            if (total <= 0) {
+                return {
+                    risk: [],
+                    total,
+                    unavailableReason: 'non_positive_net_worth',
+                };
+            }
+            const positions = state.importedPositions || [];
             const risk = positions
-                .filter(p => (p.value / total) > 0.1)
-                .map(p => ({ symbol: p.symbol, percentage: Math.round((p.value / total) * 100) }));
+                .filter((p) => p.value / total > 0.1)
+                .map((p) => ({
+                    symbol: p.symbol,
+                    percentage: Math.round((p.value / total) * 100),
+                }));
             return { risk, total };
         }
 
         case 'simulate_rebalance': {
-            const { soldAsset, soldAmount, boughtAsset, boughtAmount } = request.params.arguments;
-            return { status: 'simulated', sold: { soldAsset, soldAmount }, bought: { boughtAsset, boughtAmount } };
+            const { soldAsset, soldAmount, boughtAsset, boughtAmount } = toolArgs;
+            return {
+                status: 'simulated',
+                sold: { soldAsset, soldAmount },
+                bought: { boughtAsset, boughtAmount },
+            };
         }
 
         case 'get_market_correlation': {
@@ -356,12 +370,12 @@ function handleTool(name, state) {
         }
 
         case 'get_swr_sensitivity': {
-            const { swr, marketDipPercent } = request.params.arguments;
+            const { swr, marketDipPercent } = toolArgs;
             return { swr, marketDipPercent, status: 'not_implemented' };
         }
 
         case 'set_price_target_alert': {
-            const { symbol, targetPrice } = request.params.arguments;
+            const { symbol, targetPrice } = toolArgs;
             return { symbol, targetPrice, status: 'alert_set' };
         }
 
@@ -372,8 +386,17 @@ function handleTool(name, state) {
         case 'get_emergency_runway': {
             const b = computeNetWorthBreakdown(state);
             const expenses = state.expenses || {};
-            const monthlyTotal = Object.values(expenses).reduce((s, v) => s + (v || 0), 0);
-            return { runwayMonths: monthlyTotal > 0 ? Math.round(b.total / monthlyTotal) : Infinity };
+            const monthlyTotal = Object.values(expenses).reduce(
+                (s, v) => s + (v || 0),
+                0,
+            );
+            if (monthlyTotal <= 0) {
+                return {
+                    runwayMonths: null,
+                    unavailableReason: 'no_monthly_expenses',
+                };
+            }
+            return { runwayMonths: Math.round(b.total / monthlyTotal) };
         }
 
         case 'get_dividend_forecast': {
@@ -406,10 +429,10 @@ async function main() {
     }));
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
-        const { name } = request.params;
+        const { name, arguments: toolArgs = {} } = request.params;
         try {
             const state = readState();
-            const result = handleTool(name, state);
+            const result = handleTool(name, state, toolArgs);
             return {
                 content: [
                     { type: 'text', text: JSON.stringify(result, null, 2) },
