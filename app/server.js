@@ -45,16 +45,16 @@ if (!API_KEY && IS_PRODUCTION) {
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
 
-let rateLimit;
+let rateLimitFn;
 try {
-    rateLimit = require('express-rate-limit');
+    rateLimitFn = require('express-rate-limit').rateLimit;
 } catch {
-    rateLimit = null;
+    rateLimitFn = null;
 }
 
 function makeRateLimiter(max, windowMs, message) {
-    if (!rateLimit) return (req, res, next) => next();
-    return rateLimit.rateLimit({ windowMs, max, standardHeaders: true, legacyHeaders: false, message: { error: message } });
+    if (!rateLimitFn) return (req, res, next) => next();
+    return rateLimitFn({ windowMs, max, standardHeaders: true, legacyHeaders: false, message: { error: message } });
 }
 
 const generalLimiter = makeRateLimiter(300, 60 * 1000, 'Too many requests. Slow down.');
