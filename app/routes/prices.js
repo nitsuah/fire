@@ -2,11 +2,14 @@
 
 const express = require('express');
 const { pricesCache, refreshYahooCrumb } = require('../lib/yahoo-prices');
+const { fetchPrices, getProvider } = require('../lib/prices-provider');
 
 const router = express.Router();
 const CACHE_TTL_MS = 300000; // 5 minutes per symbol
 
-/** Return only the requested symbols that are present in the cache. */
+// SSE subscribers: Map<res, Set<string>>
+const sseClients = new Map();
+
 function pickSymbols(symbols) {
     return Object.fromEntries(
         symbols
@@ -15,7 +18,6 @@ function pickSymbols(symbols) {
     );
 }
 
-/** True when every requested symbol has a fresh individual cache entry. */
 function allFresh(symbols) {
     const now = Date.now();
     return symbols.every((s) => {
@@ -23,6 +25,31 @@ function allFresh(symbols) {
         return entry !== undefined && now - entry.fetchedAt < CACHE_TTL_MS;
     });
 }
+
+function broadcastToSubscribers(updates) {
+    const payload = `data: ${JSON.stringify(updates)}\n\n`;
+    for (const [res] of sseClients) {
+        try {
+            res.write(payload);
+        } catch {
+            sseClients.delete(res);
+        }
+    }
+}
+
+router.get('/stream', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    sseClients.set(res, true);
+    res.write(`data: ${JSON.stringify({ connected: true, provider: getProvider() })}\n\n`);
+
+    req.on('close', () => {
+        sseClients.delete(res);
+    });
+});
 
 router.get('/', async (req, res) => {
     const rawSymbols = req.query.symbols;
@@ -43,12 +70,35 @@ router.get('/', async (req, res) => {
     const uniqueSymbols = [...new Set(symbolsArr)];
 
     if (allFresh(uniqueSymbols)) {
-        console.log(
-            `[Prices] Serving ${uniqueSymbols.length} symbol(s) from cache.`,
-        );
+        console.log(`[Prices] Serving ${uniqueSymbols.length} symbol(s) from cache.`);
         return res.json(pickSymbols(uniqueSymbols));
     }
 
+    const provider = getProvider();
+
+    if (provider !== 'yahoo') {
+        // Use the multi-provider abstraction
+        try {
+            const results = await fetchPrices(uniqueSymbols);
+            const now = Date.now();
+            for (const [symbol, price] of Object.entries(results)) {
+                if (price != null) {
+                    pricesCache.data[symbol] = { price, changePercent: 0, fetchedAt: now };
+                }
+            }
+            const fresh = pickSymbols(uniqueSymbols);
+            if (Object.keys(fresh).length > 0) {
+                broadcastToSubscribers(fresh);
+                console.log(`[Prices] Updated ${Object.keys(fresh).length} quote(s) via ${provider}.`);
+                return res.json(fresh);
+            }
+        } catch (err) {
+            console.warn('[Prices] Provider fetch failed:', err.message);
+        }
+        // Fall back to Yahoo if provider failed
+    }
+
+    // Yahoo Finance path (existing logic)
     if (!pricesCache.crumb) {
         await refreshYahooCrumb();
     }
@@ -63,11 +113,8 @@ router.get('/', async (req, res) => {
 
     const qStr = encodeURIComponent(uniqueSymbols.join(','));
     const buildCrumb = () =>
-        pricesCache.crumb
-            ? `&crumb=${encodeURIComponent(pricesCache.crumb)}`
-            : '';
+        pricesCache.crumb ? `&crumb=${encodeURIComponent(pricesCache.crumb)}` : '';
 
-    // Endpoint factories evaluated lazily so crumb is current at call time.
     const endpoints = [
         () =>
             `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${qStr}${buildCrumb()}`,
@@ -85,8 +132,7 @@ router.get('/', async (req, res) => {
             });
             if (response.ok) {
                 const json = await response.json();
-                const quotes =
-                    (json.quoteResponse && json.quoteResponse.result) || [];
+                const quotes = (json.quoteResponse && json.quoteResponse.result) || [];
                 if (quotes.length > 0) {
                     const now = Date.now();
                     quotes.forEach((q) => {
@@ -96,19 +142,16 @@ router.get('/', async (req, res) => {
                             fetchedAt: now,
                         };
                     });
+                    const fresh = pickSymbols(uniqueSymbols);
+                    broadcastToSubscribers(fresh);
                     console.log(`[Prices] Updated ${quotes.length} quote(s).`);
-                    return res.json(pickSymbols(uniqueSymbols));
+                    return res.json(fresh);
                 }
-            } else if (
-                (response.status === 401 || response.status === 403) &&
-                !retried
-            ) {
-                console.warn(
-                    `[Prices] Auth error ${response.status}, refreshing crumb...`,
-                );
+            } else if ((response.status === 401 || response.status === 403) && !retried) {
+                console.warn(`[Prices] Auth error ${response.status}, refreshing crumb...`);
                 await refreshYahooCrumb();
                 retried = true;
-                i--; // retry the same endpoint with the refreshed crumb
+                i--;
             } else {
                 console.warn(`[Prices] Endpoint status: ${response.status}`);
             }
@@ -118,9 +161,7 @@ router.get('/', async (req, res) => {
     }
 
     const stale = pickSymbols(uniqueSymbols);
-    console.warn(
-        `[Prices] All endpoints failed. Returning stale cache (${Object.keys(stale).length} items).`,
-    );
+    console.warn(`[Prices] All endpoints failed. Returning stale cache (${Object.keys(stale).length} items).`);
     res.json(stale);
 });
 

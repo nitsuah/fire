@@ -53,6 +53,7 @@ function defaultState() {
         importedPositions: [],
         customAccounts: [],
         cds: [],
+        wallets: [],
         expenses: {
             housing: 1500,
             utilities: 250,
@@ -128,6 +129,19 @@ function mutateState(fn) {
     return next;
 }
 
+function rotateMasterKey(newKeyHex) {
+    if (!newKeyHex || !/^[0-9a-fA-F]{64}$/.test(newKeyHex)) {
+        throw new Error('New key must be 64 hexadecimal characters (32 bytes).');
+    }
+    const state = readState();
+    MASTER_KEY = Buffer.from(newKeyHex, 'hex');
+    process.env.SYNC_MASTER_KEY = newKeyHex;
+    const ok = writeState(state);
+    if (!ok) {
+        throw new Error('Failed to re-encrypt database with new key.');
+    }
+}
+
 module.exports = {
     DATA_DIR,
     DB_FILE,
@@ -136,4 +150,5 @@ module.exports = {
     readState,
     writeState,
     mutateState,
+    rotateMasterKey,
 };

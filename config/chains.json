@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ethereum",
+    "name": "Ethereum",
+    "nativeSymbol": "ETH",
+    "coingeckoId": "ethereum",
+    "apiBase": "https://api.etherscan.io/api",
+    "envKey": "ETHERSCAN_API_KEY",
+    "addressFormat": "evm"
+  },
+  {
+    "id": "bnb",
+    "name": "BNB Smart Chain",
+    "nativeSymbol": "BNB",
+    "coingeckoId": "binancecoin",
+    "apiBase": "https://api.bscscan.com/api",
+    "envKey": "BSCSCAN_API_KEY",
+    "addressFormat": "evm"
+  },
+  {
+    "id": "polygon",
+    "name": "Polygon",
+    "nativeSymbol": "MATIC",
+    "coingeckoId": "matic-network",
+    "apiBase": "https://api.polygonscan.com/api",
+    "envKey": "POLYGONSCAN_API_KEY",
+    "addressFormat": "evm"
+  },
+  {
+    "id": "arbitrum",
+    "name": "Arbitrum One",
+    "nativeSymbol": "ETH",
+    "coingeckoId": "ethereum",
+    "apiBase": "https://api.arbiscan.io/api",
+    "envKey": "ARBISCAN_API_KEY",
+    "addressFormat": "evm"
+  },
+  {
+    "id": "base",
+    "name": "Base",
+    "nativeSymbol": "ETH",
+    "coingeckoId": "ethereum",
+    "apiBase": "https://api.basescan.org/api",
+    "envKey": "BASESCAN_API_KEY",
+    "addressFormat": "evm"
+  },
+  {
+    "id": "avalanche",
+    "name": "Avalanche",
+    "nativeSymbol": "AVAX",
+    "coingeckoId": "avalanche-2",
+    "apiBase": "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api",
+    "envKey": "ROUTESCAN_API_KEY",
+    "addressFormat": "evm"
+  },
+  {
+    "id": "bitcoin",
+    "name": "Bitcoin",
+    "nativeSymbol": "BTC",
+    "coingeckoId": "bitcoin",
+    "apiBase": "https://blockstream.info/api",
+    "envKey": null,
+    "addressFormat": "base58"
+  },
+  {
+    "id": "solana",
+    "name": "Solana",
+    "nativeSymbol": "SOL",
+    "coingeckoId": "solana",
+    "apiBase": "https://api.mainnet-beta.solana.com",
+    "envKey": null,
+    "addressFormat": "base58"
+  }
+]

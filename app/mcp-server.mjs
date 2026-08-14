@@ -5,10 +5,27 @@ import {
     ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createRequire } from 'module';
+import { appendFileSync } from 'fs';
+import { join } from 'path';
 
 const require = createRequire(import.meta.url);
-const { readState, initDatabase } = require('./lib/db.js');
+const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
+
+const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
+
+function writeAuditLog(toolName, responseBytes) {
+    try {
+        const line = JSON.stringify({
+            ts: new Date().toISOString(),
+            tool: toolName,
+            bytes: responseBytes,
+        }) + '\n';
+        appendFileSync(AUDIT_LOG, line);
+    } catch {
+        // Non-fatal: audit log failure must not block tool responses
+    }
+}
 
 const TOOLS = [
     {
@@ -20,7 +37,7 @@ const TOOLS = [
     {
         name: 'get_net_worth',
         description:
-            'Net worth broken down by category: equities, cash, CDs, real estate, and vehicles.',
+            'Net worth broken down by category: equities, cash, CDs, real estate, vehicles, and crypto wallets.',
         inputSchema: { type: 'object', properties: {} },
     },
     {
@@ -32,7 +49,7 @@ const TOOLS = [
     {
         name: 'get_portfolio',
         description:
-            'Imported Fidelity brokerage positions with symbol, value, cost basis, and unrealized P&L.',
+            'Imported Fidelity / Plaid brokerage positions with symbol, value, cost basis, and unrealized P&L.',
         inputSchema: { type: 'object', properties: {} },
     },
     {
@@ -57,6 +74,12 @@ const TOOLS = [
         name: 'get_side_gig_income',
         description:
             'Side hustle income log grouped by platform with per-platform and overall totals.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_wallets',
+        description:
+            'Tracked crypto wallets: chain, label, truncated address (last 8 chars), USD balance, and last-fetched timestamp.',
         inputSchema: { type: 'object', properties: {} },
     },
 ];
@@ -95,8 +118,12 @@ function computeNetWorthBreakdown(state) {
         (s, v) => s + ((v.currentValue || 0) - (v.loanBalance || 0)),
         0,
     );
-    const total = cash + equities + cds + realEstate + vehicles;
-    return { total, cash, equities, cds, realEstate, vehicles };
+    const cryptoWallets = (state.wallets || []).reduce(
+        (s, w) => s + (w.lastUsdValue || 0),
+        0,
+    );
+    const total = cash + equities + cds + realEstate + vehicles + cryptoWallets;
+    return { total, cash, equities, cds, realEstate, vehicles, cryptoWallets };
 }
 
 function handleTool(name, state) {
@@ -139,6 +166,7 @@ function handleTool(name, state) {
                     cds: Math.round(b.cds),
                     realEstate: Math.round(b.realEstate),
                     vehicles: Math.round(b.vehicles),
+                    cryptoWallets: Math.round(b.cryptoWallets),
                 },
             };
         }
@@ -263,6 +291,26 @@ function handleTool(name, state) {
             };
         }
 
+        case 'get_wallets': {
+            const wallets = (state.wallets || []).map((w) => ({
+                id: w.id,
+                chain: w.chain,
+                label: w.label,
+                address: `...${w.address.slice(-8)}`,
+                lastUsdValue: w.lastUsdValue != null ? Math.round(w.lastUsdValue * 100) / 100 : null,
+                lastBalance: w.lastBalance,
+                lastFetched: w.lastFetched,
+                warning: w.warning || null,
+            }));
+            return {
+                wallets,
+                totalUsdValue: Math.round(
+                    wallets.reduce((s, w) => s + (w.lastUsdValue || 0), 0) * 100,
+                ) / 100,
+                count: wallets.length,
+            };
+        }
+
         default:
             throw new Error(`Unknown tool: ${name}`);
     }
@@ -272,7 +320,7 @@ async function main() {
     initDatabase();
 
     const server = new Server(
-        { name: 'fire-tracker', version: '1.0.0' },
+        { name: 'fire-tracker', version: '1.1.0' },
         { capabilities: { tools: {} } },
     );
 
@@ -285,12 +333,13 @@ async function main() {
         try {
             const state = readState();
             const result = handleTool(name, state);
+            const text = JSON.stringify(result, null, 2);
+            writeAuditLog(name, Buffer.byteLength(text, 'utf8'));
             return {
-                content: [
-                    { type: 'text', text: JSON.stringify(result, null, 2) },
-                ],
+                content: [{ type: 'text', text }],
             };
         } catch (err) {
+            writeAuditLog(name, 0);
             return {
                 content: [{ type: 'text', text: `Error: ${err.message}` }],
                 isError: true,
