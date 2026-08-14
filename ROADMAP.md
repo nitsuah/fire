@@ -1,4 +1,4 @@
-## updated: 2026-08-12
+updated: 2026-08-12
 
 # 🗺️ FIRE Tracker Roadmap
 
@@ -48,7 +48,7 @@ Full detail: [docs/prod-plan.md](docs/prod-plan.md)
 - [ ] Bitcoin via Blockstream.info (no key required)
 - [ ] Solana via public RPC (no key required)
 - [ ] `config/chains.json` registry — add chains without code changes
-- [ ] Wallet USD totals aggregated into net worth (replaces manual Crypto accounts)
+- [ ] Wallet USD totals aggregated into net worth; existing manual Crypto-type accounts show a migration prompt to link a wallet address or keep as manual override (no silent double-counting)
 - [ ] MCP tool: `get_wallets`
 
 ### Vehicle Value API
@@ -100,7 +100,7 @@ Full detail: [docs/security-hardening.md](docs/security-hardening.md)
 - [ ] Webhook payload size cap (16KB)
 - [ ] Webhook sideGigLedger field-level schema validation
 - [ ] `npm audit` CI gate (fail on high/critical prod deps)
-- [ ] SYNC_MASTER_KEY rotation endpoint (re-encrypt db.json with new key)
+- [ ] SYNC_MASTER_KEY rotation endpoint (atomically re-encrypt both `db.json` and `data/tokens.json` with new key; backup old ciphertext before write)
 - [ ] MCP audit log (tool name, timestamp, response byte size — no content)
 - [ ] Account/position identifier truncation in MCP responses
 - [ ] Penetration testing checklist (see docs/security-hardening.md)

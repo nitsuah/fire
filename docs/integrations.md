@@ -1,4 +1,4 @@
-# Integrations Reference
+?# Integrations Reference
 
 > **Status:** Planning  
 > **Last updated:** 2026-08-12  
@@ -24,7 +24,7 @@ This document describes every planned external integration — what credentials 
 
 ### Env Vars
 
-```
+```dotenv
 EBAY_CLIENT_ID=       # From eBay developer application
 EBAY_CLIENT_SECRET=   # From eBay developer application
 EBAY_REFRESH_TOKEN=   # Generated during initial OAuth flow; long-lived
@@ -58,14 +58,14 @@ EBAY_ENVIRONMENT=sandbox  # Change to "production" after testing
 
 ### Env Vars
 
-```
+```dotenv
 ETHERSCAN_API_KEY=    # From etherscan.io account
 ```
 
 ### What's Fetched
 
 - Native ETH balance: `?module=account&action=balance&address=0x...`
-- ERC-20 token balances: `?module=account&action=tokentx&address=0x...`
+- ERC-20 token balances: use `tokenbalance` with an explicit token contract address (`?module=account&action=tokenbalance&contractaddress=0x...&address=0x...`). Current token balances require querying each known contract; `tokentx` returns transfer history only and must not be used to derive balances without full pagination and reconstruction.
 - Prices: CoinGecko `/api/v3/simple/price?ids=ethereum&vs_currencies=usd` (no key required)
 
 ---
@@ -83,7 +83,7 @@ ETHERSCAN_API_KEY=    # From etherscan.io account
 
 ### Env Vars
 
-```
+```dotenv
 BSCSCAN_API_KEY=
 ```
 
@@ -100,7 +100,7 @@ BSCSCAN_API_KEY=
 
 ### Env Vars
 
-```
+```dotenv
 POLYGONSCAN_API_KEY=
 ```
 
@@ -117,7 +117,7 @@ POLYGONSCAN_API_KEY=
 
 ### Env Vars
 
-```
+```dotenv
 ARBISCAN_API_KEY=
 ```
 
@@ -134,7 +134,7 @@ ARBISCAN_API_KEY=
 
 ### Env Vars
 
-```
+```dotenv
 BASESCAN_API_KEY=
 ```
 
@@ -185,7 +185,7 @@ No API key required for basic balance lookups.
 
 ### What's Fetched
 
-```
+```text
 GET https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin,solana&vs_currencies=usd
 ```
 
@@ -193,7 +193,7 @@ Coin IDs are specified in `config/chains.json` per chain.
 
 ### Env Vars
 
-```
+```dotenv
 COINGECKO_API_KEY=    # Optional; increases rate limit
 ```
 
@@ -218,7 +218,7 @@ COINGECKO_API_KEY=    # Optional; increases rate limit
 
 ### Env Vars
 
-```
+```dotenv
 GDRIVE_SERVICE_ACCOUNT_JSON=./config/gdrive-sa.json   # Path to service account key file
 GDRIVE_BACKUP_FOLDER_ID=                              # Optional: Drive folder ID (auto-created if blank)
 ```
@@ -244,7 +244,7 @@ The uploaded file is encrypted with AES-256-GCM using `SYNC_MASTER_KEY` **before
 
 ### Env Vars
 
-```
+```dotenv
 PLAID_CLIENT_ID=
 PLAID_SECRET=
 PLAID_ENV=sandbox    # Change to "production" after testing
@@ -278,7 +278,7 @@ Fidelity's support via Plaid depends on Plaid's institution coverage and Fidelit
 - Free tier: 25 requests/day (sufficient for end-of-day price refresh)
 - Register at [alphavantage.co](https://www.alphavantage.co/support/#api-key)
 
-```
+```dotenv
 ALPHA_VANTAGE_API_KEY=
 ```
 
@@ -287,7 +287,7 @@ ALPHA_VANTAGE_API_KEY=
 - Free tier: delayed quotes; paid tiers offer real-time
 - Register at [polygon.io](https://polygon.io)
 
-```
+```dotenv
 POLYGON_API_KEY=
 ```
 
@@ -305,7 +305,7 @@ The price provider is selected by whichever env var is set; Yahoo Finance is the
 
 No API key required. Decodes VIN to confirm make/model/year.
 
-```
+```text
 GET https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/{VIN}?format=json
 ```
 
@@ -319,7 +319,7 @@ Does not provide market value — only vehicle identity confirmation.
 | MarketCheck | New/used market data | API key |
 | KBB (Kelley Blue Book) | Requires partner agreement with Cox Automotive | Partner key |
 
-```
+```dotenv
 VEHICLE_VALUE_API_KEY=    # Provider-specific; set VEHICLE_VALUE_PROVIDER=dataone|marketcheck
 VEHICLE_VALUE_PROVIDER=dataone
 ```
@@ -340,6 +340,7 @@ VEHICLE_VALUE_PROVIDER=dataone
 | Polygonscan (MATIC wallets) | ❌ Phase 1 | `POLYGONSCAN_API_KEY` |
 | Arbiscan (ARB wallets) | ❌ Phase 1 | `ARBISCAN_API_KEY` |
 | Basescan (BASE wallets) | ❌ Phase 1 | `BASESCAN_API_KEY` |
+| Routescan (Avalanche wallets) | ❌ Phase 1 | `ROUTESCAN_API_KEY` (optional) |
 | Blockstream (Bitcoin) | ❌ Phase 1 | None |
 | Solana RPC | ❌ Phase 1 | None |
 | CoinGecko prices | ❌ Phase 1 | None (optional key) |

@@ -1,4 +1,4 @@
-# Security Hardening Plan
+?# Security Hardening Plan
 
 > **Status:** Planning  
 > **Last updated:** 2026-08-12  
@@ -70,7 +70,7 @@ If you intend to expose this server beyond `localhost`, complete all Critical an
 **Gap:** No request rate limiting on any API endpoint.  
 **Risk:** API key brute force, memory exhaustion via rapid state writes, webhook flooding.
 
-```
+```bash
 npm install express-rate-limit
 ```
 
@@ -122,7 +122,7 @@ volumes:
 ```
 
 `config/Caddyfile` for localhost TLS:
-```
+```text
 localhost {
   reverse_proxy fire:3001
   tls internal
@@ -225,7 +225,7 @@ Fail the workflow on high/critical findings in production deps. Dev-only vulns a
 
 #### H-08: Security Headers (helmet.js)
 
-```
+```bash
 npm install helmet
 ```
 

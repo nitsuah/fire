@@ -1,4 +1,4 @@
-# Backend Sync Architecture
+?# Backend Sync Architecture
 
 > **Last updated:** 2026-08-12  
 > **See also:** [docs/integrations.md](integrations.md), [docs/prod-plan.md](prod-plan.md), [docs/security-hardening.md](security-hardening.md)
@@ -76,7 +76,7 @@ The webhook receiver is fully implemented and in production use.
 
 ## Endpoint Map
 
-```
+```text
 /api/sync/
 ├── init                      GET    OAuth initiation (current: stub → Phase 1/2: eBay, Plaid)
 ├── callback                  GET    OAuth callback (current: stub)
@@ -181,7 +181,7 @@ The web3 layer uses a declarative chain registry. Adding a new EVM-compatible ch
 
 ### Wallet Balance Refresh
 
-```
+```text
 User clicks "Refresh Balances"
   → POST /api/wallets/refresh
       → for each wallet in db.json:
@@ -196,7 +196,7 @@ User clicks "Refresh Balances"
 
 ### eBay Order Sync
 
-```
+```text
 User clicks "Sync eBay"
   → POST /api/sync/ebay/sync
       → decrypt access_token from data/tokens.json (using SYNC_MASTER_KEY)
@@ -212,7 +212,7 @@ User clicks "Sync eBay"
 
 ### Google Drive Backup
 
-```
+```text
 User clicks "Backup to Drive"
   → POST /api/backup/drive
       → readState() → get current db.json contents

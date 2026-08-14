@@ -1,4 +1,4 @@
-# PROD Plan — FIRE Tracker Productionization
+?# PROD Plan — FIRE Tracker Productionization
 
 > **Status:** Planning  
 > **Last updated:** 2026-08-12  
@@ -16,7 +16,7 @@ The system remains **read-only** with respect to financial accounts. It will nev
 
 ## Guiding Principles
 
-1. **BYOK first** — Every external API is opt-in, authenticated with the user's own keys stored encrypted locally. No SaaS intermediary holds credentials.
+1. **BYOK first** — Every external API is opt-in, authenticated with the user's own keys. OAuth tokens are encrypted at rest in `data/tokens.json`; API keys (block explorers, price APIs) live only in environment variables and are never written to disk by the application.
 2. **Minimal OAuth scope** — Request only the narrowest scope needed (read positions, read balances). Never request write access to any financial account.
 3. **Offline-capable** — Manual import fallback for every automated connector. Dashboard must function with zero external connections.
 4. **Transmit as little as possible** — API calls go from the local Docker container directly to the provider. No relay server. No telemetry.
@@ -62,7 +62,7 @@ The current eBay implementation is a fee calculator only (manual entry). Phase 1
 4. Set `EBAY_ENVIRONMENT=production` (default: sandbox)
 
 **Env vars:**
-```
+```dotenv
 EBAY_CLIENT_ID=
 EBAY_CLIENT_SECRET=
 EBAY_REFRESH_TOKEN=
@@ -189,7 +189,7 @@ Returns: chain, address (last 8 chars), label, USD balance, last-fetched timesta
 - `POST /api/backup/drive/restore` — download + decrypt + apply (requires `SYNC_MASTER_KEY`)
 
 **Env vars:**
-```
+```dotenv
 GDRIVE_SERVICE_ACCOUNT_JSON=./config/gdrive-sa.json
 ```
 
@@ -208,7 +208,7 @@ GDRIVE_SERVICE_ACCOUNT_JSON=./config/gdrive-sa.json
 **Plaid implementation:**
 
 Env vars:
-```
+```dotenv
 PLAID_CLIENT_ID=
 PLAID_SECRET=
 PLAID_ENV=sandbox
@@ -239,7 +239,7 @@ Yahoo Finance's crumb-based auth is brittle (HTML scraping, subject to breakage)
 - **Crypto:** CoinGecko free API (`/api/v3/simple/price`) — 30 req/min, no key for basic tier
 - **SSE:** `GET /api/prices/stream` endpoint pushes price updates to browser in real time (replaces polling)
 
-Price provider is selected by which env var is set; falls back to Yahoo Finance if none.
+Price provider precedence: `ALPHA_VANTAGE_API_KEY` is checked first; if unset, `POLYGON_API_KEY` is checked; if neither is set, Yahoo Finance is used as the fallback. A `PRICE_PROVIDER` override env var can force a specific provider regardless of key presence.
 
 ---
 
@@ -302,13 +302,13 @@ At this phase, the system provides:
 | OAuth authorization | Fidelity/Plaid/eBay/Google | client_id + scoped authorization code |
 | Google Drive backup | Google Drive | AES-256-GCM encrypted blob (provider cannot decrypt) |
 
-### What never leaves the machine
+### What never leaves the machine (to third-party providers)
 
-- Account balances or positions in plaintext
-- OAuth access tokens / refresh tokens
+- Account balances, positions, or net worth figures in raw form — these may appear in MCP responses to a locally connected LLM client, but are not transmitted to external providers or relay servers
+- OAuth access tokens / refresh tokens (encrypted at rest, decrypted only in memory)
 - SYNC_MASTER_KEY
 - Social Security numbers, tax IDs, or government identifiers
-- Any account numbers or routing numbers
+- Account numbers or routing numbers
 
 ---
 
