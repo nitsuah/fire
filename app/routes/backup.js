@@ -10,6 +10,7 @@ const {
 } = require('../lib/gdrive-backup');
 
 const router = express.Router();
+const DRIVE_FILE_ID_RE = /^[A-Za-z0-9_-]+$/;
 
 router.post('/drive', async (req, res) => {
     if (!isConfigured()) {
@@ -51,6 +52,9 @@ router.get('/drive/list', async (req, res) => {
 router.post('/drive/restore', async (req, res) => {
     const { fileId } = req.body;
     if (!fileId) return res.status(400).json({ error: 'fileId is required.' });
+    if (typeof fileId !== 'string' || !DRIVE_FILE_ID_RE.test(fileId)) {
+        return res.status(400).json({ error: 'Invalid Google Drive file ID.' });
+    }
     if (!isConfigured()) {
         return res.status(503).json({
             error: 'Google Drive backup not configured. Set GDRIVE_SERVICE_ACCOUNT_JSON.',
