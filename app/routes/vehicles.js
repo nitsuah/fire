@@ -11,7 +11,7 @@ router.get('/vin/:vin', async (req, res) => {
         const info = await decodeVin(req.params.vin);
         res.json(info);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(err.status || 400).json({ error: err.message });
     }
 });
 
@@ -52,7 +52,7 @@ router.post('/:id/refresh-value', async (req, res) => {
             valueEstimate: estimate,
         });
     } catch (err) {
-        res.status(502).json({ error: err.message });
+        res.status(err.status || 502).json({ error: err.message });
     }
 });
 

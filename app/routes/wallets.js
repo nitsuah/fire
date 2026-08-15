@@ -32,7 +32,14 @@ router.get('/', (req, res) => {
 
 router.post('/', async (req, res) => {
     const { address, chain, label } = req.body;
-    if (!address || !chain || !label) {
+    if (
+        typeof address !== 'string' ||
+        !address ||
+        typeof chain !== 'string' ||
+        !chain ||
+        typeof label !== 'string' ||
+        !label
+    ) {
         return res
             .status(400)
             .json({ error: 'address, chain, and label are required.' });
@@ -106,8 +113,17 @@ router.post('/refresh-all', async (req, res) => {
     const db = readState();
     const wallets = db.wallets || [];
     if (wallets.length === 0) return res.json({ updated: 0, wallets: [] });
-    const results = await Promise.all(
+    const settled = await Promise.allSettled(
         wallets.map((w) => refreshWalletBalance(w)),
+    );
+    const results = settled.map((s, i) =>
+        s.status === 'fulfilled'
+            ? s.value
+            : {
+                  ...wallets[i],
+                  warning: s.reason?.message || 'Refresh failed',
+                  lastFetched: new Date().toISOString(),
+              },
     );
     const ok = await mutateState((state) => {
         const refreshedById = new Map(results.map((w) => [w.id, w]));

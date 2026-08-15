@@ -3,21 +3,48 @@
 const NHTSA_BASE = 'https://vpic.nhtsa.dot.gov/api/vehicles';
 
 async function decodeVin(vin) {
-    if (!vin || typeof vin !== 'string') throw new Error('VIN is required');
+    if (!vin || typeof vin !== 'string') {
+        throw Object.assign(new Error('VIN is required'), { status: 400 });
+    }
     const cleanVin = vin.trim().toUpperCase();
     if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(cleanVin)) {
-        throw new Error(
-            'Invalid VIN format (must be 17 alphanumeric chars, no I/O/Q)',
+        throw Object.assign(
+            new Error(
+                'Invalid VIN format (must be 17 alphanumeric chars, no I/O/Q)',
+            ),
+            { status: 400 },
         );
     }
-    const res = await fetch(
-        `${NHTSA_BASE}/decodevinvalues/${encodeURIComponent(cleanVin)}?format=json`,
-        { signal: AbortSignal.timeout(10000) },
-    );
-    if (!res.ok) throw new Error(`NHTSA VIN decode failed (${res.status})`);
+    let res;
+    try {
+        res = await fetch(
+            `${NHTSA_BASE}/decodevinvalues/${encodeURIComponent(cleanVin)}?format=json`,
+            { signal: AbortSignal.timeout(10000) },
+        );
+    } catch (e) {
+        if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+            throw Object.assign(new Error('NHTSA VIN decode timed out'), {
+                status: 504,
+            });
+        }
+        throw Object.assign(
+            new Error(`NHTSA VIN decode failed: ${e.message}`),
+            { status: 502 },
+        );
+    }
+    if (!res.ok) {
+        throw Object.assign(
+            new Error(`NHTSA VIN decode failed (${res.status})`),
+            { status: 502 },
+        );
+    }
     const data = await res.json();
     const result = data.Results?.[0];
-    if (!result) throw new Error('No NHTSA decode result returned');
+    if (!result) {
+        throw Object.assign(new Error('No NHTSA decode result returned'), {
+            status: 502,
+        });
+    }
     return {
         make: result.Make || null,
         model: result.Model || null,
@@ -50,30 +77,44 @@ async function estimateVehicleValue(vin, mileage) {
             vin,
             ...(mileage ? { miles: String(mileage) } : {}),
         });
+        let res;
         try {
-            const res = await fetch(
+            res = await fetch(
                 `https://mc-api.marketcheck.com/v2/predict/car/condition/rating?${params}`,
                 { signal: AbortSignal.timeout(10000) },
             );
-            if (!res.ok)
-                throw new Error(`MarketCheck API error (${res.status})`);
-            const data = await res.json();
-            return {
-                estimated: true,
-                provider: 'marketcheck',
-                value: data.price || null,
-                vinInfo,
-            };
         } catch (e) {
-            return { estimated: false, reason: e.message, vinInfo };
+            if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+                throw Object.assign(new Error('MarketCheck API timed out'), {
+                    status: 504,
+                });
+            }
+            throw Object.assign(
+                new Error(`MarketCheck API unreachable: ${e.message}`),
+                { status: 502 },
+            );
         }
+        if (!res.ok) {
+            throw Object.assign(
+                new Error(`MarketCheck API error (${res.status})`),
+                { status: 502 },
+            );
+        }
+        const data = await res.json();
+        return {
+            estimated: true,
+            provider: 'marketcheck',
+            value: data.price || null,
+            vinInfo,
+        };
     }
 
-    return {
-        estimated: false,
-        reason: `Unknown provider: ${provider}`,
-        vinInfo,
-    };
+    throw Object.assign(
+        new Error(
+            `Unknown vehicle value provider: ${provider || '(none configured)'}`,
+        ),
+        { status: 502 },
+    );
 }
 
 module.exports = { decodeVin, estimateVehicleValue };

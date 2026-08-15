@@ -386,6 +386,7 @@ router.post('/plaid/accounts', async (req, res) => {
         });
     }
     const accounts = [];
+    const failedItems = [];
     for (const { accessToken } of tokens.items) {
         try {
             const r = await fetch(`${plaidBase()}/accounts/balance/get`, {
@@ -394,7 +395,10 @@ router.post('/plaid/accounts', async (req, res) => {
                 body: JSON.stringify({ access_token: accessToken }),
                 signal: AbortSignal.timeout(15000),
             });
-            if (!r.ok) continue;
+            if (!r.ok) {
+                failedItems.push(r.status);
+                continue;
+            }
             const data = await r.json();
             for (const acc of data.accounts || []) {
                 accounts.push({
@@ -412,7 +416,14 @@ router.post('/plaid/accounts', async (req, res) => {
             }
         } catch (err) {
             console.error('[Plaid] accounts fetch error:', err);
+            failedItems.push(err.message);
         }
+    }
+    if (failedItems.length > 0 && accounts.length === 0) {
+        return res.status(502).json({
+            error: 'All Plaid account fetches failed. Existing data preserved.',
+            failedCount: failedItems.length,
+        });
     }
     const ok = await mutateState((state) => {
         const nonPlaid = (state.customAccounts || []).filter(
@@ -421,7 +432,14 @@ router.post('/plaid/accounts', async (req, res) => {
         state.customAccounts = [...nonPlaid, ...accounts];
     });
     if (!ok) return res.status(500).json({ error: 'Failed to save accounts.' });
-    res.json({ status: 'success', accountCount: accounts.length });
+    const accountsResponse = {
+        status: 'success',
+        accountCount: accounts.length,
+    };
+    if (failedItems.length > 0) {
+        accountsResponse.warning = `${failedItems.length} item(s) failed; partial data saved.`;
+    }
+    res.json(accountsResponse);
 });
 
 // ─── Webhook templates ────────────────────────────────────────────────────────
