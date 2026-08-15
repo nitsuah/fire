@@ -432,6 +432,12 @@ function handleTool(name, state, toolArgs = {}) {
                     unavailableReason: 'no_monthly_expenses',
                 };
             }
+            if (b.total <= 0) {
+                return {
+                    runwayMonths: null,
+                    unavailableReason: 'non_positive_net_worth',
+                };
+            }
             return { runwayMonths: Math.round(b.total / monthlyTotal) };
         }
 
