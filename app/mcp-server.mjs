@@ -367,8 +367,12 @@ function handleTool(name, state, toolArgs = {}) {
                 toolArgs;
             if (
                 !soldAsset ||
+                typeof soldAmount !== 'number' ||
+                !Number.isFinite(soldAmount) ||
                 soldAmount <= 0 ||
                 !boughtAsset ||
+                typeof boughtAmount !== 'number' ||
+                !Number.isFinite(boughtAmount) ||
                 boughtAmount <= 0
             ) {
                 throw new Error(
