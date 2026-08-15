@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const BACKUP_FOLDER_NAME = 'fire-tracker-backups';
 const GDRIVE_API = 'https://www.googleapis.com';
 const GDRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
+const DRIVE_FILE_ID_RE = /^[A-Za-z0-9_-]+$/;
 
 function isConfigured() {
     return Boolean(process.env.GDRIVE_SERVICE_ACCOUNT_JSON);
@@ -198,6 +199,9 @@ async function listBackups() {
 }
 
 async function downloadAndDecryptBackup(fileId) {
+    if (typeof fileId !== 'string' || !DRIVE_FILE_ID_RE.test(fileId)) {
+        throw new Error('Invalid Google Drive file ID.');
+    }
     const saKeyPath = process.env.GDRIVE_SERVICE_ACCOUNT_JSON;
     if (!saKeyPath || !fs.existsSync(saKeyPath)) {
         throw new Error(
@@ -205,8 +209,9 @@ async function downloadAndDecryptBackup(fileId) {
         );
     }
     const token = await getServiceAccountToken(saKeyPath);
+    const encodedFileId = encodeURIComponent(fileId);
     const res = await fetch(
-        `${GDRIVE_API}/drive/v3/files/${fileId}?alt=media`,
+        `${GDRIVE_API}/drive/v3/files/${encodedFileId}?alt=media`,
         {
             headers: { Authorization: `Bearer ${token}` },
             signal: AbortSignal.timeout(30000),

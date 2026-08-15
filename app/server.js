@@ -69,11 +69,11 @@ try {
     rateLimitFn = null;
 }
 
-function makeRateLimiter(max, windowMs, message) {
+function makeRateLimiter(limit, windowMs, message) {
     if (!rateLimitFn) return (req, res, next) => next();
     return rateLimitFn({
         windowMs,
-        max,
+        limit,
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: message },
@@ -149,7 +149,7 @@ app.use('/api/backup', backupRouter);
 app.use('/api/vehicles', vehiclesRouter);
 
 // Key rotation endpoint — requires FIRE_ADMIN_KEY header regardless of FIRE_API_KEY
-app.post('/api/admin/rotate-key', (req, res) => {
+app.post('/api/admin/rotate-key', async (req, res) => {
     if (!ADMIN_KEY || req.headers['x-admin-key'] !== ADMIN_KEY) {
         return res.status(401).json({ error: 'Unauthorized.' });
     }
@@ -160,7 +160,7 @@ app.post('/api/admin/rotate-key', (req, res) => {
             .json({ error: 'newKey must be 64 hex characters.' });
     }
     try {
-        rotateMasterKey(newKey);
+        await rotateMasterKey(newKey);
         res.json({
             status: 'success',
             message:

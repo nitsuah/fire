@@ -129,18 +129,19 @@ function mutateState(fn) {
     return next;
 }
 
-function rotateMasterKey(newKeyHex) {
+async function rotateMasterKey(newKeyHex) {
     if (!newKeyHex || !/^[0-9a-fA-F]{64}$/.test(newKeyHex)) {
         throw new Error(
             'New key must be 64 hexadecimal characters (32 bytes).',
         );
     }
-    const state = readState();
     const prevKey = MASTER_KEY;
     const prevEnv = process.env.SYNC_MASTER_KEY;
-    MASTER_KEY = Buffer.from(newKeyHex, 'hex');
-    process.env.SYNC_MASTER_KEY = newKeyHex;
-    const ok = writeState(state);
+    const nextKey = Buffer.from(newKeyHex, 'hex');
+    const ok = await mutateState(() => {
+        MASTER_KEY = nextKey;
+        process.env.SYNC_MASTER_KEY = newKeyHex;
+    });
     if (!ok) {
         MASTER_KEY = prevKey;
         if (prevEnv === undefined) {

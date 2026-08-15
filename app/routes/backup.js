@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { readState, writeState } = require('../lib/db');
+const { readState, mutateState } = require('../lib/db');
 const {
     isConfigured,
     uploadBackup,
@@ -10,6 +10,7 @@ const {
 } = require('../lib/gdrive-backup');
 
 const router = express.Router();
+const DRIVE_FILE_ID_RE = /^[A-Za-z0-9_-]+$/;
 
 router.post('/drive', async (req, res) => {
     if (!isConfigured()) {
@@ -51,6 +52,9 @@ router.get('/drive/list', async (req, res) => {
 router.post('/drive/restore', async (req, res) => {
     const { fileId } = req.body;
     if (!fileId) return res.status(400).json({ error: 'fileId is required.' });
+    if (typeof fileId !== 'string' || !DRIVE_FILE_ID_RE.test(fileId)) {
+        return res.status(400).json({ error: 'Invalid Google Drive file ID.' });
+    }
     if (!isConfigured()) {
         return res.status(503).json({
             error: 'Google Drive backup not configured. Set GDRIVE_SERVICE_ACCOUNT_JSON.',
@@ -64,7 +68,12 @@ router.post('/drive/restore', async (req, res) => {
     try {
         const json = await downloadAndDecryptBackup(fileId);
         const restored = JSON.parse(json);
-        const ok = writeState(restored);
+        const ok = await mutateState((state) => {
+            for (const key of Object.keys(state)) {
+                delete state[key];
+            }
+            Object.assign(state, restored);
+        });
         if (!ok)
             return res
                 .status(500)

@@ -83,6 +83,85 @@ const TOOLS = [
             'Tracked crypto wallets: chain, label, truncated address (last 8 chars), USD balance, and last-fetched timestamp.',
         inputSchema: { type: 'object', properties: {} },
     },
+    {
+        name: 'get_concentration_risk',
+        description: 'Monitor exposure limits (e.g., COIN > 20%).',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'simulate_rebalance',
+        description:
+            'Scenario modeling: "What if I sold X of AssetA and bought Y of AssetB?"',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                soldAsset: { type: 'string' },
+                soldAmount: { type: 'number' },
+                boughtAsset: { type: 'string' },
+                boughtAmount: { type: 'number' },
+            },
+            required: [
+                'soldAsset',
+                'soldAmount',
+                'boughtAsset',
+                'boughtAmount',
+            ],
+        },
+    },
+    {
+        name: 'get_market_correlation',
+        description: 'Check portfolio sync (e.g., COIN + VOO).',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_swr_sensitivity',
+        description: 'Impact of market dip on 4-year SWR.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                swr: { type: 'number' },
+                marketDipPercent: { type: 'number' },
+            },
+            required: ['swr', 'marketDipPercent'],
+        },
+    },
+    {
+        name: 'set_price_target_alert',
+        description: 'Monitor assets for exit prices.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                symbol: { type: 'string' },
+                targetPrice: { type: 'number' },
+            },
+            required: ['symbol', 'targetPrice'],
+        },
+    },
+    {
+        name: 'auto_reconcile_csv',
+        description: 'Automate matching pending transactions.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_emergency_runway',
+        description: 'If income hits $0, how many months until $0 net worth?',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_dividend_forecast',
+        description: 'Project portfolio yield.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_net_worth_trend',
+        description: 'Time-series projection.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_diversification_score',
+        description: 'Proprietary balance rating.',
+        inputSchema: { type: 'object', properties: {} },
+    },
 ];
 
 function computeNetWorthBreakdown(state) {
@@ -127,7 +206,7 @@ function computeNetWorthBreakdown(state) {
     return { total, cash, equities, cds, realEstate, vehicles, cryptoWallets };
 }
 
-function handleTool(name, state) {
+function handleTool(name, state, toolArgs = {}) {
     switch (name) {
         case 'fire_status_summary': {
             const proj = buildProjectionData(state);
@@ -292,6 +371,120 @@ function handleTool(name, state) {
             };
         }
 
+        case 'get_concentration_risk': {
+            const b = computeNetWorthBreakdown(state);
+            const total = b.total;
+            if (total <= 0) {
+                return {
+                    risk: [],
+                    total,
+                    unavailableReason: 'non_positive_net_worth',
+                };
+            }
+            const positions = state.importedPositions || [];
+            const risk = positions
+                .filter((p) => p.value / total > 0.1)
+                .map((p) => ({
+                    symbol: p.symbol,
+                    percentage: Math.round((p.value / total) * 100),
+                }));
+            return { risk, total };
+        }
+
+        case 'simulate_rebalance': {
+            const { soldAsset, soldAmount, boughtAsset, boughtAmount } =
+                toolArgs;
+            if (
+                !soldAsset ||
+                typeof soldAmount !== 'number' ||
+                !Number.isFinite(soldAmount) ||
+                soldAmount <= 0 ||
+                !boughtAsset ||
+                typeof boughtAmount !== 'number' ||
+                !Number.isFinite(boughtAmount) ||
+                boughtAmount <= 0
+            ) {
+                throw new Error(
+                    'Invalid input: soldAsset, soldAmount, boughtAsset, and boughtAmount (>0) are required.',
+                );
+            }
+            return {
+                status: 'simulated',
+                sold: { soldAsset, soldAmount },
+                bought: { boughtAsset, boughtAmount },
+            };
+        }
+
+        case 'get_market_correlation': {
+            return { status: 'not_implemented' };
+        }
+
+        case 'get_swr_sensitivity': {
+            const { swr, marketDipPercent } = toolArgs;
+            if (
+                typeof swr !== 'number' ||
+                swr <= 0 ||
+                typeof marketDipPercent !== 'number' ||
+                marketDipPercent < 0
+            ) {
+                throw new Error(
+                    'Invalid input: swr (>0) and marketDipPercent (>=0) are required.',
+                );
+            }
+            return { swr, marketDipPercent, status: 'not_implemented' };
+        }
+
+        case 'set_price_target_alert': {
+            const { symbol, targetPrice } = toolArgs;
+            if (
+                !symbol ||
+                typeof targetPrice !== 'number' ||
+                targetPrice <= 0
+            ) {
+                throw new Error(
+                    'Invalid input: symbol and targetPrice (>0) are required.',
+                );
+            }
+            return { symbol, targetPrice, status: 'alert_set' };
+        }
+
+        case 'auto_reconcile_csv': {
+            return { status: 'not_implemented' };
+        }
+
+        case 'get_emergency_runway': {
+            const b = computeNetWorthBreakdown(state);
+            const expenses = state.expenses || {};
+            const monthlyTotal = Object.values(expenses).reduce(
+                (s, v) => s + (v || 0),
+                0,
+            );
+            if (monthlyTotal <= 0) {
+                return {
+                    runwayMonths: null,
+                    unavailableReason: 'no_monthly_expenses',
+                };
+            }
+            if (b.total <= 0) {
+                return {
+                    runwayMonths: null,
+                    unavailableReason: 'non_positive_net_worth',
+                };
+            }
+            return { runwayMonths: Math.round(b.total / monthlyTotal) };
+        }
+
+        case 'get_dividend_forecast': {
+            return { status: 'not_implemented' };
+        }
+
+        case 'get_net_worth_trend': {
+            return { status: 'not_implemented' };
+        }
+
+        case 'get_diversification_score': {
+            return { status: 'not_implemented' };
+        }
         case 'get_wallets': {
             const wallets = (state.wallets || []).map((w) => ({
                 id: w.id,
@@ -316,7 +509,6 @@ function handleTool(name, state) {
                 count: wallets.length,
             };
         }
-
         default:
             throw new Error(`Unknown tool: ${name}`);
     }
@@ -335,10 +527,10 @@ async function main() {
     }));
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
-        const { name } = request.params;
+        const { name, arguments: toolArgs = {} } = request.params;
         try {
             const state = readState();
-            const result = handleTool(name, state);
+            const result = handleTool(name, state, toolArgs);
             const text = JSON.stringify(result, null, 2);
             writeAuditLog(name, Buffer.byteLength(text, 'utf8'));
             return {
