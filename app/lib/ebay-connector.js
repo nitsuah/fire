@@ -30,7 +30,7 @@ function getBaseUrls() {
 }
 
 function buildAuthorizationUrl(redirectUri, state) {
-    const { clientId, environment } = getEnv();
+    const { clientId } = getEnv();
     const { auth } = getBaseUrls();
     const params = new URLSearchParams({
         client_id: clientId,
@@ -39,16 +39,12 @@ function buildAuthorizationUrl(redirectUri, state) {
         scope: EBAY_SCOPE,
         state,
     });
-    const path =
-        environment === 'production'
-            ? '/oauth2/authorize'
-            : '/oauth2/authorize';
-    return `${auth}${path}?${params.toString()}`;
+    return `${auth}/oauth2/authorize?${params.toString()}`;
 }
 
 async function exchangeCodeForTokens(code, redirectUri) {
     const { clientId, clientSecret } = getEnv();
-    const { auth } = getBaseUrls();
+    const { api } = getBaseUrls();
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
         'base64',
     );
@@ -57,7 +53,7 @@ async function exchangeCodeForTokens(code, redirectUri) {
         code,
         redirect_uri: redirectUri,
     });
-    const res = await fetch(`${auth}/identity/v1/oauth2/token`, {
+    const res = await fetch(`${api}/identity/v1/oauth2/token`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -75,7 +71,7 @@ async function exchangeCodeForTokens(code, redirectUri) {
 
 async function refreshAccessToken(storedRefreshToken) {
     const { clientId, clientSecret } = getEnv();
-    const { auth } = getBaseUrls();
+    const { api } = getBaseUrls();
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
         'base64',
     );
@@ -84,7 +80,7 @@ async function refreshAccessToken(storedRefreshToken) {
         refresh_token: storedRefreshToken,
         scope: EBAY_SCOPE,
     });
-    const res = await fetch(`${auth}/identity/v1/oauth2/token`, {
+    const res = await fetch(`${api}/identity/v1/oauth2/token`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -119,30 +115,37 @@ async function fetchCompletedOrders(
     });
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(`eBay Order API failed (${res.status}): ${text}`);
+        const err = new Error(`eBay Order API failed (${res.status}): ${text}`);
+        err.status = res.status;
+        throw err;
     }
     return res.json();
 }
 
 function ordersToLedgerEntries(orders) {
     const entries = [];
+    const toAmount = (raw) => {
+        const parsed = parseFloat(raw);
+        return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
+    };
     for (const order of orders?.orders || []) {
         const orderId = order.orderId;
+        if (!orderId) continue;
         const saleDate =
             order.creationDate?.split('T')[0] ||
             new Date().toISOString().split('T')[0];
-        const gross = parseFloat(order.pricingSummary?.total?.value || '0');
-        const fees = parseFloat(order.pricingSummary?.fee?.value || '0');
-        const net = gross - fees;
+        const gross = toAmount(order.pricingSummary?.total?.value);
+        const fees = toAmount(order.pricingSummary?.fee?.value);
+        const net = Math.round((gross - fees) * 100) / 100;
         const title = order.lineItems?.[0]?.title || 'eBay sale';
         entries.push({
             id: `ebay-${orderId}`,
             platform: 'eBay',
             date: saleDate,
             description: title,
-            gross: Math.round(gross * 100) / 100,
-            fees: Math.round(fees * 100) / 100,
-            net: Math.round(net * 100) / 100,
+            gross,
+            fees,
+            net,
             orderId,
         });
     }

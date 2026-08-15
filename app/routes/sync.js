@@ -57,7 +57,7 @@ const WEBHOOK_FIELD_SCHEMAS = {
         optional: ['date', 'description', 'fees', 'id'],
     },
     importedFiles: { required: ['name'], optional: ['date', 'id'] },
-    taxRate: { required: ['value'], optional: [] },
+    taxRate: { required: [], optional: [] },
     projectionSettings: {
         required: [],
         optional: [
@@ -81,11 +81,14 @@ function omitSecret(template) {
 function validateWebhookPayload(type, data) {
     const schema = WEBHOOK_FIELD_SCHEMAS[type];
     if (!schema) return null;
-    const payload = Array.isArray(data) ? data[0] : data;
-    if (!payload || typeof payload !== 'object') return null;
-    for (const field of schema.required) {
-        if (!(field in payload)) {
-            return `Missing required field: ${field}`;
+    if (schema.required.length === 0) return null;
+    const items = Array.isArray(data) ? data : [data];
+    for (const payload of items) {
+        if (!payload || typeof payload !== 'object') continue;
+        for (const field of schema.required) {
+            if (!(field in payload)) {
+                return `Missing required field: ${field}`;
+            }
         }
     }
     return null;
@@ -98,8 +101,13 @@ function getTokenFile(provider) {
 function loadTokens(provider) {
     const file = getTokenFile(provider);
     if (!fs.existsSync(file)) return null;
-    const { data: encrypted } = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return JSON.parse(decrypt(encrypted));
+    try {
+        const { data: encrypted } = JSON.parse(fs.readFileSync(file, 'utf8'));
+        return JSON.parse(decrypt(encrypted));
+    } catch (err) {
+        console.error(`[Sync] Unable to read ${provider} tokens:`, err.message);
+        return null;
+    }
 }
 
 function saveTokens(provider, tokens) {
@@ -107,7 +115,10 @@ function saveTokens(provider, tokens) {
         lastUpdated: new Date().toISOString(),
         data: encrypt(JSON.stringify(tokens)),
     };
-    fs.writeFileSync(getTokenFile(provider), JSON.stringify(tokenData));
+    const file = getTokenFile(provider);
+    const tmp = `${file}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(tokenData), { mode: 0o600 });
+    fs.renameSync(tmp, file);
 }
 
 // ─── eBay OAuth ──────────────────────────────────────────────────────────────
@@ -187,7 +198,7 @@ router.post('/ebay/sync', async (req, res) => {
         try {
             ordersData = await fetchCompletedOrders(tokens.access_token);
         } catch (err) {
-            if (err.message.includes('401') || err.message.includes('403')) {
+            if (err.status === 401 || err.status === 403) {
                 const refreshed = await refreshAccessToken(
                     tokens.refresh_token,
                 );
@@ -349,6 +360,7 @@ router.post('/plaid/positions', async (req, res) => {
                     quantity: holding.quantity,
                     value: holding.institution_value,
                     costBasis: holding.cost_basis,
+                    source: 'plaid',
                 });
             }
         } catch (err) {
@@ -356,7 +368,10 @@ router.post('/plaid/positions', async (req, res) => {
         }
     }
     const ok = await mutateState((state) => {
-        state.importedPositions = allPositions;
+        const nonPlaid = (state.importedPositions || []).filter(
+            (p) => p.source !== 'plaid',
+        );
+        state.importedPositions = [...nonPlaid, ...allPositions];
     });
     if (!ok)
         return res.status(500).json({ error: 'Failed to save positions.' });
@@ -586,13 +601,15 @@ router.post('/webhook/:templateId', async (req, res) => {
         });
     }
 
-    const dbUpdated = readState();
-    const integrationSuccess = integrateWebhookData(
-        dbUpdated,
-        template.type,
-        transformedData,
-    );
-    if (integrationSuccess && writeState(dbUpdated)) {
+    let integrationSuccess = false;
+    const saved = await mutateState((state) => {
+        integrationSuccess = integrateWebhookData(
+            state,
+            template.type,
+            transformedData,
+        );
+    });
+    if (integrationSuccess && saved) {
         console.log(
             `[Webhook] Integrated type=${template.type} template=${template.name}`,
         );

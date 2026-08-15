@@ -42,15 +42,6 @@ router.post('/', async (req, res) => {
             .status(400)
             .json({ error: `Invalid address format for chain: ${chain}` });
     }
-    const db = readState();
-    const existing = (db.wallets || []).find(
-        (w) =>
-            w.address.toLowerCase() === address.toLowerCase() &&
-            w.chain === chain,
-    );
-    if (existing) {
-        return res.status(409).json({ error: 'Wallet already tracked.' });
-    }
     const wallet = {
         id: crypto.randomBytes(8).toString('hex'),
         address,
@@ -60,10 +51,18 @@ router.post('/', async (req, res) => {
         lastUsdValue: null,
         lastFetched: null,
     };
+    let duplicate = false;
     const ok = await mutateState((state) => {
         if (!state.wallets) state.wallets = [];
-        state.wallets.push(wallet);
+        duplicate = state.wallets.some(
+            (w) =>
+                w.address.toLowerCase() === address.toLowerCase() &&
+                w.chain === chain,
+        );
+        if (!duplicate) state.wallets.push(wallet);
     });
+    if (duplicate)
+        return res.status(409).json({ error: 'Wallet already tracked.' });
     if (!ok) return res.status(500).json({ error: 'Failed to save wallet.' });
     res.status(201).json({
         ...wallet,
@@ -111,7 +110,10 @@ router.post('/refresh-all', async (req, res) => {
         wallets.map((w) => refreshWalletBalance(w)),
     );
     const ok = await mutateState((state) => {
-        state.wallets = results;
+        const refreshedById = new Map(results.map((w) => [w.id, w]));
+        state.wallets = (state.wallets || []).map(
+            (w) => refreshedById.get(w.id) || w,
+        );
     });
     if (!ok)
         return res.status(500).json({ error: 'Failed to update wallets.' });

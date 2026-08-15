@@ -345,9 +345,10 @@ async function main() {
                 content: [{ type: 'text', text }],
             };
         } catch (err) {
-            writeAuditLog(name, 0);
+            const text = `Error: ${err.message}`;
+            writeAuditLog(name, Buffer.byteLength(text, 'utf8'));
             return {
-                content: [{ type: 'text', text: `Error: ${err.message}` }],
+                content: [{ type: 'text', text }],
                 isError: true,
             };
         }

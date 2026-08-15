@@ -136,10 +136,18 @@ function rotateMasterKey(newKeyHex) {
         );
     }
     const state = readState();
+    const prevKey = MASTER_KEY;
+    const prevEnv = process.env.SYNC_MASTER_KEY;
     MASTER_KEY = Buffer.from(newKeyHex, 'hex');
     process.env.SYNC_MASTER_KEY = newKeyHex;
     const ok = writeState(state);
     if (!ok) {
+        MASTER_KEY = prevKey;
+        if (prevEnv === undefined) {
+            delete process.env.SYNC_MASTER_KEY;
+        } else {
+            process.env.SYNC_MASTER_KEY = prevEnv;
+        }
         throw new Error('Failed to re-encrypt database with new key.');
     }
 }

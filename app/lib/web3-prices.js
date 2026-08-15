@@ -32,29 +32,32 @@ async function fetchCoinGeckoPrice(coingeckoId) {
 async function fetchEvmBalance(address, chain) {
     const apiKey = chain.envKey ? process.env[chain.envKey] : null;
     if (!apiKey && chain.envKey) {
-        return { native: 0, usdValue: 0, warning: `${chain.envKey} not set` };
+        return { ok: false, warning: `${chain.envKey} not set` };
     }
     const params = new URLSearchParams({
         module: 'account',
         action: 'balance',
         address,
         tag: 'latest',
+        ...(chain.chainId != null ? { chainid: String(chain.chainId) } : {}),
         ...(apiKey ? { apikey: apiKey } : {}),
     });
     try {
         const res = await fetch(`${chain.apiBase}?${params}`, {
             signal: AbortSignal.timeout(8000),
         });
-        if (!res.ok) return { native: 0, usdValue: 0 };
+        if (!res.ok)
+            return { ok: false, warning: `Explorer returned ${res.status}` };
         const data = await res.json();
-        if (data.status !== '1') return { native: 0, usdValue: 0 };
+        if (data.status !== '1')
+            return { ok: false, warning: data.message || 'Explorer error' };
         const weiBalance = BigInt(data.result || '0');
         const native = Number(weiBalance) / 1e18;
         const price = await fetchCoinGeckoPrice(chain.coingeckoId);
         const usdValue = price != null ? native * price : 0;
-        return { native, usdValue, price };
+        return { ok: true, native, usdValue, price };
     } catch {
-        return { native: 0, usdValue: 0 };
+        return { ok: false, warning: 'Balance fetch failed' };
     }
 }
 
@@ -64,7 +67,8 @@ async function fetchBitcoinBalance(address) {
             `https://blockstream.info/api/address/${encodeURIComponent(address)}`,
             { signal: AbortSignal.timeout(8000) },
         );
-        if (!res.ok) return { native: 0, usdValue: 0 };
+        if (!res.ok)
+            return { ok: false, warning: `Blockstream returned ${res.status}` };
         const data = await res.json();
         const satoshis =
             (data.chain_stats?.funded_txo_sum || 0) -
@@ -72,9 +76,9 @@ async function fetchBitcoinBalance(address) {
         const native = satoshis / 1e8;
         const price = await fetchCoinGeckoPrice('bitcoin');
         const usdValue = price != null ? native * price : 0;
-        return { native, usdValue, price };
+        return { ok: true, native, usdValue, price };
     } catch {
-        return { native: 0, usdValue: 0 };
+        return { ok: false, warning: 'Balance fetch failed' };
     }
 }
 
@@ -91,15 +95,16 @@ async function fetchSolanaBalance(address) {
             }),
             signal: AbortSignal.timeout(8000),
         });
-        if (!res.ok) return { native: 0, usdValue: 0 };
+        if (!res.ok)
+            return { ok: false, warning: `Solana RPC returned ${res.status}` };
         const data = await res.json();
         const lamports = data.result?.value || 0;
         const native = lamports / 1e9;
         const price = await fetchCoinGeckoPrice('solana');
         const usdValue = price != null ? native * price : 0;
-        return { native, usdValue, price };
+        return { ok: true, native, usdValue, price };
     } catch {
-        return { native: 0, usdValue: 0 };
+        return { ok: false, warning: 'Balance fetch failed' };
     }
 }
 
@@ -122,16 +127,22 @@ async function refreshWalletBalance(wallet) {
     } else if (chain.addressFormat === 'evm') {
         result = await fetchEvmBalance(wallet.address, chain);
     } else {
-        result = { native: 0, usdValue: 0, warning: 'Unsupported chain' };
+        result = { ok: false, warning: 'Unsupported chain' };
     }
 
     return {
         ...wallet,
-        lastBalance: result.native,
-        lastUsdValue: result.usdValue,
-        lastPrice: result.price ?? null,
+        ...(result.ok
+            ? {
+                  lastBalance: result.native,
+                  lastUsdValue: result.usdValue,
+                  lastPrice: result.price ?? null,
+              }
+            : {}),
         lastFetched: new Date().toISOString(),
-        ...(result.warning ? { warning: result.warning } : {}),
+        ...(result.warning
+            ? { warning: result.warning }
+            : { warning: undefined }),
     };
 }
 

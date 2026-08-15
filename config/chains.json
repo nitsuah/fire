@@ -4,7 +4,8 @@
     "name": "Ethereum",
     "nativeSymbol": "ETH",
     "coingeckoId": "ethereum",
-    "apiBase": "https://api.etherscan.io/api",
+    "apiBase": "https://api.etherscan.io/v2/api",
+    "chainId": 1,
     "envKey": "ETHERSCAN_API_KEY",
     "addressFormat": "evm"
   },

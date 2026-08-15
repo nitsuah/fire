@@ -52,6 +52,14 @@ if (!API_KEY && IS_PRODUCTION) {
     );
 }
 
+const ADMIN_KEY = process.env.FIRE_ADMIN_KEY || null;
+if (!ADMIN_KEY && IS_PRODUCTION) {
+    console.error(
+        '[Server] FATAL: FIRE_ADMIN_KEY must be set in production (required for key rotation).',
+    );
+    process.exit(1);
+}
+
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
 
 let rateLimitFn;
@@ -140,8 +148,11 @@ app.use('/api/wallets', walletsRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/vehicles', vehiclesRouter);
 
-// Key rotation endpoint
+// Key rotation endpoint — requires FIRE_ADMIN_KEY header regardless of FIRE_API_KEY
 app.post('/api/admin/rotate-key', (req, res) => {
+    if (!ADMIN_KEY || req.headers['x-admin-key'] !== ADMIN_KEY) {
+        return res.status(401).json({ error: 'Unauthorized.' });
+    }
     const { newKey } = req.body;
     if (!newKey || !/^[0-9a-fA-F]{64}$/.test(newKey)) {
         return res
