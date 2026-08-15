@@ -21,6 +21,11 @@ export default [
             'app/lib/finance-calcs.js',
             'app/lib/finance-parsing.js',
             'app/lib/finance-platforms.js',
+            'app/lib/web3-prices.js',
+            'app/lib/ebay-connector.js',
+            'app/lib/gdrive-backup.js',
+            'app/lib/prices-provider.js',
+            'app/lib/vehicle-api.js',
         ],
         languageOptions: {
             globals: {
