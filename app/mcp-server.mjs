@@ -66,7 +66,8 @@ const TOOLS = [
     },
     {
         name: 'simulate_rebalance',
-        description: 'Scenario modeling: "What if I sold X of AssetA and bought Y of AssetB?"',
+        description:
+            'Scenario modeling: "What if I sold X of AssetA and bought Y of AssetB?"',
         inputSchema: {
             type: 'object',
             properties: {
@@ -75,7 +76,12 @@ const TOOLS = [
                 boughtAsset: { type: 'string' },
                 boughtAmount: { type: 'number' },
             },
-            required: ['soldAsset', 'soldAmount', 'boughtAsset', 'boughtAmount'],
+            required: [
+                'soldAsset',
+                'soldAmount',
+                'boughtAsset',
+                'boughtAmount',
+            ],
         },
     },
     {
@@ -357,7 +363,18 @@ function handleTool(name, state, toolArgs = {}) {
         }
 
         case 'simulate_rebalance': {
-            const { soldAsset, soldAmount, boughtAsset, boughtAmount } = toolArgs;
+            const { soldAsset, soldAmount, boughtAsset, boughtAmount } =
+                toolArgs;
+            if (
+                !soldAsset ||
+                soldAmount <= 0 ||
+                !boughtAsset ||
+                boughtAmount <= 0
+            ) {
+                throw new Error(
+                    'Invalid input: soldAsset, soldAmount, boughtAsset, and boughtAmount (>0) are required.',
+                );
+            }
             return {
                 status: 'simulated',
                 sold: { soldAsset, soldAmount },
@@ -371,11 +388,30 @@ function handleTool(name, state, toolArgs = {}) {
 
         case 'get_swr_sensitivity': {
             const { swr, marketDipPercent } = toolArgs;
+            if (
+                typeof swr !== 'number' ||
+                swr <= 0 ||
+                typeof marketDipPercent !== 'number' ||
+                marketDipPercent < 0
+            ) {
+                throw new Error(
+                    'Invalid input: swr (>0) and marketDipPercent (>=0) are required.',
+                );
+            }
             return { swr, marketDipPercent, status: 'not_implemented' };
         }
 
         case 'set_price_target_alert': {
             const { symbol, targetPrice } = toolArgs;
+            if (
+                !symbol ||
+                typeof targetPrice !== 'number' ||
+                targetPrice <= 0
+            ) {
+                throw new Error(
+                    'Invalid input: symbol and targetPrice (>0) are required.',
+                );
+            }
             return { symbol, targetPrice, status: 'alert_set' };
         }
 
