@@ -44,7 +44,9 @@ router.get('/stream', (req, res) => {
     res.flushHeaders();
 
     sseClients.set(res, true);
-    res.write(`data: ${JSON.stringify({ connected: true, provider: getProvider() })}\n\n`);
+    res.write(
+        `data: ${JSON.stringify({ connected: true, provider: getProvider() })}\n\n`,
+    );
 
     req.on('close', () => {
         sseClients.delete(res);
@@ -70,7 +72,9 @@ router.get('/', async (req, res) => {
     const uniqueSymbols = [...new Set(symbolsArr)];
 
     if (allFresh(uniqueSymbols)) {
-        console.log(`[Prices] Serving ${uniqueSymbols.length} symbol(s) from cache.`);
+        console.log(
+            `[Prices] Serving ${uniqueSymbols.length} symbol(s) from cache.`,
+        );
         return res.json(pickSymbols(uniqueSymbols));
     }
 
@@ -83,13 +87,19 @@ router.get('/', async (req, res) => {
             const now = Date.now();
             for (const [symbol, price] of Object.entries(results)) {
                 if (price != null) {
-                    pricesCache.data[symbol] = { price, changePercent: 0, fetchedAt: now };
+                    pricesCache.data[symbol] = {
+                        price,
+                        changePercent: 0,
+                        fetchedAt: now,
+                    };
                 }
             }
             const fresh = pickSymbols(uniqueSymbols);
             if (Object.keys(fresh).length > 0) {
                 broadcastToSubscribers(fresh);
-                console.log(`[Prices] Updated ${Object.keys(fresh).length} quote(s) via ${provider}.`);
+                console.log(
+                    `[Prices] Updated ${Object.keys(fresh).length} quote(s) via ${provider}.`,
+                );
                 return res.json(fresh);
             }
         } catch (err) {
@@ -113,7 +123,9 @@ router.get('/', async (req, res) => {
 
     const qStr = encodeURIComponent(uniqueSymbols.join(','));
     const buildCrumb = () =>
-        pricesCache.crumb ? `&crumb=${encodeURIComponent(pricesCache.crumb)}` : '';
+        pricesCache.crumb
+            ? `&crumb=${encodeURIComponent(pricesCache.crumb)}`
+            : '';
 
     const endpoints = [
         () =>
@@ -132,7 +144,8 @@ router.get('/', async (req, res) => {
             });
             if (response.ok) {
                 const json = await response.json();
-                const quotes = (json.quoteResponse && json.quoteResponse.result) || [];
+                const quotes =
+                    (json.quoteResponse && json.quoteResponse.result) || [];
                 if (quotes.length > 0) {
                     const now = Date.now();
                     quotes.forEach((q) => {
@@ -147,8 +160,13 @@ router.get('/', async (req, res) => {
                     console.log(`[Prices] Updated ${quotes.length} quote(s).`);
                     return res.json(fresh);
                 }
-            } else if ((response.status === 401 || response.status === 403) && !retried) {
-                console.warn(`[Prices] Auth error ${response.status}, refreshing crumb...`);
+            } else if (
+                (response.status === 401 || response.status === 403) &&
+                !retried
+            ) {
+                console.warn(
+                    `[Prices] Auth error ${response.status}, refreshing crumb...`,
+                );
                 await refreshYahooCrumb();
                 retried = true;
                 i--;
@@ -161,7 +179,9 @@ router.get('/', async (req, res) => {
     }
 
     const stale = pickSymbols(uniqueSymbols);
-    console.warn(`[Prices] All endpoints failed. Returning stale cache (${Object.keys(stale).length} items).`);
+    console.warn(
+        `[Prices] All endpoints failed. Returning stale cache (${Object.keys(stale).length} items).`,
+    );
     res.json(stale);
 });
 

@@ -16,11 +16,12 @@ const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
 
 function writeAuditLog(toolName, responseBytes) {
     try {
-        const line = JSON.stringify({
-            ts: new Date().toISOString(),
-            tool: toolName,
-            bytes: responseBytes,
-        }) + '\n';
+        const line =
+            JSON.stringify({
+                ts: new Date().toISOString(),
+                tool: toolName,
+                bytes: responseBytes,
+            }) + '\n';
         appendFileSync(AUDIT_LOG, line);
     } catch {
         // Non-fatal: audit log failure must not block tool responses
@@ -297,16 +298,21 @@ function handleTool(name, state) {
                 chain: w.chain,
                 label: w.label,
                 address: `...${w.address.slice(-8)}`,
-                lastUsdValue: w.lastUsdValue != null ? Math.round(w.lastUsdValue * 100) / 100 : null,
+                lastUsdValue:
+                    w.lastUsdValue != null
+                        ? Math.round(w.lastUsdValue * 100) / 100
+                        : null,
                 lastBalance: w.lastBalance,
                 lastFetched: w.lastFetched,
                 warning: w.warning || null,
             }));
             return {
                 wallets,
-                totalUsdValue: Math.round(
-                    wallets.reduce((s, w) => s + (w.lastUsdValue || 0), 0) * 100,
-                ) / 100,
+                totalUsdValue:
+                    Math.round(
+                        wallets.reduce((s, w) => s + (w.lastUsdValue || 0), 0) *
+                            100,
+                    ) / 100,
                 count: wallets.length,
             };
         }

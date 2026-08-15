@@ -131,7 +131,9 @@ function mutateState(fn) {
 
 function rotateMasterKey(newKeyHex) {
     if (!newKeyHex || !/^[0-9a-fA-F]{64}$/.test(newKeyHex)) {
-        throw new Error('New key must be 64 hexadecimal characters (32 bytes).');
+        throw new Error(
+            'New key must be 64 hexadecimal characters (32 bytes).',
+        );
     }
     const state = readState();
     MASTER_KEY = Buffer.from(newKeyHex, 'hex');

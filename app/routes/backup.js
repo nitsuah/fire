@@ -2,7 +2,12 @@
 
 const express = require('express');
 const { readState, writeState } = require('../lib/db');
-const { isConfigured, uploadBackup, listBackups, downloadAndDecryptBackup } = require('../lib/gdrive-backup');
+const {
+    isConfigured,
+    uploadBackup,
+    listBackups,
+    downloadAndDecryptBackup,
+} = require('../lib/gdrive-backup');
 
 const router = express.Router();
 
@@ -52,14 +57,22 @@ router.post('/drive/restore', async (req, res) => {
         });
     }
     if (!process.env.SYNC_MASTER_KEY) {
-        return res.status(503).json({ error: 'SYNC_MASTER_KEY is required to decrypt backup.' });
+        return res
+            .status(503)
+            .json({ error: 'SYNC_MASTER_KEY is required to decrypt backup.' });
     }
     try {
         const json = await downloadAndDecryptBackup(fileId);
         const restored = JSON.parse(json);
         const ok = writeState(restored);
-        if (!ok) return res.status(500).json({ error: 'Failed to write restored state.' });
-        res.json({ status: 'success', message: 'Database restored from backup.' });
+        if (!ok)
+            return res
+                .status(500)
+                .json({ error: 'Failed to write restored state.' });
+        res.json({
+            status: 'success',
+            message: 'Database restored from backup.',
+        });
     } catch (err) {
         console.error('[Backup] Drive restore error:', err);
         res.status(502).json({ error: err.message });

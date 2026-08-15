@@ -17,7 +17,10 @@ async function fetchCoinGeckoPrice(coingeckoId) {
     const headers = key ? { 'x-cg-pro-api-key': key } : {};
     const url = `${base}/simple/price?ids=${coingeckoId}&vs_currencies=usd`;
     try {
-        const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+        const res = await fetch(url, {
+            headers,
+            signal: AbortSignal.timeout(8000),
+        });
         if (!res.ok) return null;
         const data = await res.json();
         return data[coingeckoId]?.usd ?? null;
@@ -104,7 +107,11 @@ async function refreshWalletBalance(wallet) {
     const chains = loadChains();
     const chain = chains.find((c) => c.id === wallet.chain);
     if (!chain) {
-        return { ...wallet, warning: `Unknown chain: ${wallet.chain}`, lastFetched: new Date().toISOString() };
+        return {
+            ...wallet,
+            warning: `Unknown chain: ${wallet.chain}`,
+            lastFetched: new Date().toISOString(),
+        };
     }
 
     let result;

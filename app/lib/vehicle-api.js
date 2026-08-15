@@ -6,7 +6,9 @@ async function decodeVin(vin) {
     if (!vin || typeof vin !== 'string') throw new Error('VIN is required');
     const cleanVin = vin.trim().toUpperCase();
     if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(cleanVin)) {
-        throw new Error('Invalid VIN format (must be 17 alphanumeric chars, no I/O/Q)');
+        throw new Error(
+            'Invalid VIN format (must be 17 alphanumeric chars, no I/O/Q)',
+        );
     }
     const res = await fetch(
         `${NHTSA_BASE}/decodevinvalues/${encodeURIComponent(cleanVin)}?format=json`,
@@ -34,7 +36,10 @@ async function estimateVehicleValue(vin, mileage) {
     const provider = (process.env.VEHICLE_VALUE_PROVIDER || '').toLowerCase();
 
     if (!apiKey) {
-        return { estimated: false, reason: 'VEHICLE_VALUE_API_KEY not set — using manual value' };
+        return {
+            estimated: false,
+            reason: 'VEHICLE_VALUE_API_KEY not set — using manual value',
+        };
     }
 
     const vinInfo = await decodeVin(vin);
@@ -50,7 +55,8 @@ async function estimateVehicleValue(vin, mileage) {
                 `https://mc-api.marketcheck.com/v2/predict/car/condition/rating?${params}`,
                 { signal: AbortSignal.timeout(10000) },
             );
-            if (!res.ok) throw new Error(`MarketCheck API error (${res.status})`);
+            if (!res.ok)
+                throw new Error(`MarketCheck API error (${res.status})`);
             const data = await res.json();
             return {
                 estimated: true,
@@ -63,7 +69,11 @@ async function estimateVehicleValue(vin, mileage) {
         }
     }
 
-    return { estimated: false, reason: `Unknown provider: ${provider}`, vinInfo };
+    return {
+        estimated: false,
+        reason: `Unknown provider: ${provider}`,
+        vinInfo,
+    };
 }
 
 module.exports = { decodeVin, estimateVehicleValue };

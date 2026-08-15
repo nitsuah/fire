@@ -33,14 +33,20 @@ router.get('/', (req, res) => {
 router.post('/', async (req, res) => {
     const { address, chain, label } = req.body;
     if (!address || !chain || !label) {
-        return res.status(400).json({ error: 'address, chain, and label are required.' });
+        return res
+            .status(400)
+            .json({ error: 'address, chain, and label are required.' });
     }
     if (!validateAddress(address, chain)) {
-        return res.status(400).json({ error: `Invalid address format for chain: ${chain}` });
+        return res
+            .status(400)
+            .json({ error: `Invalid address format for chain: ${chain}` });
     }
     const db = readState();
     const existing = (db.wallets || []).find(
-        (w) => w.address.toLowerCase() === address.toLowerCase() && w.chain === chain,
+        (w) =>
+            w.address.toLowerCase() === address.toLowerCase() &&
+            w.chain === chain,
     );
     if (existing) {
         return res.status(409).json({ error: 'Wallet already tracked.' });
@@ -59,7 +65,10 @@ router.post('/', async (req, res) => {
         state.wallets.push(wallet);
     });
     if (!ok) return res.status(500).json({ error: 'Failed to save wallet.' });
-    res.status(201).json({ ...wallet, address: `...${wallet.address.slice(-8)}` });
+    res.status(201).json({
+        ...wallet,
+        address: `...${wallet.address.slice(-8)}`,
+    });
 });
 
 router.delete('/:id', async (req, res) => {
@@ -83,7 +92,8 @@ router.post('/:id/refresh', async (req, res) => {
             const idx = state.wallets.findIndex((w) => w.id === req.params.id);
             if (idx !== -1) state.wallets[idx] = updated;
         });
-        if (!ok) return res.status(500).json({ error: 'Failed to update wallet.' });
+        if (!ok)
+            return res.status(500).json({ error: 'Failed to update wallet.' });
         res.json({
             ...updated,
             address: `...${updated.address.slice(-8)}`,
@@ -97,11 +107,14 @@ router.post('/refresh-all', async (req, res) => {
     const db = readState();
     const wallets = db.wallets || [];
     if (wallets.length === 0) return res.json({ updated: 0, wallets: [] });
-    const results = await Promise.all(wallets.map((w) => refreshWalletBalance(w)));
+    const results = await Promise.all(
+        wallets.map((w) => refreshWalletBalance(w)),
+    );
     const ok = await mutateState((state) => {
         state.wallets = results;
     });
-    if (!ok) return res.status(500).json({ error: 'Failed to update wallets.' });
+    if (!ok)
+        return res.status(500).json({ error: 'Failed to update wallets.' });
     const summary = results.map((w) => ({
         id: w.id,
         chain: w.chain,

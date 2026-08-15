@@ -16,7 +16,9 @@ async function fetchAlphaVantage(symbols) {
     for (const symbol of symbols) {
         try {
             const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(symbol)}&apikey=${apiKey}`;
-            const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+            const res = await fetch(url, {
+                signal: AbortSignal.timeout(10000),
+            });
             if (!res.ok) continue;
             const data = await res.json();
             const quote = data['Global Quote'];
@@ -36,7 +38,9 @@ async function fetchPolygon(symbols) {
     for (const symbol of symbols) {
         try {
             const url = `https://api.polygon.io/v2/last/trade/${encodeURIComponent(symbol)}?apiKey=${apiKey}`;
-            const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+            const res = await fetch(url, {
+                signal: AbortSignal.timeout(10000),
+            });
             if (!res.ok) continue;
             const data = await res.json();
             if (data.results?.p) {

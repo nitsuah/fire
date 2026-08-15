@@ -4,7 +4,12 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 
-const { DATA_DIR, DB_FILE, initDatabase, rotateMasterKey } = require('./lib/db');
+const {
+    DATA_DIR,
+    DB_FILE,
+    initDatabase,
+    rotateMasterKey,
+} = require('./lib/db');
 const { findAvailablePort } = require('./lib/server-utils');
 const { refreshYahooCrumb } = require('./lib/yahoo-prices');
 
@@ -28,7 +33,9 @@ console.log(`[Server Init] DB_FILE: ${DB_FILE}`);
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET || SESSION_SECRET === 'change_me_in_production') {
     if (IS_PRODUCTION) {
-        console.error('[Server] FATAL: SESSION_SECRET must be set to a strong random value in production.');
+        console.error(
+            '[Server] FATAL: SESSION_SECRET must be set to a strong random value in production.',
+        );
         process.exit(1);
     } else {
         console.warn(
@@ -40,7 +47,9 @@ if (!SESSION_SECRET || SESSION_SECRET === 'change_me_in_production') {
 
 const API_KEY = process.env.FIRE_API_KEY || null;
 if (!API_KEY && IS_PRODUCTION) {
-    console.warn('[Server] WARNING: FIRE_API_KEY is not set. All /api/* routes are unauthenticated.');
+    console.warn(
+        '[Server] WARNING: FIRE_API_KEY is not set. All /api/* routes are unauthenticated.',
+    );
 }
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
@@ -54,11 +63,25 @@ try {
 
 function makeRateLimiter(max, windowMs, message) {
     if (!rateLimitFn) return (req, res, next) => next();
-    return rateLimitFn({ windowMs, max, standardHeaders: true, legacyHeaders: false, message: { error: message } });
+    return rateLimitFn({
+        windowMs,
+        max,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { error: message },
+    });
 }
 
-const generalLimiter = makeRateLimiter(300, 60 * 1000, 'Too many requests. Slow down.');
-const syncLimiter = makeRateLimiter(30, 60 * 1000, 'Too many sync requests. Slow down.');
+const generalLimiter = makeRateLimiter(
+    300,
+    60 * 1000,
+    'Too many requests. Slow down.',
+);
+const syncLimiter = makeRateLimiter(
+    30,
+    60 * 1000,
+    'Too many sync requests. Slow down.',
+);
 
 // ─── App setup ───────────────────────────────────────────────────────────────
 
@@ -121,11 +144,17 @@ app.use('/api/vehicles', vehiclesRouter);
 app.post('/api/admin/rotate-key', (req, res) => {
     const { newKey } = req.body;
     if (!newKey || !/^[0-9a-fA-F]{64}$/.test(newKey)) {
-        return res.status(400).json({ error: 'newKey must be 64 hex characters.' });
+        return res
+            .status(400)
+            .json({ error: 'newKey must be 64 hex characters.' });
     }
     try {
         rotateMasterKey(newKey);
-        res.json({ status: 'success', message: 'Database re-encrypted with new key. Update SYNC_MASTER_KEY in your .env.' });
+        res.json({
+            status: 'success',
+            message:
+                'Database re-encrypted with new key. Update SYNC_MASTER_KEY in your .env.',
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -148,7 +177,9 @@ if (require.main === module) {
                         `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
                     );
                 }
-                console.log(`🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`);
+                console.log(
+                    `🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`,
+                );
                 refreshYahooCrumb().catch(() => {});
             });
             server.on('error', (err) => {

@@ -4,7 +4,8 @@ const EBAY_SANDBOX_BASE = 'https://api.sandbox.ebay.com';
 const EBAY_PROD_BASE = 'https://api.ebay.com';
 const EBAY_SANDBOX_AUTH = 'https://auth.sandbox.ebay.com';
 const EBAY_PROD_AUTH = 'https://auth.ebay.com';
-const EBAY_SCOPE = 'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly';
+const EBAY_SCOPE =
+    'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly';
 
 function getEnv() {
     return {
@@ -38,16 +39,19 @@ function buildAuthorizationUrl(redirectUri, state) {
         scope: EBAY_SCOPE,
         state,
     });
-    const path = environment === 'production'
-        ? '/oauth2/authorize'
-        : '/oauth2/authorize';
+    const path =
+        environment === 'production'
+            ? '/oauth2/authorize'
+            : '/oauth2/authorize';
     return `${auth}${path}?${params.toString()}`;
 }
 
 async function exchangeCodeForTokens(code, redirectUri) {
     const { clientId, clientSecret } = getEnv();
     const { auth } = getBaseUrls();
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
+        'base64',
+    );
     const body = new URLSearchParams({
         grant_type: 'authorization_code',
         code,
@@ -72,7 +76,9 @@ async function exchangeCodeForTokens(code, redirectUri) {
 async function refreshAccessToken(storedRefreshToken) {
     const { clientId, clientSecret } = getEnv();
     const { auth } = getBaseUrls();
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
+        'base64',
+    );
     const body = new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: storedRefreshToken,
@@ -94,7 +100,10 @@ async function refreshAccessToken(storedRefreshToken) {
     return res.json();
 }
 
-async function fetchCompletedOrders(accessToken, { limit = 50, offset = 0 } = {}) {
+async function fetchCompletedOrders(
+    accessToken,
+    { limit = 50, offset = 0 } = {},
+) {
     const { api } = getBaseUrls();
     const params = new URLSearchParams({
         filter: 'orderfulfillmentstatus:{FULFILLED}',
@@ -119,7 +128,9 @@ function ordersToLedgerEntries(orders) {
     const entries = [];
     for (const order of orders?.orders || []) {
         const orderId = order.orderId;
-        const saleDate = order.creationDate?.split('T')[0] || new Date().toISOString().split('T')[0];
+        const saleDate =
+            order.creationDate?.split('T')[0] ||
+            new Date().toISOString().split('T')[0];
         const gross = parseFloat(order.pricingSummary?.total?.value || '0');
         const fees = parseFloat(order.pricingSummary?.fee?.value || '0');
         const net = gross - fees;

@@ -1,7 +1,6 @@
 'use strict';
 
 const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 
 const BACKUP_FOLDER_NAME = 'fire-tracker-backups';
@@ -16,7 +15,9 @@ async function getServiceAccountToken(saKeyPath) {
     const key = JSON.parse(fs.readFileSync(saKeyPath, 'utf8'));
 
     const now = Math.floor(Date.now() / 1000);
-    const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+    const header = Buffer.from(
+        JSON.stringify({ alg: 'RS256', typ: 'JWT' }),
+    ).toString('base64url');
     const payload = Buffer.from(
         JSON.stringify({
             iss: key.client_email,
@@ -44,7 +45,9 @@ async function getServiceAccountToken(saKeyPath) {
     });
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Service account token fetch failed (${res.status}): ${text}`);
+        throw new Error(
+            `Service account token fetch failed (${res.status}): ${text}`,
+        );
     }
     const data = await res.json();
     return data.access_token;
@@ -53,7 +56,9 @@ async function getServiceAccountToken(saKeyPath) {
 function encryptForBackup(json) {
     const masterKey = process.env.SYNC_MASTER_KEY;
     if (!masterKey || !/^[0-9a-fA-F]{64}$/.test(masterKey)) {
-        throw new Error('SYNC_MASTER_KEY must be set (64 hex chars) to enable encrypted backup');
+        throw new Error(
+            'SYNC_MASTER_KEY must be set (64 hex chars) to enable encrypted backup',
+        );
     }
     const key = Buffer.from(masterKey, 'hex');
     const iv = crypto.randomBytes(12);
@@ -61,16 +66,26 @@ function encryptForBackup(json) {
     let enc = cipher.update(json, 'utf8', 'hex');
     enc += cipher.final('hex');
     const tag = cipher.getAuthTag().toString('hex');
-    return JSON.stringify({ enc: true, iv: iv.toString('hex'), tag, data: enc });
+    return JSON.stringify({
+        enc: true,
+        iv: iv.toString('hex'),
+        tag,
+        data: enc,
+    });
 }
 
 function decryptBackup(raw) {
     const masterKey = process.env.SYNC_MASTER_KEY;
-    if (!masterKey) throw new Error('SYNC_MASTER_KEY is required to decrypt a backup');
+    if (!masterKey)
+        throw new Error('SYNC_MASTER_KEY is required to decrypt a backup');
     const key = Buffer.from(masterKey, 'hex');
     const parsed = JSON.parse(raw);
     if (!parsed.enc) return raw;
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(parsed.iv, 'hex'));
+    const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        key,
+        Buffer.from(parsed.iv, 'hex'),
+    );
     decipher.setAuthTag(Buffer.from(parsed.tag, 'hex'));
     let dec = decipher.update(parsed.data, 'hex', 'utf8');
     dec += decipher.final('utf8');
@@ -84,21 +99,32 @@ async function getOrCreateFolder(token, folderName) {
     const q = encodeURIComponent(
         `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
     );
-    const listRes = await fetch(`${GDRIVE_API}/drive/v3/files?q=${q}&fields=files(id,name)`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(10000),
-    });
-    if (!listRes.ok) throw new Error(`Drive folder search failed (${listRes.status})`);
+    const listRes = await fetch(
+        `${GDRIVE_API}/drive/v3/files?q=${q}&fields=files(id,name)`,
+        {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(10000),
+        },
+    );
+    if (!listRes.ok)
+        throw new Error(`Drive folder search failed (${listRes.status})`);
     const { files } = await listRes.json();
     if (files?.length) return files[0].id;
 
     const createRes = await fetch(`${GDRIVE_API}/drive/v3/files`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder' }),
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+        }),
         signal: AbortSignal.timeout(10000),
     });
-    if (!createRes.ok) throw new Error(`Drive folder creation failed (${createRes.status})`);
+    if (!createRes.ok)
+        throw new Error(`Drive folder creation failed (${createRes.status})`);
     const folder = await createRes.json();
     return folder.id;
 }
@@ -106,7 +132,9 @@ async function getOrCreateFolder(token, folderName) {
 async function uploadBackup(dbJson) {
     const saKeyPath = process.env.GDRIVE_SERVICE_ACCOUNT_JSON;
     if (!saKeyPath || !fs.existsSync(saKeyPath)) {
-        throw new Error('GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found');
+        throw new Error(
+            'GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found',
+        );
     }
     const token = await getServiceAccountToken(saKeyPath);
     const folderId = await getOrCreateFolder(token, BACKUP_FOLDER_NAME);
@@ -148,7 +176,9 @@ async function uploadBackup(dbJson) {
 async function listBackups() {
     const saKeyPath = process.env.GDRIVE_SERVICE_ACCOUNT_JSON;
     if (!saKeyPath || !fs.existsSync(saKeyPath)) {
-        throw new Error('GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found');
+        throw new Error(
+            'GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found',
+        );
     }
     const token = await getServiceAccountToken(saKeyPath);
     const folderId = await getOrCreateFolder(token, BACKUP_FOLDER_NAME);
@@ -157,7 +187,10 @@ async function listBackups() {
     );
     const res = await fetch(
         `${GDRIVE_API}/drive/v3/files?q=${q}&fields=files(id,name,size,createdTime)&orderBy=createdTime desc`,
-        { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10000) },
+        {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(10000),
+        },
     );
     if (!res.ok) throw new Error(`Drive list failed (${res.status})`);
     const { files } = await res.json();
@@ -167,16 +200,26 @@ async function listBackups() {
 async function downloadAndDecryptBackup(fileId) {
     const saKeyPath = process.env.GDRIVE_SERVICE_ACCOUNT_JSON;
     if (!saKeyPath || !fs.existsSync(saKeyPath)) {
-        throw new Error('GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found');
+        throw new Error(
+            'GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found',
+        );
     }
     const token = await getServiceAccountToken(saKeyPath);
-    const res = await fetch(`${GDRIVE_API}/drive/v3/files/${fileId}?alt=media`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(30000),
-    });
+    const res = await fetch(
+        `${GDRIVE_API}/drive/v3/files/${fileId}?alt=media`,
+        {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(30000),
+        },
+    );
     if (!res.ok) throw new Error(`Drive download failed (${res.status})`);
     const encrypted = await res.text();
     return decryptBackup(encrypted);
 }
 
-module.exports = { isConfigured, uploadBackup, listBackups, downloadAndDecryptBackup };
+module.exports = {
+    isConfigured,
+    uploadBackup,
+    listBackups,
+    downloadAndDecryptBackup,
+};

@@ -27,7 +27,10 @@ router.post('/:id/refresh-value', async (req, res) => {
     }
 
     try {
-        const estimate = await estimateVehicleValue(vehicle.vin, vehicle.mileage);
+        const estimate = await estimateVehicleValue(
+            vehicle.vin,
+            vehicle.mileage,
+        );
         const updated = {
             ...vehicle,
             vinInfo: estimate.vinInfo || vehicle.vinInfo,
@@ -42,7 +45,8 @@ router.post('/:id/refresh-value', async (req, res) => {
             const idx = state.vehicles.findIndex((v) => v.id === req.params.id);
             if (idx !== -1) state.vehicles[idx] = updated;
         });
-        if (!ok) return res.status(500).json({ error: 'Failed to update vehicle.' });
+        if (!ok)
+            return res.status(500).json({ error: 'Failed to update vehicle.' });
         res.json({
             ...updated,
             valueEstimate: estimate,
