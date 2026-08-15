@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { readState, writeState } = require('../lib/db');
+const { readState, mutateState } = require('../lib/db');
 const {
     isConfigured,
     uploadBackup,
@@ -64,7 +64,12 @@ router.post('/drive/restore', async (req, res) => {
     try {
         const json = await downloadAndDecryptBackup(fileId);
         const restored = JSON.parse(json);
-        const ok = writeState(restored);
+        const ok = await mutateState((state) => {
+            for (const key of Object.keys(state)) {
+                delete state[key];
+            }
+            Object.assign(state, restored);
+        });
         if (!ok)
             return res
                 .status(500)
