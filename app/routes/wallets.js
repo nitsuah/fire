@@ -6,14 +6,14 @@ const { readState, mutateState } = require('../lib/db');
 const { refreshWalletBalance, loadChains } = require('../lib/web3-prices');
 
 const router = express.Router();
+const CHAINS = loadChains();
 
 const EVM_RE = /^0x[0-9a-fA-F]{40}$/;
 const BTC_RE = /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{39,59}$/;
 const SOL_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 function validateAddress(address, chain) {
-    const chains = loadChains();
-    const chainDef = chains.find((c) => c.id === chain);
+    const chainDef = CHAINS.find((c) => c.id === chain);
     if (!chainDef) return false;
     if (chainDef.addressFormat === 'evm') return EVM_RE.test(address);
     if (chain === 'bitcoin') return BTC_RE.test(address);

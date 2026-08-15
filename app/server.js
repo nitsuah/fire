@@ -69,11 +69,11 @@ try {
     rateLimitFn = null;
 }
 
-function makeRateLimiter(max, windowMs, message) {
+function makeRateLimiter(limit, windowMs, message) {
     if (!rateLimitFn) return (req, res, next) => next();
     return rateLimitFn({
         windowMs,
-        max,
+        limit,
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: message },
