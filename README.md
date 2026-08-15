@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/nitsuah/fire/actions/workflows/ci.yml/badge.svg)](https://github.com/nitsuah/fire/actions/workflows/ci.yml)
 
-> A lightweight Financial Independence, Retire Early (FIRE) tracker and API server. Runs locally via Docker. Data is stored in `data/db.json` on your machine; optional AES-256-GCM encryption is available via `SYNC_MASTER_KEY`. The only outbound requests are optional Yahoo Finance price fetches and the MCP server exposes your financial data to any connected LLM client.
+> A self-hosted Financial Independence, Retire Early (FIRE) tracker and API server. Runs locally via Docker. All financial data is stored in `data/db.json` on your machine with optional AES-256-GCM encryption (`SYNC_MASTER_KEY`). Read-only with respect to external financial accounts (no transactions initiated); local CRUD is fully supported. Being productionized toward real-time API-driven sync (eBay, Web3 wallets, Fidelity/Plaid) in PROD Phases 1–4. See [docs/prod-plan.md](docs/prod-plan.md).
 
 ---
 
@@ -151,8 +151,30 @@ docker compose -f config/docker-compose.yml exec fire npm run lint
 
 ---
 
+## Planned Integrations
+
+The system is being productionized toward real-time, API-driven data in four phases. All planned connections are opt-in, BYOK, and read-only with respect to external accounts.
+
+| Integration | Phase | Status |
+|---|---|---|
+| eBay Order API (auto-import sales) | Phase 1 | Planned |
+| Web3 wallet tracking (ETH, BTC, SOL, + EVM chains) | Phase 1 | Planned |
+| Google Drive encrypted backup | Phase 1 | Planned |
+| Vehicle value API (NHTSA VIN free; KBB/premium Phase 2) | Phase 1 | Planned |
+| Fidelity / Plaid positions + balance sync | Phase 2 | Planned |
+| Stable stock quote API (Alpha Vantage / Polygon.io) | Phase 2 | Planned |
+| Security hardening (rate limiting, HTTPS, CSP) | Phase 3 | Planned |
+
+See [docs/prod-plan.md](docs/prod-plan.md) for the full productionization roadmap and [docs/integrations.md](docs/integrations.md) for per-integration setup instructions.
+
+---
+
 ## Roadmap & Tasks
 
+- Productionization plan → [docs/prod-plan.md](docs/prod-plan.md)
+- Integration setup → [docs/integrations.md](docs/integrations.md)
+- Security hardening → [docs/security-hardening.md](docs/security-hardening.md)
+- Sync architecture → [docs/backend-sync-architecture.md](docs/backend-sync-architecture.md)
 - Milestones → [ROADMAP.md](ROADMAP.md)
 - Task backlog → [TASKS.md](TASKS.md)
 - Shipped features → [FEATURES.md](FEATURES.md)
