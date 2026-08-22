@@ -75,7 +75,7 @@ window.renderRebalancingTool = function () {
         ) {
             current['Fixed Income'] += pos.value || 0;
         } else if (
-            sym.includes('FZROX') ||
+            sym.includes('FZFXX') ||
             sym.includes('SPAXX') ||
             sym.includes('FDRXX') ||
             desc.includes('MONEY MARKET')

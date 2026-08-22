@@ -148,15 +148,21 @@ async function fetchVinAudit(vin, mileage, apiKey) {
             { status: 404 },
         );
     }
+    // VinAudit free tier nests values under `prices`; fall back to top-level
+    const prices = data.prices || data;
+    const avg = prices.average ?? prices.avg ?? 0;
+    const low = prices.below ?? prices.lower ?? null;
+    const high = prices.above ?? prices.upper ?? null;
+    const count = data.count ?? prices.count ?? null;
     return {
         estimated: true,
-        value: Math.round((data.average || 0) * 100) / 100,
-        low: data.lower ?? null,
-        high: data.upper ?? null,
-        count: data.count ?? null,
+        value: Math.round(avg * 100) / 100,
+        low,
+        high,
+        count,
         source: 'vinaudit',
         citation: 'VinAudit — free tier (100 req/month)',
-        note: `Based on ${data.count ?? '?'} comparable ${vin.slice(0, 3)} listings in the past 90 days. Range: $${(data.lower ?? 0).toLocaleString()} – $${(data.upper ?? 0).toLocaleString()}.`,
+        note: `Based on ${count ?? '?'} comparable ${vin.slice(0, 3)} listings in the past 90 days. Range: $${(low ?? 0).toLocaleString()} – $${(high ?? 0).toLocaleString()}.`,
     };
 }
 
@@ -164,8 +170,13 @@ async function estimateVehicleValue(vehicle) {
     const { vin, mileage, currentValue, purchasePrice, year, condition } =
         vehicle;
 
-    const apiKey = process.env.VEHICLE_VALUE_API_KEY;
-    const provider = (process.env.VEHICLE_VALUE_PROVIDER || '').toLowerCase();
+    // VINAUDIT_API_KEY is the canonical name; VEHICLE_VALUE_API_KEY kept for compatibility
+    const apiKey =
+        process.env.VINAUDIT_API_KEY || process.env.VEHICLE_VALUE_API_KEY;
+    // Auto-detect vinaudit when key is set; VEHICLE_VALUE_PROVIDER can override
+    const provider = (
+        process.env.VEHICLE_VALUE_PROVIDER || (apiKey ? 'vinaudit' : '')
+    ).toLowerCase();
 
     // Always compute depreciation estimate when purchasePrice is available
     const depreciation = estimateDepreciation(

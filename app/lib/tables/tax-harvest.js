@@ -22,7 +22,7 @@ window.renderTaxHarvestTable = function () {
         return;
     }
 
-    const taxRate = (state.taxRate || 20) / 100;
+    const taxRate = (state.taxRate ?? 20) / 100;
     const now = new Date();
     const yearEnd = new Date(now.getFullYear(), 11, 31);
     const daysLeft = Math.round((yearEnd - now) / 86400000);
@@ -71,7 +71,7 @@ window.renderTaxHarvestTable = function () {
         const potentialTotal = Math.abs(totalLoss) * taxRate;
         summaryEl.innerHTML = `
             <div class="tax-harvest-stat"><span>Total Harvestable Losses</span><strong style="color:var(--color-danger)">${formatCurrency(totalLoss)}</strong></div>
-            <div class="tax-harvest-stat"><span>Potential Savings* (@ ${state.taxRate || 20}% rate)</span><strong style="color:var(--color-success)">${formatCurrency(potentialTotal)}</strong></div>
+            <div class="tax-harvest-stat"><span>Potential Savings* (@ ${state.taxRate ?? 20}% rate)</span><strong style="color:var(--color-success)">${formatCurrency(potentialTotal)}</strong></div>
             <div class="tax-harvest-stat"><span>Ordinary Income Offset (max $3k/yr)</span><strong>${formatCurrency(annualCap)}</strong></div>
             <div class="tax-harvest-stat"><span>Days Until Year-End</span><strong class="${isUrgent ? 'text-amber' : ''}">${daysLeft} days${isUrgent ? ' ⚠' : ''}</strong></div>
         `;

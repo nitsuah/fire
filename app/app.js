@@ -150,6 +150,7 @@ function refreshAllUI() {
     renderSideGigLedgerTable();
     renderMonthlyCashFlow();
     calculateAndRenderProjections();
+    if (typeof window.updateNotifUI === 'function') window.updateNotifUI();
 }
 
 /* ==========================================================================

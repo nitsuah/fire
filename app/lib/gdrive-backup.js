@@ -95,11 +95,11 @@ function loadTokens() {
 function getRedirectUri() {
     return (
         process.env.GDRIVE_REDIRECT_URI ||
-        'http://localhost:2081/api/backup/drive/callback'
+        `http://localhost:${process.env.PORT || 3001}/api/backup/drive/callback`
     );
 }
 
-function generateAuthUrl() {
+function generateAuthUrl(state) {
     const params = new URLSearchParams({
         client_id: process.env.GDRIVE_CLIENT_ID,
         redirect_uri: getRedirectUri(),
@@ -107,6 +107,7 @@ function generateAuthUrl() {
         scope: DRIVE_SCOPE,
         access_type: 'offline',
         prompt: 'consent',
+        state,
     });
     return `${GDRIVE_AUTH_ENDPOINT}?${params}`;
 }

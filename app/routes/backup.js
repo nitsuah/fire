@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const { readState, mutateState } = require('../lib/db');
 const {
@@ -34,12 +35,20 @@ router.get('/drive/authorize', (req, res) => {
             error: 'GDRIVE_CLIENT_ID and GDRIVE_CLIENT_SECRET must be set to authorize Google Drive.',
         });
     }
-    const url = generateAuthUrl();
+    const state = crypto.randomBytes(16).toString('hex');
+    req.session.driveOauthState = state;
+    const url = generateAuthUrl(state);
     res.redirect(url);
 });
 
 router.get('/drive/callback', async (req, res) => {
-    const { code, error } = req.query;
+    const { code, error, state } = req.query;
+    if (!state || state !== req.session?.driveOauthState) {
+        return res
+            .status(403)
+            .send('<p>Invalid OAuth state. Please try authorizing again.</p>');
+    }
+    delete req.session.driveOauthState;
     if (error) {
         const safeError = String(error).replace(
             /[<>&"]/g,

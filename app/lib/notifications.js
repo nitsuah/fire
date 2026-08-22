@@ -163,7 +163,5 @@ window.checkAndNotify = function (s, sendPush) {
     return alerts;
 };
 
-// Init on load
-window.addEventListener('DOMContentLoaded', () => {
-    _updateNotifUI();
-});
+// Exposed so refreshAllUI() can call it after state is loaded
+window.updateNotifUI = _updateNotifUI;

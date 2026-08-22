@@ -138,6 +138,13 @@ app.use('/docs', express.static(path.join(__dirname, '../docs')));
 
 if (API_KEY) {
     app.use('/api', (req, res, next) => {
+        // Drive OAuth routes are browser-redirect flows; Google cannot add x-api-key
+        if (
+            req.path === '/backup/drive/authorize' ||
+            req.path === '/backup/drive/callback'
+        ) {
+            return next();
+        }
         const key = req.headers['x-api-key'];
         if (!key || key !== API_KEY) {
             return res.status(401).json({ error: 'Unauthorized.' });

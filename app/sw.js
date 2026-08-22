@@ -1,13 +1,17 @@
 /* FIRE Tracker — Service Worker
    Caches shell assets for offline load. API calls always go to network.
 */
-const CACHE_NAME = 'fire-tracker-v1';
+const CACHE_NAME = 'fire-tracker-v2';
 
 // Assets that make up the app shell
 const SHELL_ASSETS = [
     '/',
     '/index.html',
+    '/manifest.json',
     '/app.js',
+    '/lib/html-utils.js',
+    '/lib/state.js',
+    '/lib/prices.js',
     '/lib/expenses.js',
     '/lib/projections.js',
     '/lib/side-gig.js',
@@ -18,6 +22,7 @@ const SHELL_ASSETS = [
     '/lib/finance-platforms.js',
     '/lib/ebay-connector.js',
     '/lib/privacy.js',
+    '/lib/notifications.js',
     '/lib/charts/cd-ladder.js',
     '/lib/charts/projections.js',
     '/lib/charts/allocation.js',
@@ -30,6 +35,7 @@ const SHELL_ASSETS = [
     '/lib/tables/side-gig-table.js',
     '/lib/tables/projections-table.js',
     '/lib/tables/tax-harvest.js',
+    '/lib/tables/rebalancing.js',
     '/lib/managers/navigation.js',
     '/lib/managers/accounts.js',
     '/lib/managers/cds.js',
@@ -41,6 +47,7 @@ const SHELL_ASSETS = [
     '/lib/css/components-data.css',
     '/lib/css/charts.css',
     '/lib/css/layout.css',
+    '/lib/css/widgets.css',
 ];
 
 self.addEventListener('install', (event) => {
