@@ -101,7 +101,8 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const url = event.notification.data?.url || '/';
+    const rawUrl = event.notification.data?.url || '/';
+    const url = new URL(rawUrl, self.registration.scope).href;
     event.waitUntil(
         clients.matchAll({ type: 'window' }).then((wins) => {
             const existing = wins.find((w) => w.url === url && 'focus' in w);

@@ -29,14 +29,16 @@ window.renderRebalancingTool = function () {
     };
 
     const totalTarget = Object.values(targets).reduce((s, v) => s + v, 0);
+    const targetInvalid = Math.abs(totalTarget - 100) > 0.5;
     if (errEl) {
-        if (Math.abs(totalTarget - 100) > 0.5) {
+        if (targetInvalid) {
             errEl.textContent = `Targets sum to ${totalTarget.toFixed(1)}% — they should add up to 100%.`;
             errEl.style.display = '';
         } else {
             errEl.style.display = 'none';
         }
     }
+    if (targetInvalid) return;
 
     // Compute current holdings per asset class
     const current = {

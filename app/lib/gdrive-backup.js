@@ -34,7 +34,11 @@ function isConfigured() {
 
 function encryptToken(json) {
     const masterKey = process.env.SYNC_MASTER_KEY;
-    if (!masterKey || !/^[0-9a-fA-F]{64}$/.test(masterKey)) return json;
+    if (!masterKey || !/^[0-9a-fA-F]{64}$/.test(masterKey)) {
+        throw new Error(
+            'SYNC_MASTER_KEY must be set (64 hex chars) to store Drive tokens securely.',
+        );
+    }
     const key = Buffer.from(masterKey, 'hex');
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
@@ -58,8 +62,10 @@ function decryptToken(raw) {
     }
     if (!parsed.enc) return raw;
     const masterKey = process.env.SYNC_MASTER_KEY;
-    if (!masterKey)
-        throw new Error('SYNC_MASTER_KEY required to read stored Drive token');
+    if (!masterKey || !/^[0-9a-fA-F]{64}$/.test(masterKey))
+        throw new Error(
+            'SYNC_MASTER_KEY required (64 hex chars) to read stored Drive token',
+        );
     const key = Buffer.from(masterKey, 'hex');
     const decipher = crypto.createDecipheriv(
         'aes-256-gcm',
@@ -158,6 +164,19 @@ async function getOAuthAccessToken() {
     });
     if (!res.ok) {
         const text = await res.text();
+        if (res.status === 400 || res.status === 401) {
+            try {
+                fs.unlinkSync(tokenFilePath());
+            } catch {
+                /* already gone */
+            }
+            throw Object.assign(
+                new Error(
+                    `Drive token revoked or expired. Re-authorize at /api/backup/drive/authorize`,
+                ),
+                { status: 401 },
+            );
+        }
         throw new Error(`Token refresh failed (${res.status}): ${text}`);
     }
     const data = await res.json();

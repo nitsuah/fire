@@ -45,6 +45,9 @@ router.get('/:id/estimate', async (req, res) => {
 
 // Accepts the suggested value and writes it back to state.
 router.post('/:id/accept-estimate', async (req, res) => {
+    if (!req.body || typeof req.body !== 'object') {
+        return res.status(400).json({ error: 'Request body is required.' });
+    }
     const { value } = req.body;
     const accepted = parseFloat(value);
     if (!Number.isFinite(accepted) || accepted < 0) {

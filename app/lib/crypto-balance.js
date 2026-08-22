@@ -5,7 +5,7 @@ const ETH_RPC = 'https://cloudflare-eth.com';
 // ENS resolution via free public API
 const ENS_API = 'https://ensdata.net';
 
-const ENS_RE = /^[a-z0-9-]+\.eth$/i;
+const ENS_RE = /^(?:[a-z0-9-]+\.)+eth$/i;
 const ETH_ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
 // Coin tickers: 1–10 uppercase letters, optionally followed by numbers
 const TICKER_RE = /^[A-Z]{1,10}[0-9]*$/;
@@ -75,6 +75,11 @@ async function getEthBalance(address) {
         throw Object.assign(new Error(`ETH RPC error: ${data.error.message}`), {
             status: 502,
         });
+    if (!data.result || typeof data.result !== 'string') {
+        throw Object.assign(new Error('ETH RPC returned no result'), {
+            status: 502,
+        });
+    }
     // Result is hex wei
     const wei = BigInt(data.result);
     return Number(wei) / 1e18;
@@ -135,8 +140,16 @@ async function resolveCryptoValue(identifier, quantity) {
     }
 
     if (type === 'ticker') {
+        const qty = quantity != null ? Number(quantity) : null;
+        if (qty === null || !Number.isFinite(qty) || qty <= 0) {
+            throw Object.assign(
+                new Error(
+                    `Quantity is required and must be > 0 for ticker "${identifier}".`,
+                ),
+                { status: 400 },
+            );
+        }
         const price = await getTickerUsdPrice(identifier.toUpperCase());
-        const qty = quantity || 0;
         return {
             usdValue: price * qty,
             price,
@@ -148,13 +161,15 @@ async function resolveCryptoValue(identifier, quantity) {
         };
     }
 
-    // address or ens
+    // address or ens — resolve ENS first, then fetch balance + price concurrently
     let address = identifier;
     if (type === 'ens') {
         address = await resolveEns(identifier);
     }
-    const ethBalance = await getEthBalance(address);
-    const ethPrice = await getEthUsdPrice();
+    const [ethBalance, ethPrice] = await Promise.all([
+        getEthBalance(address),
+        getEthUsdPrice(),
+    ]);
     return {
         usdValue: ethBalance * ethPrice,
         resolvedAddress: address,

@@ -76,7 +76,7 @@ function renderCustomAccountsTable() {
                     <td class="text-right text-amber font-bold">${hasYield && acc.apy ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
                     <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
                     <td class="text-right">
-                        ${isCrypto && acc.identifier ? `<button class="edit-btn" id="crypto-refresh-${acc.id}" onclick="refreshCryptoAccount('${acc.id}')">⟳ Refresh</button>` : ''}
+                        ${isCrypto && acc.identifier ? `<button class="edit-btn" data-crypto-refresh-id="${acc.id}" onclick="refreshCryptoAccount('${acc.id}')">⟳ Refresh</button>` : ''}
                         <button class="edit-btn" onclick="startEditAccount('${acc.id}')">Edit</button>
                         <button class="delete-btn" onclick="deleteCustomAccount('${acc.id}')">Delete</button>
                     </td>
@@ -220,7 +220,7 @@ function renderUnifiedHoldingsTable() {
                 <td class="text-right text-amber">${hasYield && acc.apy ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
                 <td class="text-muted">${isCrypto && acc.identifier ? `<span title="${escHtml(acc.identifier)}">${escHtml(acc.identifier.length > 16 ? acc.identifier.slice(0, 8) + '…' + acc.identifier.slice(-6) : acc.identifier)}</span>` : '—'}</td>
                 <td class="text-right">
-                    ${isCrypto && acc.identifier ? `<button class="edit-btn" id="crypto-refresh-${acc.id}" onclick="refreshCryptoAccount('${acc.id}')">⟳</button>` : ''}
+                    ${isCrypto && acc.identifier ? `<button class="edit-btn" data-crypto-refresh-id="${acc.id}" onclick="refreshCryptoAccount('${acc.id}')">⟳</button>` : ''}
                     <button class="edit-btn" onclick="startEditAccount('${acc.id}')">Edit</button>
                     <button class="delete-btn" onclick="deleteCustomAccount('${acc.id}')">Delete</button>
                 </td>

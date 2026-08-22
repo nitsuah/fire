@@ -63,8 +63,10 @@ async function decodeVin(vin) {
 // Mileage: deduct 1% per 10k miles above average (12k/yr), cap ±15%.
 function estimateDepreciation(vehicleYear, purchasePrice, mileage, condition) {
     if (!purchasePrice || purchasePrice <= 0) return null;
+    const parsedYear = parseInt(vehicleYear);
+    if (!parsedYear || !Number.isFinite(parsedYear)) return null;
     const currentYear = new Date().getFullYear();
-    const age = Math.max(0, currentYear - parseInt(vehicleYear));
+    const age = Math.max(0, currentYear - parsedYear);
 
     let retention = 1.0;
     for (let y = 0; y < age; y++) {
@@ -187,7 +189,6 @@ async function estimateVehicleValue(vehicle) {
                 };
             }
         }
-        // Legacy provider kept for reference but no longer active
     }
 
     // Suggested value: average of available estimates, bias toward market data
@@ -212,7 +213,9 @@ async function estimateVehicleValue(vehicle) {
         market?.estimated ? market.high : null,
     ].filter(Number.isFinite);
 
-    const vinInfo = vin ? await decodeVin(vin).catch(() => null) : null;
+    const [vinInfo] = await Promise.all([
+        vin ? decodeVin(vin).catch(() => null) : Promise.resolve(null),
+    ]);
 
     return {
         depreciation,

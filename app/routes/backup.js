@@ -41,9 +41,14 @@ router.get('/drive/authorize', (req, res) => {
 router.get('/drive/callback', async (req, res) => {
     const { code, error } = req.query;
     if (error) {
+        const safeError = String(error).replace(
+            /[<>&"]/g,
+            (c) =>
+                ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c],
+        );
         return res
             .status(400)
-            .send(`<p>Google Drive authorization denied: ${String(error)}</p>`);
+            .send(`<p>Google Drive authorization denied: ${safeError}</p>`);
     }
     if (!code || typeof code !== 'string') {
         return res.status(400).send('<p>Missing authorization code.</p>');
@@ -73,7 +78,7 @@ h2{color:#10b981;margin-top:0}p{color:#94a3b8}button{background:#6366f1;color:#f
     } catch (err) {
         console.error('[Backup] OAuth callback error:', err);
         res.status(500).send(
-            `<p>Authorization failed: ${String(err.message)}</p>`,
+            '<p>Authorization failed. Check server logs for details.</p>',
         );
     }
 });

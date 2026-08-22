@@ -37,6 +37,9 @@ router.post('/', async (req, res) => {
     }
     const quantity =
         req.body.quantity !== undefined ? strictNum(req.body.quantity) : null;
+    if (quantity !== null && !Number.isFinite(quantity)) {
+        return res.status(400).json({ error: 'Invalid quantity.' });
+    }
     const newAcc = {
         id: crypto.randomBytes(8).toString('hex'),
         name,
@@ -81,6 +84,12 @@ router.put('/:id', async (req, res) => {
         return res.status(400).json({
             error: `Invalid type. Must be one of: ${[...VALID_TYPES].join(', ')}.`,
         });
+    }
+    if (
+        req.body.quantity !== undefined &&
+        !Number.isFinite(strictNum(req.body.quantity))
+    ) {
+        return res.status(400).json({ error: 'Invalid quantity.' });
     }
 
     let notFound = false;

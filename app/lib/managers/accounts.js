@@ -129,7 +129,8 @@ window.saveEditAccount = async function (id) {
     );
     const quantityInput = document.getElementById(`edit-acc-quantity-${id}`);
 
-    const name = nameInput?.value;
+    const name = nameInput?.value?.trim();
+    if (!name) return;
     const apyRaw = apyInput?.value.trim();
     const apy = apyRaw === '' ? 0 : parseFloat(apyRaw);
     if (!Number.isFinite(apy)) return;
@@ -168,11 +169,11 @@ window.saveEditAccount = async function (id) {
 };
 
 window.refreshCryptoAccount = async function (id) {
-    const btn = document.getElementById(`crypto-refresh-${id}`);
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Refreshing…';
-    }
+    const btns = document.querySelectorAll(`[data-crypto-refresh-id="${id}"]`);
+    btns.forEach((b) => {
+        b.disabled = true;
+        b.textContent = 'Refreshing…';
+    });
     try {
         const res = await fetch(
             `/api/accounts/${encodeURIComponent(id)}/refresh-crypto`,
@@ -185,20 +186,22 @@ window.refreshCryptoAccount = async function (id) {
             alert(data.error || 'Refresh failed');
             return;
         }
+
+        const { cryptoResult: _cr, ...accountFields } = data;
         const idx = state.customAccounts.findIndex((a) => a.id === id);
         if (idx !== -1) {
             state.customAccounts[idx] = {
                 ...state.customAccounts[idx],
-                ...data,
+                ...accountFields,
             };
         }
         refreshAllUI();
     } catch (err) {
         alert(err.message);
     } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = '⟳ Refresh';
-        }
+        btns.forEach((b) => {
+            b.disabled = false;
+            b.textContent = '⟳ Refresh';
+        });
     }
 };

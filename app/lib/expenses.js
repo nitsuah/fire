@@ -75,7 +75,10 @@ function initExpenseManager() {
         const filingState = filingStateSelect.value;
         state.taxGrossIncome = gross;
         state.taxFilingState = filingState;
-        if (gross <= 0) return;
+        if (gross <= 0) {
+            saveState();
+            return;
+        }
         const estimated = computeEffectiveTaxRate(gross, filingState);
         state.taxRate = estimated;
         taxSlider.value = estimated;
