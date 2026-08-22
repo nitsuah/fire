@@ -22,45 +22,58 @@ router.get('/vin/:vin', async (req, res) => {
     }
 });
 
-router.post('/:id/refresh-value', async (req, res) => {
+// Returns combined depreciation + market estimates without writing to db.
+// Caller decides whether to accept the suggested value.
+router.get('/:id/estimate', async (req, res) => {
     const db = readState();
     const vehicle = (db.vehicles || []).find((v) => v.id === req.params.id);
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
-    if (!vehicle.vin) {
+    if (!vehicle.purchasePrice && !vehicle.vin) {
         return res.status(400).json({
-            error: 'Vehicle has no VIN. Add a VIN to enable automatic value refresh.',
+            error: 'Vehicle needs a purchase price (for depreciation) or a VIN (for market lookup) to estimate value.',
         });
     }
 
     try {
-        const estimate = await estimateVehicleValue(
-            vehicle.vin,
-            vehicle.mileage,
-        );
-        const updated = {
-            ...vehicle,
-            vinInfo: estimate.vinInfo || vehicle.vinInfo,
-            valueLastRefreshed: new Date().toISOString(),
-            valueSource: estimate.estimated ? estimate.provider : 'manual',
-        };
-        if (estimate.estimated && estimate.value != null) {
-            updated.currentValue = estimate.value;
-        }
-        const ok = await mutateState((state) => {
-            if (!state.vehicles) state.vehicles = [];
-            const idx = state.vehicles.findIndex((v) => v.id === req.params.id);
-            if (idx !== -1) state.vehicles[idx] = updated;
-        });
-        if (!ok)
-            return res.status(500).json({ error: 'Failed to update vehicle.' });
-        res.json({
-            ...updated,
-            valueEstimate: estimate,
-        });
+        const result = await estimateVehicleValue(vehicle);
+        res.json(result);
     } catch (err) {
         res.status(err.status || 502).json({ error: err.message });
     }
+});
+
+// Accepts the suggested value and writes it back to state.
+router.post('/:id/accept-estimate', async (req, res) => {
+    const { value } = req.body;
+    const accepted = parseFloat(value);
+    if (!Number.isFinite(accepted) || accepted < 0) {
+        return res.status(400).json({ error: 'A valid value is required.' });
+    }
+
+    let notFound = false;
+    let updated = null;
+    const ok = await mutateState((state) => {
+        const idx = (state.vehicles || []).findIndex(
+            (v) => v.id === req.params.id,
+        );
+        if (idx === -1) {
+            notFound = true;
+            return;
+        }
+        state.vehicles[idx] = {
+            ...state.vehicles[idx],
+            currentValue: accepted,
+            valueLastRefreshed: new Date().toISOString(),
+            valueSource: req.body.source || 'estimate',
+        };
+        updated = state.vehicles[idx];
+    });
+
+    if (notFound) return res.status(404).json({ error: 'Vehicle not found.' });
+    if (!ok)
+        return res.status(500).json({ error: 'Failed to update vehicle.' });
+    res.json(updated);
 });
 
 module.exports = router;
