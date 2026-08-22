@@ -21,6 +21,12 @@ function initExpenseManager() {
         taxSlider.value = state.taxRate;
         taxDisplay.textContent = `${state.taxRate}%`;
     }
+    if (state.taxGrossIncome !== undefined && grossIncomeInput) {
+        grossIncomeInput.value = state.taxGrossIncome;
+    }
+    if (state.taxFilingState !== undefined && filingStateSelect) {
+        filingStateSelect.value = state.taxFilingState;
+    }
 
     inputs.forEach((input) => {
         input.addEventListener('input', async () => {
@@ -67,6 +73,8 @@ function initExpenseManager() {
     function autoComputeTax() {
         const gross = parseFloat(grossIncomeInput.value) || 0;
         const filingState = filingStateSelect.value;
+        state.taxGrossIncome = gross;
+        state.taxFilingState = filingState;
         if (gross <= 0) return;
         const estimated = computeEffectiveTaxRate(gross, filingState);
         state.taxRate = estimated;

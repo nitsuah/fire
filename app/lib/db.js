@@ -63,6 +63,8 @@ function defaultState() {
             discretionary: 500,
         },
         taxRate: 20,
+        taxGrossIncome: 100000,
+        taxFilingState: 'NY',
         sideGigLedger: [],
         projectionSettings: {
             annualSavings: 25000,

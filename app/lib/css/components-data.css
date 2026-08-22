@@ -364,3 +364,22 @@
 
 /* Anchor for the vehicle estimate tooltip */
 td:has(> .veh-estimate-tooltip) { position: relative; }
+
+/* ── Tax-Loss Harvesting ────────────────────────────────────────────────── */
+.tax-harvest-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    background: rgba(99,102,241,0.06);
+    border: 1px solid rgba(99,102,241,0.14);
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+.tax-harvest-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 12px;
+}
+.tax-harvest-stat span { color: var(--color-muted, rgba(255,255,255,0.5)); }
+.tax-harvest-stat strong { font-size: 15px; font-weight: 700; }

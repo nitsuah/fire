@@ -22,6 +22,8 @@ var state = {
         home: { amt: 0, freq: 'monthly' }
     },
     taxRate: 20,
+    taxGrossIncome: 100000,
+    taxFilingState: 'NY',
     sideGigLedger: [],
     projectionSettings: {
         annualSavings: 25000,
