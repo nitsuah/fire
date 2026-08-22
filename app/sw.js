@@ -55,8 +55,11 @@ self.addEventListener('install', (event) => {
         caches
             .open(CACHE_NAME)
             .then((cache) => cache.addAll(SHELL_ASSETS))
-            .catch(() => {})
-            .then(() => self.skipWaiting()),
+            .then(() => self.skipWaiting())
+            .catch((err) => {
+                console.error('[SW] Precache failed, install aborted:', err);
+                throw err;
+            }),
     );
 });
 
