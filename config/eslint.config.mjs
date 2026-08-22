@@ -89,10 +89,6 @@ export default [
                 ...globals.serviceworker,
             },
         },
-        rules: {
-            'no-undef': 'off',
-            'no-unused-vars': 'off',
-        },
     },
 
     // Browser-side application code

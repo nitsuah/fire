@@ -29,7 +29,6 @@ window.renderTaxHarvestTable = function () {
     const isUrgent = daysLeft <= 45;
 
     let totalLoss = 0;
-    let totalTaxSavings = 0;
     let html = '';
 
     // Sort by largest loss first
@@ -39,12 +38,12 @@ window.renderTaxHarvestTable = function () {
 
     sorted.forEach((p) => {
         const loss = p.value - p.costBasis; // negative
-        const taxSavings = Math.abs(loss) * taxRate;
         totalLoss += loss;
-        totalTaxSavings += taxSavings;
 
         const lossStr = formatCurrency(loss);
-        const savingsStr = formatCurrency(taxSavings);
+        // Show potential savings at the user's rate — actual benefit depends on
+        // realized gains, holding period, and the $3k/yr ordinary-income cap.
+        const potentialSavings = formatCurrency(Math.abs(loss) * taxRate);
         const urgencyClass = isUrgent ? 'text-amber' : 'text-coral';
         const alertLabel = isUrgent
             ? `⚠ ${daysLeft}d left`
@@ -57,7 +56,7 @@ window.renderTaxHarvestTable = function () {
             <td class="text-right">${formatCurrency(p.value)}</td>
             <td class="text-right text-muted">${formatCurrency(p.costBasis)}</td>
             <td class="text-right" style="color:var(--color-danger)">${lossStr}</td>
-            <td class="text-right" style="color:var(--color-success)">${savingsStr}</td>
+            <td class="text-right" style="color:var(--color-success)">${potentialSavings}</td>
             <td class="${urgencyClass}" style="font-size:12px;font-weight:600;">${alertLabel}</td>
         </tr>`;
     });
@@ -66,9 +65,13 @@ window.renderTaxHarvestTable = function () {
 
     if (summaryEl) {
         const annualCap = Math.min(Math.abs(totalLoss), 3000);
+        // Potential savings = full loss × rate. Actual savings depend on
+        // realized gains, holding period (short vs long-term), and the
+        // $3k/yr cap if no gains exist to offset. Consult a tax advisor.
+        const potentialTotal = Math.abs(totalLoss) * taxRate;
         summaryEl.innerHTML = `
             <div class="tax-harvest-stat"><span>Total Harvestable Losses</span><strong style="color:var(--color-danger)">${formatCurrency(totalLoss)}</strong></div>
-            <div class="tax-harvest-stat"><span>Est. Tax Savings (@ ${state.taxRate || 20}% rate)</span><strong style="color:var(--color-success)">${formatCurrency(totalTaxSavings)}</strong></div>
+            <div class="tax-harvest-stat"><span>Potential Savings* (@ ${state.taxRate || 20}% rate)</span><strong style="color:var(--color-success)">${formatCurrency(potentialTotal)}</strong></div>
             <div class="tax-harvest-stat"><span>Ordinary Income Offset (max $3k/yr)</span><strong>${formatCurrency(annualCap)}</strong></div>
             <div class="tax-harvest-stat"><span>Days Until Year-End</span><strong class="${isUrgent ? 'text-amber' : ''}">${daysLeft} days${isUrgent ? ' ⚠' : ''}</strong></div>
         `;

@@ -74,7 +74,6 @@ function renderVehiclesTable() {
                 <td class="text-right" style="${depStyle}">${(v.purchasePrice || 0) > 0 ? depStr : '—'}</td>
                 <td class="text-right">
                     ${canEstimate ? `<button class="action-btn" id="veh-est-btn-${v.id}" onclick="fetchVehicleEstimate('${v.id}')">${escHtml(estimateLabel)}</button>` : '<span class="text-muted" title="Add purchase price or VIN to enable estimates">—</span>'}
-                    <div id="veh-est-tooltip-${v.id}" class="veh-estimate-tooltip" style="display:none;"></div>
                 </td>
                 <td class="text-right">
                     <button class="action-btn edit-btn" onclick="startEditVehicle('${v.id}')">Edit</button>
@@ -114,14 +113,36 @@ function renderVehicleStats() {
             totalDep > 0 ? 'var(--color-danger)' : 'var(--color-success)';
 }
 
+function getEstimateOverlay() {
+    let el = document.getElementById('veh-est-overlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'veh-est-overlay';
+        el.className = 'veh-estimate-tooltip';
+        el.style.display = 'none';
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function positionEstimateOverlay(btn) {
+    const overlay = getEstimateOverlay();
+    const rect = btn.getBoundingClientRect();
+    const overlayW = 340;
+    let left = rect.right - overlayW;
+    if (left < 8) left = 8;
+    overlay.style.top = `${rect.bottom + 4}px`;
+    overlay.style.left = `${left}px`;
+}
+
 window.fetchVehicleEstimate = async function (id) {
     const btn = document.getElementById(`veh-est-btn-${id}`);
-    const tooltip = document.getElementById(`veh-est-tooltip-${id}`);
-    if (!btn || !tooltip) return;
+    if (!btn) return;
+    const overlay = getEstimateOverlay();
 
     btn.disabled = true;
     btn.textContent = 'Loading…';
-    tooltip.style.display = 'none';
+    overlay.style.display = 'none';
 
     try {
         const res = await fetch(
@@ -179,15 +200,17 @@ window.fetchVehicleEstimate = async function (id) {
                 </div>`);
         }
 
-        tooltip.innerHTML = `<div class="veh-est-header">Value Estimates</div>${rows.join('')}<button class="action-btn cancel-btn veh-est-close" onclick="closeVehicleEstimate('${id}')">Close</button>`;
-        tooltip.style.display = 'block';
+        overlay.innerHTML = `<div class="veh-est-header">Value Estimates</div>${rows.join('')}<button class="action-btn cancel-btn veh-est-close" onclick="closeVehicleEstimate('${id}')">Close</button>`;
+        positionEstimateOverlay(btn);
+        overlay.style.display = 'block';
         btn.textContent = 'Est. shown ▲';
         btn.disabled = false;
     } catch (err) {
         btn.textContent = 'Estimate';
         btn.disabled = false;
-        tooltip.innerHTML = `<div class="veh-est-error">${escHtml(err.message)}</div><button class="action-btn cancel-btn veh-est-close" onclick="closeVehicleEstimate('${id}')">Close</button>`;
-        tooltip.style.display = 'block';
+        overlay.innerHTML = `<div class="veh-est-error">${escHtml(err.message)}</div><button class="action-btn cancel-btn veh-est-close" onclick="closeVehicleEstimate('${id}')">Close</button>`;
+        positionEstimateOverlay(btn);
+        overlay.style.display = 'block';
     }
 };
 
@@ -217,8 +240,8 @@ window.acceptVehicleEstimate = async function (id, value, source) {
 };
 
 window.closeVehicleEstimate = function (id) {
-    const tooltip = document.getElementById(`veh-est-tooltip-${id}`);
+    const overlay = document.getElementById('veh-est-overlay');
     const btn = document.getElementById(`veh-est-btn-${id}`);
-    if (tooltip) tooltip.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
     if (btn) btn.textContent = 'Estimate';
 };
