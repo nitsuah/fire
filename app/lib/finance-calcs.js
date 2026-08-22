@@ -58,6 +58,79 @@ function sliceProjectionData(data, windowKey) {
     };
 }
 
+// Compute annual passive income from yield-bearing accounts (CDs, HYSA).
+// This is a current-snapshot figure used for display only — it does not drive
+// the projection loop (blended return handles yield in portfolio growth).
+// CD income is credited at the current rate regardless of maturity; post-maturity
+// reinvestment is not modeled here.
+function _getPassiveIncome(state) {
+    const cdIncome = (state.cds || []).reduce(
+        (s, cd) => s + (cd.principal || 0) * ((cd.rate || 0) / 100),
+        0,
+    );
+    const savingsIncome = (state.customAccounts || [])
+        .filter((a) => (a.type === 'Cash' || a.type === 'Savings') && a.apy > 0)
+        .reduce((s, a) => s + (a.value || 0) * ((a.apy || 0) / 100), 0);
+    return cdIncome + savingsIncome;
+}
+
+// Compute blended nominal return weighted by actual asset allocation.
+// Must cover the same universe as _getAggregateNetWorth so the blended rate
+// is applied to a consistent portfolio value.
+// CDs use locked rates, savings use APY, everything else uses equityReturnPct.
+// Call separately for each scenario so CD locked rates don't shift with bull/bear.
+function _getBlendedNominalReturn(state, equityReturnPct) {
+    let weightedIncome = 0;
+    let totalValue = 0;
+
+    (state.cds || []).forEach((cd) => {
+        const v = cd.principal || 0;
+        weightedIncome += v * ((cd.rate || 0) / 100);
+        totalValue += v;
+    });
+
+    (state.customAccounts || []).forEach((a) => {
+        const v = a.value || 0;
+        if ((a.type === 'Cash' || a.type === 'Savings') && (a.apy || 0) > 0) {
+            weightedIncome += v * ((a.apy || 0) / 100);
+        } else {
+            weightedIncome += v * (equityReturnPct / 100);
+        }
+        totalValue += v;
+    });
+
+    (state.importedPositions || []).forEach((p) => {
+        const v = p.value || 0;
+        weightedIncome += v * (equityReturnPct / 100);
+        totalValue += v;
+    });
+
+    (state.realEstate || []).forEach((r) => {
+        const v = Math.max(0, (r.marketValue || 0) - (r.mortgageBalance || 0));
+        weightedIncome += v * (equityReturnPct / 100);
+        totalValue += v;
+    });
+
+    (state.vehicles || []).forEach((v) => {
+        const val = Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0));
+        weightedIncome += val * (equityReturnPct / 100);
+        totalValue += val;
+    });
+
+    const gigBalance = (state.sideGigLedger || []).reduce(
+        (s, sg) => s + (sg.net || 0),
+        0,
+    );
+    if (gigBalance > 0) {
+        weightedIncome += gigBalance * (equityReturnPct / 100);
+        totalValue += gigBalance;
+    }
+
+    return totalValue > 0
+        ? (weightedIncome / totalValue) * 100
+        : equityReturnPct;
+}
+
 // These aggregate helpers are needed by buildProjectionData.
 // They are also exported from finance-core.js directly; we inline them here
 // to keep this module dependency-free (no cross-require between sub-modules).
@@ -135,13 +208,30 @@ function buildProjectionData(state, scenarioOffset) {
     const fireNumber = swr > 0 ? annualExpenses / swr : 0;
 
     const savings = state.projectionSettings.annualSavings || 0;
-    const nominalReturn =
-        ((state.projectionSettings.expectedReturn || 0) + offset) / 100;
+    const equityReturnPct =
+        (state.projectionSettings.expectedReturn || 0) + offset;
+    // Blend each scenario separately so locked CD rates don't shift with bull/bear equity.
+    const blendedNominalReturn = _getBlendedNominalReturn(
+        state,
+        equityReturnPct,
+    );
+    const bullBlended = _getBlendedNominalReturn(state, equityReturnPct + 2);
+    const bearBlended = _getBlendedNominalReturn(
+        state,
+        Math.max(equityReturnPct - 2, 0),
+    );
     const inflation = (state.projectionSettings.inflationRate || 0) / 100;
-    const realReturn = nominalReturn - inflation;
+    const realReturn = blendedNominalReturn / 100 - inflation;
     const span = state.projectionSettings.spanYears || 30;
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
+
+    // passiveIncome and netWithdrawal are informational display fields only.
+    // The projection loop uses annualExpenses directly: blendedNominalReturn
+    // already captures CD/savings yield in portfolio growth, so subtracting
+    // it again from withdrawals would double-count it.
+    const passiveIncome = _getPassiveIncome(state);
+    const netWithdrawal = Math.max(0, annualExpenses - passiveIncome);
 
     const labels = [],
         nwData = [],
@@ -152,8 +242,8 @@ function buildProjectionData(state, scenarioOffset) {
     let currentNW = networth;
     let bullNW = networth,
         bearNW = networth;
-    const bullReturn = realReturn + 0.02;
-    const bearReturn = Math.max(realReturn - 0.02, -0.01);
+    const bullReturn = bullBlended / 100 - inflation;
+    const bearReturn = Math.max(bearBlended / 100 - inflation, -0.01);
     const bullData = [],
         bearData = [],
         benchData = [];
@@ -168,6 +258,9 @@ function buildProjectionData(state, scenarioOffset) {
         .map(Number)
         .sort((a, b) => a - b);
     let retirementLineIndex = -1;
+    let baseDepletionAge = null;
+    let bullDepletionAge = null;
+    let bearDepletionAge = null;
 
     for (let yr = 0; yr <= span; yr++) {
         const age = currentAge + yr;
@@ -197,6 +290,27 @@ function buildProjectionData(state, scenarioOffset) {
         if (yr < span) {
             const isRetired = age >= retireAge;
             if (isRetired) {
+                if (
+                    currentNW > 0 &&
+                    currentNW * (1 + realReturn) - annualExpenses <= 0 &&
+                    baseDepletionAge === null
+                ) {
+                    baseDepletionAge = age + 1;
+                }
+                if (
+                    bullNW > 0 &&
+                    bullNW * (1 + bullReturn) - annualExpenses <= 0 &&
+                    bullDepletionAge === null
+                ) {
+                    bullDepletionAge = age + 1;
+                }
+                if (
+                    bearNW > 0 &&
+                    bearNW * (1 + bearReturn) - annualExpenses <= 0 &&
+                    bearDepletionAge === null
+                ) {
+                    bearDepletionAge = age + 1;
+                }
                 currentNW = Math.max(
                     0,
                     currentNW * (1 + realReturn) - annualExpenses,
@@ -251,6 +365,14 @@ function buildProjectionData(state, scenarioOffset) {
         realReturn,
         savings,
         networth,
+        passiveIncome,
+        netWithdrawal,
+        blendedReturn: blendedNominalReturn,
+        depletionAge: {
+            base: baseDepletionAge,
+            bull: bullDepletionAge,
+            bear: bearDepletionAge,
+        },
     };
 }
 

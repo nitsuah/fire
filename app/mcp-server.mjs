@@ -210,7 +210,16 @@ function handleTool(name, state, toolArgs = {}) {
     switch (name) {
         case 'fire_status_summary': {
             const proj = buildProjectionData(state);
-            const { networth, fireNumber, nwData, coastFireLine } = proj;
+            const {
+                networth,
+                fireNumber,
+                nwData,
+                coastFireLine,
+                passiveIncome,
+                netWithdrawal,
+                blendedReturn,
+                depletionAge,
+            } = proj;
             const progressPercent =
                 fireNumber > 0
                     ? Math.round((networth / fireNumber) * 1000) / 10
@@ -233,6 +242,14 @@ function handleTool(name, state, toolArgs = {}) {
                 swr: settings.swr || 4.0,
                 coastFireNumber: Math.round(coastFireNumber),
                 coastFireReached: networth >= coastFireNumber,
+                passiveIncome: Math.round(passiveIncome || 0),
+                netWithdrawalNeeded: Math.round(netWithdrawal || 0),
+                blendedReturnPct: Math.round((blendedReturn || 0) * 10) / 10,
+                depletionAge: depletionAge || {
+                    base: null,
+                    bull: null,
+                    bear: null,
+                },
             };
         }
 

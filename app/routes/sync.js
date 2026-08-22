@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const jsonata = require('jsonata');
-const { DATA_DIR, readState, writeState, mutateState } = require('../lib/db');
+const { DATA_DIR, readState, mutateState } = require('../lib/db');
 const { encrypt, decrypt } = require('../lib/crypto-utils');
 const { integrateWebhookData } = require('../lib/webhook-integration');
 const {
@@ -444,7 +444,7 @@ router.post('/plaid/accounts', async (req, res) => {
 
 // ─── Webhook templates ────────────────────────────────────────────────────────
 
-router.post('/templates', (req, res) => {
+router.post('/templates', async (req, res) => {
     if (!SUPPORTED_WEBHOOK_TYPES.includes(req.body.type)) {
         return res.status(400).json({
             error: `Unsupported type. Must be one of: ${SUPPORTED_WEBHOOK_TYPES.join(', ')}.`,
@@ -464,7 +464,6 @@ router.post('/templates', (req, res) => {
                 .json({ error: 'Invalid JSONata mapping expression.' });
         }
     }
-    const db = readState();
     const newTemplate = {
         id: crypto.randomBytes(8).toString('hex'),
         name: req.body.name,
@@ -474,8 +473,11 @@ router.post('/templates', (req, res) => {
         secret: req.body.secret || null,
         createdAt: new Date().toISOString(),
     };
-    db.webhookTemplates.push(newTemplate);
-    if (writeState(db)) {
+    const ok = await mutateState((state) => {
+        if (!state.webhookTemplates) state.webhookTemplates = [];
+        state.webhookTemplates.push(newTemplate);
+    });
+    if (ok) {
         res.status(201).json(omitSecret(newTemplate));
     } else {
         res.status(500).json({ error: 'Failed to save webhook template.' });
@@ -484,17 +486,10 @@ router.post('/templates', (req, res) => {
 
 router.get('/templates', (req, res) => {
     const db = readState();
-    res.json(db.webhookTemplates.map(omitSecret));
+    res.json((db.webhookTemplates || []).map(omitSecret));
 });
 
-router.put('/templates/:id', (req, res) => {
-    const db = readState();
-    const templateIndex = db.webhookTemplates.findIndex(
-        (t) => t.id === req.params.id,
-    );
-    if (templateIndex === -1) {
-        return res.status(404).json({ error: 'Webhook template not found.' });
-    }
+router.put('/templates/:id', async (req, res) => {
     if (req.body.mapping !== undefined && req.body.mapping !== null) {
         if (typeof req.body.mapping !== 'string') {
             return res
@@ -509,31 +504,48 @@ router.put('/templates/:id', (req, res) => {
                 .json({ error: 'Invalid JSONata mapping expression.' });
         }
     }
-    db.webhookTemplates[templateIndex] = {
-        ...db.webhookTemplates[templateIndex],
-        name: req.body.name || db.webhookTemplates[templateIndex].name,
-        source: req.body.source || db.webhookTemplates[templateIndex].source,
-        type: req.body.type || db.webhookTemplates[templateIndex].type,
-        mapping: req.body.mapping || db.webhookTemplates[templateIndex].mapping,
-        secret: req.body.secret || db.webhookTemplates[templateIndex].secret,
-    };
-    if (writeState(db)) {
-        res.json(omitSecret(db.webhookTemplates[templateIndex]));
+    let notFound = false;
+    let updated = null;
+    const ok = await mutateState((state) => {
+        const idx = (state.webhookTemplates || []).findIndex(
+            (t) => t.id === req.params.id,
+        );
+        if (idx === -1) {
+            notFound = true;
+            return;
+        }
+        const cur = state.webhookTemplates[idx];
+        state.webhookTemplates[idx] = {
+            ...cur,
+            name: req.body.name || cur.name,
+            source: req.body.source || cur.source,
+            type: req.body.type || cur.type,
+            mapping: req.body.mapping || cur.mapping,
+            secret: req.body.secret || cur.secret,
+        };
+        updated = state.webhookTemplates[idx];
+    });
+    if (notFound)
+        return res.status(404).json({ error: 'Webhook template not found.' });
+    if (ok) {
+        res.json(omitSecret(updated));
     } else {
         res.status(500).json({ error: 'Failed to update webhook template.' });
     }
 });
 
-router.delete('/templates/:id', (req, res) => {
-    const db = readState();
-    const initialLength = db.webhookTemplates.length;
-    db.webhookTemplates = db.webhookTemplates.filter(
-        (t) => t.id !== req.params.id,
-    );
-    if (db.webhookTemplates.length === initialLength) {
+router.delete('/templates/:id', async (req, res) => {
+    let notFound = false;
+    const ok = await mutateState((state) => {
+        const before = (state.webhookTemplates || []).length;
+        state.webhookTemplates = (state.webhookTemplates || []).filter(
+            (t) => t.id !== req.params.id,
+        );
+        if (state.webhookTemplates.length === before) notFound = true;
+    });
+    if (notFound)
         return res.status(404).json({ error: 'Webhook template not found.' });
-    }
-    if (writeState(db)) {
+    if (ok) {
         res.json({ message: 'Webhook template successfully deleted.' });
     } else {
         res.status(500).json({ error: 'Failed to delete webhook template.' });

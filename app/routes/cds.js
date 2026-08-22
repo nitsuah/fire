@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const express = require('express');
-const { readState, writeState } = require('../lib/db');
+const { mutateState } = require('../lib/db');
 
 const { strictNum } = require('../lib/server-utils');
 
@@ -14,8 +14,7 @@ function isValidYMD(v) {
     return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 }
 
-router.post('/', (req, res) => {
-    const db = readState();
+router.post('/', async (req, res) => {
     const principal =
         req.body.principal !== undefined ? strictNum(req.body.principal) : 0;
     if (req.body.principal !== undefined && !Number.isFinite(principal)) {
@@ -38,34 +37,28 @@ router.post('/', (req, res) => {
         startDate: req.body.startDate || new Date().toISOString().slice(0, 10),
         maturity: req.body.maturity,
     };
-    db.cds.push(newCD);
-    if (writeState(db)) {
+    const ok = await mutateState((state) => {
+        if (!state.cds) state.cds = [];
+        state.cds.push(newCD);
+    });
+    if (ok) {
         res.status(201).json(newCD);
     } else {
         res.status(500).json({ error: 'Failed to save CD.' });
     }
 });
 
-router.put('/:id', (req, res) => {
-    const db = readState();
-    const cdIndex = db.cds.findIndex((cd) => cd.id === req.params.id);
-
-    if (cdIndex === -1) {
-        return res.status(404).json({ error: 'CD not found.' });
-    }
-
-    const principal =
-        req.body.principal !== undefined
-            ? strictNum(req.body.principal)
-            : db.cds[cdIndex].principal;
-    if (req.body.principal !== undefined && !Number.isFinite(principal)) {
+router.put('/:id', async (req, res) => {
+    if (
+        req.body.principal !== undefined &&
+        !Number.isFinite(strictNum(req.body.principal))
+    ) {
         return res.status(400).json({ error: 'Invalid principal.' });
     }
-    const rate =
-        req.body.rate !== undefined
-            ? strictNum(req.body.rate)
-            : db.cds[cdIndex].rate;
-    if (req.body.rate !== undefined && !Number.isFinite(rate)) {
+    if (
+        req.body.rate !== undefined &&
+        !Number.isFinite(strictNum(req.body.rate))
+    ) {
         return res.status(400).json({ error: 'Invalid rate.' });
     }
     if (req.body.maturity !== undefined && !isValidYMD(req.body.maturity)) {
@@ -74,32 +67,50 @@ router.put('/:id', (req, res) => {
             .json({ error: 'A valid maturity date is required (YYYY-MM-DD).' });
     }
 
-    db.cds[cdIndex] = {
-        ...db.cds[cdIndex],
-        bank: req.body.bank || db.cds[cdIndex].bank,
-        principal,
-        rate,
-        startDate: req.body.startDate || db.cds[cdIndex].startDate,
-        maturity: req.body.maturity || db.cds[cdIndex].maturity,
-    };
-
-    if (writeState(db)) {
-        res.json(db.cds[cdIndex]);
+    let notFound = false;
+    let updated = null;
+    const ok = await mutateState((state) => {
+        const idx = (state.cds || []).findIndex(
+            (cd) => cd.id === req.params.id,
+        );
+        if (idx === -1) {
+            notFound = true;
+            return;
+        }
+        const cur = state.cds[idx];
+        const principal =
+            req.body.principal !== undefined
+                ? strictNum(req.body.principal)
+                : cur.principal;
+        const rate =
+            req.body.rate !== undefined ? strictNum(req.body.rate) : cur.rate;
+        state.cds[idx] = {
+            ...cur,
+            bank: req.body.bank || cur.bank,
+            principal,
+            rate,
+            startDate: req.body.startDate || cur.startDate,
+            maturity: req.body.maturity || cur.maturity,
+        };
+        updated = state.cds[idx];
+    });
+    if (notFound) return res.status(404).json({ error: 'CD not found.' });
+    if (ok) {
+        res.json(updated);
     } else {
         res.status(500).json({ error: 'Failed to update CD.' });
     }
 });
 
-router.delete('/:id', (req, res) => {
-    const db = readState();
-    const initialLength = db.cds.length;
-    db.cds = db.cds.filter((cd) => cd.id !== req.params.id);
-
-    if (db.cds.length === initialLength) {
-        return res.status(404).json({ error: 'CD not found.' });
-    }
-
-    if (writeState(db)) {
+router.delete('/:id', async (req, res) => {
+    let notFound = false;
+    const ok = await mutateState((state) => {
+        const before = (state.cds || []).length;
+        state.cds = (state.cds || []).filter((cd) => cd.id !== req.params.id);
+        if (state.cds.length === before) notFound = true;
+    });
+    if (notFound) return res.status(404).json({ error: 'CD not found.' });
+    if (ok) {
         res.json({ message: 'CD successfully deleted.' });
     } else {
         res.status(500).json({ error: 'Failed to delete CD.' });

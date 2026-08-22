@@ -6,7 +6,14 @@ const { decodeVin, estimateVehicleValue } = require('../lib/vehicle-api');
 
 const router = express.Router();
 
+const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/i;
+
 router.get('/vin/:vin', async (req, res) => {
+    if (!VIN_RE.test(req.params.vin)) {
+        return res.status(400).json({
+            error: 'VIN must be exactly 17 alphanumeric characters (I, O, Q excluded).',
+        });
+    }
     try {
         const info = await decodeVin(req.params.vin);
         res.json(info);
