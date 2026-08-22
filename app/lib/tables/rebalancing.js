@@ -7,33 +7,37 @@ window.renderRebalancingTool = function () {
     const errEl = document.getElementById('rebalance-error');
     if (!tbody) return;
 
-    // Read target percentages
+    // Read target percentages — preserve NaN so non-numeric inputs are caught
     const targets = {
-        Equities:
-            parseFloat(
-                document.getElementById('rebal-target-equities')?.value,
-            ) || 0,
-        'Fixed Income':
-            parseFloat(document.getElementById('rebal-target-bonds')?.value) ||
-            0,
-        'Real Estate':
-            parseFloat(
-                document.getElementById('rebal-target-realestate')?.value,
-            ) || 0,
-        Cash:
-            parseFloat(document.getElementById('rebal-target-cash')?.value) ||
-            0,
-        Crypto:
-            parseFloat(document.getElementById('rebal-target-crypto')?.value) ||
-            0,
+        Equities: parseFloat(
+            document.getElementById('rebal-target-equities')?.value ?? '',
+        ),
+        'Fixed Income': parseFloat(
+            document.getElementById('rebal-target-bonds')?.value ?? '',
+        ),
+        'Real Estate': parseFloat(
+            document.getElementById('rebal-target-realestate')?.value ?? '',
+        ),
+        Cash: parseFloat(
+            document.getElementById('rebal-target-cash')?.value ?? '',
+        ),
+        Crypto: parseFloat(
+            document.getElementById('rebal-target-crypto')?.value ?? '',
+        ),
     };
 
-    const totalTarget = Object.values(targets).reduce((s, v) => s + v, 0);
-    const anyOutOfRange = Object.values(targets).some((v) => v < 0 || v > 100);
-    const targetInvalid = anyOutOfRange || Math.abs(totalTarget - 100) > 0.5;
+    const anyInvalid = Object.values(targets).some(
+        (v) => !Number.isFinite(v) || v < 0 || v > 100,
+    );
+    const totalTarget = Object.values(targets).reduce(
+        (s, v) => s + (Number.isFinite(v) ? v : 0),
+        0,
+    );
+    const targetInvalid = anyInvalid || Math.abs(totalTarget - 100) > 0.5;
     if (errEl) {
-        if (anyOutOfRange) {
-            errEl.textContent = 'Each target must be between 0 and 100.';
+        if (anyInvalid) {
+            errEl.textContent =
+                'Each target must be a number between 0 and 100.';
             errEl.style.display = '';
         } else if (targetInvalid) {
             errEl.textContent = `Targets sum to ${totalTarget.toFixed(1)}% — they should add up to 100%.`;
