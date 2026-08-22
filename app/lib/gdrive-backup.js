@@ -81,8 +81,11 @@ function decryptToken(raw) {
 function saveTokens(tokens) {
     const json = JSON.stringify(tokens);
     const stored = encryptToken(json);
-    fs.writeFileSync(tokenFilePath(), stored, { mode: 0o600 });
-    fs.chmodSync(tokenFilePath(), 0o600);
+    const finalPath = tokenFilePath();
+    const tmpPath = `${finalPath}.tmp`;
+    fs.writeFileSync(tmpPath, stored, { mode: 0o600 });
+    fs.chmodSync(tmpPath, 0o600);
+    fs.renameSync(tmpPath, finalPath);
 }
 
 function loadTokens() {

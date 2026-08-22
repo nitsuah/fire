@@ -29,9 +29,13 @@ window.renderRebalancingTool = function () {
     };
 
     const totalTarget = Object.values(targets).reduce((s, v) => s + v, 0);
-    const targetInvalid = Math.abs(totalTarget - 100) > 0.5;
+    const anyOutOfRange = Object.values(targets).some((v) => v < 0 || v > 100);
+    const targetInvalid = anyOutOfRange || Math.abs(totalTarget - 100) > 0.5;
     if (errEl) {
-        if (targetInvalid) {
+        if (anyOutOfRange) {
+            errEl.textContent = 'Each target must be between 0 and 100.';
+            errEl.style.display = '';
+        } else if (targetInvalid) {
             errEl.textContent = `Targets sum to ${totalTarget.toFixed(1)}% — they should add up to 100%.`;
             errEl.style.display = '';
         } else {

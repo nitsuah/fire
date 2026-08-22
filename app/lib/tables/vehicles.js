@@ -39,7 +39,10 @@ function renderVehiclesTable() {
             <tr class="position-row">
                 <td><input class="inline-edit-input" id="veh-edit-year-${v.id}" type="number" value="${v.year}" style="width:70px;"></td>
                 <td><input class="inline-edit-input" id="veh-edit-make-${v.id}" value="${escHtml(v.make || '')}"></td>
-                <td><input class="inline-edit-input" id="veh-edit-model-${v.id}" value="${escHtml(v.model || '')}"></td>
+                <td>
+                    <input class="inline-edit-input" id="veh-edit-model-${v.id}" value="${escHtml(v.model || '')}">
+                    <input class="inline-edit-input" id="veh-edit-vin-${v.id}" maxlength="17" placeholder="VIN (optional)" style="font-size:10px;margin-top:2px;text-transform:uppercase;" value="${escHtml(v.vin || '')}">
+                </td>
                 <td><input class="inline-edit-input" id="veh-edit-mileage-${v.id}" type="number" value="${v.mileage || 0}"></td>
                 <td>
                     <select class="inline-edit-input" id="veh-edit-condition-${v.id}">
@@ -128,11 +131,25 @@ function getEstimateOverlay() {
 function positionEstimateOverlay(btn) {
     const overlay = getEstimateOverlay();
     const rect = btn.getBoundingClientRect();
+    const vh = window.innerHeight;
     const overlayW = 340;
     let left = rect.right - overlayW;
     if (left < 8) left = 8;
-    overlay.style.top = `${rect.bottom + 4}px`;
+
+    const spaceBelow = vh - rect.bottom - 4;
+    const spaceAbove = rect.top - 4;
+    const maxH = Math.min(420, Math.max(spaceBelow, spaceAbove) - 8);
+    overlay.style.maxHeight = `${maxH}px`;
+    overlay.style.overflowY = 'auto';
     overlay.style.left = `${left}px`;
+
+    if (spaceBelow >= 200 || spaceBelow >= spaceAbove) {
+        overlay.style.top = `${rect.bottom + 4}px`;
+        overlay.style.bottom = '';
+    } else {
+        overlay.style.top = `${rect.top - Math.min(maxH, 400) - 4}px`;
+        overlay.style.bottom = '';
+    }
 }
 
 window.fetchVehicleEstimate = async function (id) {

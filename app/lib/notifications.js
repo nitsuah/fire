@@ -46,14 +46,16 @@ window.requestNotificationPermission = async function () {
 function _sendNotification(title, body, tag) {
     if (Notification.permission !== 'granted') return;
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then((reg) => {
-            reg.showNotification(title, {
-                body,
-                tag,
-                icon: '/favicon.ico',
-                badge: '/favicon.ico',
-            });
-        });
+        navigator.serviceWorker.ready
+            .then((reg) => {
+                reg.showNotification(title, {
+                    body,
+                    tag,
+                    icon: '/favicon.ico',
+                    badge: '/favicon.ico',
+                });
+            })
+            .catch(() => {});
     } else {
         new Notification(title, { body, tag });
     }

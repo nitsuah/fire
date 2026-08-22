@@ -174,9 +174,10 @@ router.post('/:id/refresh-crypto', async (req, res) => {
         });
     }
 
+    const origIdentifier = account.identifier;
     try {
         const result = await resolveCryptoValue(
-            account.identifier,
+            origIdentifier,
             account.quantity,
         );
         let updated = null;
@@ -185,6 +186,13 @@ router.post('/:id/refresh-crypto', async (req, res) => {
                 (a) => a.id === req.params.id,
             );
             if (idx === -1) return;
+            // Revalidate: account must still be Crypto with the same identifier
+            const current = state.customAccounts[idx];
+            if (
+                current.type !== 'Crypto' ||
+                current.identifier !== origIdentifier
+            )
+                return;
             state.customAccounts[idx] = {
                 ...state.customAccounts[idx],
                 value: result.usdValue,
@@ -193,13 +201,20 @@ router.post('/:id/refresh-crypto', async (req, res) => {
                     ? { resolvedAddress: result.resolvedAddress }
                     : {}),
                 ...(result.ethBalance != null
-                    ? { balance: result.ethBalance }
+                    ? {
+                          balance: result.ethBalance,
+                          quantity: result.ethBalance,
+                      }
                     : {}),
             };
             updated = state.customAccounts[idx];
         });
         if (!ok)
             return res.status(500).json({ error: 'Failed to update account.' });
+        if (!updated)
+            return res.status(409).json({
+                error: 'Account was modified concurrently; please retry.',
+            });
         res.json({ ...updated, cryptoResult: result });
     } catch (err) {
         res.status(err.status || 502).json({ error: err.message });

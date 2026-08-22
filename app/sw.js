@@ -55,9 +55,9 @@ self.addEventListener('install', (event) => {
         caches
             .open(CACHE_NAME)
             .then((cache) => cache.addAll(SHELL_ASSETS))
-            .catch(() => {}),
+            .catch(() => {})
+            .then(() => self.skipWaiting()),
     );
-    self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

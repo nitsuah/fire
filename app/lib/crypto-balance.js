@@ -106,24 +106,43 @@ async function getEthUsdPrice() {
 }
 
 async function getTickerUsdPrice(ticker) {
-    if (STABLECOINS.has(ticker.toUpperCase())) return 1.0;
+    const isStable = STABLECOINS.has(ticker.toUpperCase());
     // Map common crypto tickers to Yahoo Finance symbols
     const yahooSym = `${ticker.toUpperCase()}-USD`;
-    const res = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=1d`,
-        { signal: AbortSignal.timeout(8000) },
-    );
-    if (!res.ok)
+    let res;
+    try {
+        res = await fetch(
+            `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=1d`,
+            { signal: AbortSignal.timeout(8000) },
+        );
+    } catch (e) {
+        if (isStable) return 1.0;
+        if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+            throw Object.assign(
+                new Error(`Price fetch for ${ticker} timed out`),
+                { status: 504 },
+            );
+        }
+        throw Object.assign(
+            new Error(`Price fetch for ${ticker} failed: ${e.message}`),
+            { status: 502 },
+        );
+    }
+    if (!res.ok) {
+        if (isStable) return 1.0;
         throw Object.assign(
             new Error(`Price fetch for ${ticker} failed (${res.status})`),
             { status: 502 },
         );
+    }
     const data = await res.json();
     const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    if (!price)
+    if (!price) {
+        if (isStable) return 1.0;
         throw Object.assign(new Error(`No price data for ${ticker}`), {
             status: 404,
         });
+    }
     return price;
 }
 
