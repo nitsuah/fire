@@ -1,6 +1,6 @@
-updated: 2026-08-12
-
 # 🗺️ FIRE Tracker Roadmap
+
+updated: 2026-08-22
 
 ---
 
@@ -16,7 +16,7 @@ updated: 2026-08-12
 
 - [x] Multi-scenario FIRE comparison (salary bumps, market downturns, inflation spikes)
 - [x] Webhook-based sync templates with JSONata data mapping and HMAC verification
-- [x] MCP server — 8 read-only tools for Claude/LLM integration
+- [x] MCP server — 12 functional tools + 7 registered stubs for Claude/LLM integration
 - [x] Mobile-responsive layout
 - [ ] Tax drag estimation engine (custom federal/state brackets, capital gains)
 - [ ] Webhook sync end-to-end testing
@@ -24,43 +24,51 @@ updated: 2026-08-12
 
 ---
 
-## PROD Phase 1 — Real-Time Data Connectors (Q1 2027) 🔌
+## PROD Phase 1 — Real-Time Data Connectors (Q1 2027) ✅
 
 Goal: replace manual CSV imports with automated, API-driven data ingestion for key sources.
 Full detail: [docs/prod-plan.md](docs/prod-plan.md)
 
 ### eBay API Connector
-- [ ] eBay OAuth 2.0 app credentials (BYOK: `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_REFRESH_TOKEN`)
-- [ ] `/api/sync/ebay/sync` — pull completed orders into sideGigLedger automatically
-- [ ] eBay Order API deduplication via stable `orderId`
+- [x] eBay OAuth 2.0 app credentials (BYOK: `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_REFRESH_TOKEN`)
+- [x] `GET /api/sync/ebay/authorize` — OAuth initiation with CSRF state
+- [x] `GET /api/sync/ebay/callback` — code exchange + encrypted token storage
+- [x] `POST /api/sync/ebay/sync` — pull completed orders into sideGigLedger automatically
+- [x] `POST /api/sync/ebay/refresh` — access token refresh
+- [x] eBay Order API deduplication via stable `orderId`
+- [x] Sandbox/production environment toggle (`EBAY_ENVIRONMENT`)
 - [ ] Fee rate table validation against current eBay published rates
-- [ ] Sandbox/production environment toggle (`EBAY_ENVIRONMENT`)
+- [ ] UI toggle in settings to enable/disable eBay sync and show last-sync timestamp
 
 ### Web3 / Crypto Wallet Tracking
-- [ ] `wallets[]` schema in db.json (address, chain, label, lastBalance, lastFetched)
-- [ ] Wallet CRUD: `POST/GET/DELETE /api/wallets`
-- [ ] Etherscan API — ETH + ERC-20 token balances (BYOK: `ETHERSCAN_API_KEY`)
-- [ ] BNB Smart Chain via BscScan (BYOK: `BSCSCAN_API_KEY`)
-- [ ] Polygon via Polygonscan (BYOK: `POLYGONSCAN_API_KEY`)
-- [ ] Arbitrum via Arbiscan (BYOK: `ARBISCAN_API_KEY`)
-- [ ] Base via Basescan (BYOK: `BASESCAN_API_KEY`)
-- [ ] Avalanche via Routescan (optional BYOK: `ROUTESCAN_API_KEY`)
-- [ ] Bitcoin via Blockstream.info (no key required)
-- [ ] Solana via public RPC (no key required)
-- [ ] `config/chains.json` registry — add chains without code changes
-- [ ] Wallet USD totals aggregated into net worth; existing manual Crypto-type accounts show a migration prompt to link a wallet address or keep as manual override (no silent double-counting)
-- [ ] MCP tool: `get_wallets`
+- [x] `wallets[]` schema in db.json (address, chain, label, lastBalance, lastFetched)
+- [x] Wallet CRUD: `POST/GET/DELETE /api/wallets` + `POST /api/wallets/:id/refresh` + `POST /api/wallets/refresh-all`
+- [x] Chain address validation (EVM regex, BTC P2PKH/bech32, Solana base58)
+- [x] Etherscan API — ETH + ERC-20 token balances (BYOK: `ETHERSCAN_API_KEY`)
+- [x] BNB Smart Chain via BscScan (BYOK: `BSCSCAN_API_KEY`)
+- [x] Polygon via Polygonscan (BYOK: `POLYGONSCAN_API_KEY`)
+- [x] Arbitrum via Arbiscan (BYOK: `ARBISCAN_API_KEY`)
+- [x] Base via Basescan (BYOK: `BASESCAN_API_KEY`)
+- [x] Avalanche via Routescan (optional BYOK: `ROUTESCAN_API_KEY`)
+- [x] Bitcoin via Blockstream.info (no key required)
+- [x] Solana via public RPC (no key required)
+- [x] `config/chains.json` registry — add chains without code changes
+- [x] Wallet USD totals aggregated into net worth
+- [x] MCP tool: `get_wallets`
+- [ ] UI: wallet manager section in Financial Overview tab (add/remove wallets, balance display)
 
 ### Vehicle Value API
-- [ ] NHTSA VIN decode (free, confirms vehicle identity)
-- [ ] Vehicle value BYOK integration (env var: `VEHICLE_VALUE_API_KEY`)
-- [ ] Auto-refresh vehicle values on dashboard load
+- [x] NHTSA VIN decode (`GET /api/vehicles/vin/:vin`, free, confirms vehicle identity)
+- [x] Vehicle value BYOK integration (`VEHICLE_VALUE_API_KEY`, `VEHICLE_VALUE_PROVIDER`)
+- [x] `POST /api/vehicles/:id/refresh-value` — fetch + update currentValue
+- [ ] UI: "Refresh Value" button on vehicle cards with last-updated timestamp
 
 ### Encrypted Cloud Backup
-- [ ] Google Drive API via service account key (BYOK: `GDRIVE_SERVICE_ACCOUNT_JSON`)
-- [ ] `POST /api/backup/drive` — encrypt + upload backup
-- [ ] `GET /api/backup/drive/list` — list available backups
-- [ ] Restore flow: download → decrypt → apply
+- [x] Google Drive API via service account key (BYOK: `GDRIVE_SERVICE_ACCOUNT_JSON`)
+- [x] `POST /api/backup/drive` — AES-encrypt db.json + upload to Drive
+- [x] `GET /api/backup/drive/list` — list available backups
+- [x] `POST /api/backup/drive/restore` — download → decrypt → apply
+- [ ] UI: backup panel in settings (trigger, list, restore buttons)
 
 ---
 
@@ -69,21 +77,24 @@ Full detail: [docs/prod-plan.md](docs/prod-plan.md)
 Goal: real-time read-only position and balance sync from major brokerages and banks.
 
 ### Fidelity / Plaid Integration
-- [ ] Plaid Link embedded UI (BYOK: `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`)
-- [ ] `/api/sync/plaid/create-link-token` + `/api/sync/plaid/exchange`
-- [ ] Position sync → replaces manual CSV import
-- [ ] Account balance sync → `customAccounts`
+- [x] Plaid credentials via env vars (BYOK: `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`)
+- [x] `POST /api/sync/plaid/create-link-token` — generate Plaid Link token
+- [x] `POST /api/sync/plaid/exchange` — exchange public token for encrypted access token
+- [x] `POST /api/sync/plaid/positions` — sync investment holdings → `importedPositions`
+- [x] `POST /api/sync/plaid/accounts` — sync balances → `customAccounts`
+- [x] Encrypted token storage (per-provider token files, AES-256-GCM)
 - [ ] Transaction import → expense categorization
-- [ ] Encrypted token storage with auto-refresh
+- [ ] Disable manual Fidelity CSV import UI when Plaid sync is active (prevent duplicates)
 
 ### Real-Time Price Improvements
-- [ ] Replace Yahoo Finance crumb hack with stable quote API (Alpha Vantage or Polygon.io, BYOK)
-- [ ] CoinGecko free API for crypto token prices (no key for basic tier)
-- [ ] Server-Sent Events (SSE) for live price push to browser dashboard
+- [x] Price provider abstraction (`app/lib/prices-provider.js`) — swap Yahoo / Alpha Vantage / Polygon via env var
+- [x] CoinGecko free API for crypto token prices (used in web3-prices.js; optional key via `COINGECKO_API_KEY`)
+- [x] SSE endpoint `GET /api/prices/stream` for live price push to browser dashboard
 
 ### Car Values
-- [ ] Free fallback: NHTSA VIN + manual refresh prompt
-- [ ] Premium: KBB API or DataOne.io (BYOK)
+- [x] Free fallback: NHTSA VIN decode via `GET /api/vehicles/vin/:vin`
+- [x] Premium: DataOne or MarketCheck via `VEHICLE_VALUE_PROVIDER` (BYOK)
+- [ ] KBB API requires Cox Automotive partner agreement
 
 ---
 
@@ -92,17 +103,19 @@ Goal: real-time read-only position and balance sync from major brokerages and ba
 Goal: harden the system for shared-machine and LAN-facing use.
 Full detail: [docs/security-hardening.md](docs/security-hardening.md)
 
-- [ ] Rate limiting on all `/api/*` routes (express-rate-limit, per-IP + per-key)
+- [x] Rate limiting on all `/api/*` routes (`express-rate-limit`: 300/min general, 30/min sync)
+- [x] Security headers (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) applied inline in server.js
+- [x] `SESSION_SECRET` fail-fast in production if default/unset
+- [x] `FIRE_API_KEY` warning in production if unset; `FIRE_ADMIN_KEY` required in production for key rotation
+- [x] Webhook payload size cap (16KB) enforced in webhook receiver
+- [x] Webhook `sideGigLedger` and all supported-type field-level schema validation
+- [x] `npm audit --audit-level=high --omit=dev` CI gate (in `.github/workflows/ci.yml`)
+- [x] `POST /api/admin/rotate-key` — re-encrypt db.json with new SYNC_MASTER_KEY (`FIRE_ADMIN_KEY`-gated)
+- [x] MCP audit log (`data/mcp-audit.log`): tool name, timestamp, response byte size
+- [x] Wallet address truncation in MCP responses (last 8 chars shown)
 - [ ] HTTPS via Caddy reverse proxy in docker-compose.yml
-- [ ] Security headers (helmet.js: CSP, HSTS, X-Frame-Options)
-- [ ] `SESSION_SECRET` fail-fast in production if default/unset
-- [ ] `FIRE_API_KEY` required by default (opt-out for local-only mode)
-- [ ] Webhook payload size cap (16KB)
-- [ ] Webhook sideGigLedger field-level schema validation
-- [ ] `npm audit` CI gate (fail on high/critical prod deps)
-- [ ] SYNC_MASTER_KEY rotation endpoint (atomically re-encrypt both `db.json` and `data/tokens.json` with new key; backup old ciphertext before write)
-- [ ] MCP audit log (tool name, timestamp, response byte size — no content)
-- [ ] Account/position identifier truncation in MCP responses
+- [ ] `FIRE_API_KEY` required by default (currently opt-in; `FIRE_AUTH_DISABLED=true` opt-out planned)
+- [ ] Vitest test asserting no write tools are registered in MCP server
 - [ ] Penetration testing checklist (see docs/security-hardening.md)
 
 ---
