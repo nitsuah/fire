@@ -1,6 +1,6 @@
-updated: 2026-08-22
-
 # 🗺️ FIRE Tracker Roadmap
+
+updated: 2026-08-22
 
 ---
 
