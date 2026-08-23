@@ -85,7 +85,6 @@ async function getEthBalance(address) {
     return Number(wei) / 1e18;
 }
 
-
 async function getTickerUsdPrice(ticker) {
     const isStable = STABLECOINS.has(ticker.toUpperCase());
     // Map common crypto tickers to Yahoo Finance symbols

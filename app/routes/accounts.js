@@ -22,8 +22,13 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'Invalid value.' });
     }
     const apy = req.body.apy !== undefined ? strictNum(req.body.apy) : 0;
-    if (req.body.apy !== undefined && (!Number.isFinite(apy) || apy < 0 || apy > 100)) {
-        return res.status(400).json({ error: 'Invalid apy. Must be between 0 and 100.' });
+    if (
+        req.body.apy !== undefined &&
+        (!Number.isFinite(apy) || apy < 0 || apy > 100)
+    ) {
+        return res
+            .status(400)
+            .json({ error: 'Invalid apy. Must be between 0 and 100.' });
     }
     const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
     if (!name) {
@@ -72,7 +77,9 @@ router.put('/:id', async (req, res) => {
     if (req.body.apy !== undefined) {
         const apyVal = strictNum(req.body.apy);
         if (!Number.isFinite(apyVal) || apyVal < 0 || apyVal > 100) {
-            return res.status(400).json({ error: 'Invalid apy. Must be between 0 and 100.' });
+            return res
+                .status(400)
+                .json({ error: 'Invalid apy. Must be between 0 and 100.' });
         }
     }
     if (req.body.name !== undefined) {

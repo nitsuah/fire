@@ -105,7 +105,11 @@ window.checkAndNotify = function (s, sendPush) {
                             urgent: m >= 100,
                         });
                         if (sendPush && !sessionStorage.getItem(key)) {
-                            _sendNotification(`FIRE Milestone: ${m}%`, msg, key);
+                            _sendNotification(
+                                `FIRE Milestone: ${m}%`,
+                                msg,
+                                key,
+                            );
                             sessionStorage.setItem(key, '1');
                         }
                     }

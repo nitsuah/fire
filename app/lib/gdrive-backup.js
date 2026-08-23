@@ -95,7 +95,9 @@ function loadTokens() {
     } catch (e) {
         if (e.code === 'ENOENT') {
             throw Object.assign(
-                new Error('Google Drive not authorized. Visit /api/backup/drive/authorize to connect.'),
+                new Error(
+                    'Google Drive not authorized. Visit /api/backup/drive/authorize to connect.',
+                ),
                 { status: 503 },
             );
         }

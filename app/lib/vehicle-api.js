@@ -200,7 +200,9 @@ async function estimateVehicleValue(vehicle) {
                 };
             }
         } else if (provider) {
-            console.warn(`[Vehicle] Unknown VEHICLE_VALUE_PROVIDER "${provider}" — only "vinaudit" is supported. Market lookup skipped.`);
+            console.warn(
+                `[Vehicle] Unknown VEHICLE_VALUE_PROVIDER "${provider}" — only "vinaudit" is supported. Market lookup skipped.`,
+            );
         }
     }
 
