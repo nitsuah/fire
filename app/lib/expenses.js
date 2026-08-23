@@ -85,7 +85,6 @@ function initExpenseManager() {
             await saveState();
         } catch (err) {
             console.error('Failed to save tax settings:', err);
-            return;
         }
         refreshAllUI();
     }

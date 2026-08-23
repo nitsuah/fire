@@ -108,7 +108,7 @@ app.use((req, res, next) => {
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
             "font-src 'self' fonts.gstatic.com",
             "img-src 'self' data:",
-            "connect-src 'self' query1.finance.yahoo.com finance.yahoo.com marketvalue.vinaudit.com cloudflare-eth.com ensdata.net",
+            "connect-src 'self' query1.finance.yahoo.com finance.yahoo.com",
             "frame-ancestors 'none'",
         ].join('; '),
     );
@@ -138,11 +138,8 @@ app.use('/docs', express.static(path.join(__dirname, '../docs')));
 
 if (API_KEY) {
     app.use('/api', (req, res, next) => {
-        // Drive OAuth routes are browser-redirect flows; Google cannot add x-api-key
-        if (
-            req.path === '/backup/drive/authorize' ||
-            req.path === '/backup/drive/callback'
-        ) {
+        // Only the callback is a browser-redirect that Google initiates; authorize is user-initiated
+        if (req.path === '/backup/drive/callback') {
             return next();
         }
         const key = req.headers['x-api-key'];

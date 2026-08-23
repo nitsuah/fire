@@ -57,37 +57,34 @@ window.renderRebalancingTool = function () {
         Crypto: 0,
     };
 
+    // Exact-match ticker sets to avoid substring false-positives (e.g. VTIP ≠ VTI, IEFA ≠ IEF)
+    const EQUITY_TICKERS = new Set([
+        'FZROX','FXAIX','VTI','VOO','SPY','QQQ','FSKAX','VTSAX',
+        'SCHB','ITOT','VUG','VTV','VBR','VBK','IVV','IWM','IWB',
+        'VXUS','VEA','VWO','EFA','IEFA','IEMG','VT','ACWI',
+        'FNILX','FZILX','FSMAX','VXF','IJH','IJR','VO','VB',
+        'AVUV','AVDV','QUAL','MTUM','VLUE','SIZE',
+    ]);
+    const BOND_TICKERS = new Set([
+        'BND','AGG','FXNAX','VBTLX','TLT','IEF','SHY','GOVT',
+        'VTIP','SCHZ','FBND','FUAMX','FXSTX','VGIT','VGLT','VGSH',
+        'MUB','HYG','JNK','LQD','VCIT','VCLT','VCSH','BSV','BIV','BLV',
+        'TIPS','STIP','LTPZ',
+    ]);
+    const CASH_TICKERS = new Set([
+        'FZFXX','SPAXX','FDRXX','SPRXX','FZDXX','VMFXX','VUSXX',
+        'SGOV','USFR','BIL','SHV',
+    ]);
+
     // Imported positions
     (state.importedPositions || []).forEach((pos) => {
         const sym = (pos.symbol || '').toUpperCase();
         const desc = (pos.description || '').toUpperCase();
-        if (
-            sym.includes('FZROX') ||
-            sym.includes('FXAIX') ||
-            sym.includes('VTI') ||
-            sym.includes('VOO') ||
-            sym.includes('SPY') ||
-            sym.includes('QQQ') ||
-            sym.includes('FSKAX') ||
-            sym.includes('VTSAX')
-        ) {
+        if (EQUITY_TICKERS.has(sym)) {
             current.Equities += pos.value || 0;
-        } else if (
-            sym.includes('FXNAX') ||
-            sym.includes('BND') ||
-            sym.includes('AGG') ||
-            sym.includes('VBTLX') ||
-            sym.includes('TLT') ||
-            sym.includes('IEF') ||
-            desc.includes('BOND')
-        ) {
+        } else if (BOND_TICKERS.has(sym) || desc.includes('BOND')) {
             current['Fixed Income'] += pos.value || 0;
-        } else if (
-            sym.includes('FZFXX') ||
-            sym.includes('SPAXX') ||
-            sym.includes('FDRXX') ||
-            desc.includes('MONEY MARKET')
-        ) {
+        } else if (CASH_TICKERS.has(sym) || desc.includes('MONEY MARKET')) {
             current.Cash += pos.value || 0;
         } else {
             current.Equities += pos.value || 0;
@@ -111,10 +108,10 @@ window.renderRebalancingTool = function () {
     (state.customAccounts || []).forEach((acc) => {
         const v = acc.value || 0;
         if (acc.type === 'Crypto') current.Crypto += v;
-        else if (acc.type === 'Cash' || acc.type === 'Savings')
-            current.Cash += v;
+        else if (acc.type === 'Cash' || acc.type === 'Savings') current.Cash += v;
         else if (acc.type === 'Brokerage') current.Equities += v;
-        else current.Cash += v;
+        else if (acc.type === 'RealEstate') current['Real Estate'] += v;
+        // 'Other' accounts are intentionally excluded from rebalancing buckets
     });
 
     const totalValue = Object.values(current).reduce((s, v) => s + v, 0);

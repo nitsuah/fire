@@ -97,22 +97,16 @@ window.checkAndNotify = function (s, sendPush) {
                 milestones.forEach((m) => {
                     if (pct >= m) {
                         const key = `fire-milestone-${m}`;
-                        if (!sessionStorage.getItem(key)) {
-                            const msg = `You've reached ${m}% of your FIRE number ($${Math.round(data.fireNumber).toLocaleString()})!`;
-                            alerts.push({
-                                type: 'fire',
-                                label: `FIRE ${m}%`,
-                                msg,
-                                urgent: m >= 100,
-                            });
-                            if (sendPush) {
-                                _sendNotification(
-                                    `FIRE Milestone: ${m}%`,
-                                    msg,
-                                    key,
-                                );
-                                sessionStorage.setItem(key, '1');
-                            }
+                        const msg = `You've reached ${m}% of your FIRE number ($${Math.round(data.fireNumber).toLocaleString()})!`;
+                        alerts.push({
+                            type: 'fire',
+                            label: `FIRE ${m}%`,
+                            msg,
+                            urgent: m >= 100,
+                        });
+                        if (sendPush && !sessionStorage.getItem(key)) {
+                            _sendNotification(`FIRE Milestone: ${m}%`, msg, key);
+                            sessionStorage.setItem(key, '1');
                         }
                     }
                 });

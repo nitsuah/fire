@@ -35,6 +35,11 @@ router.get('/drive/authorize', (req, res) => {
             error: 'GDRIVE_CLIENT_ID and GDRIVE_CLIENT_SECRET must be set to authorize Google Drive.',
         });
     }
+    if (!process.env.SYNC_MASTER_KEY || !/^[0-9a-fA-F]{64}$/.test(process.env.SYNC_MASTER_KEY)) {
+        return res.status(503).json({
+            error: 'SYNC_MASTER_KEY must be set (64 hex chars) before connecting Google Drive — tokens cannot be stored securely without it.',
+        });
+    }
     const state = crypto.randomBytes(16).toString('hex');
     req.session.driveOauthState = state;
     const url = generateAuthUrl(state);
