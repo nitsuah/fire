@@ -199,6 +199,10 @@ async function estimateVehicleValue(vehicle) {
                     error: e.message,
                 };
             }
+        } else if (provider) {
+            console.warn(
+                `[Vehicle] Unknown VEHICLE_VALUE_PROVIDER "${provider}" — only "vinaudit" is supported. Market lookup skipped.`,
+            );
         }
     }
 

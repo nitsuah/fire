@@ -85,26 +85,6 @@ async function getEthBalance(address) {
     return Number(wei) / 1e18;
 }
 
-async function getEthUsdPrice() {
-    // Use Yahoo Finance (already in the app's price pipeline)
-    const res = await fetch(
-        'https://query1.finance.yahoo.com/v8/finance/chart/ETH-USD?interval=1d&range=1d',
-        { signal: AbortSignal.timeout(8000) },
-    );
-    if (!res.ok)
-        throw Object.assign(
-            new Error(`ETH price fetch failed (${res.status})`),
-            { status: 502 },
-        );
-    const data = await res.json();
-    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    if (!price)
-        throw Object.assign(new Error('Could not parse ETH price from Yahoo'), {
-            status: 502,
-        });
-    return price;
-}
-
 async function getTickerUsdPrice(ticker) {
     const isStable = STABLECOINS.has(ticker.toUpperCase());
     // Map common crypto tickers to Yahoo Finance symbols
@@ -187,7 +167,7 @@ async function resolveCryptoValue(identifier, quantity) {
     }
     const [ethBalance, ethPrice] = await Promise.all([
         getEthBalance(address),
-        getEthUsdPrice(),
+        getTickerUsdPrice('ETH'),
     ]);
     return {
         usdValue: ethBalance * ethPrice,

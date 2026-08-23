@@ -83,11 +83,7 @@ window.saveEditVehicle = async function (id) {
         year: parseInt(g('year')?.value) || state.vehicles[idx].year,
         make: g('make')?.value.trim() || state.vehicles[idx].make,
         model: g('model')?.value.trim() || state.vehicles[idx].model,
-        ...(vinEdit
-            ? { vin: vinEdit }
-            : state.vehicles[idx].vin
-              ? { vin: state.vehicles[idx].vin }
-              : {}),
+        ...(vinEdit ? { vin: vinEdit } : { vin: undefined }),
         trim:
             g('trim') != null
                 ? g('trim').value.trim()

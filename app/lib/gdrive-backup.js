@@ -89,7 +89,20 @@ function saveTokens(tokens) {
 }
 
 function loadTokens() {
-    const raw = fs.readFileSync(tokenFilePath(), 'utf8');
+    let raw;
+    try {
+        raw = fs.readFileSync(tokenFilePath(), 'utf8');
+    } catch (e) {
+        if (e.code === 'ENOENT') {
+            throw Object.assign(
+                new Error(
+                    'Google Drive not authorized. Visit /api/backup/drive/authorize to connect.',
+                ),
+                { status: 503 },
+            );
+        }
+        throw e;
+    }
     return JSON.parse(decryptToken(raw));
 }
 
