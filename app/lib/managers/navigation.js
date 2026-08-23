@@ -22,6 +22,9 @@ function initNavigation() {
                 renderDashboardProjectionsChart();
             } else if (targetTab === 'projections') {
                 calculateAndRenderProjections();
+            } else if (targetTab === 'taxes') {
+                if (typeof renderTaxHarvestTable === 'function')
+                    renderTaxHarvestTable();
             }
         });
     });

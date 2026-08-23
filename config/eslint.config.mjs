@@ -26,6 +26,7 @@ export default [
             'app/lib/gdrive-backup.js',
             'app/lib/prices-provider.js',
             'app/lib/vehicle-api.js',
+            'app/lib/crypto-balance.js',
         ],
         languageOptions: {
             globals: {
@@ -51,6 +52,7 @@ export default [
             // Shared browser utilities (loaded as <script> globals)
             'app/lib/html-utils.js',
             'app/lib/privacy.js',
+            'app/lib/notifications.js',
             // Modular components (refactored structure)
             'app/lib/charts/**/*.js',
             'app/lib/managers/**/*.js',
@@ -75,6 +77,16 @@ export default [
             globals: {
                 ...globals.node,
                 ...globals.jest,
+            },
+        },
+    },
+
+    // Service worker (worker globals: self, caches, fetch, clients, etc.)
+    {
+        files: ['app/sw.js'],
+        languageOptions: {
+            globals: {
+                ...globals.serviceworker,
             },
         },
     },

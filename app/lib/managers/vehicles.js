@@ -12,6 +12,10 @@ function initVehiclesManager() {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const vinRaw = document
+            .getElementById('veh-vin')
+            ?.value.trim()
+            .toUpperCase();
         const entry = {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
             year:
@@ -21,6 +25,7 @@ function initVehiclesManager() {
             model: document.getElementById('veh-model').value.trim(),
             trim: document.getElementById('veh-trim').value.trim(),
             color: document.getElementById('veh-color').value.trim(),
+            ...(vinRaw ? { vin: vinRaw } : {}),
             mileage:
                 parseInt(document.getElementById('veh-mileage').value) || 0,
             condition: document.getElementById('veh-condition').value,
@@ -72,11 +77,17 @@ window.saveEditVehicle = async function (id) {
     const g = (fId) => document.getElementById(`veh-edit-${fId}-${id}`);
     const currentValue = parseFloat(g('value')?.value);
     if (!Number.isFinite(currentValue) || currentValue <= 0) return;
+    const vinEdit = g('vin')?.value.trim().toUpperCase();
     state.vehicles[idx] = {
         ...state.vehicles[idx],
         year: parseInt(g('year')?.value) || state.vehicles[idx].year,
         make: g('make')?.value.trim() || state.vehicles[idx].make,
         model: g('model')?.value.trim() || state.vehicles[idx].model,
+        ...(vinEdit
+            ? { vin: vinEdit }
+            : state.vehicles[idx].vin
+              ? { vin: state.vehicles[idx].vin }
+              : {}),
         trim:
             g('trim') != null
                 ? g('trim').value.trim()
