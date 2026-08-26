@@ -4,7 +4,7 @@
 
 | Metric                            | Current                                  | Target  | Status       |
 | :-------------------------------- | :--------------------------------------- | :------ | :----------- |
-| Code Coverage          | 88%                                   | 80%     | Met  |
+| Code Coverage          | 26%                                   | 80%     | Below Target  |
 | Total Tests                       | 198                                      | 100+    | Met          |
 | CI/CD Build Status                | Passing (GitHub Actions)                 | Passing | Met          |
 | ESLint Violations                 | 0                                        | 0       | Met          |
@@ -15,7 +15,7 @@
 | Client JS Size (app/lib/)         | TBD (no build step, modules served raw)  | N/A     | N/A          |
 | Build Success Rate                | N/A (no build step)                      | 99%     | N/A          |
 | Deployment Frequency              | TBD                                      | Weekly  | Untracked    |
-| Last updated                      | 2026-08-09                               |         |              |
+| Last updated                      | 2026-08-22                               |         |              |
 
 ## How to Update
 
