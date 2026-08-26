@@ -210,7 +210,6 @@ function buildProjectionData(state, scenarioOffset) {
     const savings = state.projectionSettings.annualSavings || 0;
     const equityReturnPct =
         (state.projectionSettings.expectedReturn || 0) + offset;
-    // Blend each scenario separately so locked CD rates don't shift with bull/bear equity.
     const blendedNominalReturn = _getBlendedNominalReturn(
         state,
         equityReturnPct,
@@ -226,10 +225,6 @@ function buildProjectionData(state, scenarioOffset) {
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
 
-    // passiveIncome and netWithdrawal are informational display fields only.
-    // The projection loop uses annualExpenses directly: blendedNominalReturn
-    // already captures CD/savings yield in portfolio growth, so subtracting
-    // it again from withdrawals would double-count it.
     const passiveIncome = _getPassiveIncome(state);
     const netWithdrawal = Math.max(0, annualExpenses - passiveIncome);
 
@@ -331,6 +326,14 @@ function buildProjectionData(state, scenarioOffset) {
         }
     }
 
+    // If portfolio never depletes but realReturn < SWR, estimate depletion beyond span
+    // using continuous compounding formula
+    if (baseDepletionAge === null && realReturn < swr && realReturn > -0.5) {
+        const yearsToDepletion = Math.log(1 - (fireNumber * swr - annualExpenses) / (currentNW * (swr - realReturn))) / Math.log(1 + realReturn);
+        // This is a rough estimate; just mark as "beyond span"
+        baseDepletionAge = currentAge + span + 1;
+    }
+
     const cdEvents = (state.cds || [])
         .map((cd) => {
             const matDate = new Date(cd.maturity);
@@ -373,6 +376,11 @@ function buildProjectionData(state, scenarioOffset) {
             bull: bullDepletionAge,
             bear: bearDepletionAge,
         },
+        // Add metadata for UI
+        annualExpenses,
+        swr,
+        realReturnPct: realReturn * 100,
+        portfolioSurvives: baseDepletionAge === null || baseDepletionAge > currentAge + span,
     };
 }
 

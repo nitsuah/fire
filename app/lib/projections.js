@@ -325,6 +325,6 @@ function computeScenarioFIREDate({
 function calculateAndRenderProjections() {
     const raw = buildProjectionData();
     renderProjectionsChart(sliceProjectionData(raw, projWindow));
-    renderMilestones(raw.networth, raw.fireNumber, raw.realReturn, raw.savings);
+    renderMilestones(raw.networth, raw.fireNumber, raw.realReturn, raw.savings, raw.depletionAge);
     renderScenarioComparison();
 }

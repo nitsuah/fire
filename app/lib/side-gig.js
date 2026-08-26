@@ -48,6 +48,40 @@ function initSideGigManager() {
             alert('eBay sale successfully logged to Side Income history!');
         });
 
+    // eBay OAuth Integration
+    const ebayOauthBtn = document.getElementById('btn-ebay-oauth');
+    if (ebayOauthBtn) {
+        ebayOauthBtn.addEventListener('click', async () => {
+            const statusEl = document.getElementById('ebay-sync-status');
+            statusEl.textContent = 'Status: Connecting...';
+            statusEl.style.color = 'var(--color-warning)';
+            try {
+                const res = await fetch('/api/sync/ebay/authorize');
+                if (res.redirected) {
+                    window.location.href = res.url;
+                } else {
+                    const data = await res.json();
+                    if (data.error) {
+                        statusEl.textContent = `Status: ${data.error}`;
+                        statusEl.style.color = 'var(--color-danger)';
+                    }
+                }
+            } catch (err) {
+                statusEl.textContent = 'Status: Connection failed';
+                statusEl.style.color = 'var(--color-danger)';
+            }
+        });
+    }
+
+    // Check eBay connection status on load
+    checkEbayConnection();
+
+    // Check Plaid connection status on load
+    checkPlaidConnection();
+
+    // Initialize Plaid Link
+    initPlaidLink();
+
     const manualForm = document.getElementById('form-sidegig-manual');
     manualForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -74,6 +108,119 @@ function initSideGigManager() {
     });
 
     calculateEbayProfit();
+}
+
+async function checkEbayConnection() {
+    const statusEl = document.getElementById('ebay-sync-status');
+    if (!statusEl) return;
+    try {
+        const res = await fetch('/api/sync/ebay/status');
+        const data = await res.json();
+        if (data.connected) {
+            statusEl.textContent = `Status: Connected (Last sync: ${new Date(data.lastSync).toLocaleDateString()})`;
+            statusEl.style.color = 'var(--color-success)';
+        } else {
+            statusEl.textContent = 'Status: Disconnected';
+            statusEl.style.color = 'var(--text-muted)';
+        }
+    } catch (err) {
+        statusEl.textContent = 'Status: Error checking connection';
+        statusEl.style.color = 'var(--color-danger)';
+    }
+}
+
+async function checkPlaidConnection() {
+    const statusEl = document.getElementById('plaid-sync-status');
+    if (!statusEl) return;
+    try {
+        const res = await fetch('/api/sync/plaid/status');
+        const data = await res.json();
+        if (data.connected) {
+            statusEl.textContent = `Status: Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''})`;
+            statusEl.style.color = 'var(--color-success)';
+        } else {
+            statusEl.textContent = 'Status: Not Linked';
+            statusEl.style.color = 'var(--text-muted)';
+        }
+    } catch (err) {
+        statusEl.textContent = 'Status: Error checking connection';
+        statusEl.style.color = 'var(--color-danger)';
+    }
+}
+
+let plaidLinkHandler = null;
+
+function initPlaidLink() {
+    const linkBtn = document.getElementById('btn-plaid-link');
+    if (!linkBtn) return;
+
+    linkBtn.addEventListener('click', async () => {
+        const statusEl = document.getElementById('plaid-sync-status');
+        statusEl.textContent = 'Status: Opening Plaid Link...';
+        statusEl.style.color = 'var(--color-warning)';
+
+        try {
+            const res = await fetch('/api/sync/plaid/create-link-token');
+            const data = await res.json();
+
+            if (!data.linkToken) {
+                throw new Error(data.error || 'Failed to create link token');
+            }
+
+            // Initialize Plaid Link
+            if (plaidLinkHandler) {
+                plaidLinkHandler.destroy();
+            }
+
+            plaidLinkHandler = Plaid.create({
+                token: data.linkToken,
+                onSuccess: async (public_token, metadata) => {
+                    statusEl.textContent = 'Status: Exchanging token...';
+                    statusEl.style.color = 'var(--color-warning)';
+
+                    try {
+                        const exchangeRes = await fetch('/api/sync/plaid/exchange', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ public_token }),
+                        });
+                        const exchangeData = await exchangeRes.json();
+
+                        if (exchangeData.status === 'success') {
+                            statusEl.textContent = `Status: Linked (${metadata.accounts?.length || 0} accounts)`;
+                            statusEl.style.color = 'var(--color-success)';
+                            // Fetch accounts and positions
+                            await fetch('/api/sync/plaid/accounts', { method: 'POST' });
+                            await fetch('/api/sync/plaid/positions', { method: 'POST' });
+                            refreshAllUI();
+                        } else {
+                            throw new Error(exchangeData.error || 'Token exchange failed');
+                        }
+                    } catch (err) {
+                        statusEl.textContent = `Status: Error - ${err.message}`;
+                        statusEl.style.color = 'var(--color-danger)';
+                    }
+                },
+                onExit: (err, metadata) => {
+                    if (err) {
+                        statusEl.textContent = `Status: ${err.error_message || 'Cancelled'}`;
+                        statusEl.style.color = 'var(--color-danger)';
+                    } else {
+                        statusEl.textContent = 'Status: Not Linked';
+                        statusEl.style.color = 'var(--text-muted)';
+                    }
+                },
+                onEvent: (eventName, metadata) => {
+                    console.log('[Plaid Link Event]', eventName, metadata);
+                },
+            });
+
+            plaidLinkHandler.open();
+        } catch (err) {
+            statusEl.textContent = `Status: Error - ${err.message}`;
+            statusEl.style.color = 'var(--color-danger)';
+        }
+    });
 }
 
 function calculateEbayFeesTotal() {

@@ -233,6 +233,30 @@ router.post('/ebay/sync', async (req, res) => {
     }
 });
 
+router.get('/ebay/status', (req, res) => {
+    const tokens = loadTokens('ebay');
+    if (!tokens) {
+        return res.json({ connected: false });
+    }
+    res.json({
+        connected: true,
+        lastSync: tokens.lastUpdated,
+        environment: tokens.environment || 'sandbox',
+    });
+});
+
+router.get('/plaid/status', (req, res) => {
+    const tokens = loadTokens('plaid');
+    if (!tokens?.items?.length) {
+        return res.json({ connected: false, itemCount: 0 });
+    }
+    res.json({
+        connected: true,
+        itemCount: tokens.items.length,
+        lastUpdated: tokens.lastUpdated,
+    });
+});
+
 // ─── Plaid ───────────────────────────────────────────────────────────────────
 
 function plaidConfigured() {
