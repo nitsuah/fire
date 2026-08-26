@@ -36,14 +36,18 @@ The system remains **read-only** with respect to financial accounts. It will nev
 | AES-256-GCM db.json encryption | ✅ Live | Opt-in via SYNC_MASTER_KEY |
 | MCP server (8 read-only tools) | ✅ Live | stdio transport |
 | Webhook sync framework | ✅ Live | JSONata mapping + HMAC |
-| OAuth scaffold | ⚠️ Stub | Non-functional placeholder |
-| eBay API integration | ❌ Planned | PROD Phase 1 |
+| OAuth scaffold | ✅ Live | eBay OAuth + Plaid Link SDK with UI |
+| eBay API integration | ✅ UI Ready | Backend endpoints complete; needs env vars |
 | Web3 wallet tracking | ❌ Planned | PROD Phase 1 |
-| Vehicle value API | ❌ Planned | PROD Phase 1 |
+| Vehicle value API | ✅ UI Ready | Estimate overlay styled; needs premium API key |
 | Encrypted cloud backup | ❌ Planned | PROD Phase 1 |
-| Fidelity/Plaid sync | ❌ Planned | PROD Phase 2 |
+| Fidelity/Plaid sync | ✅ UI Ready | Backend + Plaid Link SDK complete; needs env vars |
 | Rate limiting | ❌ Planned | PROD Phase 3 |
 | HTTPS | ❌ Planned | PROD Phase 3 |
+| Unified Settings Page | ✅ Live | Notifications, export/import, privacy/terms, danger zone |
+| Milestone Presets | ✅ Live | 5 profiles (Conservative/Standard/Aggressive/Barista/Coast) |
+| Diversification Tips | ✅ Live | Dismissible tiles with curated links |
+| Retirement Drawdown/Depletion | ✅ Live | Accurate money run-out detection |
 
 ---
 

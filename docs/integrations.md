@@ -11,7 +11,7 @@ This document describes every planned external integration — what credentials 
 ## eBay API
 
 **Purpose:** Automatically import completed sales into the side gig ledger.  
-**Phase:** PROD Phase 1 (Q1 2027)  
+**Phase:** PROD Phase 1 (Q1 2027) — **UI Ready** (OAuth status check, authorize/sync endpoints)  
 **Auth type:** OAuth 2.0 Authorization Code
 
 ### Setup
@@ -41,6 +41,15 @@ EBAY_ENVIRONMENT=sandbox  # Change to "production" after testing
 ### OAuth Scope
 
 `https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly` — read-only access to order data.
+
+### Current Implementation Status
+
+- ✅ OAuth authorize endpoint: `GET /api/sync/ebay/authorize`
+- ✅ OAuth callback endpoint: `GET /api/sync/ebay/callback`
+- ✅ Sync endpoint: `POST /api/sync/ebay/sync`
+- ✅ Status check endpoint: `GET /api/sync/ebay/status` (returns connected state, last sync, environment)
+- ✅ Settings page UI with connection status display
+- ⏳ Requires `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `SYNC_MASTER_KEY` environment variables to function
 
 ---
 
@@ -232,7 +241,7 @@ The uploaded file is encrypted with AES-256-GCM using `SYNC_MASTER_KEY` **before
 ## Plaid (Bank / Fidelity Aggregation)
 
 **Purpose:** Real-time position and balance sync from Fidelity, bank accounts, and other institutions via Plaid's aggregation network.  
-**Phase:** PROD Phase 2 (Q2 2027)  
+**Phase:** PROD Phase 2 (Q2 2027) — **UI Ready** (Plaid Link SDK embedded, create-link-token/exchange endpoints)  
 **Auth type:** OAuth 2.0 via Plaid Link (BYOK)
 
 ### Setup
@@ -264,6 +273,17 @@ PLAID_ENV=sandbox    # Change to "production" after testing
 ### Note on Fidelity
 
 Fidelity's support via Plaid depends on Plaid's institution coverage and Fidelity's data-sharing agreements. As of 2026, Fidelity supports balance and investment data via Plaid for eligible accounts. Check Plaid's [institution search](https://plaid.com/docs/institutions/) for current coverage.
+
+### Current Implementation Status
+
+- ✅ Create Link Token endpoint: `POST /api/sync/plaid/create-link-token`
+- ✅ Exchange Public Token endpoint: `POST /api/sync/plaid/exchange`
+- ✅ Sync Positions endpoint: `POST /api/sync/plaid/positions`
+- ✅ Sync Accounts endpoint: `POST /api/sync/plaid/accounts`
+- ✅ Status check endpoint: `GET /api/sync/plaid/status` (returns connected state, item count)
+- ✅ Plaid Link SDK embedded in Settings page (`initPlaidLink()`)
+- ✅ Connection status check (`checkPlaidConnection()`)
+- ⏳ Requires `PLAID_CLIENT_ID`, `PLAID_SECRET`, `SYNC_MASTER_KEY` environment variables to function
 
 ---
 

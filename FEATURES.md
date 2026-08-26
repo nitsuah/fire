@@ -34,13 +34,14 @@
 
 ## Retirement Projections
 
-- **Projection Engine** — Accumulation phase (adds savings) and decumulation phase (withdraws `annualExpenses`) split at retirement age; `realReturn = nominalReturn − inflation`.
+- **Projection Engine** — Accumulation phase (adds savings) and decumulation phase (withdraws `annualExpenses`) split at retirement age; `realReturn = nominalReturn − inflation`. Correctly models portfolio drawdown after retirement with continuous compounding.
 - **SWR Curves** — 3%, 3.5%, 4% withdrawal rate projections with retirement age predictions and milestone forecasts.
-- **Bull/Bear Scenario Bands** — Clickable ±2% offset buttons update growth paths in real time.
+- **Bull/Bear Scenario Bands** — Clickable ±2% offset buttons update growth paths in real time; depletion age tracked for base/bull/bear scenarios.
 - **Time-Period Filters** — 1M / 1Y / 5Y / 10Y / 15Y+ range buttons on dashboard charts.
 - **Chart Line Toggles** — Toggle NW, 75%/100%/125% FIRE goals, Coast FIRE, and US Median benchmark independently.
 - **CD Maturity Markers** — Overlaid on the retirement growth chart to show liquidity events.
 - **Multi-Scenario FIRE Comparison** — Side-by-side comparison of FIRE dates across varying salary bumps, market downturns, and inflation spikes.
+- **Money Run-Out Detection** — Accurately calculates depletion age when `realReturn < SWR` using continuous compounding formula; portfolio survives flag per scenario.
 
 ## CD & Fixed Income
 
@@ -79,6 +80,20 @@
 - **Financial Overview Tab** — Unified Accounts + CDs & Fixed Income tab with Monthly Cash Flow section (income vs. expenses, savings rate, annual surplus/deficit).
 - **Mobile-Responsive Layout** — Adaptive layout for tablet and phone viewports.
 - **Metric Tooltips** — Inline explanation indicators for SWR, FIRE number, Coast FIRE, etc.
+- **Settings Page** — Unified configuration with notification preferences, export/import, projection defaults, privacy/terms, and danger zone.
+- **Milestone Preset Selector** — 5 financial profiles (Conservative, Standard, Aggressive, Barista FIRE, Coast FIRE) with dynamic targets based on user's income/net worth.
+
+## Integrations (UI Ready)
+
+- **eBay OAuth Status** — Connection status check with authorize/sync endpoints in Settings page.
+- **Plaid Link Integration** — Plaid Link SDK embedded for bank/Fidelity aggregation; create-link-token and exchange endpoints.
+- **Vehicle Value Estimates** — Estimate overlay with depreciation model and market data sources; accept/save to vehicle record.
+
+## Diversification Intelligence
+
+- **Diversification Tip Tiles** — Data-driven dismissible cards with severity (info/warning), context-aware messages, and curated educational links.
+- **LocalStorage Persistence** — Dismissed tips remembered across sessions; restore-all button when tips are dismissed.
+- **Smart Triggers** — High cash (>30%), equity concentration (>70%), low equity (<30% with NW >$50k), heavy fixed income (>40% CDs), missing real estate (>$100k NW), single-stock concentration (>20%), no international exposure.
 
 ## Architecture
 

@@ -157,11 +157,11 @@ The system is being productionized toward real-time, API-driven data in four pha
 
 | Integration | Phase | Status |
 |---|---|---|
-| eBay Order API (auto-import sales) | Phase 1 | Planned |
+| eBay Order API (auto-import sales) | Phase 1 | **UI Ready** (endpoints + status UI; needs env vars) |
 | Web3 wallet tracking (ETH, BTC, SOL, + EVM chains) | Phase 1 | Planned |
 | Google Drive encrypted backup | Phase 1 | Planned |
-| Vehicle value API (NHTSA VIN free; KBB/premium Phase 2) | Phase 1 | Planned |
-| Fidelity / Plaid positions + balance sync | Phase 2 | Planned |
+| Vehicle value API (NHTSA VIN free; KBB/premium Phase 2) | Phase 1 | **UI Ready** (estimate overlay styled; needs API key) |
+| Fidelity / Plaid positions + balance sync | Phase 2 | **UI Ready** (Plaid Link SDK embedded; needs env vars) |
 | Stable stock quote API (Alpha Vantage / Polygon.io) | Phase 2 | Planned |
 | Security hardening (rate limiting, HTTPS, CSP) | Phase 3 | Planned |
 
