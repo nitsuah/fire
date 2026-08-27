@@ -390,20 +390,19 @@ function updateNotificationStatusDisplay() {
     }
 }
 
-function requestNotificationPermission() {
+async function requestNotificationPermission() {
     if (!('Notification' in window)) {
         alert('This browser does not support notifications.');
         return;
     }
-    Notification.requestPermission().then(perm => {
-        updateNotificationStatusDisplay();
-        if (perm === 'granted') {
-            new Notification('FIRE Tracker', {
-                body: 'Notifications enabled! You\'ll receive alerts for FIRE milestones and CD maturities.',
-                icon: '/favicon.ico'
-            });
-        }
-    });
+    const perm = await Notification.requestPermission();
+    updateNotificationStatusDisplay();
+    if (perm === 'granted') {
+        new Notification('FIRE Tracker', {
+            body: 'Notifications enabled! You\'ll receive alerts for FIRE milestones and CD maturities.',
+            icon: '/favicon.ico'
+        });
+    }
 }
 
 // Data Export/Import
@@ -530,16 +529,6 @@ function saveProjectionDefaults() {
         spanYears: parseInt(document.getElementById('default-span-years')?.value) || 30,
     };
     state.projectionDefaults = defaults;
-    // Also update the current projection settings if they're using defaults
-    if (!state.projectionSettings.currentAge || state.projectionSettings.currentAge === 30) {
-        state.projectionSettings.currentAge = defaults.currentAge;
-        state.projectionSettings.retireAge = defaults.retireAge;
-        state.projectionSettings.annualSavings = defaults.annualSavings;
-        state.projectionSettings.expectedReturn = defaults.expectedReturn;
-        state.projectionSettings.inflationRate = defaults.inflation;
-        state.projectionSettings.swr = defaults.swr;
-        state.projectionSettings.spanYears = defaults.spanYears;
-    }
     saveState();
 }
 
