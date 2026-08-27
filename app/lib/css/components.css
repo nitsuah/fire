@@ -206,8 +206,8 @@
 
 .sortable-th::after {
     content: ' ↕';
-    opacity: 0.3;
-    font-size: 8px;
+    opacity: 0.55;
+    font-size: var(--text-xs);
 }
 
 .sortable-th.sort-asc::after {
@@ -488,7 +488,7 @@
 /* Two-column form row — fluid */
 .form-row-2 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
     gap: var(--space-md);
 }
 
@@ -513,7 +513,7 @@
 .grid-2-col {
     display: grid;
     gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
 }
 
 .grid-4-col {
@@ -583,9 +583,9 @@
     margin-bottom: var(--space-md);
 }
 
-.cf-bar-income {
+.cf-bar-income,
+.cf-bar-expense {
     height: 100%;
-    background: linear-gradient(90deg, #10b981, #34d399);
     border-radius: 9999px;
     display: flex;
     align-items: center;
@@ -600,22 +600,8 @@
     min-width: 40px;
 }
 
-.cf-bar-expense {
-    height: 100%;
-    background: linear-gradient(90deg, #f43f5e, #fb7185);
-    border-radius: 9999px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: var(--space-sm);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    transition: width 0.5s ease;
-    min-width: 40px;
-}
+.cf-bar-income { background: linear-gradient(90deg, #10b981, #34d399); }
+.cf-bar-expense { background: linear-gradient(90deg, #f43f5e, #fb7185); }
 
 .cf-savings-rate, .cf-annual-row {
     display: flex;
@@ -732,6 +718,9 @@
     min-width: 0;
     font-weight: 600;
     color: rgba(255,255,255,0.85);
+}
+
+.liquid-name > * {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -911,7 +900,8 @@
     border-radius: var(--border-radius);
     backdrop-filter: blur(16px);
     padding: var(--space-md);
-    min-width: 320px;
+    width: calc(100vw - var(--space-md) - var(--space-md));
+    min-width: 0;
     max-width: 360px;
     pointer-events: auto;
     box-shadow: var(--shadow-xl);

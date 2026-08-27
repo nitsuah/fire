@@ -50,14 +50,14 @@
     --space-2xl: clamp(32px, 4vw, 56px);
     --space-3xl: clamp(48px, 6vw, 80px);
 
-    /* Fluid Typography Scale */
-    --text-xs: clamp(10px, 0.75vw, 11px);
-    --text-sm: clamp(12px, 0.875vw, 13px);
-    --text-base: clamp(14px, 1vw, 15px);
-    --text-lg: clamp(16px, 1.125vw, 18px);
-    --text-xl: clamp(20px, 1.5vw, 24px);
-    --text-2xl: clamp(24px, 2vw, 32px);
-    --text-3xl: clamp(32px, 3vw, 48px);
+    /* Fluid Typography Scale — rem-based so browser font-size preference is respected */
+    --text-xs: clamp(0.625rem, 0.6rem + 0.15vw, 0.6875rem);
+    --text-sm: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+    --text-base: clamp(0.875rem, 0.84rem + 0.18vw, 0.9375rem);
+    --text-lg: clamp(1rem, 0.94rem + 0.28vw, 1.125rem);
+    --text-xl: clamp(1.25rem, 1.14rem + 0.55vw, 1.5rem);
+    --text-2xl: clamp(1.5rem, 1.32rem + 0.9vw, 2rem);
+    --text-3xl: clamp(2rem, 1.64rem + 1.8vw, 3rem);
 
     /* Container widths */
     --container-max: 1400px;
@@ -152,17 +152,7 @@ h1, h2, h3, h4, h5, h6 {
 .w-full { width: 100%; }
 .px-6 { padding-left: 24px; padding-right: 24px; }
 
-.grid-2-col {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-}
-.grid-4-col {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 12px;
-    align-items: center;
-}
+/* .grid-2-col and .grid-4-col are defined in components.css with responsive behavior */
 
 /* Notification List items */
 .notification-list {
@@ -576,4 +566,22 @@ h1, h2, h3, h4, h5, h6 {
 .divs-empty > div:first-of-type {
     font-size: var(--text-base);
     color: var(--text-main);
+}
+
+/* Reduced-motion: disable transitions and animations for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --transition-smooth: none;
+        --transition-spring: none;
+        --transition-fast: none;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

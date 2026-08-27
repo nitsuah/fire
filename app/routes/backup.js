@@ -120,7 +120,7 @@ router.post('/drive', async (req, res) => {
         res.json({ status: 'success', ...result });
     } catch (err) {
         console.error('[Backup] Drive upload error:', err);
-        res.status(502).json({ error: err.message });
+        res.status(err.status || 502).json({ error: err.message });
     }
 });
 
@@ -135,7 +135,7 @@ router.get('/drive/list', async (req, res) => {
         res.json({ files });
     } catch (err) {
         console.error('[Backup] Drive list error:', err);
-        res.status(502).json({ error: err.message });
+        res.status(err.status || 502).json({ error: err.message });
     }
 });
 
@@ -174,7 +174,7 @@ router.post('/drive/restore', async (req, res) => {
         });
     } catch (err) {
         console.error('[Backup] Drive restore error:', err);
-        res.status(502).json({ error: err.message });
+        res.status(err.status || 502).json({ error: err.message });
     }
 });
 

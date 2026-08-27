@@ -41,7 +41,11 @@
 .fo-form-row {
     display: grid;
     gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+}
+
+.fo-form-row .form-group {
+    margin-bottom: 0;
 }
 
 /* CD metrics inline in holdings card title row */
@@ -275,7 +279,7 @@
 .results-grid {
     display: grid;
     gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
 }
 
 .result-box {
