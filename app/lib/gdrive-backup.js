@@ -195,7 +195,10 @@ async function getOAuthAccessToken() {
                 { status: 401 },
             );
         }
-        throw new Error(`Token refresh failed (${res.status}): ${text}`);
+        throw Object.assign(
+            new Error(`Token refresh failed (${res.status}): ${text}`),
+            { status: res.status },
+        );
     }
     const data = await res.json();
     const updated = {
@@ -265,7 +268,10 @@ async function getOrCreateFolder(token) {
         },
     );
     if (!listRes.ok)
-        throw new Error(`Drive folder search failed (${listRes.status})`);
+        throw Object.assign(
+            new Error(`Drive folder search failed (${listRes.status})`),
+            { status: listRes.status },
+        );
     const { files } = await listRes.json();
     if (files?.length) return files[0].id;
 
@@ -282,7 +288,10 @@ async function getOrCreateFolder(token) {
         signal: AbortSignal.timeout(10000),
     });
     if (!createRes.ok)
-        throw new Error(`Drive folder creation failed (${createRes.status})`);
+        throw Object.assign(
+            new Error(`Drive folder creation failed (${createRes.status})`),
+            { status: createRes.status },
+        );
     const folder = await createRes.json();
     return folder.id;
 }
@@ -319,7 +328,10 @@ async function uploadBackup(dbJson) {
     });
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Drive upload failed (${res.status}): ${text}`);
+        throw Object.assign(
+            new Error(`Drive upload failed (${res.status}): ${text}`),
+            { status: res.status },
+        );
     }
     const file = await res.json();
     return { fileId: file.id, fileName, folderId };
@@ -338,7 +350,10 @@ async function listBackups() {
             signal: AbortSignal.timeout(10000),
         },
     );
-    if (!res.ok) throw new Error(`Drive list failed (${res.status})`);
+    if (!res.ok)
+        throw Object.assign(new Error(`Drive list failed (${res.status})`), {
+            status: res.status,
+        });
     const { files } = await res.json();
     return files || [];
 }
@@ -356,7 +371,11 @@ async function downloadAndDecryptBackup(fileId) {
             signal: AbortSignal.timeout(30000),
         },
     );
-    if (!res.ok) throw new Error(`Drive download failed (${res.status})`);
+    if (!res.ok)
+        throw Object.assign(
+            new Error(`Drive download failed (${res.status})`),
+            { status: res.status },
+        );
     const encrypted = await res.text();
     return decryptBackup(encrypted);
 }

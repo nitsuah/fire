@@ -171,7 +171,7 @@ function buildProjectionData() {
     const nominalReturn =
         (state.projectionSettings.expectedReturn + scenarioOffset) / 100;
     const inflation = state.projectionSettings.inflationRate / 100;
-    const realReturn = nominalReturn - inflation;
+    const realReturn = (1 + nominalReturn) / (1 + inflation) - 1;
     const span = state.projectionSettings.spanYears;
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
@@ -240,17 +240,17 @@ function buildProjectionData() {
             const isRetired = age >= retireAge;
             if (isRetired) {
                 const nextBase = currentNW * (1 + realReturn) - annualExpenses;
-                if (nextBase <= 0 && baseDepletionAge === null)
+                if (currentNW > 0 && nextBase <= 0 && baseDepletionAge === null)
                     baseDepletionAge = age + 1;
                 currentNW = Math.max(0, nextBase);
 
                 const nextBull = bullNW * (1 + bullReturn) - annualExpenses;
-                if (nextBull <= 0 && bullDepletionAge === null)
+                if (bullNW > 0 && nextBull <= 0 && bullDepletionAge === null)
                     bullDepletionAge = age + 1;
                 bullNW = Math.max(0, nextBull);
 
                 const nextBear = bearNW * (1 + bearReturn) - annualExpenses;
-                if (nextBear <= 0 && bearDepletionAge === null)
+                if (bearNW > 0 && nextBear <= 0 && bearDepletionAge === null)
                     bearDepletionAge = age + 1;
                 bearNW = Math.max(0, nextBear);
             } else {
@@ -296,6 +296,7 @@ function buildProjectionData() {
         realReturn,
         savings,
         networth,
+        annualExpenses,
         depletionAge: {
             base: baseDepletionAge,
             bull: bullDepletionAge,
@@ -320,7 +321,7 @@ function computeScenarioFIREDate({
         (state.projectionSettings.expectedReturn + returnOffset) / 100;
     const inflation =
         (state.projectionSettings.inflationRate + inflationOffset) / 100;
-    const realReturn = nominalReturn - inflation;
+    const realReturn = (1 + nominalReturn) / (1 + inflation) - 1;
     const currentAge = state.projectionSettings.currentAge || 30;
 
     if (networth >= fireNumber) return currentAge;

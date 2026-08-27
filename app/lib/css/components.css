@@ -492,6 +492,10 @@
     gap: var(--space-md);
 }
 
+.form-row-2 .form-group {
+    margin-bottom: 0;
+}
+
 /* Utility classes */
 .text-right { text-align: right; }
 .text-center { text-align: center; }
