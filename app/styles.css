@@ -1,14 +1,7 @@
 /* ==========================================================================
-   styles.css — Main entry point with all modular CSS inlined
-   (Build step would normally inline these; for now we import via absolute paths)
+   styles.css — Legacy overrides and dynamically-injected element styles
+   (Modular CSS is loaded via <link> elements in index.html for parallel fetch)
    ========================================================================== */
-
-/* Import modular CSS files — using web-accessible paths */
-@import '/lib/css/base.css';
-@import '/lib/css/layout.css';
-@import '/lib/css/components.css';
-@import '/lib/css/widgets.css';
-@import '/lib/css/charts.css';
 
 /* Legacy inline styles that are still referenced by JS — will be removed gradually */
 /* Keep minimal fallbacks for any dynamically created elements */

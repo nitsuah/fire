@@ -53,7 +53,7 @@
     cursor: pointer;
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
-    color: var(--text-dimmed);
+    color: var(--text-muted);
     transition: var(--transition-fast);
 }
 
@@ -127,7 +127,7 @@
 .cd-yield-unit {
     font-size: var(--text-xs);
     font-weight: 400;
-    color: var(--text-dimmed);
+    color: var(--text-muted);
     margin-left: 1px;
 }
 
