@@ -3,24 +3,25 @@
                 alloc bar styles, CD ladder, scenario row, platform tabs
    ========================================================================== */
 
-/* Period filter button group */
+/* Period filter button group — organic fluid */
 .period-btns {
     display: flex;
-    gap: 4px;
+    gap: var(--space-xs);
     flex-shrink: 0;
+    flex-wrap: wrap;
 }
 
 .period-btn {
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 11px;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--text-xs);
     font-family: var(--font-body);
     font-weight: 600;
     cursor: pointer;
     border: 1px solid var(--card-border);
     background: transparent;
     color: var(--text-muted);
-    transition: var(--transition-smooth);
+    transition: var(--transition-fast);
 }
 
 .period-btn:hover {
@@ -35,25 +36,25 @@
     color: #fff;
 }
 
-/* Chart line toggle pills */
+/* Chart line toggle pills — organic fluid */
 .chart-toggle-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 10px;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
 }
 
 .chart-toggle-btn {
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: 9999px;
+    font-size: var(--text-xs);
     font-family: var(--font-body);
     font-weight: 600;
     cursor: pointer;
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
-    color: var(--text-dimmed);
-    transition: var(--transition-smooth);
+    color: var(--text-muted);
+    transition: var(--transition-fast);
 }
 
 .chart-toggle-btn:hover {
@@ -67,56 +68,56 @@
     color: var(--color-primary-hover);
 }
 
-/* Scenario selector row */
+/* Scenario selector row — organic fluid */
 .scenario-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 8px;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
     flex-wrap: wrap;
 }
 
 .scenario-label {
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     white-space: nowrap;
 }
 
 .scenario-btn {
-    padding: 3px 10px;
-    border-radius: 6px;
-    font-size: 11px;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--text-xs);
     font-family: var(--font-body);
     font-weight: 600;
     cursor: pointer;
     border: 1px solid rgba(255,255,255,0.1);
     background: rgba(255,255,255,0.03);
     color: var(--text-muted);
-    transition: var(--transition-smooth);
+    transition: var(--transition-fast);
 }
 
 .scenario-btn:hover { border-color: var(--color-primary); color: var(--color-primary-hover); }
-.scenario-btn.active { background: rgba(245,158,11,0.15); border-color: #f59e0b; color: #f59e0b; }
+.scenario-btn.active { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning); }
 
-/* Header: allocation mini bars */
+/* Header: allocation mini bars — organic */
 .alloc-bar-track {
     display: flex;
-    height: 5px;
-    border-radius: 3px;
+    height: 4px;
+    border-radius: 9999px;
     overflow: hidden;
-    margin-top: 5px;
+    margin-top: var(--space-xs);
     gap: 1px;
 }
 
 .alloc-bar-seg {
-    border-radius: 2px;
+    border-radius: 9999px;
     transition: width 0.4s ease;
 }
 
-/* CD annual yield badge */
+/* CD annual yield badge — fluid */
 .cd-yield-badge {
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: var(--text-base);
     font-weight: 700;
     color: var(--color-success);
     white-space: nowrap;
@@ -124,9 +125,9 @@
 }
 
 .cd-yield-unit {
-    font-size: 10px;
+    font-size: var(--text-xs);
     font-weight: 400;
-    color: var(--text-dimmed);
+    color: var(--text-muted);
     margin-left: 1px;
 }
 
@@ -138,22 +139,23 @@
     width: 100% !important;
 }
 
-/* Platform Fee Calculator Tabs */
+/* Platform Fee Calculator Tabs — organic fluid */
 .platform-tabs {
     display: flex;
-    gap: 4px;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
 }
 .platform-tab-btn {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
+    border-radius: var(--border-radius-sm);
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 600;
-    padding: 5px 12px;
+    padding: var(--space-xs) var(--space-sm);
     cursor: pointer;
-    transition: var(--transition-smooth);
-    font-family: 'Outfit', sans-serif;
+    transition: var(--transition-fast);
+    font-family: var(--font-heading);
 }
 .platform-tab-btn:hover {
     background: rgba(139,92,246,0.12);
@@ -171,4 +173,36 @@
 @keyframes panelFadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Stats list — organic */
+.stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(255,255,255,0.02);
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition-fast);
+}
+
+.stat-item:hover {
+    background: rgba(255,255,255,0.04);
+}
+
+.stat-name {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+.stat-val {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: 700;
 }

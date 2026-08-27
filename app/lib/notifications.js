@@ -63,81 +63,89 @@ function _sendNotification(title, body, tag) {
 
 window.checkAndNotify = function (s, sendPush) {
     const alerts = [];
+    const prefs = s.notificationSettings || {};
+    const globalEnabled = prefs.enabled !== false;
     const now = new Date();
     const daysLeft = Math.ceil(
         (new Date(now.getFullYear(), 11, 31) - now) / 86400000,
     );
 
     // CD maturity within 30 days
-    (s.cds || []).forEach((cd) => {
-        if (!cd.maturity) return;
-        const matDate = new Date(cd.maturity);
-        const daysToMat = Math.ceil((matDate - now) / 86400000);
-        if (daysToMat >= 0 && daysToMat <= 30) {
-            const msg = `${cd.bank} CD ($${(cd.principal || 0).toLocaleString()}) matures in ${daysToMat} day${daysToMat !== 1 ? 's' : ''}.`;
-            alerts.push({
-                type: 'cd',
-                label: 'CD Maturity',
-                msg,
-                urgent: daysToMat <= 7,
-            });
-            if (sendPush)
-                _sendNotification('CD Maturing Soon', msg, `cd-${cd.id}`);
-        }
-    });
+    if (globalEnabled && prefs.cdAlerts !== false) {
+        (s.cds || []).forEach((cd) => {
+            if (!cd.maturity) return;
+            const matDate = new Date(cd.maturity);
+            const daysToMat = Math.ceil((matDate - now) / 86400000);
+            if (daysToMat >= 0 && daysToMat <= 30) {
+                const msg = `${cd.bank} CD ($${(cd.principal || 0).toLocaleString()}) matures in ${daysToMat} day${daysToMat !== 1 ? 's' : ''}.`;
+                alerts.push({
+                    type: 'cd',
+                    label: 'CD Maturity',
+                    msg,
+                    urgent: daysToMat <= 7,
+                });
+                if (sendPush)
+                    _sendNotification('CD Maturing Soon', msg, `cd-${cd.id}`);
+            }
+        });
+    }
 
     // FIRE milestone check
-    if (typeof buildProjectionData === 'function' && s.projectionSettings) {
-        try {
-            const data = buildProjectionData(s, 0);
-            if (data && data.fireNumber > 0) {
-                const nw = data.nwData?.[0] || 0;
-                const pct = (nw / data.fireNumber) * 100;
-                const milestones = [25, 50, 75, 90, 100];
-                milestones.forEach((m) => {
-                    if (pct >= m) {
-                        const key = `fire-milestone-${m}`;
-                        const msg = `You've reached ${m}% of your FIRE number ($${Math.round(data.fireNumber).toLocaleString()})!`;
-                        alerts.push({
-                            type: 'fire',
-                            label: `FIRE ${m}%`,
-                            msg,
-                            urgent: m >= 100,
-                        });
-                        if (sendPush && !sessionStorage.getItem(key)) {
-                            _sendNotification(
-                                `FIRE Milestone: ${m}%`,
+    if (globalEnabled && prefs.fireMilestones !== false) {
+        if (typeof buildProjectionData === 'function' && s.projectionSettings) {
+            try {
+                const data = buildProjectionData(s, 0);
+                if (data && data.fireNumber > 0) {
+                    const nw = data.nwData?.[0] || 0;
+                    const pct = (nw / data.fireNumber) * 100;
+                    const milestones = [25, 50, 75, 90, 100];
+                    milestones.forEach((m) => {
+                        if (pct >= m) {
+                            const key = `fire-milestone-${m}`;
+                            const msg = `You've reached ${m}% of your FIRE number ($${Math.round(data.fireNumber).toLocaleString()})!`;
+                            alerts.push({
+                                type: 'fire',
+                                label: `FIRE ${m}%`,
                                 msg,
-                                key,
-                            );
-                            sessionStorage.setItem(key, '1');
+                                urgent: m >= 100,
+                            });
+                            if (sendPush && !sessionStorage.getItem(key)) {
+                                _sendNotification(
+                                    `FIRE Milestone: ${m}%`,
+                                    msg,
+                                    key,
+                                );
+                                sessionStorage.setItem(key, '1');
+                            }
                         }
-                    }
-                });
+                    });
+                }
+            } catch (_) {
+                /* projection not ready */
             }
-        } catch (_) {
-            /* projection not ready */
         }
     }
 
     // Tax-loss harvesting urgency
-    const hasLosses = (s.importedPositions || []).some(
-        (p) => p.costBasis > 0 && p.value < p.costBasis,
-    );
-    if (hasLosses && daysLeft <= 45) {
-        const msg = `${daysLeft} days left in the year — review Tax-Loss Harvesting opportunities in the Taxes tab.`;
-        alerts.push({
-            type: 'taxloss',
-            label: 'Tax-Loss Harvest',
-            msg,
-            urgent: daysLeft <= 14,
-        });
-        if (sendPush && daysLeft <= 14)
-            _sendNotification(
-                'Tax-Loss Harvesting Deadline',
+    if (globalEnabled && prefs.taxHarvestAlerts !== false) {
+        const hasLosses = (s.importedPositions || []).some(
+            (p) => p.costBasis > 0 && p.value < p.costBasis,
+        );
+        if (hasLosses && daysLeft <= 45) {
+            const msg = `${daysLeft} days left in the year — review Tax-Loss Harvesting opportunities in the Taxes tab.`;
+            alerts.push({
+                type: 'taxloss',
+                label: 'Tax-Loss Harvest',
                 msg,
-                'taxloss-yearend',
-            );
+                urgent: daysLeft <= 14,
+            });
+            if (sendPush && daysLeft <= 14)
+                _sendNotification(
+                    'Tax-Loss Harvesting Deadline',
+                    msg,
+                    'taxloss-yearend',
+                );
+        }
     }
 
     // Render inline alert list

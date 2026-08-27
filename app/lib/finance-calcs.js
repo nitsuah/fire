@@ -210,7 +210,6 @@ function buildProjectionData(state, scenarioOffset) {
     const savings = state.projectionSettings.annualSavings || 0;
     const equityReturnPct =
         (state.projectionSettings.expectedReturn || 0) + offset;
-    // Blend each scenario separately so locked CD rates don't shift with bull/bear equity.
     const blendedNominalReturn = _getBlendedNominalReturn(
         state,
         equityReturnPct,
@@ -221,15 +220,13 @@ function buildProjectionData(state, scenarioOffset) {
         Math.max(equityReturnPct - 2, 0),
     );
     const inflation = (state.projectionSettings.inflationRate || 0) / 100;
-    const realReturn = blendedNominalReturn / 100 - inflation;
+    const toRealReturn = (nominalPct) =>
+        (1 + nominalPct / 100) / (1 + inflation) - 1;
+    const realReturn = toRealReturn(blendedNominalReturn);
     const span = state.projectionSettings.spanYears || 30;
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
 
-    // passiveIncome and netWithdrawal are informational display fields only.
-    // The projection loop uses annualExpenses directly: blendedNominalReturn
-    // already captures CD/savings yield in portfolio growth, so subtracting
-    // it again from withdrawals would double-count it.
     const passiveIncome = _getPassiveIncome(state);
     const netWithdrawal = Math.max(0, annualExpenses - passiveIncome);
 
@@ -242,8 +239,8 @@ function buildProjectionData(state, scenarioOffset) {
     let currentNW = networth;
     let bullNW = networth,
         bearNW = networth;
-    const bullReturn = bullBlended / 100 - inflation;
-    const bearReturn = Math.max(bearBlended / 100 - inflation, -0.01);
+    const bullReturn = toRealReturn(bullBlended);
+    const bearReturn = Math.max(toRealReturn(bearBlended), -0.01);
     const bullData = [],
         bearData = [],
         benchData = [];
@@ -373,6 +370,12 @@ function buildProjectionData(state, scenarioOffset) {
             bull: bullDepletionAge,
             bear: bearDepletionAge,
         },
+        // Add metadata for UI
+        annualExpenses,
+        swr,
+        realReturnPct: realReturn * 100,
+        portfolioSurvives:
+            baseDepletionAge === null || baseDepletionAge > currentAge + span,
     };
 }
 

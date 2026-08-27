@@ -18,6 +18,12 @@ updated: 2026-08-22
 - [x] Webhook-based sync templates with JSONata data mapping and HMAC verification
 - [x] MCP server — 12 functional tools + 7 registered stubs for Claude/LLM integration
 - [x] Mobile-responsive layout
+- [x] Retirement projection drawdown & depletion age (money run-out detection)
+- [x] Milestone presets — 5 financial profiles with dynamic targets
+- [x] Diversification tips redesign — dismissible tiles with curated links
+- [x] Unified Settings page — notifications, export/import, projection defaults, privacy/terms, danger zone
+- [x] eBay & Plaid integration UI — connection status, Plaid Link SDK
+- [x] Vehicle estimate overlay — complete CSS styling
 - [ ] Tax drag estimation engine (custom federal/state brackets, capital gains)
 - [ ] Webhook sync end-to-end testing
 - [ ] Lightweight PWA packaging

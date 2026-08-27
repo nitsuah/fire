@@ -25,9 +25,9 @@
     <link rel="stylesheet" href="lib/css/base.css">
     <link rel="stylesheet" href="lib/css/layout.css">
     <link rel="stylesheet" href="lib/css/components.css">
-    <link rel="stylesheet" href="lib/css/components-data.css">
     <link rel="stylesheet" href="lib/css/widgets.css">
     <link rel="stylesheet" href="lib/css/charts.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="app-container">
@@ -62,6 +62,10 @@
                 <button class="nav-btn" data-tab="projections" id="btn-tab-projections">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
                     Projections
+                </button>
+                <button class="nav-btn" data-tab="settings" id="btn-tab-settings">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.54-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.51.24-1.04.56-1.54.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.54.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.51-.24 1.04-.56 1.54-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                    Settings
                 </button>
             </nav>
 
@@ -623,28 +627,60 @@
                                 </div>
                             </div>
 
-                            <!-- CSV Import (compact, bottom of right panel) -->
+                            <!-- API Integrations -->
                             <div class="card glass-card fo-import-card">
-                                <h2 class="card-title">Import Data</h2>
-                                <div class="fo-import-drop" id="csv-drag-zone">
-                                    <svg class="fo-upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                                    <span class="fo-import-label">Drop CSV — Fidelity, Chase, Capital One &nbsp;·&nbsp; read-only, local</span>
-                                    <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
+                                <h2 class="card-title">API Integrations</h2>
+
+                                <!-- eBay Connector -->
+                                <div class="api-connector-panel mt-3 pt-3 border-t">
+                                    <div class="connector-header">
+                                        <h3 style="font-size:13px; margin-bottom:8px;">🔌 eBay Seller API</h3>
+                                        <span class="badge-type badge-cd" style="font-size:9px; padding:2px 6px;">Sandbox</span>
+                                    </div>
+                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Sync completed orders to your Side Income ledger automatically.</p>
+                                    <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-ebay-oauth">
+                                        <span>Sync Profile with eBay API</span>
+                                    </button>
+                                    <div id="ebay-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Disconnected</div>
                                 </div>
-                                <div class="table-container mt-2">
-                                    <table class="data-table fo-import-table" id="table-imported-files">
-                                        <thead>
-                                            <tr>
-                                                <th>File</th>
-                                                <th>Source</th>
-                                                <th>Records</th>
-                                                <th class="text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td colspan="4" class="text-center text-muted">No files imported yet.</td></tr>
-                                        </tbody>
-                                    </table>
+
+                                <!-- Plaid Connector -->
+                                <div class="api-connector-panel mt-3 pt-3 border-t">
+                                    <div class="connector-header">
+                                        <h3 style="font-size:13px; margin-bottom:8px;">🔗 Plaid Investments</h3>
+                                        <span class="badge-type badge-cd" style="font-size:9px; padding:2px 6px;">Sandbox</span>
+                                    </div>
+                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Connect brokerage accounts to auto-import holdings and balances.</p>
+                                    <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-plaid-link">
+                                        <span>Link Investment Account via Plaid</span>
+                                    </button>
+                                    <div id="plaid-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Not Linked</div>
+                                </div>
+
+                                <!-- CSV Import (compact, bottom of right panel) -->
+                                <div class="api-connector-panel mt-3 pt-3 border-t">
+                                    <h2 class="card-title" style="font-size:13px; margin-bottom:8px;">📁 CSV Import (Local Only)</h2>
+                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Drop Fidelity, Chase, Capital One CSV files — read-only, never leaves your browser.</p>
+                                    <div class="fo-import-drop" id="csv-drag-zone">
+                                        <svg class="fo-upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                                        <span class="fo-import-label">Drop CSV — Fidelity, Chase, Capital One &nbsp;·&nbsp; read-only, local</span>
+                                        <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
+                                    </div>
+                                    <div class="table-container mt-2">
+                                        <table class="data-table fo-import-table" id="table-imported-files">
+                                            <thead>
+                                                <tr>
+                                                    <th>File</th>
+                                                    <th>Source</th>
+                                                    <th>Records</th>
+                                                    <th class="text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td colspan="4" class="text-center text-muted">No files imported yet.</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1175,6 +1211,135 @@
                             <div id="scenario-comparison-container">
                                 <!-- Dynamically populated by app.js -->
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: Settings -->
+                <section class="tab-pane" id="tab-settings">
+                    <div class="dashboard-grid">
+                        <!-- Notifications & Alerts -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Notifications & Alerts</h2>
+                            <p class="card-subtitle">Configure browser notifications for FIRE milestones, CD maturities, and market alerts.</p>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="setting-notifications-enabled" onchange="saveNotificationSettings()">
+                                    <span class="checkmark"></span>
+                                    Enable browser notifications
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="setting-cd-alerts" onchange="saveNotificationSettings()">
+                                    <span class="checkmark"></span>
+                                    CD maturity alerts
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="setting-fire-milestones" onchange="saveNotificationSettings()">
+                                    <span class="checkmark"></span>
+                                    FIRE milestone notifications
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="setting-rebalance-alerts" onchange="saveNotificationSettings()">
+                                    <span class="checkmark"></span>
+                                    Portfolio rebalancing alerts
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="setting-tax-harvest-alerts" onchange="saveNotificationSettings()">
+                                    <span class="checkmark"></span>
+                                    Tax-loss harvesting opportunities
+                                </label>
+                            </div>
+                            <button class="action-btn mt-3" onclick="requestNotificationPermission()">Request Permission</button>
+                            <p id="notification-permission-status" class="text-muted mt-2" style="font-size:12px;">Checking permission...</p>
+                        </div>
+
+                        <!-- Data Export/Import -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Data Management</h2>
+                            <p class="card-subtitle">Export your complete financial profile or import from backup.</p>
+                            <div class="grid-organic-2 mt-3">
+                                <button class="backup-btn" onclick="exportFullState()">📤 Export Full State (JSON)</button>
+                                <button class="backup-btn" onclick="exportCSV()">📊 Export Holdings (CSV)</button>
+                                <button class="backup-btn import-btn" onclick="document.getElementById('import-file').click()">📥 Import State (JSON)</button>
+                                <button class="backup-btn import-btn" onclick="document.getElementById('import-csv-file').click()">📋 Import Holdings (CSV)</button>
+                            </div>
+                            <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importFullState(event)">
+                            <input type="file" id="import-csv-file" style="display:none;" accept=".csv" onchange="importCSV(event)">
+                            <p class="text-muted mt-2" style="font-size:11px;">Exports include all accounts, CDs, real estate, vehicles, side gig ledger, and projection settings.</p>
+                        </div>
+
+                        <!-- Privacy & Terms -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Privacy & Terms</h2>
+                            <p class="card-subtitle">Review how your data is handled and the terms of service.</p>
+                            <div class="grid-organic-2 mt-3">
+                                <button class="backup-btn" onclick="openPrivacyModal()">📄 Privacy Policy</button>
+                                <button class="backup-btn" onclick="openTermsModal()">📋 Terms of Use</button>
+                            </div>
+                            <div class="mt-3 p-3" style="background:rgba(0,0,0,0.2); border-radius:8px;">
+                                <p style="font-size:12px; margin-bottom:8px;"><strong>Data Storage:</strong> All financial data is stored locally in your browser (IndexedDB). No data is sent to external servers except for:</p>
+                                <ul style="font-size:11px; margin-left:16px; color:var(--text-muted);">
+                                    <li>eBay API sync (if enabled) - sends only order data to your own eBay account</li>
+                                    <li>Plaid Link (if enabled) - tokens exchanged with Plaid for account aggregation</li>
+                                    <li>Price quotes - public ticker symbols to Yahoo Finance</li>
+                                </ul>
+                                <p style="font-size:12px; margin-top:8px;"><strong>No Tracking:</strong> No analytics, no cookies, no third-party scripts. Your data never leaves your device unless you explicitly use an API integration.</p>
+                            </div>
+                        </div>
+
+                        <!-- Projection Defaults (moved here for unified access) -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Projection Defaults</h2>
+                            <p class="card-subtitle">Default values used when opening the Projections tab.</p>
+                            <div class="grid-2-col mt-3">
+                                <div class="form-group">
+                                    <label for="default-current-age">Default Current Age</label>
+                                    <input type="number" id="default-current-age" min="18" max="90" value="30" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-retire-age">Default Retirement Age</label>
+                                    <input type="number" id="default-retire-age" min="30" max="90" value="60" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-annual-savings">Default Annual Savings ($)</label>
+                                    <input type="number" id="default-annual-savings" min="0" step="1000" value="20000" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-expected-return">Default Expected Return (%)</label>
+                                    <input type="number" id="default-expected-return" min="0" max="20" step="0.5" value="7.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-inflation">Default Inflation Rate (%)</label>
+                                    <input type="number" id="default-inflation" min="0" max="10" step="0.1" value="3.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-swr">Default SWR (%)</label>
+                                    <input type="number" id="default-swr" min="1" max="10" step="0.1" value="4.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-span-years">Default Projection Span (Years)</label>
+                                    <input type="number" id="default-span-years" min="10" max="60" value="30" onchange="saveProjectionDefaults()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced / Danger Zone -->
+                        <div class="card glass-card" style="border-color:rgba(244,63,94,0.3);">
+                            <h2 class="card-title" style="color:var(--color-danger);">⚠️ Danger Zone</h2>
+                            <p class="card-subtitle">Irreversible actions. Use with caution.</p>
+                            <div class="grid-organic-2 mt-3">
+                                <button class="backup-btn" style="background:var(--color-danger-bg); border-color:var(--color-danger); color:var(--color-danger);" onclick="resetAllData()">🗑️ Reset All Data</button>
+                                <button class="backup-btn" style="background:var(--color-warning-bg); border-color:var(--color-warning); color:var(--color-warning);" onclick="clearSideGigLedger()">🧹 Clear Side Income History</button>
+                            </div>
+                            <p class="text-muted mt-2" style="font-size:11px;">Resetting all data cannot be undone. Consider exporting first.</p>
                         </div>
                     </div>
                 </section>

@@ -102,8 +102,12 @@ function loadTokens(provider) {
     const file = getTokenFile(provider);
     if (!fs.existsSync(file)) return null;
     try {
-        const { data: encrypted } = JSON.parse(fs.readFileSync(file, 'utf8'));
-        return JSON.parse(decrypt(encrypted));
+        const { data: encrypted, lastUpdated } = JSON.parse(
+            fs.readFileSync(file, 'utf8'),
+        );
+        const tokens = JSON.parse(decrypt(encrypted));
+        tokens._tokenLastUpdated = lastUpdated;
+        return tokens;
     } catch (err) {
         console.error(`[Sync] Unable to read ${provider} tokens:`, err.message);
         return null;
@@ -111,9 +115,11 @@ function loadTokens(provider) {
 }
 
 function saveTokens(provider, tokens) {
+    // eslint-disable-next-line no-unused-vars
+    const { _tokenLastUpdated, ...payload } = tokens;
     const tokenData = {
         lastUpdated: new Date().toISOString(),
-        data: encrypt(JSON.stringify(tokens)),
+        data: encrypt(JSON.stringify(payload)),
     };
     const file = getTokenFile(provider);
     const tmp = `${file}.tmp`;
@@ -226,11 +232,43 @@ router.post('/ebay/sync', async (req, res) => {
         });
         if (!ok)
             return res.status(500).json({ error: 'Failed to save orders.' });
-        res.json({ status: 'success', fetched: entries.length, added });
+        const syncedAt = new Date().toISOString();
+        saveTokens('ebay', { ...tokens, lastSyncedAt: syncedAt });
+        res.json({
+            status: 'success',
+            fetched: entries.length,
+            added,
+            syncedAt,
+        });
     } catch (err) {
         console.error('[eBay] Sync error:', err);
         res.status(502).json({ error: err.message });
     }
+});
+
+router.get('/ebay/status', (req, res) => {
+    const tokens = loadTokens('ebay');
+    if (!tokens) {
+        return res.json({ connected: false });
+    }
+    res.json({
+        connected: true,
+        lastSync: tokens.lastSyncedAt || null,
+        tokenUpdatedAt: tokens._tokenLastUpdated || null,
+        environment: tokens.environment || 'sandbox',
+    });
+});
+
+router.get('/plaid/status', (req, res) => {
+    const tokens = loadTokens('plaid');
+    if (!tokens?.items?.length) {
+        return res.json({ connected: false, itemCount: 0 });
+    }
+    res.json({
+        connected: true,
+        itemCount: tokens.items.length,
+        lastUpdated: tokens.lastUpdated,
+    });
 });
 
 // ─── Plaid ───────────────────────────────────────────────────────────────────

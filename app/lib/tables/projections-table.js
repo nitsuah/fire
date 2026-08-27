@@ -105,42 +105,255 @@ function renderScenarioComparison() {
     </table>`;
 }
 
+// Milestone presets based on financial profile
+const MILESTONE_PRESETS = {
+    conservative: {
+        label: 'Conservative / Lean',
+        description: 'Minimal spending, high savings rate',
+        milestones: [
+            {
+                name: 'Emergency Fund (6 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses * 0.5,
+                color: 'text-emerald',
+            },
+            { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
+            {
+                name: 'Lean FIRE (75%)',
+                multiplier: (fire) => fire * 0.75,
+                color: 'text-emerald',
+            },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
+        ],
+    },
+    standard: {
+        label: 'Standard / Balanced',
+        description: 'Moderate lifestyle, typical savings',
+        milestones: [
+            {
+                name: 'Emergency Fund (6 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses * 0.5,
+                color: 'text-emerald',
+            },
+            { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
+            {
+                name: 'Lean FIRE (75%)',
+                multiplier: (fire) => fire * 0.75,
+                color: 'text-emerald',
+            },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
+            {
+                name: 'Fat FIRE (125%)',
+                multiplier: (fire) => fire * 1.25,
+                color: 'text-amber',
+            },
+            {
+                name: 'Fat FIRE (150%)',
+                multiplier: (fire) => fire * 1.5,
+                color: 'text-amber',
+            },
+        ],
+    },
+    aggressive: {
+        label: 'Aggressive / Fat FIRE',
+        description: 'High income, lifestyle flexibility',
+        milestones: [
+            {
+                name: 'Emergency Fund (12 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses,
+                color: 'text-emerald',
+            },
+            { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
+            {
+                name: 'Fat FIRE (125%)',
+                multiplier: (fire) => fire * 1.25,
+                color: 'text-amber',
+            },
+            {
+                name: 'Fat FIRE (150%)',
+                multiplier: (fire) => fire * 1.5,
+                color: 'text-amber',
+            },
+            {
+                name: 'Fat FIRE (200%)',
+                multiplier: (fire) => fire * 2.0,
+                color: 'text-amber',
+            },
+            {
+                name: 'Fat FIRE (300%)',
+                multiplier: (fire) => fire * 3.0,
+                color: 'text-amber',
+            },
+        ],
+    },
+    barista: {
+        label: 'Barista FIRE',
+        description: 'Part-time work covers expenses gap',
+        milestones: [
+            {
+                name: 'Emergency Fund (6 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses * 0.5,
+                color: 'text-emerald',
+            },
+            { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
+            {
+                name: 'Barista FIRE (50% FIRE)',
+                multiplier: (fire) => fire * 0.5,
+                color: 'text-warning',
+            },
+            {
+                name: 'Lean FIRE (75%)',
+                multiplier: (fire) => fire * 0.75,
+                color: 'text-emerald',
+            },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
+        ],
+    },
+    coast: {
+        label: 'Coast FIRE Focus',
+        description: 'Front-load savings, stop early',
+        milestones: [
+            {
+                name: 'Emergency Fund (6 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses * 0.5,
+                color: 'text-emerald',
+            },
+            {
+                name: 'Coast FIRE (stop saving)',
+                isCoast: true,
+                color: 'text-purple',
+            },
+            {
+                name: '2x Coast FIRE',
+                multiplier: (coast) => coast * 2,
+                isCoastBased: true,
+                color: 'text-amber',
+            },
+            {
+                name: 'Lean FIRE (75%)',
+                multiplier: (fire) => fire * 0.75,
+                color: 'text-emerald',
+            },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
+        ],
+    },
+};
+
+let activePreset = 'standard';
+
+function setActivePreset(presetKey) {
+    if (MILESTONE_PRESETS[presetKey]) {
+        activePreset = presetKey;
+        const el = document.getElementById('milestone-preset-select');
+        if (el) el.value = presetKey;
+        calculateAndRenderProjections();
+    }
+}
+
+function getActivePreset() {
+    return MILESTONE_PRESETS[activePreset] || MILESTONE_PRESETS.standard;
+}
+
+function buildMilestonesList(rawData, depletionAge) {
+    const preset = getActivePreset();
+    const { fireNumber, realReturn, networth, annualExpenses, savings } =
+        rawData;
+    const retireAge = state.projectionSettings.retireAge || 60;
+    const currentAge = state.projectionSettings.currentAge || 30;
+    const coastYears = Math.max(0, retireAge - currentAge);
+    const coastFireTarget =
+        coastYears > 0
+            ? fireNumber / Math.pow(1 + Math.max(realReturn, 0.001), coastYears)
+            : fireNumber;
+
+    const milestonesList = preset.milestones.map((m) => {
+        let target;
+        if (m.isCoast) {
+            target = coastFireTarget;
+        } else if (m.multiplier) {
+            const basis = m.isCoastBased ? coastFireTarget : fireNumber;
+            target = m.multiplier(basis);
+        }
+        return { ...m, target: target || 0 };
+    });
+
+    // Add depletion warning if applicable
+    if (depletionAge && depletionAge.base) {
+        const yearsFromNow = depletionAge.base - currentAge;
+        if (yearsFromNow > 0 && yearsFromNow < 50) {
+            milestonesList.push({
+                name: `⚠️ Portfolio Depletion (Base Case)`,
+                target: 0,
+                isDepletion: true,
+                depletionAge: depletionAge.base,
+                color: 'text-coral',
+            });
+        }
+    }
+
+    return milestonesList;
+}
+
 function renderMilestones(
     startingNw,
     targetFireNw,
     realReturnRate,
     annualSavings,
+    depletionAge,
 ) {
     const container = document.getElementById(
         'projection-milestones-container',
     );
     if (!container) return;
 
-    const retireAge = state.projectionSettings.retireAge || 60;
+    // Get raw projection data for building milestones
+    const rawData = buildProjectionData();
+    const milestonesList = buildMilestonesList(rawData, depletionAge);
     const currentAge = state.projectionSettings.currentAge || 30;
-    const coastYears = Math.max(0, retireAge - currentAge);
-    const coastFireTarget =
-        coastYears > 0
-            ? targetFireNw /
-              Math.pow(1 + Math.max(realReturnRate, 0.001), coastYears)
-            : targetFireNw;
 
-    const milestonesList = [
-        {
-            name: `Coast FIRE (${coastYears}y to compound)`,
-            target: coastFireTarget,
-        },
-        { name: 'Lean FIRE (75% of Target)', target: targetFireNw * 0.75 },
-        { name: 'FIRE Baseline (100% of Target)', target: targetFireNw },
-        { name: 'Fat FIRE (125% of Target)', target: targetFireNw * 1.25 },
-    ];
+    // Build preset selector HTML
+    let selectorHtml = `
+        <div class="milestone-preset-selector">
+            <label for="milestone-preset-select" class="text-muted" style="font-size:11px;">Preset:</label>
+            <select id="milestone-preset-select" class="milestone-preset-select">
+    `;
+    Object.entries(MILESTONE_PRESETS).forEach(([key, preset]) => {
+        selectorHtml += `<option value="${key}" ${key === activePreset ? 'selected' : ''}>${preset.label}</option>`;
+    });
+    selectorHtml += `
+            </select>
+            <span class="info-tip" data-tip="${getActivePreset().description}">?</span>
+        </div>
+    `;
 
     let html = '';
     milestonesList.forEach((m) => {
         let yearsRequired = 'N/A';
-        const isAchieved = startingNw >= m.target;
+        const isAchieved = startingNw >= m.target || m.isDepletion;
 
-        if (isAchieved) {
+        if (m.isDepletion) {
+            yearsRequired = `Money runs out at Age ${m.depletionAge} (${m.depletionAge - currentAge} yrs)`;
+        } else if (isAchieved) {
             yearsRequired = 'Achieved 🎉';
         } else {
             if (realReturnRate > 0) {
@@ -162,14 +375,27 @@ function renderMilestones(
             }
         }
 
+        const isDepletion = m.isDepletion === true;
+        const colorClass =
+            m.color ||
+            (isDepletion
+                ? 'text-coral'
+                : isAchieved
+                  ? 'text-emerald'
+                  : 'text-purple');
         html += `
-            <div class="milestone-card ${isAchieved ? 'achieved' : ''}">
+            <div class="milestone-card ${isAchieved ? 'achieved' : ''} ${isDepletion ? 'depletion-warning' : ''}">
                 <span class="milestone-title">${m.name}</span>
-                <span class="milestone-val ${isAchieved ? 'text-emerald' : 'text-purple'}">${formatCurrency(m.target)}</span>
-                <span class="milestone-status">${isAchieved ? 'Goal Completed ✅' : `Est: <strong>${yearsRequired}</strong>`}</span>
+                <span class="milestone-val ${colorClass}">${isDepletion ? '—' : formatCurrency(m.target)}</span>
+                <span class="milestone-status">${isAchieved && !isDepletion ? 'Goal Completed ✅' : `Est: <strong>${yearsRequired}</strong>`}</span>
             </div>
         `;
     });
 
-    container.innerHTML = html;
+    container.innerHTML =
+        selectorHtml + '<div class="milestones-grid mt-2">' + html + '</div>';
+
+    const sel = container.querySelector('#milestone-preset-select');
+    if (sel)
+        sel.addEventListener('change', (e) => setActivePreset(e.target.value));
 }
