@@ -92,7 +92,7 @@ The webhook receiver is fully implemented and in production use.
 ├── data                      GET    Return synced data (current: stub)
 │
 ├── ebay/                            Phase 1
-│   ├── authorize             POST   Initiate eBay OAuth flow
+│   ├── authorize             GET    Initiate eBay OAuth flow
 │   ├── callback              GET    Exchange code + store encrypted tokens
 │   ├── sync                  POST   Pull completed orders → sideGigLedger
 │   └── refresh               POST   Refresh eBay access token

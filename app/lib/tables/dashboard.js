@@ -86,15 +86,24 @@ function renderAllocMiniBarsBanner() {
     });
 }
 
+function escHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 // Diversification Tip Tiles - Data-driven suggestions with curated resources
+// Each tip's check and message receive a context object: { nw, totalPortfolioValue, cashPct, eqPct, cdsPct, rePct }
 const DIVERSIFICATION_TIPS = [
     {
         id: 'high-cash',
         title: 'High Cash Allocation',
         icon: '💵',
-        check: (nw, cashPct) => cashPct > 30,
+        check: ({ cashPct }) => cashPct > 30,
         severity: 'info',
-        message: (cashPct) =>
+        message: ({ cashPct }) =>
             `Cash is ${cashPct.toFixed(0)}% of NW — consider deploying into higher-yield CDs or index funds.`,
         links: [
             {
@@ -113,9 +122,9 @@ const DIVERSIFICATION_TIPS = [
         id: 'high-equity',
         title: 'Equity Concentration Risk',
         icon: '📈',
-        check: (nw, eqPct) => eqPct > 70,
+        check: ({ eqPct }) => eqPct > 70,
         severity: 'warning',
-        message: (eqPct) =>
+        message: ({ eqPct }) =>
             `Equities are ${eqPct.toFixed(0)}% of NW — bonds or CD exposure could reduce volatility.`,
         links: [
             {
@@ -134,9 +143,9 @@ const DIVERSIFICATION_TIPS = [
         id: 'low-equity',
         title: 'Low Equity Exposure',
         icon: '📉',
-        check: (nw, eqPct) => eqPct < 30 && nw > 50000,
+        check: ({ nw, eqPct }) => eqPct < 30 && nw > 50000,
         severity: 'info',
-        message: (eqPct) =>
+        message: ({ eqPct }) =>
             `Equities are only ${eqPct.toFixed(0)}% of NW — long-term FIRE typically needs more equity growth.`,
         links: [
             {
@@ -155,9 +164,9 @@ const DIVERSIFICATION_TIPS = [
         id: 'high-cds',
         title: 'Heavy Fixed Income',
         icon: '💿',
-        check: (nw, cdsPct) => cdsPct > 40,
+        check: ({ cdsPct }) => cdsPct > 40,
         severity: 'info',
-        message: (cdsPct) =>
+        message: ({ cdsPct }) =>
             `CDs are ${cdsPct.toFixed(0)}% of NW — solid fixed income, but ensure enough equity for long-term growth.`,
         links: [
             {
@@ -171,7 +180,7 @@ const DIVERSIFICATION_TIPS = [
         id: 'no-real-estate',
         title: 'Missing Real Estate',
         icon: '🏠',
-        check: (nw, rePct) => rePct === 0 && nw > 100000,
+        check: ({ nw, rePct }) => rePct === 0 && nw > 100000,
         severity: 'info',
         message: () =>
             `No real estate in portfolio — property can diversify away from market correlation.`,
@@ -192,7 +201,7 @@ const DIVERSIFICATION_TIPS = [
         id: 'single-stock',
         title: 'Single-Stock Concentration',
         icon: '⚠️',
-        check: (nw, totalPortfolioValue, eqPct, cdsPct, cashPct, rePct) => {
+        check: ({ totalPortfolioValue }) => {
             if (!totalPortfolioValue || totalPortfolioValue <= 0) return false;
             for (const pos of state.importedPositions) {
                 const w = ((pos.value || 0) / totalPortfolioValue) * 100;
@@ -201,12 +210,14 @@ const DIVERSIFICATION_TIPS = [
             return false;
         },
         severity: 'warning',
-        message: (nw, totalPortfolioValue) => {
+        message: ({ totalPortfolioValue }) => {
             const concentrated = [];
             for (const pos of state.importedPositions) {
                 const w = ((pos.value || 0) / totalPortfolioValue) * 100;
                 if (w >= 20 && !isSettledCash(pos)) {
-                    concentrated.push(`${pos.symbol} (${w.toFixed(1)}%)`);
+                    concentrated.push(
+                        `${escHtml(pos.symbol)} (${w.toFixed(1)}%)`,
+                    );
                 }
             }
             return concentrated.length === 1
@@ -230,7 +241,7 @@ const DIVERSIFICATION_TIPS = [
         id: 'no-international',
         title: 'No International Exposure',
         icon: '🌍',
-        check: (nw, totalPortfolioValue) => {
+        check: ({ totalPortfolioValue }) => {
             if (!totalPortfolioValue || totalPortfolioValue <= 0) return false;
             let hasIntl = false;
             for (const pos of state.importedPositions) {
@@ -305,7 +316,12 @@ function clearAllDismissedTips() {
     renderDiversificationSuggestions();
 }
 
-function renderDiversificationSuggestions(totalPortfolioValue) {
+function renderDiversificationSuggestions(
+    totalPortfolioValue = state.importedPositions.reduce(
+        (sum, pos) => sum + (pos.value || 0),
+        0,
+    ),
+) {
     const block = document.getElementById('divs-suggestion-block');
     if (!block) return;
     const nw = getAggregateNetWorth();
@@ -318,17 +334,11 @@ function renderDiversificationSuggestions(totalPortfolioValue) {
     const cdsPct = (getAggregateCDs() / nw) * 100;
     const rePct = (getAggregateRealEstate() / nw) * 100;
 
+    const ctx = { nw, totalPortfolioValue, cashPct, eqPct, cdsPct, rePct };
     const dismissed = getDismissedTips();
     const activeTips = DIVERSIFICATION_TIPS.filter((tip) => {
         if (dismissed.includes(tip.id)) return false;
-        return tip.check(
-            nw,
-            cashPct,
-            eqPct,
-            cdsPct,
-            rePct,
-            totalPortfolioValue,
-        );
+        return tip.check(ctx);
     });
 
     if (activeTips.length === 0 && dismissed.length === 0) {
@@ -349,14 +359,7 @@ function renderDiversificationSuggestions(totalPortfolioValue) {
 
     html += '<div class="divs-tiles">';
     activeTips.forEach((tip) => {
-        const msg = tip.message(
-            nw,
-            totalPortfolioValue,
-            eqPct,
-            cdsPct,
-            cashPct,
-            rePct,
-        );
+        const msg = tip.message(ctx);
         const severityClass =
             tip.severity === 'warning' ? 'divs-tile-warning' : '';
         html += `

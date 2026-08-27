@@ -32,6 +32,7 @@ describe('ebay-connector', () => {
     afterEach(() => {
         setEnv(originalEnv);
         vi.restoreAllMocks();
+        vi.unstubAllGlobals();
     });
 
     describe('getEnv', () => {

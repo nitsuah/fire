@@ -51,25 +51,8 @@ function initSideGigManager() {
     // eBay OAuth Integration
     const ebayOauthBtn = document.getElementById('btn-ebay-oauth');
     if (ebayOauthBtn) {
-        ebayOauthBtn.addEventListener('click', async () => {
-            const statusEl = document.getElementById('ebay-sync-status');
-            statusEl.textContent = 'Status: Connecting...';
-            statusEl.style.color = 'var(--color-warning)';
-            try {
-                const res = await fetch('/api/sync/ebay/authorize');
-                if (res.redirected) {
-                    window.location.href = res.url;
-                } else {
-                    const data = await res.json();
-                    if (data.error) {
-                        statusEl.textContent = `Status: ${data.error}`;
-                        statusEl.style.color = 'var(--color-danger)';
-                    }
-                }
-            } catch (err) {
-                statusEl.textContent = 'Status: Connection failed';
-                statusEl.style.color = 'var(--color-danger)';
-            }
+        ebayOauthBtn.addEventListener('click', () => {
+            window.location.assign('/api/sync/ebay/authorize');
         });
     }
 
@@ -190,15 +173,20 @@ function initPlaidLink() {
                         const exchangeData = await exchangeRes.json();
 
                         if (exchangeData.status === 'success') {
+                            const accountsRes = await fetch(
+                                '/api/sync/plaid/accounts',
+                                { method: 'POST' },
+                            );
+                            if (!accountsRes.ok)
+                                throw new Error('Account sync failed');
+                            const positionsRes = await fetch(
+                                '/api/sync/plaid/positions',
+                                { method: 'POST' },
+                            );
+                            if (!positionsRes.ok)
+                                throw new Error('Position sync failed');
                             statusEl.textContent = `Status: Linked (${metadata.accounts?.length || 0} accounts)`;
                             statusEl.style.color = 'var(--color-success)';
-                            // Fetch accounts and positions
-                            await fetch('/api/sync/plaid/accounts', {
-                                method: 'POST',
-                            });
-                            await fetch('/api/sync/plaid/positions', {
-                                method: 'POST',
-                            });
                             refreshAllUI();
                         } else {
                             throw new Error(

@@ -41,7 +41,7 @@
 - **Chart Line Toggles** — Toggle NW, 75%/100%/125% FIRE goals, Coast FIRE, and US Median benchmark independently.
 - **CD Maturity Markers** — Overlaid on the retirement growth chart to show liquidity events.
 - **Multi-Scenario FIRE Comparison** — Side-by-side comparison of FIRE dates across varying salary bumps, market downturns, and inflation spikes.
-- **Money Run-Out Detection** — Accurately calculates depletion age when `realReturn < SWR` using continuous compounding formula; portfolio survives flag per scenario.
+- **Money Run-Out Detection** — Tracks depletion age year-by-year for base, bull, and bear scenarios when portfolio reaches zero; portfolios that survive the full projection span are flagged accordingly.
 
 ## CD & Fixed Income
 

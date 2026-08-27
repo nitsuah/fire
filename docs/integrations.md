@@ -29,6 +29,7 @@ EBAY_CLIENT_ID=       # From eBay developer application
 EBAY_CLIENT_SECRET=   # From eBay developer application
 EBAY_REFRESH_TOKEN=   # Generated during initial OAuth flow; long-lived
 EBAY_ENVIRONMENT=sandbox  # Change to "production" after testing
+SYNC_MASTER_KEY=      # 64 hex chars — required to encrypt stored OAuth tokens
 ```
 
 ### What's Fetched
@@ -257,6 +258,7 @@ The uploaded file is encrypted with AES-256-GCM using `SYNC_MASTER_KEY` **before
 PLAID_CLIENT_ID=
 PLAID_SECRET=
 PLAID_ENV=sandbox    # Change to "production" after testing
+SYNC_MASTER_KEY=     # 64 hex chars — required to encrypt stored OAuth tokens
 ```
 
 ### Products Requested

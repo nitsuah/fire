@@ -372,6 +372,11 @@ function loadNotificationSettings() {
 function updateNotificationStatusDisplay() {
     const statusEl = document.getElementById('notification-permission-status');
     if (!statusEl) return;
+    if (!('Notification' in window)) {
+        statusEl.textContent = '🚫 Notifications not supported in this browser';
+        statusEl.style.color = 'var(--text-muted)';
+        return;
+    }
     const perm = Notification.permission;
     if (perm === 'granted') {
         statusEl.textContent = '✅ Notifications enabled';
@@ -562,7 +567,10 @@ function resetAllData() {
     if (!confirm('⚠️ This will DELETE ALL your financial data permanently. This cannot be undone.\n\nAre you absolutely sure?')) {
         return;
     }
-    if (!confirm('⚠️ FINAL WARNING: All accounts, CDs, real estate, vehicles, expenses, side income history, and settings will be wiped.\n\nType "DELETE EVERYTHING" to confirm:')) {
+    const confirmText = prompt(
+        '⚠️ FINAL WARNING: All accounts, CDs, real estate, vehicles, expenses, side income history, and settings will be wiped.\n\nType DELETE EVERYTHING to confirm:',
+    );
+    if (confirmText !== 'DELETE EVERYTHING') {
         return;
     }
     // Reset to initial state

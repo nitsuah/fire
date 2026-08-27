@@ -321,6 +321,13 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 1;
 }
 
+/* Milestones Grid wrapper */
+.milestones-grid {
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+
 /* Responsive Overrides */
 @media (max-width: 1024px) {
     .grid-4-col {
@@ -410,13 +417,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 .milestone-status strong {
     color: var(--text-main);
-}
-
-/* Milestones Grid wrapper */
-.milestones-grid {
-    display: grid;
-    gap: var(--space-lg);
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
 }
 
 @media (max-width: 480px) {

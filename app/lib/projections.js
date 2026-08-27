@@ -192,6 +192,10 @@ function buildProjectionData() {
     let bullData = [],
         bearData = [];
 
+    let baseDepletionAge = null;
+    let bullDepletionAge = null;
+    let bearDepletionAge = null;
+
     const coastYears = retireAge - currentAge;
     const coastFireTarget =
         coastYears > 0
@@ -235,18 +239,20 @@ function buildProjectionData() {
         if (yr < span) {
             const isRetired = age >= retireAge;
             if (isRetired) {
-                currentNW = Math.max(
-                    0,
-                    currentNW * (1 + realReturn) - annualExpenses,
-                );
-                bullNW = Math.max(
-                    0,
-                    bullNW * (1 + bullReturn) - annualExpenses,
-                );
-                bearNW = Math.max(
-                    0,
-                    bearNW * (1 + bearReturn) - annualExpenses,
-                );
+                const nextBase = currentNW * (1 + realReturn) - annualExpenses;
+                if (nextBase <= 0 && baseDepletionAge === null)
+                    baseDepletionAge = age + 1;
+                currentNW = Math.max(0, nextBase);
+
+                const nextBull = bullNW * (1 + bullReturn) - annualExpenses;
+                if (nextBull <= 0 && bullDepletionAge === null)
+                    bullDepletionAge = age + 1;
+                bullNW = Math.max(0, nextBull);
+
+                const nextBear = bearNW * (1 + bearReturn) - annualExpenses;
+                if (nextBear <= 0 && bearDepletionAge === null)
+                    bearDepletionAge = age + 1;
+                bearNW = Math.max(0, nextBear);
             } else {
                 currentNW = currentNW * (1 + realReturn) + savings;
                 bullNW = bullNW * (1 + bullReturn) + savings;
@@ -290,6 +296,11 @@ function buildProjectionData() {
         realReturn,
         savings,
         networth,
+        depletionAge: {
+            base: baseDepletionAge,
+            bull: bullDepletionAge,
+            bear: bearDepletionAge,
+        },
     };
 }
 

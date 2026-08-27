@@ -220,7 +220,7 @@ function buildProjectionData(state, scenarioOffset) {
         Math.max(equityReturnPct - 2, 0),
     );
     const inflation = (state.projectionSettings.inflationRate || 0) / 100;
-    const realReturn = blendedNominalReturn / 100 - inflation;
+    const realReturn = (1 + blendedNominalReturn / 100) / (1 + inflation) - 1;
     const span = state.projectionSettings.spanYears || 30;
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
@@ -324,12 +324,6 @@ function buildProjectionData(state, scenarioOffset) {
                 bearNW = bearNW * (1 + bearReturn) + savings;
             }
         }
-    }
-
-    // If portfolio never depletes but realReturn < SWR, estimate depletion beyond span
-    // using continuous compounding formula
-    if (baseDepletionAge === null && realReturn < swr && realReturn > -0.5) {
-        baseDepletionAge = currentAge + span + 1;
     }
 
     const cdEvents = (state.cds || [])

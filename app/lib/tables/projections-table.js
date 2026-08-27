@@ -106,7 +106,7 @@ function renderScenarioComparison() {
 }
 
 // Milestone presets based on financial profile
-window.MILESTONE_PRESETS = {
+const MILESTONE_PRESETS = {
     conservative: {
         label: 'Conservative / Lean',
         description: 'Minimal spending, high savings rate',
@@ -242,6 +242,7 @@ window.MILESTONE_PRESETS = {
             {
                 name: '2x Coast FIRE',
                 multiplier: (coast) => coast * 2,
+                isCoastBased: true,
                 color: 'text-amber',
             },
             {
@@ -260,18 +261,18 @@ window.MILESTONE_PRESETS = {
 
 let activePreset = 'standard';
 
-window.setActivePreset = function (presetKey) {
+function setActivePreset(presetKey) {
     if (MILESTONE_PRESETS[presetKey]) {
         activePreset = presetKey;
         const el = document.getElementById('milestone-preset-select');
         if (el) el.value = presetKey;
         calculateAndRenderProjections();
     }
-};
+}
 
-window.getActivePreset = function () {
+function getActivePreset() {
     return MILESTONE_PRESETS[activePreset] || MILESTONE_PRESETS.standard;
-};
+}
 
 function buildMilestonesList(rawData, depletionAge) {
     const preset = getActivePreset();
@@ -290,7 +291,8 @@ function buildMilestonesList(rawData, depletionAge) {
         if (m.isCoast) {
             target = coastFireTarget;
         } else if (m.multiplier) {
-            target = m.multiplier(m.isCoast ? coastFireTarget : fireNumber);
+            const basis = m.isCoastBased ? coastFireTarget : fireNumber;
+            target = m.multiplier(basis);
         }
         return { ...m, target: target || 0 };
     });
@@ -333,7 +335,7 @@ function renderMilestones(
     let selectorHtml = `
         <div class="milestone-preset-selector">
             <label for="milestone-preset-select" class="text-muted" style="font-size:11px;">Preset:</label>
-            <select id="milestone-preset-select" class="milestone-preset-select" onchange="setActivePreset(this.value)">
+            <select id="milestone-preset-select" class="milestone-preset-select">
     `;
     Object.entries(MILESTONE_PRESETS).forEach(([key, preset]) => {
         selectorHtml += `<option value="${key}" ${key === activePreset ? 'selected' : ''}>${preset.label}</option>`;
@@ -392,4 +394,8 @@ function renderMilestones(
 
     container.innerHTML =
         selectorHtml + '<div class="milestones-grid mt-2">' + html + '</div>';
+
+    const sel = container.querySelector('#milestone-preset-select');
+    if (sel)
+        sel.addEventListener('change', (e) => setActivePreset(e.target.value));
 }
