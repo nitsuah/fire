@@ -179,22 +179,31 @@ function initPlaidLink() {
                     statusEl.style.color = 'var(--color-warning)';
 
                     try {
-                        const exchangeRes = await fetch('/api/sync/plaid/exchange', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ public_token }),
-                        });
+                        const exchangeRes = await fetch(
+                            '/api/sync/plaid/exchange',
+                            {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ public_token }),
+                            },
+                        );
                         const exchangeData = await exchangeRes.json();
 
                         if (exchangeData.status === 'success') {
                             statusEl.textContent = `Status: Linked (${metadata.accounts?.length || 0} accounts)`;
                             statusEl.style.color = 'var(--color-success)';
                             // Fetch accounts and positions
-                            await fetch('/api/sync/plaid/accounts', { method: 'POST' });
-                            await fetch('/api/sync/plaid/positions', { method: 'POST' });
+                            await fetch('/api/sync/plaid/accounts', {
+                                method: 'POST',
+                            });
+                            await fetch('/api/sync/plaid/positions', {
+                                method: 'POST',
+                            });
                             refreshAllUI();
                         } else {
-                            throw new Error(exchangeData.error || 'Token exchange failed');
+                            throw new Error(
+                                exchangeData.error || 'Token exchange failed',
+                            );
                         }
                     } catch (err) {
                         statusEl.textContent = `Status: Error - ${err.message}`;

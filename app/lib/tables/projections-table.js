@@ -111,64 +111,156 @@ window.MILESTONE_PRESETS = {
         label: 'Conservative / Lean',
         description: 'Minimal spending, high savings rate',
         milestones: [
-            { name: 'Emergency Fund (6 mo expenses)', multiplier: (annualExpenses) => annualExpenses * 0.5, color: 'text-emerald' },
+            {
+                name: 'Emergency Fund (6 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses * 0.5,
+                color: 'text-emerald',
+            },
             { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
-            { name: 'Lean FIRE (75%)', multiplier: (fire) => fire * 0.75, color: 'text-emerald' },
-            { name: 'FIRE Baseline (100%)', multiplier: (fire) => fire, color: 'text-purple' },
+            {
+                name: 'Lean FIRE (75%)',
+                multiplier: (fire) => fire * 0.75,
+                color: 'text-emerald',
+            },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
         ],
     },
     standard: {
         label: 'Standard / Balanced',
         description: 'Moderate lifestyle, typical savings',
         milestones: [
-            { name: 'Emergency Fund (6 mo expenses)', multiplier: (annualExpenses) => annualExpenses * 0.5, color: 'text-emerald' },
+            {
+                name: 'Emergency Fund (6 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses * 0.5,
+                color: 'text-emerald',
+            },
             { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
-            { name: 'Lean FIRE (75%)', multiplier: (fire) => fire * 0.75, color: 'text-emerald' },
-            { name: 'FIRE Baseline (100%)', multiplier: (fire) => fire, color: 'text-purple' },
-            { name: 'Fat FIRE (125%)', multiplier: (fire) => fire * 1.25, color: 'text-amber' },
-            { name: 'Fat FIRE (150%)', multiplier: (fire) => fire * 1.5, color: 'text-amber' },
+            {
+                name: 'Lean FIRE (75%)',
+                multiplier: (fire) => fire * 0.75,
+                color: 'text-emerald',
+            },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
+            {
+                name: 'Fat FIRE (125%)',
+                multiplier: (fire) => fire * 1.25,
+                color: 'text-amber',
+            },
+            {
+                name: 'Fat FIRE (150%)',
+                multiplier: (fire) => fire * 1.5,
+                color: 'text-amber',
+            },
         ],
     },
     aggressive: {
         label: 'Aggressive / Fat FIRE',
         description: 'High income, lifestyle flexibility',
         milestones: [
-            { name: 'Emergency Fund (12 mo expenses)', multiplier: (annualExpenses) => annualExpenses, color: 'text-emerald' },
+            {
+                name: 'Emergency Fund (12 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses,
+                color: 'text-emerald',
+            },
             { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
-            { name: 'FIRE Baseline (100%)', multiplier: (fire) => fire, color: 'text-purple' },
-            { name: 'Fat FIRE (125%)', multiplier: (fire) => fire * 1.25, color: 'text-amber' },
-            { name: 'Fat FIRE (150%)', multiplier: (fire) => fire * 1.5, color: 'text-amber' },
-            { name: 'Fat FIRE (200%)', multiplier: (fire) => fire * 2.0, color: 'text-amber' },
-            { name: 'Fat FIRE (300%)', multiplier: (fire) => fire * 3.0, color: 'text-amber' },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
+            {
+                name: 'Fat FIRE (125%)',
+                multiplier: (fire) => fire * 1.25,
+                color: 'text-amber',
+            },
+            {
+                name: 'Fat FIRE (150%)',
+                multiplier: (fire) => fire * 1.5,
+                color: 'text-amber',
+            },
+            {
+                name: 'Fat FIRE (200%)',
+                multiplier: (fire) => fire * 2.0,
+                color: 'text-amber',
+            },
+            {
+                name: 'Fat FIRE (300%)',
+                multiplier: (fire) => fire * 3.0,
+                color: 'text-amber',
+            },
         ],
     },
     barista: {
         label: 'Barista FIRE',
         description: 'Part-time work covers expenses gap',
         milestones: [
-            { name: 'Emergency Fund (6 mo expenses)', multiplier: (annualExpenses) => annualExpenses * 0.5, color: 'text-emerald' },
+            {
+                name: 'Emergency Fund (6 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses * 0.5,
+                color: 'text-emerald',
+            },
             { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
-            { name: 'Barista FIRE (50% FIRE)', multiplier: (fire) => fire * 0.5, color: 'text-warning' },
-            { name: 'Lean FIRE (75%)', multiplier: (fire) => fire * 0.75, color: 'text-emerald' },
-            { name: 'FIRE Baseline (100%)', multiplier: (fire) => fire, color: 'text-purple' },
+            {
+                name: 'Barista FIRE (50% FIRE)',
+                multiplier: (fire) => fire * 0.5,
+                color: 'text-warning',
+            },
+            {
+                name: 'Lean FIRE (75%)',
+                multiplier: (fire) => fire * 0.75,
+                color: 'text-emerald',
+            },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
         ],
     },
     coast: {
         label: 'Coast FIRE Focus',
         description: 'Front-load savings, stop early',
         milestones: [
-            { name: 'Emergency Fund (6 mo expenses)', multiplier: (annualExpenses) => annualExpenses * 0.5, color: 'text-emerald' },
-            { name: 'Coast FIRE (stop saving)', isCoast: true, color: 'text-purple' },
-            { name: '2x Coast FIRE', multiplier: (coast) => coast * 2, color: 'text-amber' },
-            { name: 'Lean FIRE (75%)', multiplier: (fire) => fire * 0.75, color: 'text-emerald' },
-            { name: 'FIRE Baseline (100%)', multiplier: (fire) => fire, color: 'text-purple' },
+            {
+                name: 'Emergency Fund (6 mo expenses)',
+                multiplier: (annualExpenses) => annualExpenses * 0.5,
+                color: 'text-emerald',
+            },
+            {
+                name: 'Coast FIRE (stop saving)',
+                isCoast: true,
+                color: 'text-purple',
+            },
+            {
+                name: '2x Coast FIRE',
+                multiplier: (coast) => coast * 2,
+                color: 'text-amber',
+            },
+            {
+                name: 'Lean FIRE (75%)',
+                multiplier: (fire) => fire * 0.75,
+                color: 'text-emerald',
+            },
+            {
+                name: 'FIRE Baseline (100%)',
+                multiplier: (fire) => fire,
+                color: 'text-purple',
+            },
         ],
     },
 };
 
 let activePreset = 'standard';
 
-window.setActivePreset = function(presetKey) {
+window.setActivePreset = function (presetKey) {
     if (MILESTONE_PRESETS[presetKey]) {
         activePreset = presetKey;
         const el = document.getElementById('milestone-preset-select');
@@ -177,13 +269,14 @@ window.setActivePreset = function(presetKey) {
     }
 };
 
-window.getActivePreset = function() {
+window.getActivePreset = function () {
     return MILESTONE_PRESETS[activePreset] || MILESTONE_PRESETS.standard;
 };
 
 function buildMilestonesList(rawData, depletionAge) {
     const preset = getActivePreset();
-    const { fireNumber, realReturn, networth, annualExpenses, savings } = rawData;
+    const { fireNumber, realReturn, networth, annualExpenses, savings } =
+        rawData;
     const retireAge = state.projectionSettings.retireAge || 60;
     const currentAge = state.projectionSettings.currentAge || 30;
     const coastYears = Math.max(0, retireAge - currentAge);
@@ -224,7 +317,7 @@ function renderMilestones(
     targetFireNw,
     realReturnRate,
     annualSavings,
-    depletionAge
+    depletionAge,
 ) {
     const container = document.getElementById(
         'projection-milestones-container',
@@ -281,7 +374,13 @@ function renderMilestones(
         }
 
         const isDepletion = m.isDepletion === true;
-        const colorClass = m.color || (isDepletion ? 'text-coral' : isAchieved ? 'text-emerald' : 'text-purple');
+        const colorClass =
+            m.color ||
+            (isDepletion
+                ? 'text-coral'
+                : isAchieved
+                  ? 'text-emerald'
+                  : 'text-purple');
         html += `
             <div class="milestone-card ${isAchieved ? 'achieved' : ''} ${isDepletion ? 'depletion-warning' : ''}">
                 <span class="milestone-title">${m.name}</span>
@@ -291,5 +390,6 @@ function renderMilestones(
         `;
     });
 
-    container.innerHTML = selectorHtml + '<div class="milestones-grid mt-2">' + html + '</div>';
+    container.innerHTML =
+        selectorHtml + '<div class="milestones-grid mt-2">' + html + '</div>';
 }

@@ -68,10 +68,17 @@ describe('ebay-connector', () => {
 
     describe('buildAuthorizationUrl', () => {
         it('builds correct sandbox auth URL', () => {
-            const url = ebay.buildAuthorizationUrl('http://localhost:3001/callback', 'test-state');
-            expect(url).toContain('https://auth.sandbox.ebay.com/oauth2/authorize');
+            const url = ebay.buildAuthorizationUrl(
+                'http://localhost:3001/callback',
+                'test-state',
+            );
+            expect(url).toContain(
+                'https://auth.sandbox.ebay.com/oauth2/authorize',
+            );
             expect(url).toContain('client_id=test-client-id');
-            expect(url).toContain('redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fcallback');
+            expect(url).toContain(
+                'redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fcallback',
+            );
             expect(url).toContain('state=test-state');
             expect(url).toContain('response_type=code');
         });
@@ -82,56 +89,91 @@ describe('ebay-connector', () => {
                 EBAY_CLIENT_SECRET: 'secret',
                 EBAY_ENVIRONMENT: 'production',
             });
-            const url = ebay.buildAuthorizationUrl('http://localhost:3001/callback', 'state');
+            const url = ebay.buildAuthorizationUrl(
+                'http://localhost:3001/callback',
+                'state',
+            );
             expect(url).toContain('https://auth.ebay.com/oauth2/authorize');
         });
     });
 
     describe('exchangeCodeForTokens', () => {
         it('exchanges code for tokens successfully', async () => {
-            const mockTokens = { access_token: 'at', refresh_token: 'rt', expires_in: 7200 };
-            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-                ok: true,
-                json: async () => mockTokens,
-            }));
+            const mockTokens = {
+                access_token: 'at',
+                refresh_token: 'rt',
+                expires_in: 7200,
+            };
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: async () => mockTokens,
+                }),
+            );
 
-            const tokens = await ebay.exchangeCodeForTokens('auth-code', 'http://localhost:3001/callback');
+            const tokens = await ebay.exchangeCodeForTokens(
+                'auth-code',
+                'http://localhost:3001/callback',
+            );
             expect(tokens).toEqual(mockTokens);
         });
 
         it('throws on token exchange failure', async () => {
-            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-                ok: false,
-                status: 400,
-                text: async () => 'invalid_grant',
-            }));
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue({
+                    ok: false,
+                    status: 400,
+                    text: async () => 'invalid_grant',
+                }),
+            );
 
-            await expect(ebay.exchangeCodeForTokens('bad-code', 'http://localhost/callback'))
-                .rejects.toThrow('eBay token exchange failed (400): invalid_grant');
+            await expect(
+                ebay.exchangeCodeForTokens(
+                    'bad-code',
+                    'http://localhost/callback',
+                ),
+            ).rejects.toThrow(
+                'eBay token exchange failed (400): invalid_grant',
+            );
         });
     });
 
     describe('refreshAccessToken', () => {
         it('refreshes token successfully', async () => {
-            const mockTokens = { access_token: 'new-at', refresh_token: 'new-rt', expires_in: 7200 };
-            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-                ok: true,
-                json: async () => mockTokens,
-            }));
+            const mockTokens = {
+                access_token: 'new-at',
+                refresh_token: 'new-rt',
+                expires_in: 7200,
+            };
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: async () => mockTokens,
+                }),
+            );
 
             const tokens = await ebay.refreshAccessToken('old-refresh-token');
             expect(tokens).toEqual(mockTokens);
         });
 
         it('throws on refresh failure', async () => {
-            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-                ok: false,
-                status: 401,
-                text: async () => 'invalid_refresh_token',
-            }));
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue({
+                    ok: false,
+                    status: 401,
+                    text: async () => 'invalid_refresh_token',
+                }),
+            );
 
-            await expect(ebay.refreshAccessToken('bad-refresh-token'))
-                .rejects.toThrow('eBay token refresh failed (401): invalid_refresh_token');
+            await expect(
+                ebay.refreshAccessToken('bad-refresh-token'),
+            ).rejects.toThrow(
+                'eBay token refresh failed (401): invalid_refresh_token',
+            );
         });
     });
 
@@ -142,29 +184,42 @@ describe('ebay-connector', () => {
                     {
                         orderId: '123',
                         creationDate: '2024-01-15T10:30:00Z',
-                        pricingSummary: { total: { value: '100.00' }, fee: { value: '10.00' } },
+                        pricingSummary: {
+                            total: { value: '100.00' },
+                            fee: { value: '10.00' },
+                        },
                         lineItems: [{ title: 'Test Item' }],
                     },
                 ],
             };
-            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-                ok: true,
-                json: async () => mockOrders,
-            }));
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: async () => mockOrders,
+                }),
+            );
 
             const orders = await ebay.fetchCompletedOrders('access-token');
             expect(orders).toEqual(mockOrders);
         });
 
         it('handles 401 error with status attached', async () => {
-            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-                ok: false,
-                status: 401,
-                text: async () => 'Unauthorized',
-            }));
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue({
+                    ok: false,
+                    status: 401,
+                    text: async () => 'Unauthorized',
+                }),
+            );
 
-            await expect(ebay.fetchCompletedOrders('bad-token'))
-                .rejects.toMatchObject({ status: 401, message: expect.stringContaining('eBay Order API failed (401)') });
+            await expect(
+                ebay.fetchCompletedOrders('bad-token'),
+            ).rejects.toMatchObject({
+                status: 401,
+                message: expect.stringContaining('eBay Order API failed (401)'),
+            });
         });
     });
 
@@ -175,13 +230,19 @@ describe('ebay-connector', () => {
                     {
                         orderId: '123',
                         creationDate: '2024-01-15T10:30:00Z',
-                        pricingSummary: { total: { value: '100.00' }, fee: { value: '12.50' } },
+                        pricingSummary: {
+                            total: { value: '100.00' },
+                            fee: { value: '12.50' },
+                        },
                         lineItems: [{ title: 'Test Item' }],
                     },
                     {
                         orderId: '456',
                         creationDate: '2024-01-16T14:00:00Z',
-                        pricingSummary: { total: { value: '50.00' }, fee: { value: '5.00' } },
+                        pricingSummary: {
+                            total: { value: '50.00' },
+                            fee: { value: '5.00' },
+                        },
                         lineItems: [{ title: 'Another Item' }],
                     },
                 ],
@@ -194,22 +255,27 @@ describe('ebay-connector', () => {
                 platform: 'eBay',
                 date: '2024-01-15',
                 description: 'Test Item',
-                gross: 100.00,
-                fees: 12.50,
-                net: 87.50,
+                gross: 100.0,
+                fees: 12.5,
+                net: 87.5,
                 orderId: '123',
             });
-            expect(entries[1].net).toBe(45.00);
+            expect(entries[1].net).toBe(45.0);
         });
 
         it('handles missing line items', () => {
             const orders = {
-                orders: [{
-                    orderId: '789',
-                    creationDate: '2024-01-17T00:00:00Z',
-                    pricingSummary: { total: { value: '25.00' }, fee: { value: '2.50' } },
-                    lineItems: [],
-                }],
+                orders: [
+                    {
+                        orderId: '789',
+                        creationDate: '2024-01-17T00:00:00Z',
+                        pricingSummary: {
+                            total: { value: '25.00' },
+                            fee: { value: '2.50' },
+                        },
+                        lineItems: [],
+                    },
+                ],
             };
             const entries = ebay.ordersToLedgerEntries(orders);
             expect(entries[0].description).toBe('eBay sale');
@@ -222,12 +288,17 @@ describe('ebay-connector', () => {
 
         it('handles malformed pricing values', () => {
             const orders = {
-                orders: [{
-                    orderId: '999',
-                    creationDate: '2024-01-18T00:00:00Z',
-                    pricingSummary: { total: { value: 'invalid' }, fee: { value: 'also-invalid' } },
-                    lineItems: [{ title: 'Item' }],
-                }],
+                orders: [
+                    {
+                        orderId: '999',
+                        creationDate: '2024-01-18T00:00:00Z',
+                        pricingSummary: {
+                            total: { value: 'invalid' },
+                            fee: { value: 'also-invalid' },
+                        },
+                        lineItems: [{ title: 'Item' }],
+                    },
+                ],
             };
             const entries = ebay.ordersToLedgerEntries(orders);
             expect(entries[0].gross).toBe(0);

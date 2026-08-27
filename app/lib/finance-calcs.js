@@ -329,8 +329,6 @@ function buildProjectionData(state, scenarioOffset) {
     // If portfolio never depletes but realReturn < SWR, estimate depletion beyond span
     // using continuous compounding formula
     if (baseDepletionAge === null && realReturn < swr && realReturn > -0.5) {
-        const yearsToDepletion = Math.log(1 - (fireNumber * swr - annualExpenses) / (currentNW * (swr - realReturn))) / Math.log(1 + realReturn);
-        // This is a rough estimate; just mark as "beyond span"
         baseDepletionAge = currentAge + span + 1;
     }
 
@@ -380,7 +378,8 @@ function buildProjectionData(state, scenarioOffset) {
         annualExpenses,
         swr,
         realReturnPct: realReturn * 100,
-        portfolioSurvives: baseDepletionAge === null || baseDepletionAge > currentAge + span,
+        portfolioSurvives:
+            baseDepletionAge === null || baseDepletionAge > currentAge + span,
     };
 }
 
