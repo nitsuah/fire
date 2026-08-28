@@ -1,4 +1,4 @@
-updated: 2026-08-26
+updated: 2026-08-28
 
 # Tasks
 
@@ -68,6 +68,10 @@ See [docs/security-hardening.md](docs/security-hardening.md) for full remediatio
 - [ ] Flip `FIRE_API_KEY` to required by default; add `FIRE_AUTH_DISABLED=true` opt-out
 - [ ] Vitest test asserting no write tools are registered in MCP server
 - [ ] Run full penetration testing checklist from docs/security-hardening.md
+- [ ] Close the branch/function coverage gap (68.33% branch vs. 70% threshold, 75.67% functions vs. 80%).
+  - Priority: P2
+  - Context: statement and line coverage clear the target but branch and function coverage don't — `config/vitest.config.ts` thresholds are stricter than the blanket 80% METRICS.md target implies. `app/server.js` (41.83% stmts) is the single biggest gap.
+  - Acceptance Criteria: `npm run test:coverage` reports branch ≥70% and functions ≥80%; new tests target untested branches in `app/server.js` and the sync route error paths rather than padding easy files.
 
 ---
 
@@ -105,4 +109,4 @@ See [docs/security-hardening.md](docs/security-hardening.md) for full remediatio
 - [x] Financial Overview tab (unified Accounts + CDs + Cash Flow)
 - [x] Header summary bar (allocation bars, income, FIRE progress %)
 - [x] Diversification suggestion block
-- [x] 198 unit/integration tests (coverage ~26% after Phase 1-3 additions; target 80% — see In Progress)
+- [x] 251 unit/integration tests, 81.1% statement / 80.9% line coverage (measured 2026-08-28; target 80% statements/lines met, branch 68.33% and function 75.67% remain below their 70%/80% thresholds — see PROD Phase 3 below)
