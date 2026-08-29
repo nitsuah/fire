@@ -1,6 +1,6 @@
 # 🗺️ FIRE Tracker Roadmap
 
-updated: 2026-08-22
+updated: 2026-08-28
 
 ---
 
@@ -136,3 +136,9 @@ Goal: match Fidelity NetBenefits + Rocket Money from a tracking standpoint while
 - [ ] PWA — installable, offline-capable
 - [ ] Notification system (CD maturity alerts, FIRE milestone push)
 - [ ] Optional multi-user mode (separate encrypted db.json per user, auth-gated)
+- [ ] **Unified sync-health widget** — every integration (eBay, Plaid, each wallet chain, Drive backup) currently gets its own "show last-sync timestamp" UI task tracked separately in TASKS.md; consolidate into one settings panel showing last-sync time, status, and a manual "sync now" per connector. Closes 4 of the scattered PROD Phase 1/2 UI tasks with one component instead of four.
+- [ ] **Outbound webhook / notification hook** — the webhook framework (`app/lib/webhook-integration.js`) is inbound-only today. A scheduled outbound POST of a net-worth/FIRE-progress snapshot to a user-supplied webhook URL (Discord, Slack, ntfy) would reuse the existing HMAC + JSONata infrastructure in reverse and is a natural pairing with the planned CD-maturity notification system.
+
+## Ideas — not yet scheduled
+
+- **Sequence-of-returns risk indicator** — the retirement projection already models bull/bear scenarios and drawdown after retirement age; surface a single risk badge (e.g. "vulnerable to a down year in your first 5 retired years") derived from the existing SWR curve math rather than adding a new calculation engine.
