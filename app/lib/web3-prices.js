@@ -4,9 +4,21 @@ const path = require('path');
 const fs = require('fs');
 
 const CHAINS_FILE = path.join(__dirname, '../../config/chains.json');
+const WEI_PER_NATIVE = 10n ** 18n;
+
+let chainsCache;
 
 function loadChains() {
-    return JSON.parse(fs.readFileSync(CHAINS_FILE, 'utf8'));
+    if (!chainsCache) {
+        chainsCache = JSON.parse(fs.readFileSync(CHAINS_FILE, 'utf8'));
+    }
+    return chainsCache;
+}
+
+function parseWeiBalance(weiBalance) {
+    const whole = weiBalance / WEI_PER_NATIVE;
+    const fractional = weiBalance % WEI_PER_NATIVE;
+    return Number(whole) + Number(fractional) / 1e18;
 }
 
 async function fetchCoinGeckoPrice(coingeckoId) {
@@ -52,7 +64,7 @@ async function fetchEvmBalance(address, chain) {
         if (data.status !== '1')
             return { ok: false, warning: data.message || 'Explorer error' };
         const weiBalance = BigInt(data.result || '0');
-        const native = Number(weiBalance) / 1e18;
+        const native = parseWeiBalance(weiBalance);
         const price = await fetchCoinGeckoPrice(chain.coingeckoId);
         const usdValue = price != null ? native * price : 0;
         return { ok: true, native, usdValue, price };

@@ -25,15 +25,24 @@ The FIRE Tracker's sync layer connects the local `db.json` store to external fin
 - Format: colon-delimited string — `<iv-hex>:<auth-tag-hex>:<ciphertext-hex>`
 - Separate from `db.json` encryption, which uses a JSON wrapper `{ enc, iv, tag, data }`
 
-### OAuth Scaffold (non-functional placeholder)
+### OAuth Implementations (UI Ready, needs env vars)
 
-The current sync endpoints are stubs — they redirect to a dummy URL and accept hardcoded tokens. They exist as structural scaffolding for Phase 1/2 implementation.
+The eBay and Plaid OAuth flows are fully implemented with UI access in the Settings page.
 
-- `GET /api/sync/init` — generates 16-byte hex CSRF state, stores in `req.session.oauthState`, redirects to placeholder URL
-- `GET /api/sync/callback` — verifies state (consumed immediately, anti-replay), accepts dummy tokens, encrypts with `SYNC_MASTER_KEY`, writes to `data/tokens.json`
-- `GET /api/sync/data` — reads `tokens.json`, decrypts, returns mock response
+**eBay OAuth (Phase 1)**
+- `GET /api/sync/ebay/authorize` — initiates eBay OAuth flow with CSRF state
+- `GET /api/sync/ebay/callback` — exchanges code for tokens, encrypts with `SYNC_MASTER_KEY`, stores in `data/tokens.json`
+- `POST /api/sync/ebay/sync` — pulls completed orders → `sideGigLedger`
+- `GET /api/sync/ebay/status` — returns connection status, last sync, environment
+- Env vars: `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_ENVIRONMENT`, `SYNC_MASTER_KEY`
 
-Env vars consumed: `SYNC_CLIENT_ID`, `OAUTH_CALLBACK_URL`
+**Plaid Link (Phase 2)**
+- `POST /api/sync/plaid/create-link-token` — generates Plaid Link token for embedded UI
+- `POST /api/sync/plaid/exchange` — exchanges public_token → encrypted access_token
+- `POST /api/sync/plaid/positions` — syncs investment positions → `importedPositions`
+- `POST /api/sync/plaid/accounts` — syncs account balances → `customAccounts`
+- `GET /api/sync/plaid/status` — returns connection status, item count
+- Env vars: `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, `SYNC_MASTER_KEY`
 
 ### Webhook Framework (functional)
 
@@ -83,7 +92,7 @@ The webhook receiver is fully implemented and in production use.
 ├── data                      GET    Return synced data (current: stub)
 │
 ├── ebay/                            Phase 1
-│   ├── authorize             POST   Initiate eBay OAuth flow
+│   ├── authorize             GET    Initiate eBay OAuth flow
 │   ├── callback              GET    Exchange code + store encrypted tokens
 │   ├── sync                  POST   Pull completed orders → sideGigLedger
 │   └── refresh               POST   Refresh eBay access token

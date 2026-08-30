@@ -21,6 +21,12 @@ function initExpenseManager() {
         taxSlider.value = state.taxRate;
         taxDisplay.textContent = `${state.taxRate}%`;
     }
+    if (state.taxGrossIncome !== undefined && grossIncomeInput) {
+        grossIncomeInput.value = state.taxGrossIncome;
+    }
+    if (state.taxFilingState !== undefined && filingStateSelect) {
+        filingStateSelect.value = state.taxFilingState;
+    }
 
     inputs.forEach((input) => {
         input.addEventListener('input', async () => {
@@ -64,15 +70,22 @@ function initExpenseManager() {
     });
 
     // Auto-compute effective tax rate from gross income + state
-    function autoComputeTax() {
+    async function autoComputeTax() {
         const gross = parseFloat(grossIncomeInput.value) || 0;
         const filingState = filingStateSelect.value;
-        if (gross <= 0) return;
-        const estimated = computeEffectiveTaxRate(gross, filingState);
-        state.taxRate = estimated;
-        taxSlider.value = estimated;
-        taxDisplay.textContent = `${estimated}%`;
-        saveState();
+        state.taxGrossIncome = gross;
+        state.taxFilingState = filingState;
+        if (gross > 0) {
+            const estimated = computeEffectiveTaxRate(gross, filingState);
+            state.taxRate = estimated;
+            taxSlider.value = estimated;
+            taxDisplay.textContent = `${estimated}%`;
+        }
+        try {
+            await saveState();
+        } catch (err) {
+            console.error('Failed to save tax settings:', err);
+        }
         refreshAllUI();
     }
 

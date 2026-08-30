@@ -1,57 +1,216 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
+
+const { DATA_DIR } = require('./db');
 
 const BACKUP_FOLDER_NAME = 'fire-tracker-backups';
 const GDRIVE_API = 'https://www.googleapis.com';
 const GDRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
+const GDRIVE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
+const GDRIVE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE_ID_RE = /^[A-Za-z0-9_-]+$/;
 
-function isConfigured() {
-    return Boolean(process.env.GDRIVE_SERVICE_ACCOUNT_JSON);
+function tokenFilePath() {
+    return path.join(DATA_DIR, 'tokens-gdrive.json');
 }
 
-async function getServiceAccountToken(saKeyPath) {
-    const key = JSON.parse(fs.readFileSync(saKeyPath, 'utf8'));
+function isOAuthConfigured() {
+    return Boolean(
+        process.env.GDRIVE_CLIENT_ID &&
+        process.env.GDRIVE_CLIENT_SECRET &&
+        fs.existsSync(tokenFilePath()),
+    );
+}
 
-    const now = Math.floor(Date.now() / 1000);
-    const header = Buffer.from(
-        JSON.stringify({ alg: 'RS256', typ: 'JWT' }),
-    ).toString('base64url');
-    const payload = Buffer.from(
-        JSON.stringify({
-            iss: key.client_email,
-            scope: 'https://www.googleapis.com/auth/drive.file',
-            aud: 'https://oauth2.googleapis.com/token',
-            iat: now,
-            exp: now + 3600,
-        }),
-    ).toString('base64url');
+function isConfigured() {
+    return isOAuthConfigured();
+}
 
-    const signingInput = `${header}.${payload}`;
-    const sign = crypto.createSign('RSA-SHA256');
-    sign.update(signingInput);
-    const signature = sign.sign(key.private_key, 'base64url');
-    const jwt = `${signingInput}.${signature}`;
+// ─── Token storage (encrypted with SYNC_MASTER_KEY when available) ────────────
 
-    const res = await fetch('https://oauth2.googleapis.com/token', {
+function encryptToken(json) {
+    const masterKey = process.env.SYNC_MASTER_KEY;
+    if (!masterKey || !/^[0-9a-fA-F]{64}$/.test(masterKey)) {
+        throw new Error(
+            'SYNC_MASTER_KEY must be set (64 hex chars) to store Drive tokens securely.',
+        );
+    }
+    const key = Buffer.from(masterKey, 'hex');
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    let enc = cipher.update(json, 'utf8', 'hex');
+    enc += cipher.final('hex');
+    const tag = cipher.getAuthTag().toString('hex');
+    return JSON.stringify({
+        enc: true,
+        iv: iv.toString('hex'),
+        tag,
+        data: enc,
+    });
+}
+
+function decryptToken(raw) {
+    let parsed;
+    try {
+        parsed = JSON.parse(raw);
+    } catch {
+        return raw;
+    }
+    if (!parsed.enc) return raw;
+    const masterKey = process.env.SYNC_MASTER_KEY;
+    if (!masterKey || !/^[0-9a-fA-F]{64}$/.test(masterKey))
+        throw new Error(
+            'SYNC_MASTER_KEY required (64 hex chars) to read stored Drive token',
+        );
+    const key = Buffer.from(masterKey, 'hex');
+    const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        key,
+        Buffer.from(parsed.iv, 'hex'),
+    );
+    decipher.setAuthTag(Buffer.from(parsed.tag, 'hex'));
+    let dec = decipher.update(parsed.data, 'hex', 'utf8');
+    dec += decipher.final('utf8');
+    return dec;
+}
+
+function saveTokens(tokens) {
+    const json = JSON.stringify(tokens);
+    const stored = encryptToken(json);
+    const finalPath = tokenFilePath();
+    const tmpPath = `${finalPath}.tmp`;
+    fs.writeFileSync(tmpPath, stored, { mode: 0o600 });
+    fs.chmodSync(tmpPath, 0o600);
+    fs.renameSync(tmpPath, finalPath);
+}
+
+function loadTokens() {
+    let raw;
+    try {
+        raw = fs.readFileSync(tokenFilePath(), 'utf8');
+    } catch (e) {
+        if (e.code === 'ENOENT') {
+            throw Object.assign(
+                new Error(
+                    'Google Drive not authorized. Visit /api/backup/drive/authorize to connect.',
+                ),
+                { status: 503 },
+            );
+        }
+        throw e;
+    }
+    return JSON.parse(decryptToken(raw));
+}
+
+// ─── OAuth2 URL + callback ────────────────────────────────────────────────────
+
+function getRedirectUri() {
+    return (
+        process.env.GDRIVE_REDIRECT_URI ||
+        `http://localhost:${process.env.PORT || 3001}/api/backup/drive/callback`
+    );
+}
+
+function generateAuthUrl(state) {
+    const params = new URLSearchParams({
+        client_id: process.env.GDRIVE_CLIENT_ID,
+        redirect_uri: getRedirectUri(),
+        response_type: 'code',
+        scope: DRIVE_SCOPE,
+        access_type: 'offline',
+        prompt: 'consent',
+        state,
+    });
+    return `${GDRIVE_AUTH_ENDPOINT}?${params}`;
+}
+
+async function exchangeCodeForTokens(code) {
+    const res = await fetch(GDRIVE_TOKEN_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            assertion: jwt,
+            code,
+            client_id: process.env.GDRIVE_CLIENT_ID,
+            client_secret: process.env.GDRIVE_CLIENT_SECRET,
+            redirect_uri: getRedirectUri(),
+            grant_type: 'authorization_code',
         }).toString(),
         signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
         const text = await res.text();
+        throw new Error(`Token exchange failed (${res.status}): ${text}`);
+    }
+    const tokens = await res.json();
+    if (!tokens.refresh_token) {
         throw new Error(
-            `Service account token fetch failed (${res.status}): ${text}`,
+            'Google did not return a refresh token. Ensure the app was authorized with access_type=offline and prompt=consent.',
+        );
+    }
+    saveTokens({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expiry: Date.now() + (tokens.expires_in || 3600) * 1000,
+    });
+    return tokens;
+}
+
+async function getOAuthAccessToken() {
+    const stored = loadTokens();
+    if (
+        stored.access_token &&
+        stored.expiry &&
+        stored.expiry > Date.now() + 60_000
+    ) {
+        return stored.access_token;
+    }
+    // Refresh
+    const res = await fetch(GDRIVE_TOKEN_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            client_id: process.env.GDRIVE_CLIENT_ID,
+            client_secret: process.env.GDRIVE_CLIENT_SECRET,
+            refresh_token: stored.refresh_token,
+            grant_type: 'refresh_token',
+        }).toString(),
+        signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        if (res.status === 400 || res.status === 401) {
+            try {
+                fs.unlinkSync(tokenFilePath());
+            } catch {
+                /* already gone */
+            }
+            throw Object.assign(
+                new Error(
+                    `Drive token revoked or expired. Re-authorize at /api/backup/drive/authorize`,
+                ),
+                { status: 401 },
+            );
+        }
+        throw Object.assign(
+            new Error(`Token refresh failed (${res.status}): ${text}`),
+            { status: res.status },
         );
     }
     const data = await res.json();
-    return data.access_token;
+    const updated = {
+        ...stored,
+        access_token: data.access_token,
+        expiry: Date.now() + (data.expires_in || 3600) * 1000,
+    };
+    saveTokens(updated);
+    return updated.access_token;
 }
+
+// ─── Backup encryption ────────────────────────────────────────────────────────
 
 function encryptForBackup(json) {
     const masterKey = process.env.SYNC_MASTER_KEY;
@@ -92,12 +251,14 @@ function decryptBackup(raw) {
     return dec;
 }
 
-async function getOrCreateFolder(token, folderName) {
-    const folderId = process.env.GDRIVE_BACKUP_FOLDER_ID;
-    if (folderId) return folderId;
+// ─── Drive operations ─────────────────────────────────────────────────────────
 
+async function getOrCreateFolder(token) {
+    if (process.env.GDRIVE_BACKUP_FOLDER_ID) {
+        return process.env.GDRIVE_BACKUP_FOLDER_ID;
+    }
     const q = encodeURIComponent(
-        `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        `name='${BACKUP_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
     );
     const listRes = await fetch(
         `${GDRIVE_API}/drive/v3/files?q=${q}&fields=files(id,name)`,
@@ -107,7 +268,10 @@ async function getOrCreateFolder(token, folderName) {
         },
     );
     if (!listRes.ok)
-        throw new Error(`Drive folder search failed (${listRes.status})`);
+        throw Object.assign(
+            new Error(`Drive folder search failed (${listRes.status})`),
+            { status: listRes.status },
+        );
     const { files } = await listRes.json();
     if (files?.length) return files[0].id;
 
@@ -118,26 +282,23 @@ async function getOrCreateFolder(token, folderName) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            name: folderName,
+            name: BACKUP_FOLDER_NAME,
             mimeType: 'application/vnd.google-apps.folder',
         }),
         signal: AbortSignal.timeout(10000),
     });
     if (!createRes.ok)
-        throw new Error(`Drive folder creation failed (${createRes.status})`);
+        throw Object.assign(
+            new Error(`Drive folder creation failed (${createRes.status})`),
+            { status: createRes.status },
+        );
     const folder = await createRes.json();
     return folder.id;
 }
 
 async function uploadBackup(dbJson) {
-    const saKeyPath = process.env.GDRIVE_SERVICE_ACCOUNT_JSON;
-    if (!saKeyPath || !fs.existsSync(saKeyPath)) {
-        throw new Error(
-            'GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found',
-        );
-    }
-    const token = await getServiceAccountToken(saKeyPath);
-    const folderId = await getOrCreateFolder(token, BACKUP_FOLDER_NAME);
+    const token = await getOAuthAccessToken();
+    const folderId = await getOrCreateFolder(token);
     const encrypted = encryptForBackup(dbJson);
     const date = new Date().toISOString().split('T')[0];
     const fileName = `fire-backup-${date}.json`;
@@ -167,21 +328,18 @@ async function uploadBackup(dbJson) {
     });
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Drive upload failed (${res.status}): ${text}`);
+        throw Object.assign(
+            new Error(`Drive upload failed (${res.status}): ${text}`),
+            { status: res.status },
+        );
     }
     const file = await res.json();
     return { fileId: file.id, fileName, folderId };
 }
 
 async function listBackups() {
-    const saKeyPath = process.env.GDRIVE_SERVICE_ACCOUNT_JSON;
-    if (!saKeyPath || !fs.existsSync(saKeyPath)) {
-        throw new Error(
-            'GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found',
-        );
-    }
-    const token = await getServiceAccountToken(saKeyPath);
-    const folderId = await getOrCreateFolder(token, BACKUP_FOLDER_NAME);
+    const token = await getOAuthAccessToken();
+    const folderId = await getOrCreateFolder(token);
     const q = encodeURIComponent(
         `'${folderId}' in parents and name contains 'fire-backup-' and trashed=false`,
     );
@@ -192,33 +350,41 @@ async function listBackups() {
             signal: AbortSignal.timeout(10000),
         },
     );
-    if (!res.ok) throw new Error(`Drive list failed (${res.status})`);
+    if (!res.ok)
+        throw Object.assign(new Error(`Drive list failed (${res.status})`), {
+            status: res.status,
+        });
     const { files } = await res.json();
     return files || [];
 }
 
 async function downloadAndDecryptBackup(fileId) {
-    const saKeyPath = process.env.GDRIVE_SERVICE_ACCOUNT_JSON;
-    if (!saKeyPath || !fs.existsSync(saKeyPath)) {
-        throw new Error(
-            'GDRIVE_SERVICE_ACCOUNT_JSON path not set or file not found',
-        );
+    if (typeof fileId !== 'string' || !DRIVE_FILE_ID_RE.test(fileId)) {
+        throw new Error('Invalid Google Drive file ID.');
     }
-    const token = await getServiceAccountToken(saKeyPath);
+    const token = await getOAuthAccessToken();
+    const encodedFileId = encodeURIComponent(fileId);
     const res = await fetch(
-        `${GDRIVE_API}/drive/v3/files/${fileId}?alt=media`,
+        `${GDRIVE_API}/drive/v3/files/${encodedFileId}?alt=media`,
         {
             headers: { Authorization: `Bearer ${token}` },
             signal: AbortSignal.timeout(30000),
         },
     );
-    if (!res.ok) throw new Error(`Drive download failed (${res.status})`);
+    if (!res.ok)
+        throw Object.assign(
+            new Error(`Drive download failed (${res.status})`),
+            { status: res.status },
+        );
     const encrypted = await res.text();
     return decryptBackup(encrypted);
 }
 
 module.exports = {
     isConfigured,
+    isOAuthConfigured,
+    generateAuthUrl,
+    exchangeCodeForTokens,
     uploadBackup,
     listBackups,
     downloadAndDecryptBackup,

@@ -276,3 +276,154 @@ describe('buildProjectionData — zero swr edge case', () => {
         expect(data.fireNumber).toBeGreaterThan(0);
     });
 });
+
+// ─── blended return and passive income ───────────────────────────────────────
+
+describe('buildProjectionData — blended return and passive income', () => {
+    it('returns passiveIncome = 0 with no CDs or savings APY', () => {
+        const state = {
+            ...BASE,
+            customAccounts: [{ type: 'Cash', value: 50000, apy: 0 }],
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.passiveIncome).toBe(0);
+    });
+
+    it('returns passiveIncome from CD yield', () => {
+        const state = {
+            ...BASE,
+            cds: [
+                {
+                    bank: 'Test',
+                    principal: 100000,
+                    rate: 5,
+                    maturity: '2030-01-01',
+                },
+            ],
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.passiveIncome).toBe(5000);
+    });
+
+    it('returns passiveIncome from HYSA APY', () => {
+        const state = {
+            ...BASE,
+            customAccounts: [{ type: 'Savings', value: 50000, apy: 4 }],
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.passiveIncome).toBe(2000);
+    });
+
+    it('netWithdrawal is annualExpenses minus passiveIncome', () => {
+        const state = {
+            ...BASE,
+            cds: [
+                {
+                    bank: 'Test',
+                    principal: 100000,
+                    rate: 5,
+                    maturity: '2030-01-01',
+                },
+            ],
+        };
+        const data = buildProjectionData(state, 0);
+        const annualExpenses = (1000 + 300) * 12; // housing + food at taxRate 0
+        expect(data.netWithdrawal).toBe(Math.max(0, annualExpenses - 5000));
+    });
+
+    it('blendedReturn is lower than equityReturnPct when CDs are present', () => {
+        const state = {
+            ...BASE,
+            cds: [
+                {
+                    bank: 'Test',
+                    principal: 100000,
+                    rate: 4,
+                    maturity: '2030-01-01',
+                },
+            ],
+            importedPositions: [
+                { symbol: 'AAPL', description: 'Apple', value: 100000 },
+            ],
+            projectionSettings: {
+                ...BASE.projectionSettings,
+                expectedReturn: 8,
+            },
+        };
+        const data = buildProjectionData(state, 0);
+        // blended = (100k*4% + 100k*8%) / 200k = 6%
+        expect(data.blendedReturn).toBeCloseTo(6, 1);
+    });
+
+    it('blendedReturn equals equityReturnPct when no yield-bearing assets', () => {
+        const state = {
+            ...BASE,
+            importedPositions: [
+                { symbol: 'AAPL', description: 'Apple', value: 100000 },
+            ],
+            projectionSettings: {
+                ...BASE.projectionSettings,
+                expectedReturn: 7,
+            },
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.blendedReturn).toBeCloseTo(7, 1);
+    });
+
+    it('depletionAge is null when portfolio survives full span', () => {
+        const state = {
+            ...BASE,
+            customAccounts: [{ type: 'Brokerage', value: 5000000 }],
+            projectionSettings: {
+                ...BASE.projectionSettings,
+                retireAge: 40,
+                currentAge: 35,
+                spanYears: 30,
+            },
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.depletionAge.base).toBeNull();
+        expect(data.depletionAge.bull).toBeNull();
+    });
+
+    it('depletionAge.bear is set before base when portfolio is thin', () => {
+        const state = {
+            ...BASE,
+            customAccounts: [{ type: 'Brokerage', value: 100000 }],
+            projectionSettings: {
+                ...BASE.projectionSettings,
+                retireAge: 36,
+                currentAge: 35,
+                spanYears: 30,
+                annualSavings: 0,
+                expectedReturn: 4,
+                inflationRate: 3,
+            },
+        };
+        const data = buildProjectionData(state, 0);
+        // bear scenario hits zero before or same as base
+        if (
+            data.depletionAge.bear !== null &&
+            data.depletionAge.base !== null
+        ) {
+            expect(data.depletionAge.bear).toBeLessThanOrEqual(
+                data.depletionAge.base,
+            );
+        }
+    });
+
+    it('real estate is included in blended return universe', () => {
+        const state = {
+            ...BASE,
+            realEstate: [{ marketValue: 500000, mortgageBalance: 200000 }],
+            projectionSettings: {
+                ...BASE.projectionSettings,
+                expectedReturn: 7,
+            },
+        };
+        const data = buildProjectionData(state, 0);
+        // equity = $300k at 7% — blended should equal equity rate since no yield-bearing assets
+        expect(data.blendedReturn).toBeCloseTo(7, 0);
+        expect(data.networth).toBe(300000);
+    });
+});

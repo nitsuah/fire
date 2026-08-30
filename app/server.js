@@ -69,11 +69,11 @@ try {
     rateLimitFn = null;
 }
 
-function makeRateLimiter(max, windowMs, message) {
+function makeRateLimiter(limit, windowMs, message) {
     if (!rateLimitFn) return (req, res, next) => next();
     return rateLimitFn({
         windowMs,
-        max,
+        limit,
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: message },
@@ -100,6 +100,18 @@ app.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader(
+        'Content-Security-Policy',
+        [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net",
+            "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
+            "font-src 'self' fonts.gstatic.com",
+            "img-src 'self' data:",
+            "connect-src 'self' query1.finance.yahoo.com finance.yahoo.com",
+            "frame-ancestors 'none'",
+        ].join('; '),
+    );
     next();
 });
 
@@ -116,7 +128,7 @@ app.use(
     session({
         secret: SESSION_SECRET || 'a-very-secret-key',
         resave: false,
-        saveUninitialized: true,
+        saveUninitialized: false,
         cookie: { httpOnly: true, sameSite: 'lax', secure: IS_PRODUCTION },
     }),
 );
@@ -126,6 +138,10 @@ app.use('/docs', express.static(path.join(__dirname, '../docs')));
 
 if (API_KEY) {
     app.use('/api', (req, res, next) => {
+        // Only the callback is a browser-redirect that Google initiates; authorize is user-initiated
+        if (req.path === '/backup/drive/callback') {
+            return next();
+        }
         const key = req.headers['x-api-key'];
         if (!key || key !== API_KEY) {
             return res.status(401).json({ error: 'Unauthorized.' });
@@ -149,7 +165,7 @@ app.use('/api/backup', backupRouter);
 app.use('/api/vehicles', vehiclesRouter);
 
 // Key rotation endpoint — requires FIRE_ADMIN_KEY header regardless of FIRE_API_KEY
-app.post('/api/admin/rotate-key', (req, res) => {
+app.post('/api/admin/rotate-key', async (req, res) => {
     if (!ADMIN_KEY || req.headers['x-admin-key'] !== ADMIN_KEY) {
         return res.status(401).json({ error: 'Unauthorized.' });
     }
@@ -160,7 +176,7 @@ app.post('/api/admin/rotate-key', (req, res) => {
             .json({ error: 'newKey must be 64 hex characters.' });
     }
     try {
-        rotateMasterKey(newKey);
+        await rotateMasterKey(newKey);
         res.json({
             status: 'success',
             message:

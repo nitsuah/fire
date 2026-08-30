@@ -86,7 +86,242 @@ function renderAllocMiniBarsBanner() {
     });
 }
 
-function renderDiversificationSuggestions(totalPortfolioValue) {
+function escHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// Diversification Tip Tiles - Data-driven suggestions with curated resources
+// Each tip's check and message receive a context object: { nw, totalPortfolioValue, cashPct, eqPct, cdsPct, rePct }
+const DIVERSIFICATION_TIPS = [
+    {
+        id: 'high-cash',
+        title: 'High Cash Allocation',
+        icon: '💵',
+        check: ({ cashPct }) => cashPct > 30,
+        severity: 'info',
+        message: ({ cashPct }) =>
+            `Cash is ${cashPct.toFixed(0)}% of NW — consider deploying into higher-yield CDs or index funds.`,
+        links: [
+            {
+                label: 'CD Ladder Strategy',
+                url: 'https://www.investopedia.com/terms/c/cdladder.asp',
+                external: true,
+            },
+            {
+                label: 'High-Yield Savings vs CDs',
+                url: 'https://www.nerdwallet.com/article/banking/cd-vs-savings-account',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'high-equity',
+        title: 'Equity Concentration Risk',
+        icon: '📈',
+        check: ({ eqPct }) => eqPct > 70,
+        severity: 'warning',
+        message: ({ eqPct }) =>
+            `Equities are ${eqPct.toFixed(0)}% of NW — bonds or CD exposure could reduce volatility.`,
+        links: [
+            {
+                label: 'Asset Allocation Models',
+                url: 'https://www.vanguard.com/learn/asset-allocation',
+                external: true,
+            },
+            {
+                label: 'Bond ETF Guide',
+                url: 'https://www.etf.com/etfanalytics/etf-finder',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'low-equity',
+        title: 'Low Equity Exposure',
+        icon: '📉',
+        check: ({ nw, eqPct }) => eqPct < 30 && nw > 50000,
+        severity: 'info',
+        message: ({ eqPct }) =>
+            `Equities are only ${eqPct.toFixed(0)}% of NW — long-term FIRE typically needs more equity growth.`,
+        links: [
+            {
+                label: 'Total Market Index Funds',
+                url: 'https://www.bogleheads.org/wiki/Three-fund_portfolio',
+                external: true,
+            },
+            {
+                label: 'FIRE Portfolio Construction',
+                url: 'https://earlyretirementnow.com/safe-withdrawal-rates/',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'high-cds',
+        title: 'Heavy Fixed Income',
+        icon: '💿',
+        check: ({ cdsPct }) => cdsPct > 40,
+        severity: 'info',
+        message: ({ cdsPct }) =>
+            `CDs are ${cdsPct.toFixed(0)}% of NW — solid fixed income, but ensure enough equity for long-term growth.`,
+        links: [
+            {
+                label: 'CD Ladder Calculator',
+                url: 'https://www.bankrate.com/cd-ladder-calculator',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'no-real-estate',
+        title: 'Missing Real Estate',
+        icon: '🏠',
+        check: ({ nw, rePct }) => rePct === 0 && nw > 100000,
+        severity: 'info',
+        message: () =>
+            `No real estate in portfolio — property can diversify away from market correlation.`,
+        links: [
+            {
+                label: 'REITs vs Direct Property',
+                url: 'https://www.investopedia.com/articles/investing/092915/reits-vs-rental-property.asp',
+                external: true,
+            },
+            {
+                label: 'Real Estate Crowdfunding',
+                url: 'https://www.forbes.com/advisor/investing/real-estate-crowdfunding/',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'single-stock',
+        title: 'Single-Stock Concentration',
+        icon: '⚠️',
+        check: ({ totalPortfolioValue }) => {
+            if (!totalPortfolioValue || totalPortfolioValue <= 0) return false;
+            for (const pos of state.importedPositions) {
+                const w = ((pos.value || 0) / totalPortfolioValue) * 100;
+                if (w >= 20 && !isSettledCash(pos)) return true;
+            }
+            return false;
+        },
+        severity: 'warning',
+        message: ({ totalPortfolioValue }) => {
+            const concentrated = [];
+            for (const pos of state.importedPositions) {
+                const w = ((pos.value || 0) / totalPortfolioValue) * 100;
+                if (w >= 20 && !isSettledCash(pos)) {
+                    concentrated.push(
+                        `${escHtml(pos.symbol)} (${w.toFixed(1)}%)`,
+                    );
+                }
+            }
+            return concentrated.length === 1
+                ? `${concentrated[0]} of your equity — concentration above 20% increases single-stock risk.`
+                : `${concentrated.join(', ')} exceed 20% each — concentration risk detected.`;
+        },
+        links: [
+            {
+                label: 'Diversification Benefits',
+                url: 'https://www.investopedia.com/terms/d/diversification.asp',
+                external: true,
+            },
+            {
+                label: 'Tax-Efficient Rebalancing',
+                url: 'https://www.bogleheads.org/wiki/Tax-efficient_fund_placement',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'no-international',
+        title: 'No International Exposure',
+        icon: '🌍',
+        check: ({ totalPortfolioValue }) => {
+            if (!totalPortfolioValue || totalPortfolioValue <= 0) return false;
+            let hasIntl = false;
+            for (const pos of state.importedPositions) {
+                const sym = pos.symbol || '';
+                const desc = pos.description || '';
+                // Common international ETF tickers
+                if (
+                    [
+                        'VT',
+                        'VXUS',
+                        'VEU',
+                        'IXUS',
+                        'IEFA',
+                        'IEMG',
+                        'VWO',
+                        'VEA',
+                    ].includes(sym) ||
+                    desc.toLowerCase().includes('international') ||
+                    desc.toLowerCase().includes('emerging') ||
+                    desc.toLowerCase().includes('ex-us') ||
+                    desc.toLowerCase().includes('ex us') ||
+                    desc.toLowerCase().includes('global') ||
+                    desc.toLowerCase().includes('world')
+                ) {
+                    hasIntl = true;
+                    break;
+                }
+            }
+            return !hasIntl && totalPortfolioValue > 10000;
+        },
+        severity: 'info',
+        message: () =>
+            `No international equities detected — global diversification reduces country-specific risk.`,
+        links: [
+            {
+                label: 'Total International ETFs',
+                url: 'https://etfdb.com/etfs/total-international/',
+                external: true,
+            },
+            {
+                label: 'Why Global Diversification',
+                url: 'https://www.bogleheads.org/wiki/International_diversification',
+                external: true,
+            },
+        ],
+    },
+];
+
+function getDismissedTips() {
+    try {
+        const stored = localStorage.getItem('fire_dismissed_div_tips');
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+}
+
+function dismissTip(tipId) {
+    const dismissed = getDismissedTips();
+    if (!dismissed.includes(tipId)) {
+        dismissed.push(tipId);
+        localStorage.setItem(
+            'fire_dismissed_div_tips',
+            JSON.stringify(dismissed),
+        );
+    }
+    renderDiversificationSuggestions();
+}
+
+function clearAllDismissedTips() {
+    localStorage.removeItem('fire_dismissed_div_tips');
+    renderDiversificationSuggestions();
+}
+
+function renderDiversificationSuggestions(
+    totalPortfolioValue = state.importedPositions.reduce(
+        (sum, pos) => sum + (pos.value || 0),
+        0,
+    ),
+) {
     const block = document.getElementById('divs-suggestion-block');
     if (!block) return;
     const nw = getAggregateNetWorth();
@@ -99,42 +334,53 @@ function renderDiversificationSuggestions(totalPortfolioValue) {
     const cdsPct = (getAggregateCDs() / nw) * 100;
     const rePct = (getAggregateRealEstate() / nw) * 100;
 
-    const suggestions = [];
-    if (cashPct > 30)
-        suggestions.push(
-            `Cash is ${cashPct.toFixed(0)}% of NW — consider deploying some into higher-yield CDs or index funds.`,
-        );
-    if (eqPct > 70)
-        suggestions.push(
-            `Equities are ${eqPct.toFixed(0)}% of NW — bonds or CD exposure could reduce volatility.`,
-        );
-    if (eqPct < 30 && nw > 50000)
-        suggestions.push(
-            `Equities are only ${eqPct.toFixed(0)}% of NW — long-term FIRE typically needs more equity growth.`,
-        );
-    if (cdsPct > 40)
-        suggestions.push(
-            `CDs are ${cdsPct.toFixed(0)}% of NW — solid fixed income, but ensure enough equity for long-term growth.`,
-        );
-    if (rePct === 0 && nw > 100000)
-        suggestions.push(
-            `No real estate in portfolio — property can diversify away from market correlation.`,
-        );
-    if (totalPortfolioValue > 0) {
-        state.importedPositions.forEach((pos) => {
-            const w = ((pos.value || 0) / totalPortfolioValue) * 100;
-            if (w >= 20 && !isSettledCash(pos))
-                suggestions.push(
-                    `${escHtml(pos.symbol)} is ${w.toFixed(1)}% of your equity — concentration above 20% increases single-stock risk.`,
-                );
-        });
-    }
+    const ctx = { nw, totalPortfolioValue, cashPct, eqPct, cdsPct, rePct };
+    const dismissed = getDismissedTips();
+    const activeTips = DIVERSIFICATION_TIPS.filter((tip) => {
+        if (dismissed.includes(tip.id)) return false;
+        return tip.check(ctx);
+    });
 
-    if (suggestions.length === 0) {
-        block.innerHTML = '';
+    if (activeTips.length === 0 && dismissed.length === 0) {
+        block.innerHTML = `<div class="divs-empty">
+            <svg viewBox="0 0 24 24" style="width:32px;height:32px;margin-bottom:8px;opacity:0.5;"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            <div style="font-weight:500;">All balanced! 🎉</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Your portfolio diversification looks good.</div>
+        </div>`;
         return;
     }
-    block.innerHTML = `<div class="divs-header">💡 Diversification Suggestions</div><ul class="divs-list">${suggestions.map((s) => `<li>${s}</li>`).join('')}</ul>`;
+
+    let html = '<div class="divs-bar">';
+    html += '<div class="divs-bar-title">💡 Portfolio Insights</div>';
+    if (dismissed.length > 0) {
+        html += `<button class="divs-clear-dismissed" onclick="clearAllDismissedTips()">Restore dismissed (${dismissed.length})</button>`;
+    }
+    html += '</div>';
+
+    html += '<div class="divs-tiles">';
+    activeTips.forEach((tip) => {
+        const msg = tip.message(ctx);
+        const severityClass =
+            tip.severity === 'warning' ? 'divs-tile-warning' : '';
+        html += `
+            <div class="divs-tile ${severityClass}" data-tip-id="${tip.id}">
+                <div class="divs-tile-header">
+                    <span class="divs-tile-icon">${tip.icon}</span>
+                    <span class="divs-tile-title">${tip.title}</span>
+                    <button class="divs-tile-dismiss" onclick="dismissTip('${tip.id}')" aria-label="Dismiss">
+                        <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    </button>
+                </div>
+                <div class="divs-tile-message">${msg}</div>
+                <div class="divs-tile-links">
+                    ${tip.links.map((link) => `<a href="${link.url}" target="_blank" rel="noopener" class="divs-tile-link">${link.label} ↗</a>`).join('')}
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    block.innerHTML = html;
 }
 
 function renderQuickStatsList() {

@@ -153,6 +153,7 @@ function ordersToLedgerEntries(orders) {
 }
 
 module.exports = {
+    getEnv,
     isConfigured,
     buildAuthorizationUrl,
     exchangeCodeForTokens,

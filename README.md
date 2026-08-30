@@ -14,10 +14,17 @@
 - **CD Ladder Visualizer** — timeline of upcoming maturities with yield overlays
 - **Side Hustle Tracker** — income logs + built-in eBay/platform fee calculator
 - **CSV Imports** — Fidelity positions, Chase and Capital One statements (all processed locally)
-- **REST API** — full CRUD for accounts, CDs, state; optional `FIRE_API_KEY` header auth
-- **MCP Server** — 8 read-only tools for Claude/LLM integration via `app/mcp-server.mjs`
-- **Yahoo Finance prices** — live portfolio valuation with crumb-based auth and stale-data fallback
-- **Webhook sync framework** — JSON data-mapped templates for automated data ingestion
+- **REST API** — full CRUD for accounts, CDs, wallets, vehicles, sync templates, state; optional `FIRE_API_KEY` header auth; `FIRE_ADMIN_KEY`-gated key-rotation endpoint
+- **MCP Server** — 12 functional tools for Claude/LLM integration via `app/mcp-server.mjs` (plus 7 registered stubs)
+- **Yahoo Finance prices** — live portfolio valuation with crumb-based auth, stale-data fallback, and SSE (`GET /api/prices/stream`) for live push; configurable via `ALPHA_VANTAGE_API_KEY` or `POLYGON_API_KEY` as stable alternatives
+- **Webhook sync framework** — JSON data-mapped templates for automated data ingestion (full CRUD + live receiver at `POST /api/sync/webhook/:templateId`)
+- **eBay Order Sync** — OAuth 2.0 flow (`GET /api/sync/ebay/authorize` → callback → `POST /api/sync/ebay/sync`) auto-imports completed sales into the side gig ledger
+- **Plaid integration** — link-token flow and position/account sync (`POST /api/sync/plaid/*`) for brokerage and bank accounts
+- **Web3 wallet tracking** — full wallet CRUD (`/api/wallets`) with on-chain balance refresh; supports ETH/EVM, BTC, SOL, BNB, Polygon, Arbitrum, Base, Avalanche
+- **Google Drive encrypted backup** — `POST /api/backup/drive`, `GET /api/backup/drive/list`, `POST /api/backup/drive/restore` (requires `GDRIVE_SERVICE_ACCOUNT_JSON` + `SYNC_MASTER_KEY`)
+- **Vehicle VIN decode & value refresh** — NHTSA VIN decode (`GET /api/vehicles/vin/:vin`) and value refresh (`POST /api/vehicles/:id/refresh-value`)
+- **Rate limiting** — 300 req/min general, 30 req/min on sync routes (via `express-rate-limit`)
+- **Security headers** — CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy applied on every response
 
 ---
 
@@ -53,8 +60,21 @@ Copy `.env.example` to `.env` and set values as needed. All are optional for bas
 |---|---|
 | `PORT` | Server port (default `3001`) |
 | `FIRE_API_KEY` | When set, all `/api/*` routes require `X-Api-Key: <value>` |
+| `FIRE_ADMIN_KEY` | **Required in production.** Gates `POST /api/admin/rotate-key` via `X-Admin-Key` header |
 | `SYNC_MASTER_KEY` | 64-hex-char key to encrypt `db.json` at rest with AES-256-GCM |
-| `SESSION_SECRET` | Secret for signing session cookies (random string; warn logged if unset) |
+| `SESSION_SECRET` | Secret for signing session cookies (random string; server exits in production if unset) |
+| `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | eBay Developer app credentials for Order API sync |
+| `EBAY_ENVIRONMENT` | `sandbox` (default) or `production` |
+| `EBAY_REDIRECT_URI` | OAuth callback URI (default: `http://localhost:3001/api/sync/ebay/callback`) |
+| `ETHERSCAN_API_KEY` | Ethereum / ERC-20 balance fetching |
+| `BSCSCAN_API_KEY` / `POLYGONSCAN_API_KEY` / `ARBISCAN_API_KEY` / `BASESCAN_API_KEY` | EVM chain balance fetching |
+| `COINGECKO_API_KEY` | Optional; raises CoinGecko rate limit for crypto price lookups |
+| `GDRIVE_SERVICE_ACCOUNT_JSON` | Path to GCP service account JSON for encrypted Drive backup |
+| `GDRIVE_BACKUP_FOLDER_ID` | Optional Drive folder ID (auto-created if blank) |
+| `VEHICLE_VALUE_API_KEY` / `VEHICLE_VALUE_PROVIDER` | Paid vehicle value provider (dataone, marketcheck) |
+| `PLAID_CLIENT_ID` / `PLAID_SECRET` | Plaid credentials for brokerage/bank sync |
+| `PLAID_ENV` | `sandbox` (default) or `production` |
+| `ALPHA_VANTAGE_API_KEY` / `POLYGON_API_KEY` | Stable stock-quote API alternative to Yahoo Finance |
 
 Generate keys:
 ```bash
@@ -79,7 +99,9 @@ Connect Claude Code to your live financial data. The project ships a `.mcp.json`
 }
 ```
 
-**Available tools:** `fire_status_summary`, `get_net_worth`, `get_accounts`, `get_portfolio`, `get_cds`, `get_expenses`, `get_projection_settings`, `get_side_gig_income`
+**Functional tools (12):** `fire_status_summary`, `get_net_worth`, `get_accounts`, `get_portfolio`, `get_cds`, `get_expenses`, `get_projection_settings`, `get_side_gig_income`, `get_wallets`, `get_concentration_risk`, `simulate_rebalance`, `get_emergency_runway`
+
+**Registered stubs (return `not_implemented`):** `get_market_correlation`, `get_swr_sensitivity`, `set_price_target_alert`, `auto_reconcile_csv`, `get_dividend_forecast`, `get_net_worth_trend`, `get_diversification_score`
 
 Smoke-test locally:
 ```bash
@@ -91,7 +113,7 @@ docker compose -f config/docker-compose.yml exec fire node scripts/test-mcp.mjs
 ## Data & Privacy
 
 - All financial data is stored in `data/db.json` inside the project directory (Docker volume-mounted).
-- No data is ever transmitted to external services except optional Yahoo Finance price fetches.
+- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain APIs (wallet balances — Etherscan, BscScan, Blockstream, etc.), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance / Alpha Vantage / Polygon). All are opt-in and BYOK.
 - Optionally encrypt `db.json` at rest with `SYNC_MASTER_KEY` (AES-256-GCM).
 - Export/restore a full JSON backup any time from the dashboard.
 
@@ -104,14 +126,27 @@ fire/
 ├── app/
 │   ├── index.html              # Single-page app entry point
 │   ├── server.js               # Express server (port 3001)
-│   ├── mcp-server.mjs          # MCP server — 8 read-only tools
+│   ├── mcp-server.mjs          # MCP server — 12 functional tools + 7 registered stubs
 │   ├── lib/
 │   │   ├── db.js               # State persistence (db.json, atomic writes)
 │   │   ├── crypto-utils.js     # AES-256-GCM encrypt/decrypt
-│   │   ├── finance-calcs.js    # Server-side projection engine
+│   │   ├── finance-calcs.js    # Server-side projection engine (MCP + API)
+│   │   ├── finance-core.js     # Core FIRE math primitives
+│   │   ├── finance-parsing.js  # CSV parsing helpers
+│   │   ├── projections.js      # Blended return, passive income offset, depletion age
 │   │   ├── html-utils.js       # XSS escape utility (shared by table renderers)
-│   │   ├── yahoo-prices.js     # Yahoo Finance price fetcher
+│   │   ├── yahoo-prices.js     # Yahoo Finance price fetcher (crumb-based)
+│   │   ├── prices-provider.js  # Price provider abstraction (Yahoo / Alpha Vantage / Polygon)
 │   │   ├── webhook-integration.js # Webhook payload handler
+│   │   ├── ebay-connector.js   # eBay Order API OAuth + order fetch
+│   │   ├── web3-prices.js      # On-chain balance fetch (ETH, BTC, SOL, EVM chains)
+│   │   ├── gdrive-backup.js    # Google Drive encrypted backup/restore
+│   │   ├── vehicle-api.js      # NHTSA VIN decode + vehicle value estimate
+│   │   ├── csv-import.js       # Fidelity / Chase / CapOne CSV parsing
+│   │   ├── expenses.js         # Expense calculation helpers
+│   │   ├── side-gig.js         # Side hustle fee-calc logic
+│   │   ├── privacy.js          # Privacy consent helpers
+│   │   ├── server-utils.js     # findAvailablePort, strictNum
 │   │   ├── charts/             # Chart.js renderers
 │   │   ├── tables/             # Table renderers
 │   │   └── managers/           # UI CRUD managers
@@ -119,14 +154,17 @@ fire/
 │       ├── state.js            # GET / POST /api/state
 │       ├── accounts.js         # CRUD /api/accounts
 │       ├── cds.js              # CRUD /api/cds
-│       ├── prices.js           # GET /api/prices
-│       └── sync.js             # Webhook / OAuth sync
+│       ├── prices.js           # GET /api/prices, GET /api/prices/stream (SSE)
+│       ├── wallets.js          # CRUD /api/wallets + /api/wallets/:id/refresh + /api/wallets/refresh-all
+│       ├── vehicles.js         # GET /api/vehicles/vin/:vin, POST /api/vehicles/:id/refresh-value
+│       ├── backup.js           # POST /api/backup/drive, GET /api/backup/drive/list, POST /api/backup/drive/restore
+│       └── sync.js             # Webhook templates CRUD, POST /api/sync/webhook/:templateId, eBay OAuth, Plaid
 ├── config/
 │   ├── docker-compose.yml
 │   ├── Dockerfile              # node:22-alpine
 │   └── eslint.config.mjs
 ├── scripts/
-│   └── test-mcp.mjs            # MCP smoke test (all 8 tools)
+│   └── test-mcp.mjs            # MCP smoke test (all functional tools)
 ├── data/                       # db.json lives here (git-ignored)
 ├── docs/                       # Architecture notes
 ├── .env.example                # Environment variable reference
@@ -157,13 +195,15 @@ The system is being productionized toward real-time, API-driven data in four pha
 
 | Integration | Phase | Status |
 |---|---|---|
-| eBay Order API (auto-import sales) | Phase 1 | Planned |
-| Web3 wallet tracking (ETH, BTC, SOL, + EVM chains) | Phase 1 | Planned |
-| Google Drive encrypted backup | Phase 1 | Planned |
-| Vehicle value API (NHTSA VIN free; KBB/premium Phase 2) | Phase 1 | Planned |
-| Fidelity / Plaid positions + balance sync | Phase 2 | Planned |
-| Stable stock quote API (Alpha Vantage / Polygon.io) | Phase 2 | Planned |
-| Security hardening (rate limiting, HTTPS, CSP) | Phase 3 | Planned |
+| eBay Order API (auto-import sales) | Phase 1 | Live (BYOK) |
+| Web3 wallet tracking (ETH, BTC, SOL, + EVM chains) | Phase 1 | Live (BYOK keys per chain) |
+| Google Drive encrypted backup | Phase 1 | Live (requires `GDRIVE_SERVICE_ACCOUNT_JSON`) |
+| Vehicle value API (NHTSA VIN free; paid providers via `VEHICLE_VALUE_PROVIDER`) | Phase 1 | Live |
+| Fidelity / Plaid positions + balance sync | Phase 2 | Live (BYOK; sandbox ready) |
+| Stable stock quote API (Alpha Vantage / Polygon.io) | Phase 2 | Live (fallback: Yahoo Finance) |
+| Rate limiting (300/min general, 30/min sync) | Phase 3 | Live |
+| Security headers (CSP, X-Frame-Options, Referrer-Policy) | Phase 3 | Live |
+| HTTPS via Caddy reverse proxy | Phase 3 | Planned |
 
 See [docs/prod-plan.md](docs/prod-plan.md) for the full productionization roadmap and [docs/integrations.md](docs/integrations.md) for per-integration setup instructions.
 

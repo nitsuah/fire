@@ -83,6 +83,85 @@ const TOOLS = [
             'Tracked crypto wallets: chain, label, truncated address (last 8 chars), USD balance, and last-fetched timestamp.',
         inputSchema: { type: 'object', properties: {} },
     },
+    {
+        name: 'get_concentration_risk',
+        description: 'Monitor exposure limits (e.g., COIN > 20%).',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'simulate_rebalance',
+        description:
+            'Scenario modeling: "What if I sold X of AssetA and bought Y of AssetB?"',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                soldAsset: { type: 'string' },
+                soldAmount: { type: 'number' },
+                boughtAsset: { type: 'string' },
+                boughtAmount: { type: 'number' },
+            },
+            required: [
+                'soldAsset',
+                'soldAmount',
+                'boughtAsset',
+                'boughtAmount',
+            ],
+        },
+    },
+    {
+        name: 'get_market_correlation',
+        description: 'Check portfolio sync (e.g., COIN + VOO).',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_swr_sensitivity',
+        description: 'Impact of market dip on 4-year SWR.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                swr: { type: 'number' },
+                marketDipPercent: { type: 'number' },
+            },
+            required: ['swr', 'marketDipPercent'],
+        },
+    },
+    {
+        name: 'set_price_target_alert',
+        description: 'Monitor assets for exit prices.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                symbol: { type: 'string' },
+                targetPrice: { type: 'number' },
+            },
+            required: ['symbol', 'targetPrice'],
+        },
+    },
+    {
+        name: 'auto_reconcile_csv',
+        description: 'Automate matching pending transactions.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_emergency_runway',
+        description: 'If income hits $0, how many months until $0 net worth?',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_dividend_forecast',
+        description: 'Project portfolio yield.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_net_worth_trend',
+        description: 'Time-series projection.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_diversification_score',
+        description: 'Proprietary balance rating.',
+        inputSchema: { type: 'object', properties: {} },
+    },
 ];
 
 function computeNetWorthBreakdown(state) {
@@ -127,11 +206,20 @@ function computeNetWorthBreakdown(state) {
     return { total, cash, equities, cds, realEstate, vehicles, cryptoWallets };
 }
 
-function handleTool(name, state, toolArgs) {
+function handleTool(name, state, toolArgs = {}) {
     switch (name) {
         case 'fire_status_summary': {
             const proj = buildProjectionData(state);
-            const { networth, fireNumber, nwData, coastFireLine } = proj;
+            const {
+                networth,
+                fireNumber,
+                nwData,
+                coastFireLine,
+                passiveIncome,
+                netWithdrawal,
+                blendedReturn,
+                depletionAge,
+            } = proj;
             const progressPercent =
                 fireNumber > 0
                     ? Math.round((networth / fireNumber) * 1000) / 10
@@ -154,6 +242,14 @@ function handleTool(name, state, toolArgs) {
                 swr: settings.swr || 4.0,
                 coastFireNumber: Math.round(coastFireNumber),
                 coastFireReached: networth >= coastFireNumber,
+                passiveIncome: Math.round(passiveIncome || 0),
+                netWithdrawalNeeded: Math.round(netWithdrawal || 0),
+                blendedReturnPct: Math.round((blendedReturn || 0) * 10) / 10,
+                depletionAge: depletionAge || {
+                    base: null,
+                    bull: null,
+                    bear: null,
+                },
             };
         }
 
@@ -292,31 +388,6 @@ function handleTool(name, state, toolArgs) {
             };
         }
 
-        case 'get_wallets': {
-            const wallets = (state.wallets || []).map((w) => ({
-                id: w.id,
-                chain: w.chain,
-                label: w.label,
-                address: `...${w.address.slice(-8)}`,
-                lastUsdValue:
-                    w.lastUsdValue != null
-                        ? Math.round(w.lastUsdValue * 100) / 100
-                        : null,
-                lastBalance: w.lastBalance,
-                lastFetched: w.lastFetched,
-                warning: w.warning || null,
-            }));
-            return {
-                wallets,
-                totalUsdValue:
-                    Math.round(
-                        wallets.reduce((s, w) => s + (w.lastUsdValue || 0), 0) *
-                            100,
-                    ) / 100,
-                count: wallets.length,
-            };
-        }
-
         case 'get_concentration_risk': {
             const b = computeNetWorthBreakdown(state);
             const total = b.total;
@@ -342,8 +413,12 @@ function handleTool(name, state, toolArgs) {
                 toolArgs;
             if (
                 !soldAsset ||
+                typeof soldAmount !== 'number' ||
+                !Number.isFinite(soldAmount) ||
                 soldAmount <= 0 ||
                 !boughtAsset ||
+                typeof boughtAmount !== 'number' ||
+                !Number.isFinite(boughtAmount) ||
                 boughtAmount <= 0
             ) {
                 throw new Error(
@@ -409,7 +484,7 @@ function handleTool(name, state, toolArgs) {
             }
             if (b.total <= 0) {
                 return {
-                    runwayMonths: 0,
+                    runwayMonths: null,
                     unavailableReason: 'non_positive_net_worth',
                 };
             }
@@ -426,6 +501,30 @@ function handleTool(name, state, toolArgs) {
 
         case 'get_diversification_score': {
             return { status: 'not_implemented' };
+        }
+        case 'get_wallets': {
+            const wallets = (state.wallets || []).map((w) => ({
+                id: w.id,
+                chain: w.chain,
+                label: w.label,
+                address: `...${w.address.slice(-8)}`,
+                lastUsdValue:
+                    w.lastUsdValue != null
+                        ? Math.round(w.lastUsdValue * 100) / 100
+                        : null,
+                lastBalance: w.lastBalance,
+                lastFetched: w.lastFetched,
+                warning: w.warning || null,
+            }));
+            return {
+                wallets,
+                totalUsdValue:
+                    Math.round(
+                        wallets.reduce((s, w) => s + (w.lastUsdValue || 0), 0) *
+                            100,
+                    ) / 100,
+                count: wallets.length,
+            };
         }
 
         default:
