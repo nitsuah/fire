@@ -9,7 +9,12 @@ import { appendFileSync } from 'fs';
 import { join } from 'path';
 
 const require = createRequire(import.meta.url);
-const { readState, writeState, initDatabase, DATA_DIR } = require('./lib/db.js');
+const {
+    readState,
+    writeState,
+    initDatabase,
+    DATA_DIR,
+} = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
