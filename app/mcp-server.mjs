@@ -9,7 +9,12 @@ import { appendFileSync } from 'fs';
 import { join } from 'path';
 
 const require = createRequire(import.meta.url);
-const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
+const {
+    readState,
+    writeState,
+    initDatabase,
+    DATA_DIR,
+} = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
@@ -403,7 +408,7 @@ function handleTool(name, state, toolArgs = {}) {
                 .filter((p) => p.value / total > 0.1)
                 .map((p) => ({
                     symbol: p.symbol,
-                    percentage: Math.round((p.value / total) * 100),
+                    percentage: Math.round((p.value / total) * 1000) / 10,
                 }));
             return { risk, total };
         }
@@ -461,6 +466,19 @@ function handleTool(name, state, toolArgs = {}) {
                 throw new Error(
                     'Invalid input: symbol and targetPrice (>0) are required.',
                 );
+            }
+            // Persist the alert before reporting success; if persistence is
+            // unavailable, report not_implemented instead of a false success.
+            if (!state.priceTargetAlerts) {
+                state.priceTargetAlerts = [];
+            }
+            state.priceTargetAlerts.push({
+                symbol,
+                targetPrice,
+                createdAt: Date.now(),
+            });
+            if (!writeState(state)) {
+                return { symbol, targetPrice, status: 'not_implemented' };
             }
             return { symbol, targetPrice, status: 'alert_set' };
         }
@@ -526,6 +544,7 @@ function handleTool(name, state, toolArgs = {}) {
                 count: wallets.length,
             };
         }
+
         default:
             throw new Error(`Unknown tool: ${name}`);
     }
