@@ -16,12 +16,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js CDN (pinned + SRI: unpinned/dynamically-minified CDN files can't be safely hashed) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
     <!-- Chart.js Annotation Plugin (for retirement line, CD markers) -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
-    <!-- Marked.js (markdown renderer for privacy policy) -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-3N9GHhCtN3CQef6tNfqgZlv7sQLYIkcChN+uaTZ7xVdzKYp/SjBNPxa92+hM7EAY" crossorigin="anonymous"></script>
+    <!-- Marked.js (markdown renderer for privacy policy) -- unminified build used: jsdelivr's own .min.js for this package is generated on-the-fly per its own docs and isn't SRI-safe -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@18.0.11/lib/marked.umd.js" integrity="sha384-N2BlPYJH0HRuJRIZOGNTL/ymqHb++FCViUqW4rdB5/7fH+KvFTqyCvPPQ8X4nElj" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="lib/css/base.css">
     <link rel="stylesheet" href="lib/css/layout.css">
     <link rel="stylesheet" href="lib/css/components.css">
