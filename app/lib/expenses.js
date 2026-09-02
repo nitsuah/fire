@@ -120,6 +120,11 @@ function computeEffectiveTaxRate(grossIncome, filingState) {
         FL: 0.0,
         WA: 0.0,
         NV: 0.0,
+        TN: 0.0,
+        AK: 0.0,
+        NH: 0.0,
+        SD: 0.0,
+        WY: 0.0,
         IL: 0.0495, // flat
         CA: grossIncome > 300000 ? 0.113 : grossIncome > 100000 ? 0.093 : 0.073,
         NY: grossIncome > 215400 ? 0.109 : grossIncome > 80650 ? 0.0685 : 0.045,
