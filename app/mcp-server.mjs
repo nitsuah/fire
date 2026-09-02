@@ -358,11 +358,19 @@ function handleTool(name, state, toolArgs = {}) {
                 (s, v) => s + (v || 0),
                 0,
             );
+            // fireBasis* mirrors what fire_status_summary actually uses to
+            // derive fireNumber: category spend + insurance, grossed up by
+            // taxRate. It intentionally will not equal annualTotal above,
+            // which is category spend only -- surfaced explicitly here so
+            // callers don't have to reverse-engineer the gap.
+            const proj = buildProjectionData(state);
             return {
                 breakdown: expenses,
                 monthlyTotal: Math.round(monthlyTotal),
                 annualTotal: Math.round(monthlyTotal * 12),
                 taxRate: state.taxRate || 0,
+                fireBasisAnnualTotal: Math.round(proj.annualExpenses),
+                fireBasisMonthlyTotal: Math.round(proj.annualExpenses / 12),
             };
         }
 
