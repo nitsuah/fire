@@ -1,3 +1,10 @@
+# 'unsafe-inline' is required on script-src and style-src below because
+# app/index.html has 57 inline onclick/onchange handlers and inline styles.
+# This weakens XSS protection for a page that holds a user's full financial
+# data in localStorage with no backend/auth. Migration tracked in:
+# https://github.com/nitsuah/fire/issues/92 -- once inline handlers move to
+# addEventListener, drop 'unsafe-inline' and use a nonce/hash for anything
+# that must stay inline.
 /*
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
   X-Frame-Options: DENY
