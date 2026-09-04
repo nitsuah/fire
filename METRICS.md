@@ -4,7 +4,7 @@
 
 | Metric                            | Current                                  | Target  | Status       |
 | :-------------------------------- | :--------------------------------------- | :------ | :----------- |
-| Code Coverage          | 81.1% stmts / 68.33% branch / 75.67% funcs / 80.9% lines | 80% stmts/funcs/lines, 70% branch (`config/vitest.config.ts`) | Below Target (branch, funcs) |
+| Code Coverage          | 81.56% stmts / 66.96% branch / 77.47% funcs / 81.42% lines | 80% stmts/funcs/lines, 70% branch (`config/vitest.config.ts`) | Below Target (branch, funcs) |
 | Total Tests                       | 251 (16 files, all passing)              | 100+    | Met          |
 | CI/CD Build Status                | Passing (GitHub Actions)                 | Passing | Met          |
 | ESLint Violations                 | 0                                        | 0       | Met          |
@@ -15,7 +15,7 @@
 | Client JS Size (app/lib/)         | TBD (no build step, modules served raw)  | N/A     | N/A          |
 | Build Success Rate                | N/A (no build step)                      | 99%     | N/A          |
 | Deployment Frequency              | TBD                                      | Weekly  | Untracked    |
-| Last updated                      | 2026-08-28 (`npm ci` + `npm run test:coverage` in a bare `node:22-alpine` container — not the project's own Dockerfile, which uses `npm install`; dependency resolution should be identical against the committed lockfile) |  |    |
+| Last updated                      | 2026-09-04 (`npm install` + `npm run test:coverage` natively, cloud audit agent — Docker unavailable in this environment) |  |    |
 
 ## How to Update
 
