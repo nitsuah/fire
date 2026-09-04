@@ -340,6 +340,8 @@ module.exports = {
     parseFidelityPositions: parsing.parseFidelityPositions,
     parseChaseStatement: parsing.parseChaseStatement,
     parseCapitalOneStatement: parsing.parseCapitalOneStatement,
+    parseSpendingTransactions: parsing.parseSpendingTransactions,
+    matchMerchantOverride: parsing.matchMerchantOverride,
     CHASE_CATEGORY_MAP: parsing.CHASE_CATEGORY_MAP,
     CAPITALONE_CATEGORY_MAP: parsing.CAPITALONE_CATEGORY_MAP,
 

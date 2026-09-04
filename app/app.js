@@ -25,6 +25,8 @@ var state = {
     taxGrossIncome: 100000,
     taxFilingState: 'NY',
     sideGigLedger: [],
+    spendingTransactions: [],
+    merchantCategoryOverrides: {},
     projectionSettings: {
         annualSavings: 25000,
         expectedReturn: 8.0,
@@ -148,6 +150,10 @@ function refreshAllUI() {
     document.getElementById('summary-total-annual-need').textContent = formatCurrency(annualExpenses);
 
     renderSideGigLedgerTable();
+    if (typeof renderSpendingTransactionsTable === 'function')
+        renderSpendingTransactionsTable();
+    if (typeof renderMerchantMapEditor === 'function')
+        renderMerchantMapEditor();
     renderMonthlyCashFlow();
     calculateAndRenderProjections();
     if (typeof window.updateNotifUI === 'function') window.updateNotifUI();
