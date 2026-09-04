@@ -315,6 +315,22 @@ window.collapseAllGroups = function() {
     renderDashboardTopPositionsTable();
 };
 
+// Keeps the "Collapse All" / "Expand All" button label in sync with actual
+// group-collapsed state (accounts can also be toggled individually via
+// toggleAccountGroup, so the label can't just flip on every click).
+function updateCollapseAllButtonLabel() {
+    const btn = document.querySelector('.collapse-all-btn');
+    if (!btn) return;
+    if (state.importedPositions.length === 0) {
+        btn.textContent = 'Collapse All';
+        return;
+    }
+    const allCollapsed = state.importedPositions.every(
+        (pos) => !!collapsedAccounts[pos.account || 'Brokerage'],
+    );
+    btn.textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+}
+
 window.toggleAccountGroup = function(accName) {
     collapsedAccounts[accName] = !collapsedAccounts[accName];
     renderDashboardTopPositionsTable();

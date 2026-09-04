@@ -36,36 +36,39 @@
             <div class="brand">
                 <span class="brand-icon">🔥</span>
                 <span class="brand-name">FIRE Tracker</span>
+                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                </button>
             </div>
-            
+
             <nav class="nav-menu">
-                <button class="nav-btn active" data-tab="dashboard" id="btn-tab-dashboard">
+                <button class="nav-btn active" data-tab="dashboard" id="btn-tab-dashboard" title="Dashboard">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                    Dashboard
+                    <span class="nav-label">Dashboard</span>
                 </button>
-                <button class="nav-btn" data-tab="financial" id="btn-tab-financial">
+                <button class="nav-btn" data-tab="financial" id="btn-tab-financial" title="Financial Overview">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-                    Financial Overview
+                    <span class="nav-label">Financial Overview</span>
                 </button>
-                <button class="nav-btn" data-tab="expenses" id="btn-tab-expenses">
+                <button class="nav-btn" data-tab="expenses" id="btn-tab-expenses" title="Expenses">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v2h4v2H9V7h6v2z"/></svg>
-                    Expenses
+                    <span class="nav-label">Expenses</span>
                 </button>
-                <button class="nav-btn" data-tab="taxes" id="btn-tab-taxes">
+                <button class="nav-btn" data-tab="taxes" id="btn-tab-taxes" title="Taxes">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 2.75c1.24 0 2.25 1.01 2.25 2.25S13.24 11.25 12 11.25 9.75 10.24 9.75 9s1.01-2.25 2.25-2.25zM16 17H8v-.75c0-1.33 2.67-2 4-2s4 .67 4 2V17z"/></svg>
-                    Taxes
+                    <span class="nav-label">Taxes</span>
                 </button>
-                <button class="nav-btn" data-tab="sidegig" id="btn-tab-sidegig">
+                <button class="nav-btn" data-tab="sidegig" id="btn-tab-sidegig" title="Side Hustle Hub">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
-                    Side Hustle Hub
+                    <span class="nav-label">Side Hustle Hub</span>
                 </button>
-                <button class="nav-btn" data-tab="projections" id="btn-tab-projections">
+                <button class="nav-btn" data-tab="projections" id="btn-tab-projections" title="Projections">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                    Projections
+                    <span class="nav-label">Projections</span>
                 </button>
-                <button class="nav-btn" data-tab="settings" id="btn-tab-settings">
+                <button class="nav-btn" data-tab="settings" id="btn-tab-settings" title="Settings">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.54-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.51.24-1.04.56-1.54.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.54.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.51-.24 1.04-.56 1.54-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-                    Settings
+                    <span class="nav-label">Settings</span>
                 </button>
             </nav>
 
@@ -103,7 +106,22 @@
                     <span class="metric-value text-coral" id="banner-spend">$0.00</span>
                 </div>
                 <div class="header-metric">
-                    <span class="metric-label">FIRE Progress</span>
+                    <span class="metric-label">
+                        FIRE Progress
+                        <span class="notif-bell-wrap">
+                            <button class="notif-bell-btn" id="notif-bell-btn" onclick="toggleNotifDropdown()" title="Alerts & notifications" aria-label="Alerts & notifications" aria-haspopup="true" aria-expanded="false">
+                                🔔<span class="notif-bell-badge" id="notif-bell-badge" style="display:none;">0</span>
+                            </button>
+                            <div class="notif-dropdown" id="notif-dropdown" style="display:none;">
+                                <div class="notif-dropdown-header">
+                                    <span>Alerts &amp; Notifications</span>
+                                    <button class="action-btn" id="notif-enable-btn" onclick="requestNotificationPermission()" style="font-size:11px;">Enable</button>
+                                </div>
+                                <p class="text-muted" id="notif-status-text" style="font-size:11px;margin-bottom:8px;">Enable browser notifications to receive FIRE milestone and CD maturity alerts.</p>
+                                <div id="notif-alerts-list" class="notif-dropdown-list"></div>
+                            </div>
+                        </span>
+                    </span>
                     <div class="fire-prog-wrap">
                         <div class="fire-prog-bar" id="banner-fire-bar" style="width:0%">
                             <span class="fire-prog-pct" id="banner-progress">0.0%</span>
@@ -221,16 +239,8 @@
                             <div class="card glass-card">
                                 <div id="divs-suggestion-block" class="divs-suggestion-block"></div>
                             </div>
-
-                            <!-- Notifications -->
-                            <div class="card glass-card">
-                                <div class="card-title-row">
-                                    <h2 class="card-title">Alerts &amp; Notifications</h2>
-                                    <button class="action-btn" id="notif-enable-btn" onclick="requestNotificationPermission()">Enable</button>
-                                </div>
-                                <p class="card-subtitle" id="notif-status-text">Enable browser notifications to receive FIRE milestone and CD maturity alerts.</p>
-                                <div id="notif-alerts-list" class="mt-2" style="display:none;"></div>
-                            </div>
+                            <!-- Alerts & Notifications now live in the bell icon next to the
+                                 FIRE Progress bar in the top nav (see header-banner above). -->
                         </div>
                     </div>
                 </section>
@@ -601,6 +611,10 @@
                                         <span class="cf-label">CD Interest (monthly)</span>
                                         <span class="cf-val text-amber" id="cf-cd-interest">$0</span>
                                     </div>
+                                    <div class="cf-row">
+                                        <span class="cf-label">Crypto Staking (monthly)</span>
+                                        <span class="cf-val text-amber" id="cf-crypto-staking">$0</span>
+                                    </div>
                                     <div class="cf-row cf-total-row">
                                         <span class="cf-label font-bold">Total Monthly Income</span>
                                         <span class="cf-val text-emerald font-bold" id="cf-total-income">$0</span>
@@ -625,6 +639,17 @@
                                         <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- ENS / Crypto Wallet Lookup -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Crypto Wallet Lookup (ENS)</h2>
+                                <p class="card-subtitle">Resolve a .eth address and total the value held across every configured EVM chain.</p>
+                                <form class="ens-lookup-form" id="form-ens-lookup">
+                                    <input type="text" id="ens-lookup-input" placeholder="vitalik.eth" autocomplete="off">
+                                    <button type="submit" class="action-btn">Look Up</button>
+                                </form>
+                                <div id="ens-lookup-result" class="ens-lookup-result"></div>
                             </div>
 
                             <!-- API Integrations -->
@@ -1107,11 +1132,21 @@
 
                 <!-- TAB: Projections -->
                 <section class="tab-pane" id="tab-projections">
-                    <div class="dashboard-grid">
+                    <!-- Hero row: Growth Settings (read-only summary + collapsed customization) alongside the Retirement Growth Path graph -->
+                    <div class="proj-hero-row">
                         <!-- Projection Settings -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Growth Settings</h2>
-                            <form id="form-projections-settings">
+                        <div class="card glass-card" id="proj-settings-card">
+                            <div class="card-title-row">
+                                <h2 class="card-title">Growth Settings</h2>
+                                <button type="button" class="proj-settings-toggle" id="proj-settings-toggle" onclick="toggleProjSettingsPanel()">Customize ▾</button>
+                            </div>
+                            <div class="proj-settings-presets" id="proj-settings-presets">
+                                <!-- Populated by projections.js: 3-5 quick-configuration buttons -->
+                            </div>
+                            <div class="proj-settings-summary" id="proj-settings-summary">
+                                <!-- Read-only summary shown while the form below is collapsed -->
+                            </div>
+                            <form id="form-projections-settings" class="proj-settings-form collapsed">
                                 <div class="form-group">
                                     <label for="proj-current-age">Current Age</label>
                                     <input type="number" id="proj-current-age" min="15" max="90" value="30">
@@ -1147,8 +1182,8 @@
                             </form>
                         </div>
 
-                        <!-- Projections Visualizer -->
-                        <div class="card glass-card span-2">
+                        <!-- Projections Visualizer — the visual hero of this tab -->
+                        <div class="card glass-card proj-hero-card">
                             <div class="card-title-row">
                                 <div>
                                     <h2 class="card-title">Retirement Growth Path</h2>
@@ -1180,20 +1215,26 @@
                                 <button class="scenario-btn active" data-offset="0" onclick="applyScenario(0)">Base Rate</button>
                                 <button class="scenario-btn" data-offset="2" onclick="applyScenario(2)">🐂 Bull (+2%)</button>
                             </div>
-                            <div class="chart-container mt-3" style="position: relative; height:320px; width: 100%;">
+                            <div class="chart-container mt-3" style="position: relative; height:380px; width: 100%;">
                                 <canvas id="chart-networth-projections"></canvas>
                             </div>
                         </div>
+                    </div>
 
+                    <!-- Secondary row: Milestone Predictions below the graph, Scenario Comparison next to it -->
+                    <div class="proj-secondary-row">
                         <!-- Projection Stats / Milestones -->
-                        <div class="card glass-card span-3">
+                        <div class="card glass-card">
                             <div class="card-title-row">
                                 <h2 class="card-title">Milestone Predictions</h2>
-                                <span class="text-muted" style="font-size:11px;">
-                                    <span class="info-tip" data-tip="Coast FIRE: the amount where, if you stopped saving today, your portfolio would grow on its own to your FIRE number by retirement age.">Coast FIRE</span>
-                                    &nbsp;·&nbsp;
-                                    <span class="info-tip" data-tip="Lean FIRE: retire on a minimal budget (75% of your target FIRE number). Fat FIRE: retire with 25% extra cushion above your target for lifestyle flexibility.">Lean / Fat FIRE</span>
-                                </span>
+                                <div class="milestone-header-actions">
+                                    <span class="text-muted" style="font-size:11px;">
+                                        <span class="info-tip" data-tip="Coast FIRE: the amount where, if you stopped saving today, your portfolio would grow on its own to your FIRE number by retirement age.">Coast FIRE</span>
+                                        &nbsp;·&nbsp;
+                                        <span class="info-tip" data-tip="Lean FIRE: retire on a minimal budget (75% of your target FIRE number). Fat FIRE: retire with 25% extra cushion above your target for lifestyle flexibility.">Lean / Fat FIRE</span>
+                                    </span>
+                                    <div id="milestone-preset-mount"></div>
+                                </div>
                             </div>
                             <div class="milestones-grid mt-2" id="projection-milestones-container">
                                 <!-- Dynamically populated by app.js -->
@@ -1201,7 +1242,7 @@
                         </div>
 
                         <!-- Multi-Scenario FIRE Date Comparison -->
-                        <div class="card glass-card span-3">
+                        <div class="card glass-card">
                             <div class="card-title-row">
                                 <div>
                                     <h2 class="card-title">Scenario Comparison</h2>
@@ -1392,6 +1433,7 @@
     <script src="lib/managers/real-estate.js"></script>
     <script src="lib/managers/vehicles.js"></script>
     <script src="lib/managers/asset-form.js"></script>
+    <script src="lib/managers/ens-lookup.js"></script>
     <!-- Main Controller Script -->
     <script src="app.js"></script>
     <!-- Taxes & Tax-Loss Harvesting -->
