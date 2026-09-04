@@ -12,9 +12,13 @@ _(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
 
 ## Q4 2026 — Current Cycle ✅ COMPLETE
 
+> Note: a prior audit found this section contradicting ROADMAP.md — two items
+> below were checked off `[x]` here while their own note said "deferred" (not
+> actually implemented), while ROADMAP.md correctly left them unchecked under
+> Q4 2026 / PROD Phase 4. Un-checked below to match reality; they're tracked
+> once, under PROD Phase 2 / Phase 4 respectively, not also claimed done here.
+
 - [x] Webhook sync end-to-end testing (template CRUD → ingest → db.json verification)
-- [x] Tax drag estimation engine (custom federal/state brackets + capital gains config) — deferred to PROD Phase 2
-- [x] PWA packaging for offline access — deferred to PROD Phase 4
 - [x] Retirement projection drawdown & depletion age (money run-out detection)
 - [x] Milestone presets — 5 financial profiles with dynamic targets
 - [x] Diversification tips redesign — dismissible tiles with curated links

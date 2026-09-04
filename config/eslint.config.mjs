@@ -83,6 +83,18 @@ export default [
         },
     },
 
+    // Playwright config + specs — node globals for the config/test runner,
+    // browser globals too since page.evaluate() callbacks run in-browser
+    {
+        files: ['config/playwright.config.js', 'tests/e2e-ui/**/*.spec.js'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.browser,
+            },
+        },
+    },
+
     // Service worker (worker globals: self, caches, fetch, clients, etc.)
     {
         files: ['app/sw.js'],
