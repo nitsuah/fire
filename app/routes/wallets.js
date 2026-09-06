@@ -4,6 +4,11 @@ const express = require('express');
 const crypto = require('crypto');
 const { readState, mutateState } = require('../lib/db');
 const { refreshWalletBalance, loadChains } = require('../lib/web3-prices');
+const { isEnsName, resolveEnsAddress } = require('../lib/ens-resolver');
+const {
+    mapEnsErrorToResponse,
+    aggregateEvmWalletValue,
+} = require('../lib/ens-wallet-lookup');
 
 const router = express.Router();
 const CHAINS = loadChains();
@@ -143,6 +148,42 @@ router.post('/refresh-all', async (req, res) => {
         warning: w.warning,
     }));
     res.json({ updated: summary.length, wallets: summary });
+});
+
+// GET /api/wallets/ens/:name — resolve an ENS (.eth) name to its address,
+// then aggregate the USD value of everything held at that address across all
+// configured EVM chains (Ethereum, BSC, Polygon, Arbitrum, Base, Avalanche).
+// Chains without their explorer API key configured come back with a warning
+// instead of failing the whole lookup.
+router.get('/ens/:name', async (req, res) => {
+    const name = req.params.name;
+    if (!isEnsName(name)) {
+        return res.status(400).json({
+            error: 'Provide a valid .eth ENS name, e.g. vitalik.eth',
+        });
+    }
+
+    let address;
+    try {
+        address = await resolveEnsAddress(name);
+    } catch (err) {
+        const { status, body } = mapEnsErrorToResponse(err);
+        return res.status(status).json(body);
+    }
+
+    const evmChains = CHAINS.filter((c) => c.addressFormat === 'evm');
+    const { chains, totalUsdValue } = await aggregateEvmWalletValue(
+        address,
+        evmChains,
+        refreshWalletBalance,
+    );
+
+    res.json({
+        name,
+        address: `...${address.slice(-8)}`,
+        totalUsdValue,
+        chains,
+    });
 });
 
 module.exports = router;

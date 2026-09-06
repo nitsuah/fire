@@ -417,3 +417,137 @@
     font-family: var(--font-heading);
     font-weight: 700;
 }
+
+/* ==========================================================================
+   ENS / crypto wallet lookup widget
+   ========================================================================== */
+.ens-lookup-form {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.ens-lookup-form input {
+    flex: 1;
+    min-width: 180px;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-main);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+}
+
+.ens-lookup-result {
+    margin-top: var(--space-md);
+}
+
+.ens-lookup-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--border-divider);
+    margin-bottom: var(--space-sm);
+}
+
+.ens-lookup-total .val {
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--color-success);
+}
+
+.chain-balance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: var(--text-sm);
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.chain-balance-row:last-child {
+    border-bottom: none;
+}
+
+.chain-balance-row .chain-name {
+    color: var(--text-muted);
+}
+
+.chain-balance-row .chain-val {
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Expenses tab — spending CSV upload, transaction table, category mapping
+   ========================================================================== */
+.spending-tx-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+.spending-tx-table th {
+    text-align: left;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dimmed);
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.spending-tx-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-divider);
+    vertical-align: middle;
+}
+
+.spending-cat-select {
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-main);
+    font-size: var(--text-xs);
+    padding: 4px 6px;
+}
+
+.spending-tx-delete {
+    background: none;
+    border: none;
+    color: var(--text-dimmed);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.spending-tx-delete:hover {
+    color: var(--color-danger);
+    background: var(--color-danger-bg);
+}
+
+.merchant-map-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: var(--space-sm);
+}
+
+.merchant-map-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 6px;
+    align-items: center;
+}
+
+.merchant-map-row input,
+.merchant-map-row select {
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-main);
+    padding: 5px 8px;
+    font-size: var(--text-xs);
+}

@@ -322,6 +322,8 @@ function renderDashboardProjectionsChart() {
                     fill: true,
                     tension: 0.35,
                     pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHitRadius: 12,
                 },
                 {
                     label: 'FIRE Target',
@@ -331,12 +333,19 @@ function renderDashboardProjectionsChart() {
                     borderWidth: 1.5,
                     fill: false,
                     pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHitRadius: 12,
                 },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // Same interaction mode as the full Projections page chart so tapping
+            // or hovering anywhere along the x-axis surfaces the point tooltip —
+            // this had drifted out of sync (default nearest+intersect requires
+            // hitting the exact 0-radius point, which is effectively impossible).
+            interaction: { mode: 'index', intersect: false },
             scales: {
                 y: {
                     grid: { color: 'rgba(255,255,255,0.03)' },

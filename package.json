@@ -8,11 +8,13 @@
     "lint": "eslint . --config config/eslint.config.mjs",
     "test": "vitest run --config config/vitest.config.ts",
     "test:coverage": "vitest run --coverage --config config/vitest.config.ts",
+    "test:e2e-ui": "playwright test --config config/playwright.config.js",
     "build": "echo 'No build step required for this project' && exit 0",
     "mcp": "node app/mcp-server.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "ethers": "^6.13.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.0.0",
     "express-session": "^1.19.0",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@playwright/test": "^1.48.0",
     "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",

@@ -1,6 +1,55 @@
 /* ==========================================================================
    lib/notifications.js — Local browser notification alerts
+   Lives behind the bell icon in the top nav (next to the FIRE Progress /
+   projection bar) instead of a dashboard card.
    ========================================================================== */
+
+const NOTIF_DISMISSED_KEY = 'fire_dismissed_alerts';
+
+function _getDismissedAlerts() {
+    try {
+        const stored = localStorage.getItem(NOTIF_DISMISSED_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+}
+
+window.dismissNotifAlert = function (tag) {
+    const dismissed = _getDismissedAlerts();
+    if (!dismissed.includes(tag)) {
+        dismissed.push(tag);
+        try {
+            localStorage.setItem(
+                NOTIF_DISMISSED_KEY,
+                JSON.stringify(dismissed),
+            );
+        } catch {
+            /* localStorage unavailable — dismissal just won't persist */
+        }
+    }
+    checkAndNotify(state, false);
+};
+
+window.toggleNotifDropdown = function (forceOpen) {
+    const dd = document.getElementById('notif-dropdown');
+    const btn = document.getElementById('notif-bell-btn');
+    if (!dd || !btn) return;
+    const shouldOpen =
+        typeof forceOpen === 'boolean'
+            ? forceOpen
+            : dd.style.display === 'none';
+    dd.style.display = shouldOpen ? 'block' : 'none';
+    btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+};
+
+// Close the dropdown when clicking anywhere outside it.
+document.addEventListener('click', (e) => {
+    const dd = document.getElementById('notif-dropdown');
+    const wrap = document.querySelector('.notif-bell-wrap');
+    if (!dd || !wrap || dd.style.display === 'none') return;
+    if (!wrap.contains(e.target)) window.toggleNotifDropdown(false);
+});
 
 function _updateNotifUI() {
     const btn = document.getElementById('notif-enable-btn');
@@ -25,10 +74,12 @@ function _updateNotifUI() {
         btn.disabled = true;
         statusEl.textContent =
             'Notifications blocked. Allow them in your browser settings to re-enable.';
+        checkAndNotify(state, false);
     } else {
         btn.textContent = 'Enable';
         statusEl.textContent =
             'Enable browser notifications to receive FIRE milestone and CD maturity alerts.';
+        checkAndNotify(state, false);
     }
 }
 
@@ -83,6 +134,7 @@ window.checkAndNotify = function (s, sendPush) {
                     label: 'CD Maturity',
                     msg,
                     urgent: daysToMat <= 7,
+                    tag: `cd-${cd.id}`,
                 });
                 if (sendPush)
                     _sendNotification('CD Maturing Soon', msg, `cd-${cd.id}`);
@@ -108,6 +160,7 @@ window.checkAndNotify = function (s, sendPush) {
                                 label: `FIRE ${m}%`,
                                 msg,
                                 urgent: m >= 100,
+                                tag: key,
                             });
                             if (sendPush && !sessionStorage.getItem(key)) {
                                 _sendNotification(
@@ -138,6 +191,7 @@ window.checkAndNotify = function (s, sendPush) {
                 label: 'Tax-Loss Harvest',
                 msg,
                 urgent: daysLeft <= 14,
+                tag: 'taxloss-yearend',
             });
             if (sendPush && daysLeft <= 14)
                 _sendNotification(
@@ -148,18 +202,27 @@ window.checkAndNotify = function (s, sendPush) {
         }
     }
 
-    // Render inline alert list
+    // Individually dismissible — dismissed alerts stay hidden (and excluded
+    // from the badge count) until the underlying condition changes and
+    // regenerates a different tag (e.g. a new FIRE milestone %).
+    const dismissed = _getDismissedAlerts();
+    const visibleAlerts = alerts.filter(
+        (a) => !a.tag || !dismissed.includes(a.tag),
+    );
+
+    // Render dismissible alert list in the bell dropdown
     const listEl = document.getElementById('notif-alerts-list');
     if (listEl) {
-        if (alerts.length === 0) {
-            listEl.style.display = 'none';
+        if (visibleAlerts.length === 0) {
+            listEl.innerHTML =
+                '<div class="notif-dropdown-empty">No active alerts 🎉</div>';
         } else {
-            listEl.style.display = '';
-            listEl.innerHTML = alerts
+            listEl.innerHTML = visibleAlerts
                 .map(
                     (a) => `
-                <div class="notif-alert ${a.urgent ? 'notif-urgent' : ''}" style="padding:6px 10px;margin:4px 0;border-radius:6px;background:${a.urgent ? 'rgba(255,80,80,0.15)' : 'rgba(255,255,255,0.07)'};border-left:3px solid ${a.urgent ? 'var(--color-danger)' : 'var(--color-amber)'};">
-                    <span class="font-bold" style="font-size:11px;text-transform:uppercase;color:${a.urgent ? 'var(--color-danger)' : 'var(--color-amber)'};">${escHtml(a.label)}</span>
+                <div class="notif-alert-row ${a.urgent ? 'notif-urgent' : ''}">
+                    ${a.tag ? `<button class="notif-dismiss-btn" onclick="dismissNotifAlert('${a.tag}')" aria-label="Dismiss">✕</button>` : ''}
+                    <span class="font-bold" style="font-size:11px;text-transform:uppercase;color:${a.urgent ? 'var(--color-danger)' : 'var(--color-warning)'};">${escHtml(a.label)}</span>
                     <span style="display:block;font-size:13px;margin-top:2px;">${escHtml(a.msg)}</span>
                 </div>
             `,
@@ -168,7 +231,21 @@ window.checkAndNotify = function (s, sendPush) {
         }
     }
 
-    return alerts;
+    // Bell badge — count of visible (non-dismissed) alerts, red for urgent
+    const badge = document.getElementById('notif-bell-badge');
+    if (badge) {
+        if (visibleAlerts.length === 0) {
+            badge.style.display = 'none';
+        } else {
+            badge.style.display = '';
+            badge.textContent = String(visibleAlerts.length);
+            badge.style.background = visibleAlerts.some((a) => a.urgent)
+                ? 'var(--color-danger)'
+                : 'var(--color-warning)';
+        }
+    }
+
+    return visibleAlerts;
 };
 
 // Exposed so refreshAllUI() can call it after state is loaded

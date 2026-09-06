@@ -25,6 +25,8 @@ var state = {
     taxGrossIncome: 100000,
     taxFilingState: 'NY',
     sideGigLedger: [],
+    spendingTransactions: [],
+    merchantCategoryOverrides: {},
     projectionSettings: {
         annualSavings: 25000,
         expectedReturn: 8.0,
@@ -148,6 +150,10 @@ function refreshAllUI() {
     document.getElementById('summary-total-annual-need').textContent = formatCurrency(annualExpenses);
 
     renderSideGigLedgerTable();
+    if (typeof renderSpendingTransactionsTable === 'function')
+        renderSpendingTransactionsTable();
+    if (typeof renderMerchantMapEditor === 'function')
+        renderMerchantMapEditor();
     renderMonthlyCashFlow();
     calculateAndRenderProjections();
     if (typeof window.updateNotifUI === 'function') window.updateNotifUI();
@@ -314,6 +320,22 @@ window.collapseAllGroups = function() {
     Object.keys(grouped).forEach(acc => { collapsedAccounts[acc] = !allCollapsed; });
     renderDashboardTopPositionsTable();
 };
+
+// Keeps the "Collapse All" / "Expand All" button label in sync with actual
+// group-collapsed state (accounts can also be toggled individually via
+// toggleAccountGroup, so the label can't just flip on every click).
+function updateCollapseAllButtonLabel() {
+    const btn = document.querySelector('.collapse-all-btn');
+    if (!btn) return;
+    if (state.importedPositions.length === 0) {
+        btn.textContent = 'Collapse All';
+        return;
+    }
+    const allCollapsed = state.importedPositions.every(
+        (pos) => !!collapsedAccounts[pos.account || 'Brokerage'],
+    );
+    btn.textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+}
 
 window.toggleAccountGroup = function(accName) {
     collapsedAccounts[accName] = !collapsedAccounts[accName];

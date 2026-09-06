@@ -355,16 +355,18 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
-/* Milestone Preset Selector */
+/* Milestone Preset Selector — sits inline with the card title (top-right),
+   not stretched across the card, so it lives in .milestone-header-actions
+   next to the title rather than inside the milestones-grid content area. */
 .milestone-preset-selector {
-    display: flex;
+    display: inline-flex;
+    width: fit-content;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--card-border);
     border-radius: var(--border-radius-sm);
-    margin-bottom: 8px;
 }
 .milestone-preset-select {
     background: var(--input-bg);

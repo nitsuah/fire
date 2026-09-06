@@ -100,17 +100,7 @@ window.applyScenario = function (offset) {
     calculateAndRenderProjections();
 };
 
-function initProjectionsManager() {
-    const projInputIds = [
-        'proj-savings',
-        'proj-return',
-        'proj-inflation',
-        'proj-swr',
-        'proj-years',
-        'proj-current-age',
-        'proj-retire-age',
-    ];
-
+function applyProjectionSettingsToForm() {
     document.getElementById('proj-savings').value =
         state.projectionSettings.annualSavings;
     document.getElementById('proj-return').value =
@@ -124,36 +114,121 @@ function initProjectionsManager() {
         state.projectionSettings.currentAge || 30;
     document.getElementById('proj-retire-age').value =
         state.projectionSettings.retireAge || 60;
+}
+
+function readProjectionSettingsFromForm() {
+    return {
+        annualSavings:
+            parseFloat(document.getElementById('proj-savings').value) || 0,
+        expectedReturn:
+            parseFloat(document.getElementById('proj-return').value) || 0,
+        inflationRate:
+            parseFloat(document.getElementById('proj-inflation').value) || 0,
+        swr: parseFloat(document.getElementById('proj-swr').value) || 4.0,
+        spanYears: parseInt(document.getElementById('proj-years').value) || 30,
+        currentAge:
+            parseInt(document.getElementById('proj-current-age').value) || 30,
+        retireAge:
+            parseInt(document.getElementById('proj-retire-age').value) || 60,
+    };
+}
+
+// Read-only summary shown while the settings form is collapsed — lets users
+// see their current assumptions at a glance without expanding the panel.
+function renderProjSettingsSummary() {
+    const el = document.getElementById('proj-settings-summary');
+    if (!el) return;
+    const s = state.projectionSettings;
+    el.innerHTML = `
+        <span>Age <strong>${s.currentAge || 30}</strong> → retire <strong>${s.retireAge || 60}</strong></span>
+        <span>Save <strong>${formatCurrency(s.annualSavings || 0)}</strong>/yr at <strong>${(s.expectedReturn || 0).toFixed(1)}%</strong> return</span>
+        <span>Inflation <strong>${(s.inflationRate || 0).toFixed(1)}%</strong> · SWR <strong>${(s.swr || 4).toFixed(1)}%</strong> · ${s.spanYears || 30}yr span</span>
+    `;
+}
+
+window.toggleProjSettingsPanel = function () {
+    const form = document.getElementById('form-projections-settings');
+    const btn = document.getElementById('proj-settings-toggle');
+    if (!form || !btn) return;
+    const collapsed = form.classList.toggle('collapsed');
+    btn.textContent = collapsed ? 'Customize ▾' : 'Customize ▴';
+};
+
+// Quick preset-scenario buttons — set common growth-settings configurations
+// in one click. Distinct from MILESTONE_PRESETS (which only affects which
+// milestone targets are shown); these actually change the projection inputs.
+const PROJ_SETTINGS_PRESETS = {
+    conservative: {
+        label: 'Conservative',
+        values: { expectedReturn: 6.0, inflationRate: 3.0, swr: 3.5 },
+    },
+    standard: {
+        label: 'Standard',
+        values: { expectedReturn: 8.0, inflationRate: 2.5, swr: 4.0 },
+    },
+    aggressive: {
+        label: 'Aggressive',
+        values: { expectedReturn: 10.0, inflationRate: 2.5, swr: 4.0 },
+    },
+    earlyRetiree: {
+        label: 'Early Retiree',
+        values: { expectedReturn: 8.0, inflationRate: 2.5, swr: 3.25 },
+    },
+};
+
+window.applyProjSettingsPreset = async function (key) {
+    const preset = PROJ_SETTINGS_PRESETS[key];
+    if (!preset) return;
+    Object.entries(preset.values).forEach(([field, val]) => {
+        const idMap = {
+            expectedReturn: 'proj-return',
+            inflationRate: 'proj-inflation',
+            swr: 'proj-swr',
+        };
+        const el = document.getElementById(idMap[field]);
+        if (el) el.value = val;
+    });
+    document
+        .querySelectorAll('.proj-preset-btn')
+        .forEach((b) => b.classList.toggle('active', b.dataset.preset === key));
+    state.projectionSettings = readProjectionSettingsFromForm();
+    renderProjSettingsSummary();
+    await saveState();
+    refreshAllUI();
+};
+
+function renderProjSettingsPresets() {
+    const container = document.getElementById('proj-settings-presets');
+    if (!container) return;
+    container.innerHTML = Object.entries(PROJ_SETTINGS_PRESETS)
+        .map(
+            ([key, p]) =>
+                `<button type="button" class="proj-preset-btn" data-preset="${key}" onclick="applyProjSettingsPreset('${key}')">${p.label}</button>`,
+        )
+        .join('');
+}
+
+function initProjectionsManager() {
+    const projInputIds = [
+        'proj-savings',
+        'proj-return',
+        'proj-inflation',
+        'proj-swr',
+        'proj-years',
+        'proj-current-age',
+        'proj-retire-age',
+    ];
+
+    applyProjectionSettingsToForm();
+    renderProjSettingsSummary();
+    renderProjSettingsPresets();
 
     projInputIds.forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;
         el.addEventListener('input', async () => {
-            state.projectionSettings = {
-                annualSavings:
-                    parseFloat(document.getElementById('proj-savings').value) ||
-                    0,
-                expectedReturn:
-                    parseFloat(document.getElementById('proj-return').value) ||
-                    0,
-                inflationRate:
-                    parseFloat(
-                        document.getElementById('proj-inflation').value,
-                    ) || 0,
-                swr:
-                    parseFloat(document.getElementById('proj-swr').value) ||
-                    4.0,
-                spanYears:
-                    parseInt(document.getElementById('proj-years').value) || 30,
-                currentAge:
-                    parseInt(
-                        document.getElementById('proj-current-age').value,
-                    ) || 30,
-                retireAge:
-                    parseInt(
-                        document.getElementById('proj-retire-age').value,
-                    ) || 60,
-            };
+            state.projectionSettings = readProjectionSettingsFromForm();
+            renderProjSettingsSummary();
             await saveState();
             refreshAllUI();
         });
