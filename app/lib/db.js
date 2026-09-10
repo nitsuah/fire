@@ -75,6 +75,7 @@ function defaultState() {
         },
         importedFiles: [],
         webhookTemplates: [],
+        ebaySyncEnabled: true,
     };
 }
 

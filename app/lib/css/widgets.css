@@ -480,6 +480,52 @@
 }
 
 /* ==========================================================================
+   Crypto wallet manager widget
+   ========================================================================== */
+.wallet-add-form {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.wallet-add-form input,
+.wallet-add-form select {
+    flex: 1;
+    min-width: 140px;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-main);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+}
+
+.wallet-row {
+    align-items: flex-start;
+}
+
+.wallet-row-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.wallet-row-btns {
+    display: flex;
+    gap: 6px;
+}
+
+.wallet-total-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: var(--space-sm) 0;
+    margin-top: var(--space-sm);
+    border-top: 1px solid var(--border-divider);
+}
+
+/* ==========================================================================
    Expenses tab — spending CSV upload, transaction table, category mapping
    ========================================================================== */
 .spending-tx-table {

@@ -658,4 +658,6 @@ document.addEventListener('DOMContentLoaded', () => {
 window.loadSettingsTab = function() {
     loadNotificationSettings();
     loadProjectionDefaults();
+    if (typeof loadEbaySettingsPanel === 'function') loadEbaySettingsPanel();
+    if (typeof loadGDriveBackupPanel === 'function') loadGDriveBackupPanel();
 };
