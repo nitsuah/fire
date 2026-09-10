@@ -2,9 +2,16 @@
 const { defineConfig, devices } = require('@playwright/test');
 
 // Real-browser UI regression coverage for the dashboard/projections layout
-// fixes and new widgets in the 2026 roadmap cycle. Run with:
-//   npx playwright install --with-deps chromium   (one-time)
+// fixes and new widgets in the 2026 roadmap cycle.
+//
+// Locally (after `npx playwright install --with-deps chromium` once):
 //   npm run test:e2e-ui
+//
+// In Docker (preferred; avoids Windows bind-mount npm ci flakiness by
+// COPYing the repo into the image instead of mounting it):
+//   docker build -f config/Dockerfile.playwright -t fire-playwright-e2e .
+//   docker run --rm fire-playwright-e2e
+//
 // Starts the app itself (webServer) against an isolated temp DB so it never
 // touches a real data/db.json.
 module.exports = defineConfig({

@@ -2,11 +2,17 @@
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
+    // Every test gets a fresh browser context (no localStorage consent), so
+    // the modal always renders — wait for it rather than a single immediate
+    // visibility check, which was racing the modal's own render/animation.
     const continueBtn = page.getByRole('button', {
         name: /I Understand.*Continue/i,
     });
-    if (await continueBtn.isVisible().catch(() => false)) {
+    try {
+        await continueBtn.waitFor({ state: 'visible', timeout: 5000 });
         await continueBtn.click();
+    } catch {
+        // Modal didn't appear (e.g. consent already persisted) — nothing to do.
     }
 }
 
