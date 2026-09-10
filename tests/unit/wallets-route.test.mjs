@@ -52,8 +52,7 @@ const EVM_ADDR_2 = '0x' + '2'.repeat(40);
 const BTC_ADDR = 'bc1' + 'q'.repeat(33) + 'abcdefgh';
 
 beforeAll(async () => {
-    const walletsRouter = (await import('../../app/routes/wallets.js'))
-        .default;
+    const walletsRouter = (await import('../../app/routes/wallets.js')).default;
     app = express();
     app.use(express.json());
     app.use('/api/wallets', walletsRouter);
@@ -229,7 +228,10 @@ describe('POST /api/wallets/:id/refresh', () => {
                     };
                 }
                 if (String(url).includes('coingecko.com')) {
-                    return { ok: true, json: async () => ({ bitcoin: { usd: 50000 } }) };
+                    return {
+                        ok: true,
+                        json: async () => ({ bitcoin: { usd: 50000 } }),
+                    };
                 }
                 throw new Error(`Unexpected fetch: ${url}`);
             }),

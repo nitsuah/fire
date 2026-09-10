@@ -89,7 +89,11 @@ describe('decodeVin', () => {
     it('throws status 504 when the request times out', async () => {
         vi.stubGlobal(
             'fetch',
-            vi.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'TimeoutError' })),
+            vi.fn().mockRejectedValue(
+                Object.assign(new Error('aborted'), {
+                    name: 'TimeoutError',
+                }),
+            ),
         );
         await expect(decodeVin(VALID_VIN)).rejects.toMatchObject({
             status: 504,
@@ -132,8 +136,18 @@ describe('estimateDepreciation', () => {
 
     it('reduces the estimate for poor condition and excess mileage', () => {
         const currentYear = new Date().getFullYear();
-        const good = estimateDepreciation(currentYear - 1, 10000, 12000, 'Good');
-        const poor = estimateDepreciation(currentYear - 1, 10000, 50000, 'Poor');
+        const good = estimateDepreciation(
+            currentYear - 1,
+            10000,
+            12000,
+            'Good',
+        );
+        const poor = estimateDepreciation(
+            currentYear - 1,
+            10000,
+            50000,
+            'Poor',
+        );
         expect(poor.value).toBeLessThan(good.value);
     });
 });
@@ -164,7 +178,11 @@ describe('estimateVehicleValue', () => {
                         ok: true,
                         json: async () => ({
                             success: true,
-                            prices: { average: 9000, below: 8000, above: 10000 },
+                            prices: {
+                                average: 9000,
+                                below: 8000,
+                                above: 10000,
+                            },
                             count: 12,
                         }),
                     };

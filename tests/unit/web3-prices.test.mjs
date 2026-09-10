@@ -110,7 +110,10 @@ describe('refreshWalletBalance', () => {
             mockFetchByUrl({
                 'blockstream.info': () =>
                     okJson({
-                        chain_stats: { funded_txo_sum: 150000000, spent_txo_sum: 50000000 },
+                        chain_stats: {
+                            funded_txo_sum: 150000000,
+                            spent_txo_sum: 50000000,
+                        },
                     }),
                 'coingecko.com': () => okJson({ bitcoin: { usd: 60000 } }),
             }),

@@ -1,4 +1,12 @@
-import { vi, describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
+import {
+    vi,
+    describe,
+    it,
+    expect,
+    beforeAll,
+    afterEach,
+    afterAll,
+} from 'vitest';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -13,8 +21,7 @@ const TEST_DATA_DIR = fs.mkdtempSync(
 );
 process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 process.env.FIRE_DB_FILE = path.join(TEST_DATA_DIR, 'db.json');
-process.env.SYNC_MASTER_KEY =
-    'a'.repeat(64); // 64 hex chars = 32 bytes
+process.env.SYNC_MASTER_KEY = 'a'.repeat(64); // 64 hex chars = 32 bytes
 process.env.GDRIVE_CLIENT_ID = 'test-client-id';
 process.env.GDRIVE_CLIENT_SECRET = 'test-client-secret';
 process.env.GDRIVE_BACKUP_FOLDER_ID = 'test-folder-id';
@@ -87,9 +94,9 @@ describe('exchangeCodeForTokens', () => {
                 json: async () => ({ access_token: 'at-1', expires_in: 3600 }),
             }),
         );
-        await expect(
-            gdrive.exchangeCodeForTokens('auth-code'),
-        ).rejects.toThrow(/did not return a refresh token/i);
+        await expect(gdrive.exchangeCodeForTokens('auth-code')).rejects.toThrow(
+            /did not return a refresh token/i,
+        );
     });
 
     it('throws on a non-ok token exchange response', async () => {
@@ -101,9 +108,9 @@ describe('exchangeCodeForTokens', () => {
                 text: async () => 'invalid_grant',
             }),
         );
-        await expect(
-            gdrive.exchangeCodeForTokens('bad-code'),
-        ).rejects.toThrow(/Token exchange failed \(400\)/);
+        await expect(gdrive.exchangeCodeForTokens('bad-code')).rejects.toThrow(
+            /Token exchange failed \(400\)/,
+        );
     });
 });
 
@@ -143,7 +150,9 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
         const result = await gdrive.uploadBackup(dbJson);
         expect(result.fileId).toBe('file-123');
         expect(result.folderId).toBe('test-folder-id');
-        expect(result.fileName).toMatch(/^fire-backup-\d{4}-\d{2}-\d{2}\.json$/);
+        expect(result.fileName).toMatch(
+            /^fire-backup-\d{4}-\d{2}-\d{2}\.json$/,
+        );
         expect(capturedBody).toContain('"enc":true');
 
         // Pull the encrypted JSON payload back out of the multipart body so

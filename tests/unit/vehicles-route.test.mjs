@@ -93,7 +93,12 @@ describe('GET /api/vehicles/vin/:vin', () => {
                 ok: true,
                 json: async () => ({
                     Results: [
-                        { Make: 'Honda', Model: 'Accord', ModelYear: '2020', ErrorCode: '0' },
+                        {
+                            Make: 'Honda',
+                            Model: 'Accord',
+                            ModelYear: '2020',
+                            ErrorCode: '0',
+                        },
                     ],
                 }),
             }),
@@ -164,9 +169,9 @@ describe('POST /api/vehicles/:id/accept-estimate', () => {
         expect(res.body.currentValue).toBe(18500);
         expect(res.body.valueSource).toBe('depreciation-model');
         expect(res.body.valueLastRefreshed).toBeTruthy();
-        expect(
-            new Date(res.body.valueLastRefreshed).toString(),
-        ).not.toBe('Invalid Date');
+        expect(new Date(res.body.valueLastRefreshed).toString()).not.toBe(
+            'Invalid Date',
+        );
     });
 
     it('defaults the source to "estimate" when none is given', async () => {

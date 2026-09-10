@@ -46,8 +46,7 @@ writeDb();
 let app;
 
 beforeAll(async () => {
-    const backupRouter = (await import('../../app/routes/backup.js'))
-        .default;
+    const backupRouter = (await import('../../app/routes/backup.js')).default;
     app = express();
     app.use(express.json());
     app.use('/api/backup', backupRouter);
