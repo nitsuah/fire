@@ -20,6 +20,12 @@ function initSpendingUpload() {
     if (!dragZone || !fileInput) return;
 
     dragZone.addEventListener('click', () => fileInput.click());
+    dragZone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileInput.click();
+        }
+    });
     dragZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dragZone.classList.add('dragover');
@@ -39,6 +45,28 @@ function initSpendingUpload() {
     });
 
     if (addRowBtn) addRowBtn.addEventListener('click', addMerchantMapRow);
+
+    // Delegated listeners on the container (rather than inline onchange/
+    // onclick attributes rebuilt with every innerHTML render) — the keyword
+    // is user-controlled free text, and interpolating it into an inline JS
+    // handler string is an XSS vector even when HTML-entity-escaped, since
+    // the browser HTML-decodes the attribute before evaluating the handler.
+    const mapEditor = document.getElementById('merchant-map-editor');
+    if (mapEditor) {
+        mapEditor.addEventListener('change', (e) => {
+            const keyword = e.target.dataset.keyword;
+            if (keyword === undefined) return;
+            if (e.target.classList.contains('merchant-map-rename')) {
+                renameMerchantMapKeyword(keyword, e.target.value);
+            } else if (e.target.classList.contains('merchant-map-category')) {
+                setMerchantMapCategory(keyword, e.target.value);
+            }
+        });
+        mapEditor.addEventListener('click', (e) => {
+            const btn = e.target.closest('.merchant-map-delete');
+            if (btn) deleteMerchantMapRow(btn.dataset.keyword);
+        });
+    }
 }
 
 function processSpendingCSVFile(file) {
@@ -60,10 +88,21 @@ function processSpendingCSVFile(file) {
             return;
         }
         if (!state.spendingTransactions) state.spendingTransactions = [];
+        const previous = state.spendingTransactions.slice();
         state.spendingTransactions.push(...txns);
-        await saveState();
+        try {
+            await saveState();
+        } catch (err) {
+            state.spendingTransactions = previous;
+            console.error('Failed to persist imported transactions:', err);
+            alert('Import failed to save — please try again.');
+            return;
+        }
         refreshAllUI();
         alert(`Imported ${txns.length} transaction(s).`);
+    };
+    reader.onerror = () => {
+        alert('Could not read the selected file. Please try again.');
     };
     reader.readAsText(file);
 }
@@ -106,8 +145,14 @@ function renderSpendingTransactionsTable() {
 window.updateSpendingTxCategory = async function (id, category) {
     const tx = (state.spendingTransactions || []).find((t) => t.id === id);
     if (!tx) return;
+    const previous = tx.category;
     tx.category = category;
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        tx.category = previous;
+        console.error('Failed to persist transaction category:', err);
+    }
 };
 
 window.deleteSpendingTx = async function (id) {
@@ -144,18 +189,18 @@ function renderMerchantMapEditor() {
         .map(
             ([keyword, cat], idx) => `
         <div class="merchant-map-row" data-idx="${idx}">
-            <input type="text" value="${escHtml(keyword)}" placeholder="merchant keyword" onchange="renameMerchantMapKeyword('${escHtml(keyword)}', this.value)">
-            <select onchange="setMerchantMapCategory('${escHtml(keyword)}', this.value)">
+            <input type="text" value="${escHtml(keyword)}" placeholder="merchant keyword" data-keyword="${escHtml(keyword)}" class="merchant-map-rename">
+            <select data-keyword="${escHtml(keyword)}" class="merchant-map-category">
                 ${catOptions(cat)}
             </select>
-            <button class="spending-tx-delete" onclick="deleteMerchantMapRow('${escHtml(keyword)}')" aria-label="Remove mapping">✕</button>
+            <button class="spending-tx-delete merchant-map-delete" data-keyword="${escHtml(keyword)}" aria-label="Remove mapping">✕</button>
         </div>
     `,
         )
         .join('');
 }
 
-function addMerchantMapRow() {
+async function addMerchantMapRow() {
     if (!state.merchantCategoryOverrides) state.merchantCategoryOverrides = {};
     let key = 'new-merchant';
     let n = 1;
@@ -168,30 +213,66 @@ function addMerchantMapRow() {
         key = `new-merchant-${n++}`;
     }
     state.merchantCategoryOverrides[key] = 'discretionary';
-    saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        delete state.merchantCategoryOverrides[key];
+        console.error('Failed to persist new merchant mapping:', err);
+        return;
+    }
     renderMerchantMapEditor();
 }
 
-window.renameMerchantMapKeyword = async function (oldKey, newKey) {
+async function renameMerchantMapKeyword(oldKey, newKey) {
     const trimmed = (newKey || '').trim().toLowerCase();
     if (!trimmed || !state.merchantCategoryOverrides) return;
+    if (
+        trimmed !== oldKey &&
+        Object.prototype.hasOwnProperty.call(
+            state.merchantCategoryOverrides,
+            trimmed,
+        )
+    ) {
+        alert(`A mapping for "${trimmed}" already exists.`);
+        renderMerchantMapEditor();
+        return;
+    }
     const cat = state.merchantCategoryOverrides[oldKey];
     delete state.merchantCategoryOverrides[oldKey];
     state.merchantCategoryOverrides[trimmed] = cat;
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        delete state.merchantCategoryOverrides[trimmed];
+        state.merchantCategoryOverrides[oldKey] = cat;
+        console.error('Failed to persist renamed merchant mapping:', err);
+    }
     renderMerchantMapEditor();
 };
 
-window.setMerchantMapCategory = async function (keyword, category) {
+async function setMerchantMapCategory(keyword, category) {
     if (!state.merchantCategoryOverrides) return;
+    const previous = state.merchantCategoryOverrides[keyword];
     state.merchantCategoryOverrides[keyword] = category;
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        state.merchantCategoryOverrides[keyword] = previous;
+        console.error('Failed to persist merchant category:', err);
+    }
 };
 
-window.deleteMerchantMapRow = async function (keyword) {
+async function deleteMerchantMapRow(keyword) {
     if (!state.merchantCategoryOverrides) return;
+    const previous = state.merchantCategoryOverrides[keyword];
     delete state.merchantCategoryOverrides[keyword];
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        state.merchantCategoryOverrides[keyword] = previous;
+        console.error('Failed to persist merchant mapping deletion:', err);
+        return;
+    }
     renderMerchantMapEditor();
 };
 

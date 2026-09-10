@@ -248,22 +248,35 @@ const _CHASE_CAT_MAP = {
     personal: 'discretionary',
 };
 
+// Keep in sync with CAPITALONE_CATEGORY_MAP in app/lib/finance-parsing.js —
+// this file is browser-loaded (no bundler/require), so the two maps can't
+// share a module; a mismatch here silently reclassifies transactions
+// differently depending on which parser handled them. A parity test in
+// tests covers both maps against the same category-key set.
 const _C1_CAT_MAP = {
-    grocery: 'food',
+    'grocery store/supermarket': 'food',
     restaurant: 'food',
     'fast food': 'food',
-    coffee: 'food',
+    'other food & beverage': 'food',
+    'coffee shops': 'food',
     'gas/automobile': 'transport',
     automotive: 'transport',
-    taxi: 'transport',
+    'taxi/ride shares': 'transport',
     utilities: 'utilities',
-    phone: 'utilities',
+    'phone/cable': 'utilities',
     internet: 'utilities',
     'health care': 'healthcare',
     dentist: 'healthcare',
     pharmacy: 'healthcare',
-    rent: 'housing',
+    doctor: 'healthcare',
+    'rent payment': 'housing',
     'home improvement': 'housing',
+    'hotel/resort': 'discretionary',
+    entertainment: 'discretionary',
+    merchandise: 'discretionary',
+    clothing: 'discretionary',
+    'online shopping': 'discretionary',
+    travel: 'transport',
 };
 
 const _KEYWORD_MAP = [

@@ -10,10 +10,15 @@ async function dismissPrivacyModal(page) {
     });
     try {
         await continueBtn.waitFor({ state: 'visible', timeout: 5000 });
-        await continueBtn.click();
-    } catch {
-        // Modal didn't appear (e.g. consent already persisted) — nothing to do.
+    } catch (err) {
+        // Only swallow the expected "never became visible in time" case
+        // (consent already persisted, so the modal legitimately never
+        // renders) — an unrelated locator failure should still fail setup
+        // loudly rather than let tests silently run against a blocked page.
+        if (err.name === 'TimeoutError') return;
+        throw err;
     }
+    await continueBtn.click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -70,6 +75,11 @@ test.describe('Dashboard — desktop layout fixes', () => {
             .locator('.sidebar')
             .evaluate((el) => el.getBoundingClientRect().height);
         expect(sidebarHeight).toBeLessThanOrEqual(viewport.height + 1);
+
+        const mainContentHeight = await page
+            .locator('.main-content')
+            .evaluate((el) => el.getBoundingClientRect().height);
+        expect(mainContentHeight).toBeLessThanOrEqual(viewport.height + 1);
     });
 
     test('alerts bell replaces the old dashboard notifications card', async ({

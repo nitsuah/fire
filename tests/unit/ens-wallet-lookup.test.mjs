@@ -19,17 +19,26 @@ describe('mapEnsErrorToResponse', () => {
         expect(status).toBe(400);
     });
 
-    it('maps anything else (e.g. RESOLVE_FAILED) to 502', () => {
-        const { status } = mapEnsErrorToResponse({
+    it('maps anything else (e.g. RESOLVE_FAILED) to 502 with a fixed message', () => {
+        const { status, body } = mapEnsErrorToResponse({
             code: 'RESOLVE_FAILED',
             message: 'network down',
         });
         expect(status).toBe(502);
+        expect(body.error).toBe('ENS lookup failed. Please try again shortly.');
+    });
+
+    it('never leaks the raw provider/network error message to the client (CWE-209)', () => {
+        const { body } = mapEnsErrorToResponse({
+            code: 'RESOLVE_FAILED',
+            message: 'connect ECONNREFUSED 10.0.0.5:8545 (internal RPC host)',
+        });
+        expect(body.error).not.toMatch(/ECONNREFUSED|10\.0\.0\.5|internal RPC/);
     });
 
     it('falls back to a generic message when the error has none', () => {
         const { body } = mapEnsErrorToResponse({});
-        expect(body.error).toBe('ENS lookup failed.');
+        expect(body.error).toBe('ENS lookup failed. Please try again shortly.');
     });
 });
 

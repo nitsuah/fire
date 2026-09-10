@@ -33,7 +33,11 @@ module.exports = defineConfig({
     webServer: {
         command: 'node ../app/server.js',
         url: 'http://localhost:3011',
-        reuseExistingServer: !process.env.CI,
+        // Always start our own instance against the isolated temp DB below —
+        // if a server already happens to be listening on :3011 (e.g. a local
+        // dev server), reusing it would skip our FIRE_DB_FILE env entirely
+        // and this suite would test a stale server against the wrong DB.
+        reuseExistingServer: false,
         cwd: __dirname,
         env: {
             PORT: '3011',

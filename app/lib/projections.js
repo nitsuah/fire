@@ -124,7 +124,10 @@ function readProjectionSettingsFromForm() {
             parseFloat(document.getElementById('proj-return').value) || 0,
         inflationRate:
             parseFloat(document.getElementById('proj-inflation').value) || 0,
-        swr: parseFloat(document.getElementById('proj-swr').value) || 4.0,
+        swr: (() => {
+            const v = parseFloat(document.getElementById('proj-swr').value);
+            return Number.isFinite(v) ? v : 4.0;
+        })(),
         spanYears: parseInt(document.getElementById('proj-years').value) || 30,
         currentAge:
             parseInt(document.getElementById('proj-current-age').value) || 30,
@@ -146,13 +149,13 @@ function renderProjSettingsSummary() {
     `;
 }
 
-window.toggleProjSettingsPanel = function () {
+function toggleProjSettingsPanel() {
     const form = document.getElementById('form-projections-settings');
     const btn = document.getElementById('proj-settings-toggle');
     if (!form || !btn) return;
     const collapsed = form.classList.toggle('collapsed');
     btn.textContent = collapsed ? 'Customize ▾' : 'Customize ▴';
-};
+}
 
 // Quick preset-scenario buttons — set common growth-settings configurations
 // in one click. Distinct from MILESTONE_PRESETS (which only affects which
@@ -176,7 +179,7 @@ const PROJ_SETTINGS_PRESETS = {
     },
 };
 
-window.applyProjSettingsPreset = async function (key) {
+async function applyProjSettingsPreset(key) {
     const preset = PROJ_SETTINGS_PRESETS[key];
     if (!preset) return;
     Object.entries(preset.values).forEach(([field, val]) => {
@@ -193,7 +196,11 @@ window.applyProjSettingsPreset = async function (key) {
         .forEach((b) => b.classList.toggle('active', b.dataset.preset === key));
     state.projectionSettings = readProjectionSettingsFromForm();
     renderProjSettingsSummary();
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        console.error('Failed to persist projection settings preset:', err);
+    }
     refreshAllUI();
 };
 
@@ -203,9 +210,14 @@ function renderProjSettingsPresets() {
     container.innerHTML = Object.entries(PROJ_SETTINGS_PRESETS)
         .map(
             ([key, p]) =>
-                `<button type="button" class="proj-preset-btn" data-preset="${key}" onclick="applyProjSettingsPreset('${key}')">${p.label}</button>`,
+                `<button type="button" class="proj-preset-btn" data-preset="${key}">${p.label}</button>`,
         )
         .join('');
+    container.querySelectorAll('.proj-preset-btn').forEach((btn) => {
+        btn.addEventListener('click', () =>
+            applyProjSettingsPreset(btn.dataset.preset),
+        );
+    });
 }
 
 function initProjectionsManager() {
@@ -222,6 +234,9 @@ function initProjectionsManager() {
     applyProjectionSettingsToForm();
     renderProjSettingsSummary();
     renderProjSettingsPresets();
+
+    const toggleBtn = document.getElementById('proj-settings-toggle');
+    if (toggleBtn) toggleBtn.addEventListener('click', toggleProjSettingsPanel);
 
     projInputIds.forEach((id) => {
         const el = document.getElementById(id);

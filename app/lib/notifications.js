@@ -51,6 +51,17 @@ document.addEventListener('click', (e) => {
     if (!wrap.contains(e.target)) window.toggleNotifDropdown(false);
 });
 
+// Delegated dismiss-button handler (rather than an inline onclick rebuilt
+// on every render). Some alert tags are derived from imported/restored
+// data (e.g. a CD's id, `cd-${cd.id}`) that isn't validated on import — an
+// inline `onclick="dismissNotifAlert('${tag}')"` string is an XSS vector
+// for a crafted tag even when HTML-entity-escaped, since the browser
+// HTML-decodes the attribute before evaluating it as JS.
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.notif-dismiss-btn');
+    if (btn) window.dismissNotifAlert(btn.dataset.tag);
+});
+
 function _updateNotifUI() {
     const btn = document.getElementById('notif-enable-btn');
     const statusEl = document.getElementById('notif-status-text');
@@ -191,7 +202,11 @@ window.checkAndNotify = function (s, sendPush) {
                 label: 'Tax-Loss Harvest',
                 msg,
                 urgent: daysLeft <= 14,
-                tag: 'taxloss-yearend',
+                // Scoped to the current tax year so dismissing this year's
+                // alert doesn't also suppress it once the same condition
+                // recurs next year (the un-scoped tag was generated
+                // identically every December).
+                tag: `taxloss-yearend-${now.getFullYear()}`,
             });
             if (sendPush && daysLeft <= 14)
                 _sendNotification(
@@ -221,7 +236,7 @@ window.checkAndNotify = function (s, sendPush) {
                 .map(
                     (a) => `
                 <div class="notif-alert-row ${a.urgent ? 'notif-urgent' : ''}">
-                    ${a.tag ? `<button class="notif-dismiss-btn" onclick="dismissNotifAlert('${a.tag}')" aria-label="Dismiss">✕</button>` : ''}
+                    ${a.tag ? `<button class="notif-dismiss-btn" data-tag="${escHtml(a.tag)}" aria-label="Dismiss">✕</button>` : ''}
                     <span class="font-bold" style="font-size:11px;text-transform:uppercase;color:${a.urgent ? 'var(--color-danger)' : 'var(--color-warning)'};">${escHtml(a.label)}</span>
                     <span style="display:block;font-size:13px;margin-top:2px;">${escHtml(a.msg)}</span>
                 </div>

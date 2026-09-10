@@ -15,9 +15,13 @@ function mapEnsErrorToResponse(err) {
     if (err && err.code === 'INVALID_NAME') {
         return { status: 400, body: { error: err.message } };
     }
+    // Provider/network failure details (RPC endpoint errors, connection
+    // resets, etc.) aren't returned to the client — they can leak internal
+    // infrastructure details (CWE-209). The caller is responsible for
+    // logging `err` server-side before/after calling this mapper.
     return {
         status: 502,
-        body: { error: (err && err.message) || 'ENS lookup failed.' },
+        body: { error: 'ENS lookup failed. Please try again shortly.' },
     };
 }
 

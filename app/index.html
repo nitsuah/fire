@@ -646,7 +646,7 @@
                                 <h2 class="card-title">Crypto Wallet Lookup (ENS)</h2>
                                 <p class="card-subtitle">Resolve a .eth address and total the value held across every configured EVM chain.</p>
                                 <form class="ens-lookup-form" id="form-ens-lookup">
-                                    <input type="text" id="ens-lookup-input" placeholder="vitalik.eth" autocomplete="off">
+                                    <input type="text" id="ens-lookup-input" placeholder="vitalik.eth" autocomplete="off" aria-label="ENS name">
                                     <button type="submit" class="action-btn">Look Up</button>
                                 </form>
                                 <div id="ens-lookup-result" class="ens-lookup-result"></div>
@@ -832,9 +832,9 @@
                         <div class="card glass-card span-2">
                             <h2 class="card-title">Spending Upload</h2>
                             <p class="card-subtitle">Upload a Chase, Capital One, or generic (Date/Description/Amount) spending CSV — each transaction is auto-categorized and lands in the table below, fully editable.</p>
-                            <div class="import-drag-zone" id="spending-drag-zone">
+                            <div class="import-drag-zone" id="spending-drag-zone" tabindex="0" role="button" aria-label="Upload spending CSV">
                                 <p>Drag &amp; drop a spending CSV, or click to browse</p>
-                                <input type="file" id="spending-file-input" accept=".csv" style="display:none;">
+                                <input type="file" id="spending-file-input" accept=".csv" style="display:none;" aria-label="Spending CSV file">
                             </div>
 
                             <div class="table-container mt-3">
@@ -1172,7 +1172,7 @@
                         <div class="card glass-card" id="proj-settings-card">
                             <div class="card-title-row">
                                 <h2 class="card-title">Growth Settings</h2>
-                                <button type="button" class="proj-settings-toggle" id="proj-settings-toggle" onclick="toggleProjSettingsPanel()">Customize ▾</button>
+                                <button type="button" class="proj-settings-toggle" id="proj-settings-toggle">Customize ▾</button>
                             </div>
                             <div class="proj-settings-presets" id="proj-settings-presets">
                                 <!-- Populated by projections.js: 3-5 quick-configuration buttons -->

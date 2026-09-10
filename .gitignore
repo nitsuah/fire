@@ -3,3 +3,4 @@ data/
 coverage/
 coverage_summary.txt
 .env
+test-results/

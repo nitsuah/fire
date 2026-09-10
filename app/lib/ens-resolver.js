@@ -24,6 +24,12 @@ function getProvider() {
         providerInstance = new JsonRpcProvider(url, 1, {
             staticNetwork: true,
         });
+        // ethers 6.13 enables CCIP Read (EIP-3668) for ENS resolution by
+        // default, so a malicious/compromised resolver can hand back a URL
+        // the server will then fetch itself — an SSRF vector reachable from
+        // any attacker-supplied ENS name via this public route (CWE-918).
+        // Disable it: this route only needs plain on-chain resolution.
+        providerInstance.disableCcipRead = true;
     }
     return providerInstance;
 }

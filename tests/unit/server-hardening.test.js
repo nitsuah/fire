@@ -14,6 +14,20 @@ const TEST_DB = path.join(
     os.tmpdir(),
     `fire-hardening-test-${process.pid}.json`,
 );
+
+// process.env is process-global — save whatever was there before this suite
+// touches it (including SYNC_MASTER_KEY, which the key-rotation test below
+// mutates as a side effect of hitting the admin rotate-key endpoint) so it
+// can be restored in afterAll, rather than leaking test values into any
+// other suite sharing this worker process.
+const ENV_KEYS = [
+    'FIRE_DB_FILE',
+    'FIRE_API_KEY',
+    'FIRE_ADMIN_KEY',
+    'SYNC_MASTER_KEY',
+];
+const PREV_ENV = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+
 process.env.FIRE_DB_FILE = TEST_DB;
 process.env.FIRE_API_KEY = 'test-api-key-12345';
 process.env.FIRE_ADMIN_KEY = 'test-admin-key-67890';
@@ -26,6 +40,10 @@ afterAll(() => {
         fs.unlinkSync(TEST_DB);
     } catch {
         /* ignore */
+    }
+    for (const key of ENV_KEYS) {
+        if (PREV_ENV[key] === undefined) delete process.env[key];
+        else process.env[key] = PREV_ENV[key];
     }
 });
 

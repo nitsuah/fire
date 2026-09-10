@@ -167,6 +167,9 @@ router.get('/ens/:name', async (req, res) => {
     try {
         address = await resolveEnsAddress(name);
     } catch (err) {
+        if (err && err.code !== 'NOT_FOUND' && err.code !== 'INVALID_NAME') {
+            console.error('[ENS] resolveEnsAddress failed:', err);
+        }
         const { status, body } = mapEnsErrorToResponse(err);
         return res.status(status).json(body);
     }
