@@ -413,11 +413,111 @@ function parseCapitalOneStatement(rows) {
     return { imported, totalOutflow, categories: cats, months };
 }
 
+// ─── Per-transaction spending import (Expenses tab CSV upload) ────────────
+// Unlike parseChaseStatement/parseCapitalOneStatement above (which only
+// return aggregated category totals for the budget sliders), this keeps one
+// record per row so it can populate an editable/deletable transaction table.
+
+function _sniffSpendingFormat(headerRowStr) {
+    if (
+        headerRowStr.includes('transaction date') &&
+        headerRowStr.includes('amount') &&
+        (headerRowStr.includes('memo') || headerRowStr.includes('description'))
+    ) {
+        return 'chase';
+    }
+    if (
+        headerRowStr.includes('card no.') &&
+        headerRowStr.includes('debit') &&
+        headerRowStr.includes('credit')
+    ) {
+        return 'capitalone';
+    }
+    return 'generic';
+}
+
+// User-provided merchant-keyword → category overrides always win over the
+// statement's own category column and the built-in fallback keyword map.
+function matchMerchantOverride(merchant, overrides) {
+    if (!overrides) return null;
+    const lower = (merchant || '').toLowerCase();
+    for (const [keyword, cat] of Object.entries(overrides)) {
+        if (keyword && lower.includes(keyword.toLowerCase())) return cat;
+    }
+    return null;
+}
+
+function parseSpendingTransactions(rows, overrides = {}) {
+    if (!rows || rows.length < 2) return [];
+    const headerRowStr = rows[0].join(',').toLowerCase();
+    const format = _sniffSpendingFormat(headerRowStr);
+    const headers = rows[0].map((h) => h.trim().toLowerCase());
+
+    const findIdx = (candidates) =>
+        headers.findIndex((h) => candidates.some((c) => h.includes(c)));
+    const idxDate = findIdx(['transaction date', 'date']);
+    const idxDesc = findIdx(['description', 'memo', 'merchant', 'payee']);
+    const idxCat = headers.findIndex((h) => h === 'category');
+    const idxAmount = headers.findIndex((h) => h === 'amount');
+    const idxDebit = headers.indexOf('debit');
+
+    const txns = [];
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 2) continue;
+
+        let amount = null;
+        if (format === 'chase' && idxAmount !== -1) {
+            const raw = parseFloat(row[idxAmount]);
+            if (isNaN(raw) || raw >= 0) continue; // only outflows are spending
+            amount = Math.abs(raw);
+        } else if (format === 'capitalone' && idxDebit !== -1) {
+            const raw = parseFloat(row[idxDebit]);
+            if (isNaN(raw) || raw <= 0) continue;
+            amount = raw;
+        } else {
+            const raw = idxAmount !== -1 ? parseFloat(row[idxAmount]) : NaN;
+            if (isNaN(raw) || raw === 0) continue;
+            amount = Math.abs(raw);
+        }
+
+        const merchant = idxDesc !== -1 ? (row[idxDesc] || '').trim() : '';
+        if (!merchant) continue;
+        const date = idxDate !== -1 ? (row[idxDate] || '').trim() : '';
+        const rawCat =
+            idxCat !== -1 ? (row[idxCat] || '').toLowerCase().trim() : '';
+
+        let category = matchMerchantOverride(merchant, overrides);
+        if (!category && format === 'chase' && CHASE_CATEGORY_MAP[rawCat]) {
+            category = CHASE_CATEGORY_MAP[rawCat];
+        }
+        if (!category && format === 'capitalone') {
+            for (const [key, val] of Object.entries(CAPITALONE_CATEGORY_MAP)) {
+                if (rawCat.includes(key)) {
+                    category = val;
+                    break;
+                }
+            }
+        }
+        if (!category) category = _descToCategory(merchant);
+
+        txns.push({
+            date,
+            merchant,
+            amount: Math.round(amount * 100) / 100,
+            category,
+        });
+    }
+    return txns;
+}
+
 module.exports = {
     parseCSVText,
     parseFidelityPositions,
     parseChaseStatement,
     parseCapitalOneStatement,
+    parseSpendingTransactions,
+    matchMerchantOverride,
     CHASE_CATEGORY_MAP,
     CAPITALONE_CATEGORY_MAP,
 };

@@ -331,7 +331,8 @@ function renderMilestones(
     const milestonesList = buildMilestonesList(rawData, depletionAge);
     const currentAge = state.projectionSettings.currentAge || 30;
 
-    // Build preset selector HTML
+    // Preset selector renders into the card-title-row (top-right, inline with
+    // the title/cost labels) rather than stretching across the card body.
     let selectorHtml = `
         <div class="milestone-preset-selector">
             <label for="milestone-preset-select" class="text-muted" style="font-size:11px;">Preset:</label>
@@ -345,6 +346,15 @@ function renderMilestones(
             <span class="info-tip" data-tip="${getActivePreset().description}">?</span>
         </div>
     `;
+    const mount = document.getElementById('milestone-preset-mount');
+    if (mount) {
+        mount.innerHTML = selectorHtml;
+        const mountSel = mount.querySelector('#milestone-preset-select');
+        if (mountSel)
+            mountSel.addEventListener('change', (e) =>
+                setActivePreset(e.target.value),
+            );
+    }
 
     let html = '';
     milestonesList.forEach((m) => {
@@ -392,10 +402,8 @@ function renderMilestones(
         `;
     });
 
-    container.innerHTML =
-        selectorHtml + '<div class="milestones-grid mt-2">' + html + '</div>';
-
-    const sel = container.querySelector('#milestone-preset-select');
-    if (sel)
-        sel.addEventListener('change', (e) => setActivePreset(e.target.value));
+    // #projection-milestones-container is itself the .milestones-grid — the
+    // preset selector now renders separately into #milestone-preset-mount
+    // (top-right of the card title) instead of stretching across this grid.
+    container.innerHTML = html;
 }

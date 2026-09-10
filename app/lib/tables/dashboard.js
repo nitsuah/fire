@@ -406,8 +406,20 @@ function renderMonthlyCashFlow() {
         (sum, cd) => sum + ((cd.principal || 0) * ((cd.rate || 0) / 100)) / 12,
         0,
     );
+    // Crypto staking/lending income — same pattern as CD interest, but only
+    // counted when the account actually has a staking rate set (apy > 0).
+    // Accounts with no rate provided contribute $0, exactly as if staking
+    // weren't a modeled income source for them.
+    const stakingMonthly = (state.customAccounts || []).reduce(
+        (sum, acc) =>
+            acc.type === 'Crypto' && (acc.apy || 0) > 0
+                ? sum + ((acc.value || 0) * (acc.apy / 100)) / 12
+                : sum,
+        0,
+    );
 
-    const totalIncome = monthlyGross + sideGigMonthly + cdMonthly;
+    const totalIncome =
+        monthlyGross + sideGigMonthly + cdMonthly + stakingMonthly;
 
     const exp = state.expenses;
     const housing = exp.housing || 0;
@@ -440,6 +452,7 @@ function renderMonthlyCashFlow() {
     set('cf-salary', formatCurrency(monthlyGross));
     set('cf-sidegig', formatCurrency(sideGigMonthly));
     set('cf-cd-interest', formatCurrency(cdMonthly));
+    set('cf-crypto-staking', formatCurrency(stakingMonthly));
     set('cf-total-income', formatCurrency(totalIncome));
     set('cf-housing', formatCurrency(housing));
     set('cf-utilities', formatCurrency(utilities));

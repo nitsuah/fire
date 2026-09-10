@@ -27,6 +27,8 @@ export default [
             'app/lib/prices-provider.js',
             'app/lib/vehicle-api.js',
             'app/lib/crypto-balance.js',
+            'app/lib/ens-resolver.js',
+            'app/lib/ens-wallet-lookup.js',
         ],
         languageOptions: {
             globals: {
@@ -77,6 +79,18 @@ export default [
             globals: {
                 ...globals.node,
                 ...globals.jest,
+            },
+        },
+    },
+
+    // Playwright config + specs — node globals for the config/test runner,
+    // browser globals too since page.evaluate() callbacks run in-browser
+    {
+        files: ['config/playwright.config.js', 'tests/e2e-ui/**/*.spec.js'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.browser,
             },
         },
     },

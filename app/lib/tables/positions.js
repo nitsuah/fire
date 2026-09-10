@@ -9,6 +9,7 @@ function renderDashboardTopPositionsTable() {
     if (state.importedPositions.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td></tr>`;
         updateSortHeaders();
+        updateCollapseAllButtonLabel();
         renderDiversificationSuggestions(0);
         return;
     }
@@ -61,9 +62,31 @@ function renderDashboardTopPositionsTable() {
             ? 'chevron-icon collapsed'
             : 'chevron-icon';
 
+        // Roll up per-position risk warnings onto the group header so they're
+        // still visible when the account is collapsed — expand to see which
+        // individual positions triggered them.
+        let rollupBadge = '';
+        if (isCollapsed) {
+            let highCount = 0,
+                medCount = 0;
+            positions.forEach((p) => {
+                if (isSettledCash(p)) return;
+                const w =
+                    totalPortfolioValue > 0
+                        ? ((p.value || 0) / totalPortfolioValue) * 100
+                        : 0;
+                if (w >= 20) highCount++;
+                else if (w >= 15) medCount++;
+            });
+            if (highCount > 0)
+                rollupBadge += `<span class="acct-warn-badge acct-warn-high" title="${highCount} position(s) ≥20% of portfolio">⚠ ${highCount}</span>`;
+            if (medCount > 0)
+                rollupBadge += `<span class="acct-warn-badge acct-warn-med" title="${medCount} position(s) ≥15% of portfolio">⚡ ${medCount}</span>`;
+        }
+
         html += `
             <tr class="table-group-header" data-acc-name="${escHtml(accName)}" onclick="toggleAccountGroup(this.dataset.accName)">
-                <td colspan="4"><span class="${chevronClass}">▼</span> <strong>${escHtml(accName)}</strong></td>
+                <td colspan="4"><span class="${chevronClass}">▼</span> <strong>${escHtml(accName)}</strong>${rollupBadge}</td>
                 <td class="text-right font-bold text-muted">${accCostBasis > 0 ? formatCurrency(accCostBasis) : '—'}</td>
                 <td class="text-right font-bold" style="${accStyle}">${formatCurrency(accTotalVal)}</td>
                 <td class="text-right font-bold" style="${accStyle}">${accPnLStr}</td>
@@ -121,6 +144,7 @@ function renderDashboardTopPositionsTable() {
     });
     tbody.innerHTML = html;
     updateSortHeaders();
+    updateCollapseAllButtonLabel();
     renderDiversificationSuggestions(totalPortfolioValue);
 }
 
