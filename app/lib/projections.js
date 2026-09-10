@@ -202,7 +202,7 @@ async function applyProjSettingsPreset(key) {
         console.error('Failed to persist projection settings preset:', err);
     }
     refreshAllUI();
-};
+}
 
 function renderProjSettingsPresets() {
     const container = document.getElementById('proj-settings-presets');

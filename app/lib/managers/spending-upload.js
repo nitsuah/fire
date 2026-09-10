@@ -248,7 +248,7 @@ async function renameMerchantMapKeyword(oldKey, newKey) {
         console.error('Failed to persist renamed merchant mapping:', err);
     }
     renderMerchantMapEditor();
-};
+}
 
 async function setMerchantMapCategory(keyword, category) {
     if (!state.merchantCategoryOverrides) return;
@@ -260,7 +260,7 @@ async function setMerchantMapCategory(keyword, category) {
         state.merchantCategoryOverrides[keyword] = previous;
         console.error('Failed to persist merchant category:', err);
     }
-};
+}
 
 async function deleteMerchantMapRow(keyword) {
     if (!state.merchantCategoryOverrides) return;
@@ -274,7 +274,7 @@ async function deleteMerchantMapRow(keyword) {
         return;
     }
     renderMerchantMapEditor();
-};
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     initSpendingUpload();
