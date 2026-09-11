@@ -84,6 +84,13 @@ describe('exchangeCodeForTokens', () => {
         const tokens = await gdrive.exchangeCodeForTokens('auth-code');
         expect(tokens.access_token).toBe('at-1');
         expect(gdrive.isOAuthConfigured()).toBe(true);
+
+        const raw = fs.readFileSync(
+            path.join(TEST_DATA_DIR, 'tokens-gdrive.json'),
+            'utf-8',
+        );
+        expect(raw).not.toContain('at-1');
+        expect(raw).not.toContain('rt-1');
     });
 
     it('throws when Google does not return a refresh token', async () => {

@@ -19,6 +19,11 @@ async function loadGDriveBackupPanel() {
     try {
         const res = await fetch('/api/backup/drive/status');
         const data = await res.json();
+        if (!res.ok) {
+            throw new Error(
+                data.error || 'Unable to check Google Drive backup status.',
+            );
+        }
 
         if (!data.clientConfigured) {
             statusEl.textContent =
@@ -28,15 +33,16 @@ async function loadGDriveBackupPanel() {
             if (backupBtn) backupBtn.disabled = true;
             return;
         }
-        if (connectBtn) connectBtn.disabled = false;
 
         if (!data.masterKeySet) {
             statusEl.textContent =
                 'SYNC_MASTER_KEY must be set on the server before Drive tokens can be stored securely.';
             statusEl.style.color = 'var(--color-warning)';
+            if (connectBtn) connectBtn.disabled = true;
             if (backupBtn) backupBtn.disabled = true;
             return;
         }
+        if (connectBtn) connectBtn.disabled = false;
 
         if (data.authorized) {
             statusEl.textContent = 'Connected to Google Drive.';

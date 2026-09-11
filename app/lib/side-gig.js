@@ -311,7 +311,10 @@ function calculateEbayFeesTotal() {
         parseFloat(document.getElementById('ebay-ad-rate').value) / 100;
 
     const totalTransactionVal = price + shippingCharged;
-    const standardFee = totalTransactionVal * categoryRate + 0.3;
+    // eBay's per-order fee is $0.30 for orders of $10.00 or less, $0.40 above
+    // that — not a flat $0.30 regardless of order size.
+    const orderFee = totalTransactionVal > 10 ? 0.4 : 0.3;
+    const standardFee = totalTransactionVal * categoryRate + orderFee;
     const adFee = totalTransactionVal * adRate;
 
     return standardFee + adFee;

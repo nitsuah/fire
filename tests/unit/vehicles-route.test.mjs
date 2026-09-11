@@ -53,6 +53,10 @@ function writeDb(vehicles) {
     );
 }
 
+function readDb() {
+    return JSON.parse(fs.readFileSync(TEST_DB, 'utf-8'));
+}
+
 writeDb([BASE_VEHICLE]);
 
 let app;
@@ -172,6 +176,13 @@ describe('POST /api/vehicles/:id/accept-estimate', () => {
         expect(new Date(res.body.valueLastRefreshed).toString()).not.toBe(
             'Invalid Date',
         );
+
+        const persisted = readDb().vehicles.find(
+            (v) => v.id === BASE_VEHICLE.id,
+        );
+        expect(persisted.currentValue).toBe(18500);
+        expect(persisted.valueSource).toBe('depreciation-model');
+        expect(persisted.valueLastRefreshed).toBe(res.body.valueLastRefreshed);
     });
 
     it('defaults the source to "estimate" when none is given', async () => {
@@ -180,5 +191,11 @@ describe('POST /api/vehicles/:id/accept-estimate', () => {
             .send({ value: 17000 });
         expect(res.status).toBe(200);
         expect(res.body.valueSource).toBe('estimate');
+
+        const persisted = readDb().vehicles.find(
+            (v) => v.id === BASE_VEHICLE.id,
+        );
+        expect(persisted.valueSource).toBe('estimate');
+        expect(persisted.currentValue).toBe(17000);
     });
 });

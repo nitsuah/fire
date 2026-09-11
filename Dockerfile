@@ -3,7 +3,9 @@ WORKDIR /app
 COPY package.json ./
 COPY package-lock.json ./
 RUN npm install
-COPY . .
+COPY --chown=node:node . .
+RUN mkdir -p /app/data && chown node:node /app/data
+USER node
 
 # `docker build --target test -t fire-test . && docker run --rm fire-test`
 # runs the full vitest suite inside the same image/dependency set used above.

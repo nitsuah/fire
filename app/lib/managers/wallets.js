@@ -92,6 +92,9 @@ async function loadWallets() {
     try {
         const res = await fetch('/api/wallets');
         const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || 'Failed to load wallets.');
+        }
         _walletCache = Array.isArray(data.wallets) ? data.wallets : [];
         renderWalletList();
     } catch (err) {
