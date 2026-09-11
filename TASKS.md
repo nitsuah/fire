@@ -102,10 +102,11 @@ See [docs/security-hardening.md](docs/security-hardening.md) for full remediatio
       both need a real (or fully mocked) OAuth provider round-trip, which exists only
       partially in the current test suite.
   - Not attempted as part of this pass — flagging for a follow-up task.
-- [ ] Close the branch/function coverage gap (68.33% branch vs. 70% threshold, 75.67% functions vs. 80%).
+- [x] Close the branch/function coverage gap (68.33% branch vs. 70% threshold, 75.67% functions vs. 80%).
   - Priority: P2
   - Context: statement and line coverage clear the target but branch and function coverage don't — `config/vitest.config.ts` thresholds are stricter than the blanket 80% METRICS.md target implies. `app/server.js` (41.83% stmts) is the single biggest gap.
   - Acceptance Criteria: `npm run test:coverage` reports branch ≥70% and functions ≥80%; new tests target untested branches in `app/server.js` and the sync route error paths rather than padding easy files.
+  - Evidence: on a fresh `main` checkout, `npm run test:coverage` already reported branch 70.36%/functions 84.16% (above the last-measured 68.33%/75.67% — the repo had drifted since the numbers above were recorded). Added 4 targeted tests for `app/server.js`'s previously-uncovered fail-fast paths (`SESSION_SECRET`/`FIRE_API_KEY`/`FIRE_ADMIN_KEY` required-in-production `process.exit(1)` checks, each only reachable in-process with `process.exit` mocked — the existing subprocess-based test for the same behavior earns no coverage credit) and the `express-rate-limit`-unavailable pass-through fallback. Result: branch 71.04%, functions 84.16%, statements 86.01%, lines 85.6% (`server.js` itself: 47.82% branch / 71.56% stmts, up from 36.95% / 66.66%). Full suite: 381/381 passing (was 377), lint clean. Note: several branches in `app/server.js` and `app/lib/finance-core.js` remain flagged "uncovered" in the report despite dedicated tests exercising them (verified by running those test files in isolation) — this is a `@vitest/coverage-v8` merge artifact when the same module is loaded via mixed CJS `require()`/ESM `import()` across many isolated per-file workers, not a real gap; not chased further since it isn't fixable by adding tests.
 
 ---
 
