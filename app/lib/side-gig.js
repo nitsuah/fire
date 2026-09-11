@@ -112,6 +112,87 @@ async function checkEbayConnection() {
     }
 }
 
+// Settings tab — eBay Sync card. Reads/writes the server-side
+// `ebaySyncEnabled` gate via /api/sync/ebay/*; the OAuth connect flow itself
+// stays on the Financial Overview card (checkEbayConnection above).
+async function loadEbaySettingsPanel() {
+    const toggle = document.getElementById('setting-ebay-sync-enabled');
+    const statusEl = document.getElementById('settings-ebay-status');
+    const syncBtn = document.getElementById('btn-ebay-sync-now');
+    if (!toggle || !statusEl) return;
+    try {
+        const res = await fetch('/api/sync/ebay/status');
+        const data = await res.json();
+        toggle.checked = data.syncEnabled !== false;
+        const lastSyncText = data.lastSync
+            ? new Date(data.lastSync).toLocaleString()
+            : 'never';
+        if (!data.connected) {
+            statusEl.textContent =
+                'Not connected — use the eBay Seller API card in Financial Overview to connect your account first.';
+            statusEl.style.color = 'var(--text-muted)';
+        } else {
+            statusEl.textContent = `Connected · Last sync: ${lastSyncText}`;
+            statusEl.style.color = 'var(--color-success)';
+        }
+        if (syncBtn) syncBtn.disabled = !data.connected || !toggle.checked;
+    } catch (err) {
+        statusEl.textContent = 'Unable to check eBay sync status.';
+        statusEl.style.color = 'var(--color-danger)';
+    }
+}
+
+async function toggleEbaySyncSetting() {
+    const toggle = document.getElementById('setting-ebay-sync-enabled');
+    if (!toggle) return;
+    const enabled = toggle.checked;
+    try {
+        const res = await fetch('/api/sync/ebay/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled }),
+        });
+        if (!res.ok) {
+            const d = await res.json().catch(() => ({}));
+            alert(d.error || 'Failed to update eBay sync setting.');
+            toggle.checked = !enabled;
+            return;
+        }
+    } catch (err) {
+        alert('Failed to update eBay sync setting: ' + err.message);
+        toggle.checked = !enabled;
+        return;
+    }
+    loadEbaySettingsPanel();
+}
+
+async function runEbaySyncNow() {
+    const btn = document.getElementById('btn-ebay-sync-now');
+    const statusEl = document.getElementById('settings-ebay-status');
+    if (!btn) return;
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Syncing…';
+    try {
+        const res = await fetch('/api/sync/ebay/sync', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Sync failed');
+        if (statusEl) {
+            statusEl.textContent = `Synced ${data.added} new order${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
+            statusEl.style.color = 'var(--color-success)';
+        }
+        if (typeof refreshAllUI === 'function') refreshAllUI();
+    } catch (err) {
+        if (statusEl) {
+            statusEl.textContent = `Sync failed: ${err.message}`;
+            statusEl.style.color = 'var(--color-danger)';
+        }
+    } finally {
+        btn.textContent = original;
+        loadEbaySettingsPanel();
+    }
+}
+
 async function checkPlaidConnection() {
     const statusEl = document.getElementById('plaid-sync-status');
     if (!statusEl) return;
@@ -230,7 +311,10 @@ function calculateEbayFeesTotal() {
         parseFloat(document.getElementById('ebay-ad-rate').value) / 100;
 
     const totalTransactionVal = price + shippingCharged;
-    const standardFee = totalTransactionVal * categoryRate + 0.3;
+    // eBay's per-order fee is $0.30 for orders of $10.00 or less, $0.40 above
+    // that — not a flat $0.30 regardless of order size.
+    const orderFee = totalTransactionVal > 10 ? 0.4 : 0.3;
+    const standardFee = totalTransactionVal * categoryRate + orderFee;
     const adFee = totalTransactionVal * adRate;
 
     return standardFee + adFee;

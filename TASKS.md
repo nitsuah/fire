@@ -1,4 +1,4 @@
-updated: 2026-08-28
+updated: 2026-09-10
 
 # Tasks
 
@@ -33,21 +33,26 @@ _(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
 ## PROD Phase 1 — Real-Time Data Connectors (now live)
 
 ### eBay API Connector
-- [ ] Validate eBay fee rates in `finance-platforms.js` against current published rates
-- [ ] UI toggle in settings to enable/disable eBay sync and show last-sync timestamp
+- [x] Validate eBay fee rates in `finance-platforms.js` against current published rates
+- [x] UI toggle in settings to enable/disable eBay sync and show last-sync timestamp
 - [ ] Write tests for `app/lib/ebay-connector.js` and the 4 eBay sync routes
+  - `app/lib/ebay-connector.js` already has full lib-level coverage (17 tests, pre-existing). Added route-level tests for the new `/ebay/toggle` route plus `/ebay/status` and the `/ebay/sync` disabled-gate (`tests/unit/sync-ebay-route.test.mjs`). `/ebay/authorize`, `/ebay/callback`, and `/ebay/refresh` still have no route-level (HTTP) tests — they need a session-backed OAuth redirect flow to exercise properly.
+- [ ] Model real eBay fee brackets in `calculateEbayFeesTotal` (`app/lib/side-gig.js`), not just a flat rate + order fee.
+  - Priority: P2
+  - Context: flagged by CodeRabbit on PR #103 (2026-09-10) — the calculator (pre-existing, not introduced by that PR) applies one percentage across the whole transaction value with the pre-#103-corrected $0.30 order fee. Real eBay fee structure has marginal percentage tiers above each category's sale cap, and several categories' effective rate changes at that cap. The $0.30-vs-$0.40 order-fee threshold was fixed directly (order value ≤$10 vs. >$10); the marginal-bracket-per-category modeling was not — it needs each category's actual cap/tier data (not currently captured anywhere in this codebase) and a real per-category fee-rule schema, not a scalar percentage dropdown.
+  - Acceptance Criteria: `ebay-category-rate` stores a fee-rule identifier (not a bare percentage), and `calculateEbayFeesTotal` resolves that rule's tiers/caps rather than multiplying one flat rate across the full transaction value.
 
 ### Web3 / Crypto Wallet Tracking
-- [ ] UI: wallet manager section in Financial Overview tab (add/remove wallets, balance display)
-- [ ] Write tests for `app/routes/wallets.js` and `app/lib/web3-prices.js`
+- [x] UI: wallet manager section in Financial Overview tab (add/remove wallets, balance display)
+- [x] Write tests for `app/routes/wallets.js` and `app/lib/web3-prices.js`
 
 ### Vehicle Value API
-- [ ] UI: "Refresh Value" button on vehicle cards with last-updated timestamp
-- [ ] Write tests for `app/routes/vehicles.js` and `app/lib/vehicle-api.js`
+- [x] UI: "Refresh Value" button on vehicle cards with last-updated timestamp
+- [x] Write tests for `app/routes/vehicles.js` and `app/lib/vehicle-api.js`
 
 ### Google Drive Encrypted Backup
-- [ ] UI: backup panel in settings (trigger, list, restore buttons)
-- [ ] Write tests for `app/routes/backup.js` and `app/lib/gdrive-backup.js`
+- [x] UI: backup panel in settings (trigger, list, restore buttons)
+- [x] Write tests for `app/routes/backup.js` and `app/lib/gdrive-backup.js`
 
 ---
 
