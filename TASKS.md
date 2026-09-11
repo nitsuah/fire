@@ -1,4 +1,4 @@
-updated: 2026-08-28
+updated: 2026-09-11
 
 # Tasks
 
@@ -67,11 +67,35 @@ _(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
 
 See [docs/security-hardening.md](docs/security-hardening.md) for full remediation detail.
 
-- [ ] Caddy reverse proxy in `config/docker-compose.yml` for HTTPS on localhost
-- [ ] `config/Caddyfile` with TLS auto-cert for localhost
-- [ ] Flip `FIRE_API_KEY` to required by default; add `FIRE_AUTH_DISABLED=true` opt-out
-- [ ] Vitest test asserting no write tools are registered in MCP server
+- [x] Caddy reverse proxy in `config/docker-compose.yml` for HTTPS on localhost
+- [x] `config/Caddyfile` with TLS auto-cert for localhost
+- [x] Flip `FIRE_API_KEY` to required by default; add `FIRE_AUTH_DISABLED=true` opt-out
+- [x] Vitest test asserting no write tools are registered in MCP server
+  - Found and fixed a real violation while writing this test: `set_price_target_alert`
+    called `writeState()` (persisting to `db.json`) despite the MCP server being
+    documented read-only. It now validates input and returns `not_implemented`
+    like its sibling stubs, without touching disk. See
+    `tests/unit/mcp-server-read-only.test.mjs`.
 - [ ] Run full penetration testing checklist from docs/security-hardening.md
+  - Reviewed the checklist (see docs/security-hardening.md) and triaged which items
+    are checkable from this sandboxed dev environment vs. which need a real deployment:
+    - **Checkable here (sandbox/unit-test level):** all of Authentication & Authorization
+      except session-cookie forgery edge cases already covered incidentally; all of
+      Injection; all of Information Disclosure; all of Denial of Service; MCP-Specific
+      "no write tools" (now covered) and "audit log excludes response content" (log
+      format is inspectable directly). Rate-limit-window-reset is checkable but needs
+      fake timers or a real 60s wait.
+    - **Needs a live/running deployment:** the entire Transport section (HTTP→HTTPS
+      redirect, `Strict-Transport-Security` header, `Secure` cookie flag) requires an
+      actual TLS handshake through the new Caddy container — doable locally via
+      `docker compose -f config/docker-compose.yml up -d` + `curl -kv https://localhost`,
+      but not a unit test. MCP "makes no external network calls" is only rigorously
+      verifiable with the process's network access physically disabled (OS-level
+      firewall / no-network container) — mocking `fetch` in a test is a reasonable
+      proxy but not proof. OAuth CSRF replay and `tokens.json` encryption-after-callback
+      both need a real (or fully mocked) OAuth provider round-trip, which exists only
+      partially in the current test suite.
+  - Not attempted as part of this pass — flagging for a follow-up task.
 - [ ] Close the branch/function coverage gap (68.33% branch vs. 70% threshold, 75.67% functions vs. 80%).
   - Priority: P2
   - Context: statement and line coverage clear the target but branch and function coverage don't — `config/vitest.config.ts` thresholds are stricter than the blanket 80% METRICS.md target implies. `app/server.js` (41.83% stmts) is the single biggest gap.

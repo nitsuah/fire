@@ -1,6 +1,6 @@
 services:
   fire:
-    build: 
+    build:
       context: ..
       dockerfile: config/Dockerfile
     ports:
@@ -8,3 +8,30 @@ services:
     volumes:
       - ..:/app
       - /app/node_modules
+    # Loads FIRE_API_KEY / FIRE_AUTH_DISABLED / SESSION_SECRET / etc. from the
+    # project root .env (copy .env.example to .env first). Optional so
+    # `docker compose up` still starts without one — the app itself fails
+    # fast with a clear message if auth is required but unconfigured.
+    env_file:
+      - path: ../.env
+        required: false
+
+  # TLS-terminating reverse proxy so localhost gets real HTTPS instead of
+  # plain HTTP. See docs/security-hardening.md (H-02) and config/Caddyfile.
+  # First run: docker compose -f config/docker-compose.yml exec caddy caddy trust
+  # (or install Caddy's local root CA yourself) so browsers trust the cert.
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - fire
+
+volumes:
+  caddy_data:
+  caddy_config:

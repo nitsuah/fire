@@ -1,0 +1,16 @@
+# TLS-terminating reverse proxy for the FIRE Tracker, for real HTTPS on
+# localhost instead of plain HTTP (docs/security-hardening.md, H-02).
+#
+# `tls internal` issues a certificate from Caddy's local CA. Browsers will
+# warn until that CA is trusted on your machine — run:
+#   docker compose -f config/docker-compose.yml exec caddy caddy trust
+# (or copy /data/caddy/pki/authorities/local/root.crt out of the caddy_data
+# volume and trust it manually).
+#
+# For LAN IP access, add the IP as an additional site block below. For a
+# public domain with a real Let's Encrypt cert, replace `localhost` with the
+# domain and drop the `tls internal` line.
+localhost {
+	reverse_proxy fire:3001
+	tls internal
+}

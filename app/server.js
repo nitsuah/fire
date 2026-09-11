@@ -45,10 +45,20 @@ if (!SESSION_SECRET || SESSION_SECRET === 'change_me_in_production') {
     }
 }
 
+// API auth is required by default (fail-fast if no key is configured); set
+// FIRE_AUTH_DISABLED=true to explicitly opt out for local-only use.
+const AUTH_DISABLED = process.env.FIRE_AUTH_DISABLED === 'true';
 const API_KEY = process.env.FIRE_API_KEY || null;
-if (!API_KEY && IS_PRODUCTION) {
+if (!AUTH_DISABLED && !API_KEY) {
+    console.error(
+        '[Server] FATAL: FIRE_API_KEY must be set (API auth is required by default). ' +
+            'Set FIRE_API_KEY, or set FIRE_AUTH_DISABLED=true to run without auth for local-only use.',
+    );
+    process.exit(1);
+}
+if (AUTH_DISABLED) {
     console.warn(
-        '[Server] WARNING: FIRE_API_KEY is not set. All /api/* routes are unauthenticated.',
+        '[Server] WARNING: FIRE_AUTH_DISABLED=true — all /api/* routes are unauthenticated.',
     );
 }
 
@@ -136,7 +146,7 @@ app.use(
 app.use(express.static(__dirname));
 app.use('/docs', express.static(path.join(__dirname, '../docs')));
 
-if (API_KEY) {
+if (!AUTH_DISABLED) {
     app.use('/api', (req, res, next) => {
         // Only the callback is a browser-redirect that Google initiates; authorize is user-initiated
         if (req.path === '/backup/drive/callback') {

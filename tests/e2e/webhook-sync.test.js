@@ -19,6 +19,10 @@ const WEBHOOK_DB = path.join(
     `fire-webhook-e2e-test-${process.pid}.json`,
 );
 process.env.FIRE_DB_FILE = WEBHOOK_DB;
+// These flows drive the API unauthenticated — opt out of the
+// now-required-by-default auth (the gate itself is covered by
+// tests/unit/server-hardening.test.js).
+process.env.FIRE_AUTH_DISABLED = 'true';
 
 const request = require('supertest');
 const app = require('../../app/server');
