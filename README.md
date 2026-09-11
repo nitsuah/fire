@@ -66,13 +66,15 @@ docker compose -f config/docker-compose.yml up -d --force-recreate
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and set values as needed. All are optional for basic local use.
+Copy `.env.example` to `.env` and set values as needed. Most are optional for
+basic local use — the one exception is `FIRE_API_KEY` (or its explicit
+`FIRE_AUTH_DISABLED` opt-out), which the server requires just to start.
 
 | Variable | Purpose |
 |---|---|
 | `PORT` | Server port (default `3001`) |
 | `FIRE_API_KEY` | **Required by default.** All `/api/*` routes require `X-Api-Key: <value>`. The server refuses to start unless this or `FIRE_AUTH_DISABLED` is set |
-| `FIRE_AUTH_DISABLED` | Set to `true` to run with no API auth at all (local-only use). Leave unset anywhere else could reach the server |
+| `FIRE_AUTH_DISABLED` | Set to `true` to run with no API auth at all (local-only use). Leave unset if anyone else could reach the server — see security-hardening.md |
 | `FIRE_ADMIN_KEY` | **Required in production.** Gates `POST /api/admin/rotate-key` via `X-Admin-Key` header |
 | `SYNC_MASTER_KEY` | 64-hex-char key to encrypt `db.json` at rest with AES-256-GCM |
 | `SESSION_SECRET` | Secret for signing session cookies (random string; server exits in production if unset) |
@@ -100,15 +102,23 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 `docker compose -f config/docker-compose.yml up -d` also starts a
 [Caddy](https://caddyserver.com/) reverse proxy (`config/Caddyfile`) that
-terminates TLS for `https://localhost`, so credentials and API keys aren't
-sent in plaintext over the LAN. Plain HTTP on `http://localhost:3001` keeps
-working directly against the app container.
+terminates TLS for `https://localhost`. Plain HTTP on `http://localhost:3001`
+still works for same-machine use (OAuth redirect callbacks are configured
+against it — see below), but the `fire` container's port is bound to
+`127.0.0.1` only, not every network interface, so another machine on the LAN
+can't reach it in cleartext — only this machine can, over either `:3001`
+directly or `https://localhost` via Caddy.
 
 The certificate comes from Caddy's local CA (`tls internal`), so browsers
-warn until you trust it once:
+warn until you trust it once. `caddy trust` only updates the trust store
+*inside the caddy container* — it does not touch your host or browser.
+Instead, copy the CA cert out and import it yourself:
 ```bash
-docker compose -f config/docker-compose.yml exec caddy caddy trust
+docker compose -f config/docker-compose.yml cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-local-ca.crt
 ```
+then import `caddy-local-ca.crt` via your OS/browser's certificate manager
+(see [Caddy's docs](https://caddyserver.com/docs/running) for OS-specific
+steps).
 
 For LAN IP access, add the IP as another site block in `config/Caddyfile`
 (self-signed — pin the cert in your browser). For a public domain with a

@@ -2,10 +2,14 @@
 # localhost instead of plain HTTP (docs/security-hardening.md, H-02).
 #
 # `tls internal` issues a certificate from Caddy's local CA. Browsers will
-# warn until that CA is trusted on your machine — run:
-#   docker compose -f config/docker-compose.yml exec caddy caddy trust
-# (or copy /data/caddy/pki/authorities/local/root.crt out of the caddy_data
-# volume and trust it manually).
+# warn until that CA is trusted on your machine. `caddy trust` only updates
+# the trust store *inside the caddy container* (a separate Alpine Linux
+# filesystem) -- it does NOT make your host OS or browser trust anything.
+# Instead, copy the CA cert out and import it into your host/browser trust
+# store yourself:
+#   docker compose -f config/docker-compose.yml cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-local-ca.crt
+# then import caddy-local-ca.crt via your OS/browser's certificate manager
+# (see https://caddyserver.com/docs/running for OS-specific import steps).
 #
 # For LAN IP access, add the IP as an additional site block below. For a
 # public domain with a real Let's Encrypt cert, replace `localhost` with the

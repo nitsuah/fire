@@ -1,19 +1,32 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createRequire } from 'module';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
 // Safety invariant from docs/security-hardening.md's pen test checklist
 // ("MCP-Specific" section): the MCP server must never register a tool that
 // can mutate db.json. An LLM driving this server should only ever be able
-// to read financial data, never change it. This is checked two ways below:
-//   1. behaviorally — call every registered tool and confirm db.json on
-//      disk is byte-for-byte unchanged afterward (the test that actually
-//      caught app/mcp-server.mjs's former `set_price_target_alert`, which
-//      called writeState() despite the server being documented read-only);
-//   2. by name, as a lighter defense-in-depth / documentation-level check
+// to read financial data, never change it. This is checked three ways below:
+//   1. behaviorally, via a write-call spy — call every registered tool and
+//      assert fs.writeFileSync/renameSync were never called at all. This is
+//      the check that actually matters: a byte-for-byte content diff alone
+//      (flagged by CodeRabbit on PR #105) can't distinguish "never wrote"
+//      from "wrote back identical content", and the identical-content case
+//      is exactly what a defensive/no-op write would produce;
+//   2. statically — app/mcp-server.mjs's own source must never reference
+//      writeState/mutateState (the only exported write paths from
+//      app/lib/db.js) at all, so no code path in the file *can* write,
+//      independent of what any given tool call happens to do at runtime;
+//   3. by name, as a lighter defense-in-depth / documentation-level check
 //      for obviously mutating verbs, per the checklist's own wording.
+//
+// (1) is also the test that actually caught app/mcp-server.mjs's former
+// `set_price_target_alert`, which called writeState() despite the server
+// being documented read-only — that specific bug happened to change file
+// content too, so the original byte-diff check caught it, but (1) is the
+// version of the check that would catch it even if it hadn't.
 //
 // FIRE_DB_FILE must be set before app/mcp-server.mjs (and the app/lib/db.js
 // it requires internally) is first loaded, so mcp-server.mjs is imported
@@ -98,5 +111,48 @@ describe('MCP server tool registry is read-only', () => {
         const after = fs.readFileSync(TEST_DB, 'utf8');
         expect(after).toBe(before);
         expect(fs.existsSync(`${TEST_DB}.tmp`)).toBe(false);
+    });
+
+    it('never calls the underlying write syscalls when every registered tool is called', () => {
+        // Catches what a pure content-diff can't: a write that happens to
+        // put back identical bytes (writeState's own tmp-then-rename atomic
+        // write, called with the current state unchanged) would pass the
+        // byte-diff test above but must still fail this one.
+        const writeSpy = vi.spyOn(fs, 'writeFileSync');
+        const renameSpy = vi.spyOn(fs, 'renameSync');
+        const state = readState();
+
+        try {
+            for (const tool of TOOLS) {
+                try {
+                    handleTool(tool.name, state, dummyArgsFor(tool));
+                } catch {
+                    // See the byte-diff test above — irrelevant here.
+                }
+            }
+            expect(writeSpy).not.toHaveBeenCalled();
+            expect(renameSpy).not.toHaveBeenCalled();
+        } finally {
+            writeSpy.mockRestore();
+            renameSpy.mockRestore();
+        }
+    });
+
+    it('never destructures or calls writeState/mutateState in its own source', () => {
+        // Belt-and-suspenders: the two write-capable exports from
+        // app/lib/db.js should never be destructured off a require() or
+        // called in mcp-server.mjs's actual code, so no code path in the
+        // file can write regardless of what any given tool call does at
+        // runtime. Matches usage (a destructure or a call), not prose —
+        // the file's own comments legitimately name these functions to
+        // document that they're deliberately not imported.
+        const sourcePath = fileURLToPath(
+            new URL('../../app/mcp-server.mjs', import.meta.url),
+        );
+        const source = fs.readFileSync(sourcePath, 'utf8');
+        for (const fn of ['writeState', 'mutateState']) {
+            expect(source).not.toMatch(new RegExp(`[{,]\\s*${fn}\\s*[,}:]`));
+            expect(source).not.toMatch(new RegExp(`\\b${fn}\\s*\\(`));
+        }
     });
 });

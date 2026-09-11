@@ -68,6 +68,7 @@ _(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
 See [docs/security-hardening.md](docs/security-hardening.md) for full remediation detail.
 
 - [x] Caddy reverse proxy in `config/docker-compose.yml` for HTTPS on localhost
+  - Flagged by CodeRabbit on PR #105 (2026-09-11): adding Caddy alone didn't close the LAN-cleartext gap — `fire`'s own port was still published on every host interface (`"3001:3001"`), letting any device on the LAN bypass Caddy entirely. Fixed by rebinding to loopback only (`"127.0.0.1:3001:3001"`); a full unpublish was rejected since `fire`'s port is the configured target for the eBay/Google Drive OAuth redirect callbacks, which the browser hits directly. See `docs/security-hardening.md`'s H-02 for detail.
 - [x] `config/Caddyfile` with TLS auto-cert for localhost
 - [x] Flip `FIRE_API_KEY` to required by default; add `FIRE_AUTH_DISABLED=true` opt-out
 - [x] Vitest test asserting no write tools are registered in MCP server

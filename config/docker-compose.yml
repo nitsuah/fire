@@ -3,8 +3,17 @@ services:
     build:
       context: ..
       dockerfile: config/Dockerfile
+    # Bound to loopback only (127.0.0.1), not 0.0.0.0 -- a plain "3001:3001"
+    # publishes on every interface, so another machine on the same LAN could
+    # reach the app directly over plain HTTP, bypassing Caddy's TLS
+    # termination entirely and sending FIRE_API_KEY in cleartext (CWE-319) --
+    # exactly what Caddy exists to prevent. Loopback-only closes that off
+    # while keeping http://localhost:3001 working for same-machine use
+    # (OAuth redirect callbacks for eBay/Google Drive are configured against
+    # this URL — see README.md/.env.example/docs/integrations.md — so fully
+    # unpublishing the port would break those without a docs+config update).
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     volumes:
       - ..:/app
       - /app/node_modules
@@ -18,7 +27,9 @@ services:
 
   # TLS-terminating reverse proxy so localhost gets real HTTPS instead of
   # plain HTTP. See docs/security-hardening.md (H-02) and config/Caddyfile.
-  # First run: docker compose -f config/docker-compose.yml exec caddy caddy trust
+  # First run: `caddy trust` only updates the trust store *inside* this
+  # container, not your host/browser -- see config/Caddyfile for the actual
+  # trust steps (copy the CA cert out and import it into your host/browser).
   # (or install Caddy's local root CA yourself) so browsers trust the cert.
   caddy:
     image: caddy:2-alpine

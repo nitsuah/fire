@@ -28,7 +28,7 @@ When you use the hosted Netlify deployment:
 When you run the application locally via Docker:
 
 - Data is stored in a **local `data/db.json` file** on your machine.
-- The Express server (`localhost:3001`) is accessible only from your machine by default. It has no authentication by default — do not expose it to an untrusted network.
+- The Express server (`localhost:3001`) is bound to `127.0.0.1` (loopback), so it's reachable only from your machine, not other devices on your network. `FIRE_API_KEY` is required by default (set `FIRE_AUTH_DISABLED=true` to explicitly opt out for local-only use) — see [security-hardening.md](security-hardening.md).
 - The browser app syncs with this local server; `localStorage` serves as a fallback if the server is unreachable.
 
 ---

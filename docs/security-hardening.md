@@ -100,8 +100,8 @@ app.use('/api', apiLimiter);
 
 **Status: Done.** See `config/Caddyfile` and the `caddy` service in `config/docker-compose.yml`.
 
-**Gap:** Server binds HTTP on 0.0.0.0. Any device on the LAN can reach the API and receive tokens in plaintext.  
-**Fix:** Add Caddy as a TLS-terminating reverse proxy in docker-compose.
+**Gap:** Server binds HTTP on 0.0.0.0 inside its container. Any device on the LAN could reach the API and receive tokens in plaintext — adding Caddy alongside the *existing* `fire` service alone would not have closed this, since `fire`'s own port was still published to every host interface (`"3001:3001"`).  
+**Fix:** Add Caddy as a TLS-terminating reverse proxy in docker-compose, **and** rebind `fire`'s published port to loopback only (`"127.0.0.1:3001:3001"`, not `"3001:3001"`) so Docker never forwards LAN traffic to it in the first place — regardless of what the container listens on internally. A full unpublish (`expose:` instead of `ports:`) was considered but rejected: `fire`'s port is the configured target for two real OAuth redirect callbacks (eBay, Google Drive — see README.md/.env.example/docs/integrations.md), which browsers reach directly after the provider's auth step; loopback-only binding keeps those working for same-machine use while still closing the LAN-reachability gap this item exists to fix.
 
 `config/docker-compose.yml` addition:
 ```yaml
@@ -374,7 +374,7 @@ Run this before any external-facing deployment or after major changes to the syn
 
 ### MCP-Specific
 
-- [x] MCP server registers no write tools — see `tests/unit/mcp-server-read-only.test.mjs` (name-based check plus a behavioral check that db.json is untouched after calling every registered tool; caught and fixed a real violation in `set_price_target_alert`)
+- [x] MCP server registers no write tools — see `tests/unit/mcp-server-read-only.test.mjs`: a name-based check, a byte-diff check that db.json is untouched after calling every registered tool (caught and fixed a real violation in `set_price_target_alert`), a write-syscall spy on `fs.writeFileSync`/`renameSync` (catches a same-content rewrite the byte-diff alone can't distinguish from never writing — flagged by CodeRabbit on PR #105), and a static check that the file never references `writeState`/`mutateState` at all
 - [ ] MCP server does not make external network calls (run with network blocked; all 8 tools should still respond from db.json)
 - [ ] MCP audit log records tool calls without logging response content
 
