@@ -18,7 +18,10 @@ const TEST_DB = path.join(
 process.env.FIRE_DB_FILE = TEST_DB;
 // This suite drives routes unauthenticated -- opt out of the
 // now-required-by-default auth (the gate itself is covered by
-// tests/unit/server-hardening.test.js).
+// tests/unit/server-hardening.test.js). Vitest can reuse worker processes
+// across test files, so process.env mutations here can otherwise leak into
+// a later-run suite; save the prior value and restore it in afterAll.
+const PREV_FIRE_AUTH_DISABLED = process.env.FIRE_AUTH_DISABLED;
 process.env.FIRE_AUTH_DISABLED = 'true';
 
 fs.writeFileSync(
@@ -54,6 +57,11 @@ afterAll(() => {
         fs.unlinkSync(TEST_DB);
     } catch {
         /* ignore */
+    }
+    if (PREV_FIRE_AUTH_DISABLED === undefined) {
+        delete process.env.FIRE_AUTH_DISABLED;
+    } else {
+        process.env.FIRE_AUTH_DISABLED = PREV_FIRE_AUTH_DISABLED;
     }
 });
 
