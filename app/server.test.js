@@ -7,6 +7,10 @@ const os = require('os');
 // Use an isolated temp DB for all server tests — must be set before server is required
 const TEST_DB = path.join(os.tmpdir(), `fire-server-test-${process.pid}.json`);
 process.env.FIRE_DB_FILE = TEST_DB;
+// These tests exercise routes unauthenticated, not the FIRE_API_KEY gate
+// itself (that's tests/unit/server-hardening.test.js) — opt out of the
+// now-required-by-default auth so /api/* stays reachable without a key.
+process.env.FIRE_AUTH_DISABLED = 'true';
 
 const request = require('supertest');
 const app = require('./server');

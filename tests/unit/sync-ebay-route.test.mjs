@@ -16,6 +16,10 @@ const TEST_DB = path.join(
     `fire-sync-ebay-test-${process.pid}.json`,
 );
 process.env.FIRE_DB_FILE = TEST_DB;
+// This suite drives routes unauthenticated -- opt out of the
+// now-required-by-default auth (the gate itself is covered by
+// tests/unit/server-hardening.test.js).
+process.env.FIRE_AUTH_DISABLED = 'true';
 
 fs.writeFileSync(
     TEST_DB,

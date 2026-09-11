@@ -14,6 +14,10 @@ import request from 'supertest';
 
 const TEST_DB = path.join(os.tmpdir(), `fire-prices-test-${process.pid}.json`);
 process.env.FIRE_DB_FILE = TEST_DB;
+// This suite drives /api/prices unauthenticated — opt out of the
+// now-required-by-default auth (the gate itself is covered by
+// tests/unit/server-hardening.test.js).
+process.env.FIRE_AUTH_DISABLED = 'true';
 
 // Write an initial DB so server doesn't crash on load
 fs.writeFileSync(

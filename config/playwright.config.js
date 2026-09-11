@@ -45,6 +45,9 @@ module.exports = defineConfig({
                 require('os').tmpdir(),
                 'fire-playwright-test-db.json',
             ),
+            // API auth is required by default as of PROD Phase 3 — this UI
+            // suite drives the app unauthenticated, so opt out explicitly.
+            FIRE_AUTH_DISABLED: 'true',
         },
     },
 });

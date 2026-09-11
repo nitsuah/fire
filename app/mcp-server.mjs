@@ -7,14 +7,14 @@ import {
 import { createRequire } from 'module';
 import { appendFileSync } from 'fs';
 import { join } from 'path';
+import { pathToFileURL } from 'url';
 
 const require = createRequire(import.meta.url);
-const {
-    readState,
-    writeState,
-    initDatabase,
-    DATA_DIR,
-} = require('./lib/db.js');
+// Deliberately does NOT import writeState / mutateState — the MCP server is
+// read-only by design (see docs/security-hardening.md, "MCP-Specific" pen
+// test checklist: "MCP server registers no write tools"). Locked in by
+// tests/unit/mcp-server-read-only.test.mjs.
+const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
@@ -475,20 +475,11 @@ function handleTool(name, state, toolArgs = {}) {
                     'Invalid input: symbol and targetPrice (>0) are required.',
                 );
             }
-            // Persist the alert before reporting success; if persistence is
-            // unavailable, report not_implemented instead of a false success.
-            if (!state.priceTargetAlerts) {
-                state.priceTargetAlerts = [];
-            }
-            state.priceTargetAlerts.push({
-                symbol,
-                targetPrice,
-                createdAt: Date.now(),
-            });
-            if (!writeState(state)) {
-                return { symbol, targetPrice, status: 'not_implemented' };
-            }
-            return { symbol, targetPrice, status: 'alert_set' };
+            // The MCP server never writes to db.json (read-only by design —
+            // see docs/security-hardening.md). Alert persistence + delivery
+            // isn't implemented; this only validates input and echoes it
+            // back rather than silently claiming success.
+            return { symbol, targetPrice, status: 'not_implemented' };
         }
 
         case 'auto_reconcile_csv': {
@@ -594,7 +585,17 @@ async function main() {
     await server.connect(transport);
 }
 
-main().catch((err) => {
-    console.error('[MCP] Fatal:', err);
-    process.exit(1);
-});
+// Exported for tests (e.g. tests/unit/mcp-server-read-only.test.mjs) without
+// triggering a live stdio connection on import.
+export { TOOLS, handleTool };
+
+// Only run the server when this file is executed directly (`node
+// app/mcp-server.mjs` / `npm run mcp`), not when imported as a module.
+const isMain =
+    process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+    main().catch((err) => {
+        console.error('[MCP] Fatal:', err);
+        process.exit(1);
+    });
+}

@@ -36,7 +36,9 @@ If you intend to expose this server beyond `localhost`, complete all Critical an
 | Input validation | Non-empty strings, `Number.isFinite`, YYYY-MM-DD + UTC round-trip | Strong |
 | JSONata sandbox | 5-second evaluation timeout with `finally` cleanup | Moderate |
 | Session security | `httpOnly: true`, `sameSite: lax` | Moderate |
-| API key gate | `X-Api-Key` header (optional) | Weak (opt-in) |
+| API key gate | `X-Api-Key` header (required by default; `FIRE_AUTH_DISABLED=true` opt-out) | Strong |
+| HTTPS on localhost | Caddy reverse proxy (`config/Caddyfile`, `tls internal`) via `config/docker-compose.yml` | Strong (opt-in — plain HTTP on 3001 still works directly) |
+| MCP server is read-only | No tool calls `writeState`/`mutateState`; locked in by `tests/unit/mcp-server-read-only.test.mjs` | Strong |
 | Global error handler | 500 JSON response — no stack trace exposed | Moderate |
 | event delegation pattern | `data-*` attributes for onclick — no inline handler injection | Strong |
 | Yahoo Finance abort | `AbortSignal.timeout(10000)` on all fetch calls | Moderate |
@@ -46,9 +48,7 @@ If you intend to expose this server beyond `localhost`, complete all Critical an
 | Gap | Impact | Severity |
 |---|---|---|
 | No rate limiting on /api/* | Brute-force API key, DoS | High |
-| No HTTPS | Plaintext credentials/tokens on LAN | High (LAN-shared) |
 | SESSION_SECRET fallback to hardcoded string | Session forgery if default used | High |
-| FIRE_API_KEY is optional | Unauthenticated access by default | Medium |
 | Webhook payload size unlimited | Memory exhaustion via large payload | Medium |
 | Webhook sideGigLedger entries unvalidated | Schema confusion injection | Medium |
 | 6 moderate/critical dev dependency vulns | Supply chain (dev only, not shipped) | Low |
@@ -98,8 +98,10 @@ app.use('/api', apiLimiter);
 
 #### H-02: HTTPS via Caddy Reverse Proxy
 
-**Gap:** Server binds HTTP on 0.0.0.0. Any device on the LAN can reach the API and receive tokens in plaintext.  
-**Fix:** Add Caddy as a TLS-terminating reverse proxy in docker-compose.
+**Status: Done.** See `config/Caddyfile` and the `caddy` service in `config/docker-compose.yml`.
+
+**Gap:** Server binds HTTP on 0.0.0.0 inside its container. Any device on the LAN could reach the API and receive tokens in plaintext — adding Caddy alongside the *existing* `fire` service alone would not have closed this, since `fire`'s own port was still published to every host interface (`"3001:3001"`).  
+**Fix:** Add Caddy as a TLS-terminating reverse proxy in docker-compose, **and** rebind `fire`'s published port to loopback only (`"127.0.0.1:3001:3001"`, not `"3001:3001"`) so Docker never forwards LAN traffic to it in the first place — regardless of what the container listens on internally. A full unpublish (`expose:` instead of `ports:`) was considered but rejected: `fire`'s port is the configured target for two real OAuth redirect callbacks (eBay, Google Drive — see README.md/.env.example/docs/integrations.md), which browsers reach directly after the provider's auth step; loopback-only binding keeps those working for same-machine use while still closing the LAN-reachability gap this item exists to fix.
 
 `config/docker-compose.yml` addition:
 ```yaml
@@ -110,7 +112,7 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./config/Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -154,6 +156,8 @@ if (process.env.NODE_ENV === 'production' &&
 ---
 
 #### H-04: FIRE_API_KEY Required by Default
+
+**Status: Done.** See the `AUTH_DISABLED` fail-fast check and `/api` gate in `app/server.js`.
 
 **Gap:** API key auth is opt-in; a fresh install has zero authentication.  
 **Fix:** Flip the default. Require the key unless explicitly opted out.
@@ -370,7 +374,7 @@ Run this before any external-facing deployment or after major changes to the syn
 
 ### MCP-Specific
 
-- [ ] MCP server registers no write tools (assert in test suite: `get_tools()` response contains no mutation verbs)
+- [x] MCP server registers no write tools — see `tests/unit/mcp-server-read-only.test.mjs`: a name-based check, a byte-diff check that db.json is untouched after calling every registered tool (caught and fixed a real violation in `set_price_target_alert`), a write-syscall spy on `fs.writeFileSync`/`renameSync` (catches a same-content rewrite the byte-diff alone can't distinguish from never writing — flagged by CodeRabbit on PR #105), and a static check that the file never references `writeState`/`mutateState` at all
 - [ ] MCP server does not make external network calls (run with network blocked; all 8 tools should still respond from db.json)
 - [ ] MCP audit log records tool calls without logging response content
 

@@ -14,7 +14,7 @@
 - **CD Ladder Visualizer** — timeline of upcoming maturities with yield overlays
 - **Side Hustle Tracker** — income logs + built-in eBay/platform fee calculator
 - **CSV Imports** — Fidelity positions, Chase and Capital One statements (all processed locally)
-- **REST API** — full CRUD for accounts, CDs, wallets, vehicles, sync templates, state; optional `FIRE_API_KEY` header auth; `FIRE_ADMIN_KEY`-gated key-rotation endpoint
+- **REST API** — full CRUD for accounts, CDs, wallets, vehicles, sync templates, state; `FIRE_API_KEY` header auth required by default (opt out with `FIRE_AUTH_DISABLED=true` for local-only use); `FIRE_ADMIN_KEY`-gated key-rotation endpoint
 - **MCP Server** — 12 functional tools for Claude/LLM integration via `app/mcp-server.mjs` (plus 7 registered stubs)
 - **Yahoo Finance prices** — live portfolio valuation with crumb-based auth, stale-data fallback, and SSE (`GET /api/prices/stream`) for live push; configurable via `ALPHA_VANTAGE_API_KEY` or `POLYGON_API_KEY` as stable alternatives
 - **Webhook sync framework** — JSON data-mapped templates for automated data ingestion (full CRUD + live receiver at `POST /api/sync/webhook/:templateId`)
@@ -33,13 +33,25 @@
 Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ```bash
-# Clone and start
+# Clone and configure
 git clone https://github.com/nitsuah/fire.git
 cd fire
+cp .env.example .env
+```
+
+API auth is **required by default** — edit `.env` and either set `FIRE_API_KEY`
+(recommended; generate one with the command in [Environment Variables](#environment-variables))
+or set `FIRE_AUTH_DISABLED=true` to run without auth for local-only use. The
+server refuses to start with neither set.
+
+```bash
+# Start
 docker compose -f config/docker-compose.yml up -d
 ```
 
-Open **http://localhost:3001** in your browser.
+Open **http://localhost:3001** (plain HTTP) or **https://localhost** (via the
+bundled Caddy reverse proxy — see [HTTPS via Caddy](#https-via-caddy) below)
+in your browser.
 
 ```bash
 # Stop
@@ -54,12 +66,15 @@ docker compose -f config/docker-compose.yml up -d --force-recreate
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and set values as needed. All are optional for basic local use.
+Copy `.env.example` to `.env` and set values as needed. Most are optional for
+basic local use — the one exception is `FIRE_API_KEY` (or its explicit
+`FIRE_AUTH_DISABLED` opt-out), which the server requires just to start.
 
 | Variable | Purpose |
 |---|---|
 | `PORT` | Server port (default `3001`) |
-| `FIRE_API_KEY` | When set, all `/api/*` routes require `X-Api-Key: <value>` |
+| `FIRE_API_KEY` | **Required by default.** All `/api/*` routes require `X-Api-Key: <value>`. The server refuses to start unless this or `FIRE_AUTH_DISABLED` is set |
+| `FIRE_AUTH_DISABLED` | Set to `true` to run with no API auth at all (local-only use). Leave unset if anyone else could reach the server — see security-hardening.md |
 | `FIRE_ADMIN_KEY` | **Required in production.** Gates `POST /api/admin/rotate-key` via `X-Admin-Key` header |
 | `SYNC_MASTER_KEY` | 64-hex-char key to encrypt `db.json` at rest with AES-256-GCM |
 | `SESSION_SECRET` | Secret for signing session cookies (random string; server exits in production if unset) |
@@ -80,6 +95,35 @@ Generate keys:
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
+
+---
+
+## HTTPS via Caddy
+
+`docker compose -f config/docker-compose.yml up -d` also starts a
+[Caddy](https://caddyserver.com/) reverse proxy (`config/Caddyfile`) that
+terminates TLS for `https://localhost`. Plain HTTP on `http://localhost:3001`
+still works for same-machine use (OAuth redirect callbacks are configured
+against it — see below), but the `fire` container's port is bound to
+`127.0.0.1` only, not every network interface, so another machine on the LAN
+can't reach it in cleartext — only this machine can, over either `:3001`
+directly or `https://localhost` via Caddy.
+
+The certificate comes from Caddy's local CA (`tls internal`), so browsers
+warn until you trust it once. `caddy trust` only updates the trust store
+*inside the caddy container* — it does not touch your host or browser.
+Instead, copy the CA cert out and import it yourself:
+```bash
+docker compose -f config/docker-compose.yml cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-local-ca.crt
+```
+then import `caddy-local-ca.crt` via your OS/browser's certificate manager
+(see [Caddy's docs](https://caddyserver.com/docs/running) for OS-specific
+steps).
+
+For LAN IP access, add the IP as another site block in `config/Caddyfile`
+(self-signed — pin the cert in your browser). For a public domain with a
+real Let's Encrypt cert, replace `localhost` in the Caddyfile with the
+domain and drop the `tls internal` line.
 
 ---
 
