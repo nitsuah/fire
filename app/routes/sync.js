@@ -192,7 +192,31 @@ router.post('/ebay/refresh', async (req, res) => {
     }
 });
 
+// Toggle whether eBay order sync is allowed to run. Purely a server-side
+// gate — connecting via OAuth is a separate step — so a user can leave the
+// account linked but pause automatic/manual syncing without revoking tokens.
+router.post('/ebay/toggle', async (req, res) => {
+    if (!req.body || typeof req.body.enabled !== 'boolean') {
+        return res
+            .status(400)
+            .json({ error: 'enabled (boolean) is required.' });
+    }
+    const enabled = req.body.enabled;
+    const ok = await mutateState((state) => {
+        state.ebaySyncEnabled = enabled;
+    });
+    if (!ok)
+        return res.status(500).json({ error: 'Failed to update setting.' });
+    res.json({ enabled });
+});
+
 router.post('/ebay/sync', async (req, res) => {
+    const db = readState();
+    if (db.ebaySyncEnabled === false) {
+        return res.status(403).json({
+            error: 'eBay sync is disabled. Enable it in Settings before syncing.',
+        });
+    }
     let tokens = loadTokens('ebay');
     if (!tokens)
         return res.status(401).json({
@@ -248,14 +272,17 @@ router.post('/ebay/sync', async (req, res) => {
 
 router.get('/ebay/status', (req, res) => {
     const tokens = loadTokens('ebay');
+    const db = readState();
+    const syncEnabled = db.ebaySyncEnabled !== false;
     if (!tokens) {
-        return res.json({ connected: false });
+        return res.json({ connected: false, syncEnabled });
     }
     res.json({
         connected: true,
         lastSync: tokens.lastSyncedAt || null,
         tokenUpdatedAt: tokens._tokenLastUpdated || null,
         environment: tokens.environment || 'sandbox',
+        syncEnabled,
     });
 });
 

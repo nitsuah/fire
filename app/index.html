@@ -641,6 +641,35 @@
                                 </div>
                             </div>
 
+                            <!-- Crypto Wallet Manager -->
+                            <div class="card glass-card">
+                                <h2 class="card-title">Crypto Wallets</h2>
+                                <p class="card-subtitle">Track balances across chains. Only the last 8 characters of an address are ever shown here.</p>
+                                <form class="wallet-add-form" id="form-add-wallet">
+                                    <input type="text" id="wallet-address-input" placeholder="Wallet address" autocomplete="off" aria-label="Wallet address" required>
+                                    <select id="wallet-chain-select" aria-label="Chain">
+                                        <option value="ethereum">Ethereum</option>
+                                        <option value="bnb">BNB Smart Chain</option>
+                                        <option value="polygon">Polygon</option>
+                                        <option value="arbitrum">Arbitrum One</option>
+                                        <option value="base">Base</option>
+                                        <option value="avalanche">Avalanche</option>
+                                        <option value="bitcoin">Bitcoin</option>
+                                        <option value="solana">Solana</option>
+                                    </select>
+                                    <input type="text" id="wallet-label-input" placeholder="Label (e.g. Cold Wallet)" autocomplete="off" aria-label="Wallet label" maxlength="60" required>
+                                    <button type="submit" class="action-btn">Add Wallet</button>
+                                </form>
+                                <div id="wallet-manager-error" class="veh-est-error" style="display:none; margin-top:8px;"></div>
+                                <div id="wallet-manager-list" class="mt-3">
+                                    <p class="text-muted" style="font-size:12px;">Loading wallets…</p>
+                                </div>
+                                <div class="wallet-total-row" id="wallet-total-row" style="display:none;">
+                                    <span class="font-bold">Total Tracked Value</span>
+                                    <span class="font-bold" id="wallet-total-value">$0</span>
+                                </div>
+                            </div>
+
                             <!-- ENS / Crypto Wallet Lookup -->
                             <div class="card glass-card">
                                 <h2 class="card-title">Crypto Wallet Lookup (ENS)</h2>
@@ -981,10 +1010,10 @@
                                 <div class="form-group">
                                     <label for="ebay-category-rate">eBay Category Fee Rate (%)</label>
                                     <select id="ebay-category-rate">
-                                        <option value="13.25">Most Categories (13.25% + $0.30)</option>
-                                        <option value="15.00">Books & DVDs (15.00% + $0.30)</option>
-                                        <option value="8.00">Heavy Electronics (8.00% + $0.30)</option>
-                                        <option value="12.90">Clothing & Shoes (12.90% + $0.30)</option>
+                                        <option value="13.6">Most Categories (13.6% + $0.30)</option>
+                                        <option value="15.3">Books, Movies &amp; Music (15.3% + $0.30)</option>
+                                        <option value="13.25">Trading Cards &amp; Comics (13.25% + $0.30)</option>
+                                        <option value="13.6">Clothing, Shoes &amp; Accessories (13.6% + $0.30)</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -1351,6 +1380,33 @@
                             <p class="text-muted mt-2" style="font-size:11px;">Exports include all accounts, CDs, real estate, vehicles, side gig ledger, and projection settings.</p>
                         </div>
 
+                        <!-- eBay Sync -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">eBay Order Sync</h2>
+                            <p class="card-subtitle">Automatically pull completed eBay orders into your Side Income ledger. Connect your account from the eBay Seller API card in Financial Overview first.</p>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="setting-ebay-sync-enabled" onchange="toggleEbaySyncSetting()">
+                                    <span class="checkmark"></span>
+                                    Enable eBay order sync
+                                </label>
+                            </div>
+                            <button class="backup-btn mt-2" id="btn-ebay-sync-now" onclick="runEbaySyncNow()">🔄 Sync Now</button>
+                            <p id="settings-ebay-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
+                        </div>
+
+                        <!-- Google Drive Backup -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Google Drive Backup</h2>
+                            <p class="card-subtitle">Store an AES-256-GCM encrypted snapshot of your full profile in a private "fire-tracker-backups" folder in your own Google Drive.</p>
+                            <div class="grid-organic-2 mt-3">
+                                <button class="backup-btn" id="btn-gdrive-connect" onclick="connectGoogleDrive()">🔗 Connect Google Drive</button>
+                                <button class="backup-btn" id="btn-gdrive-backup-now" onclick="runGDriveBackupNow()" disabled>☁️ Backup Now</button>
+                            </div>
+                            <p id="gdrive-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
+                            <div id="gdrive-backup-list" class="mt-2"></div>
+                        </div>
+
                         <!-- Privacy & Terms -->
                         <div class="card glass-card">
                             <h2 class="card-title">Privacy & Terms</h2>
@@ -1468,6 +1524,8 @@
     <script src="lib/managers/vehicles.js"></script>
     <script src="lib/managers/asset-form.js"></script>
     <script src="lib/managers/ens-lookup.js"></script>
+    <script src="lib/managers/wallets.js"></script>
+    <script src="lib/managers/gdrive-backup.js"></script>
     <script src="lib/managers/spending-upload.js"></script>
     <!-- Main Controller Script -->
     <script src="app.js"></script>
