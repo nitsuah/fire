@@ -572,29 +572,57 @@ describe('POST /api/sync/plaid/transactions', () => {
         expect(okItem.transactionsCursor).toBe('cursor-empty-ok');
     });
 
-    it('discards the batch and keeps the original cursor when pagination never finishes within the page cap', async () => {
+    it('discards the batch and keeps the original cursor when pagination never finishes within the page cap, while a sibling item still succeeds', async () => {
         writePlaidTokens([
             {
-                itemId: 'item-1',
-                accessToken: 'access-1',
+                itemId: 'item-capped',
+                accessToken: 'access-capped',
                 transactionsCursor: 'original-cursor',
             },
+            { itemId: 'item-ok', accessToken: 'access-ok' },
         ]);
-        // Every page reports has_more: true and a fresh page of "added"
-        // transactions -- pagination genuinely never completes within the
-        // 20-page defensive cap.
+        // Branch by access_token rather than call order: the capped item
+        // alone makes 20 requests (one per page) before the loop even
+        // reaches the second item, so a simple call-count split would
+        // misattribute most of those calls to the wrong item.
         vi.stubGlobal(
             'fetch',
-            vi.fn().mockImplementation(() =>
-                Promise.resolve({
+            vi.fn().mockImplementation((url, init) => {
+                const { access_token } = JSON.parse(init.body);
+                if (access_token === 'access-capped') {
+                    // Every page reports has_more: true and a fresh page of
+                    // "added" transactions -- pagination genuinely never
+                    // completes within the 20-page defensive cap.
+                    return Promise.resolve({
+                        ok: true,
+                        json: async () => ({
+                            added: [
+                                {
+                                    transaction_id: `txn-endless-${Math.random()}`,
+                                    amount: 5,
+                                    date: '2026-01-05',
+                                    name: 'Endless Co',
+                                    pending: false,
+                                    personal_finance_category: {
+                                        primary: 'FOOD_AND_DRINK',
+                                        detailed: 'FOOD_AND_DRINK_COFFEE',
+                                    },
+                                },
+                            ],
+                            has_more: true,
+                            next_cursor: 'still-going',
+                        }),
+                    });
+                }
+                return Promise.resolve({
                     ok: true,
                     json: async () => ({
                         added: [
                             {
-                                transaction_id: `txn-endless-${Math.random()}`,
-                                amount: 5,
+                                transaction_id: 'txn-ok',
+                                amount: 15,
                                 date: '2026-01-05',
-                                name: 'Endless Co',
+                                name: 'Sibling Co',
                                 pending: false,
                                 personal_finance_category: {
                                     primary: 'FOOD_AND_DRINK',
@@ -602,24 +630,26 @@ describe('POST /api/sync/plaid/transactions', () => {
                                 },
                             },
                         ],
-                        has_more: true,
-                        next_cursor: 'still-going',
+                        has_more: false,
+                        next_cursor: 'cursor-ok',
                     }),
-                }),
-            ),
+                });
+            }),
         );
 
         const res = await request(app).post('/api/sync/plaid/transactions');
-        // The only item present never completed pagination, so this is a
-        // total failure -- not a partial one.
-        expect(res.status).toBe(502);
+        // One item failed (page cap) but the other completed -- a partial
+        // success, not a total failure, so the route must actually reach
+        // the save/persist path rather than short-circuiting to 502 before
+        // ever touching updatedItems.
+        expect(res.status).toBe(200);
+        expect(res.body.warning).toMatch(/1 item/i);
 
-        // Nothing from the interrupted batch should have been saved, and
-        // the cursor must remain exactly what it was before this attempt
-        // (not advanced to wherever the 20-page cap happened to land) so
-        // the next sync restarts this item from the true beginning.
+        // Nothing from the capped item's interrupted batch should have
+        // been saved, but the sibling's transaction should be.
         const db = readState();
-        expect(db.spendingTransactions).toHaveLength(0);
+        expect(db.spendingTransactions).toHaveLength(1);
+        expect(db.spendingTransactions[0].id).toBe('plaid-txn-ok');
 
         const tokenData = JSON.parse(
             fs.readFileSync(
@@ -632,7 +662,15 @@ describe('POST /api/sync/plaid/transactions', () => {
                 tokenData.data,
             ),
         );
-        expect(decrypted.items[0].transactionsCursor).toBe('original-cursor');
+        const cappedItem = decrypted.items.find(
+            (i) => i.itemId === 'item-capped',
+        );
+        const okItem = decrypted.items.find((i) => i.itemId === 'item-ok');
+        // The capped item's cursor must remain exactly what it was before
+        // this attempt (not advanced to wherever the 20-page cap happened
+        // to land) so the next sync restarts it from the true beginning.
+        expect(cappedItem.transactionsCursor).toBe('original-cursor');
+        expect(okItem.transactionsCursor).toBe('cursor-ok');
     });
 
     it('reports a specific failure, without claiming success, when saving the sync cursor fails', async () => {

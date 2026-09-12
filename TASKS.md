@@ -123,13 +123,17 @@ _(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
     (`tests/e2e-ui/` is for other flows), so extending that would be a
     larger addition than this pass's scope.
 - [x] Write tests for Plaid routes in `app/routes/sync.js`
-  - `tests/unit/sync-plaid-route.test.mjs` (14 tests): status/toggle
+  - `tests/unit/sync-plaid-route.test.mjs` (18 tests): status/toggle
     persistence, the disabled-sync 403 gate, the no-token 401, the
     transactions happy path (categorization + dedup across repeat syncs),
-    partial-item-failure warnings, and the all-items-failed 502 — all via
-    a stubbed global `fetch` standing in for Plaid, same approach
+    partial-item-failure warnings, the all-items-failed 502, applying
+    modified/removed transactions, a zero-change item succeeding alongside
+    a failing sibling, discarding a page-cap-interrupted item's batch
+    while a sibling item still completes, and a sync-cursor save failure
+    reporting a specific error without claiming success — all via a
+    stubbed global `fetch` standing in for Plaid, same approach
     `tests/unit/vehicles-route.test.mjs` uses for its VIN-decode endpoint.
-    `tests/unit/plaid-transactions-parsing.test.mjs` (13 tests) covers the
+    `tests/unit/plaid-transactions-parsing.test.mjs` (12 tests) covers the
     categorization/parsing logic directly.
   - Same gap as the eBay item above: `/plaid/create-link-token`,
     `/plaid/exchange`, `/plaid/positions`, and `/plaid/accounts` are
