@@ -555,18 +555,29 @@ router.post('/plaid/transactions', async (req, res) => {
         });
     }
 
-    const allRawTxns = [];
+    const allAdded = [];
+    const allModified = [];
+    const allRemovedIds = [];
     const updatedItems = [];
     const failedItems = [];
+    let successfulItemCount = 0;
     for (const item of tokens.items) {
+        // Collected per-item so a failure (including the page-cap case
+        // below) can be discarded without contaminating other items'
+        // already-confirmed-complete batches.
+        const itemAdded = [];
+        const itemModified = [];
+        const itemRemovedIds = [];
         try {
-            let cursor = item.transactionsCursor || undefined;
+            const originalCursor = item.transactionsCursor || undefined;
+            let cursor = originalCursor;
             let hasMore = true;
             let itemFailed = false;
+            let page = 0;
             // Plaid paginates /transactions/sync via has_more/next_cursor;
             // bound the loop defensively so a misbehaving response can't
             // spin forever.
-            for (let page = 0; hasMore && page < 20; page++) {
+            for (; hasMore && page < 20; page++) {
                 const r = await fetch(`${plaidBase()}/transactions/sync`, {
                     method: 'POST',
                     headers: plaidHeaders(),
@@ -583,13 +594,34 @@ router.post('/plaid/transactions', async (req, res) => {
                     break;
                 }
                 const data = await r.json();
-                allRawTxns.push(...(data.added || []));
+                itemAdded.push(...(data.added || []));
+                itemModified.push(...(data.modified || []));
+                itemRemovedIds.push(
+                    ...(data.removed || []).map((r2) => r2.transaction_id),
+                );
                 cursor = data.next_cursor || cursor;
                 hasMore = Boolean(data.has_more);
             }
-            updatedItems.push(
-                itemFailed ? item : { ...item, transactionsCursor: cursor },
-            );
+            if (!itemFailed && hasMore) {
+                // Exhausted the page cap without Plaid ever reporting
+                // has_more: false -- pagination is incomplete, not merely
+                // slow. Per Plaid's own guidance, an interrupted sync must
+                // restart from the *original* cursor, not resume from
+                // wherever we stopped (resuming could skip transactions
+                // between the two). Discard this item's batch entirely and
+                // keep its original cursor so the next sync starts over.
+                itemFailed = true;
+                failedItems.push('page_limit_exceeded');
+            }
+            if (itemFailed) {
+                updatedItems.push(item);
+            } else {
+                allAdded.push(...itemAdded);
+                allModified.push(...itemModified);
+                allRemovedIds.push(...itemRemovedIds);
+                updatedItems.push({ ...item, transactionsCursor: cursor });
+                successfulItemCount++;
+            }
         } catch (err) {
             console.error('[Plaid] transactions fetch error:', err);
             failedItems.push(err.message);
@@ -597,18 +629,50 @@ router.post('/plaid/transactions', async (req, res) => {
         }
     }
 
-    if (failedItems.length > 0 && allRawTxns.length === 0) {
+    // A total failure is "no item's pagination completed", not "no new
+    // transactions" -- an item can legitimately complete with zero
+    // additions (nothing changed since the last sync). Bailing out on an
+    // empty batch would wrongly report a fully-successful, no-op item as
+    // "all failed" and skip saving its advanced cursor, forcing it to
+    // needlessly re-fetch the same already-confirmed-empty pages forever.
+    if (failedItems.length > 0 && successfulItemCount === 0) {
         return res.status(502).json({
             error: 'All Plaid transaction fetches failed. Existing data preserved.',
             failedCount: failedItems.length,
         });
     }
 
-    const parsed = parsePlaidTransactions(allRawTxns);
+    // /transactions/sync reports three kinds of change, all of which must
+    // be applied before the cursor advances past them (Plaid: "apply all
+    // updates from these three arrays in order") -- added and modified
+    // transactions upsert into state.spendingTransactions; removed
+    // transactions (and any modified transaction that no longer qualifies
+    // as a trackable expense -- e.g. reverted to pending, or refunded to a
+    // non-positive amount) are deleted from it.
+    const parsedAdded = parsePlaidTransactions(allAdded);
+    const parsedModified = parsePlaidTransactions(allModified);
+    const parsedModifiedIds = new Set(parsedModified.map((t) => t.id));
+    const droppedModifiedIds = allModified
+        .map((t) => `plaid-${t.transaction_id}`)
+        .filter((id) => !parsedModifiedIds.has(id));
+    const removedIds = new Set([
+        ...allRemovedIds.map((id) => `plaid-${id}`),
+        ...droppedModifiedIds,
+    ]);
+
     let added = 0;
+    let modified = 0;
+    let removed = 0;
     const ok = await mutateState((state) => {
         if (!state.spendingTransactions) state.spendingTransactions = [];
-        for (const txn of parsed) {
+        if (removedIds.size > 0) {
+            const before = state.spendingTransactions.length;
+            state.spendingTransactions = state.spendingTransactions.filter(
+                (t) => !removedIds.has(t.id),
+            );
+            removed = before - state.spendingTransactions.length;
+        }
+        for (const txn of parsedAdded) {
             const exists = state.spendingTransactions.some(
                 (t) => t.id === txn.id,
             );
@@ -617,21 +681,46 @@ router.post('/plaid/transactions', async (req, res) => {
                 added++;
             }
         }
+        for (const txn of parsedModified) {
+            const idx = state.spendingTransactions.findIndex(
+                (t) => t.id === txn.id,
+            );
+            if (idx === -1) {
+                state.spendingTransactions.push(txn);
+            } else {
+                state.spendingTransactions[idx] = txn;
+            }
+            modified++;
+        }
     });
     if (!ok)
         return res.status(500).json({ error: 'Failed to save transactions.' });
 
     const syncedAt = new Date().toISOString();
-    saveTokens('plaid', {
-        ...tokens,
-        items: updatedItems,
-        transactionsLastSyncedAt: syncedAt,
-    });
+    try {
+        saveTokens('plaid', {
+            ...tokens,
+            items: updatedItems,
+            transactionsLastSyncedAt: syncedAt,
+        });
+    } catch (err) {
+        console.error('[Plaid] failed to persist sync cursor:', err);
+        // Transactions are already saved (mutateState above succeeded), but
+        // the advanced cursor is not -- the next sync will safely re-fetch
+        // and re-apply the same pages (upserts are idempotent), just less
+        // efficiently. Report this as a failure rather than "success" so
+        // the caller knows the cursor didn't move.
+        return res.status(502).json({
+            error: 'Transactions synced, but failed to save the sync cursor. The next sync will retry these pages.',
+        });
+    }
 
     const response = {
         status: 'success',
-        fetched: parsed.length,
+        fetched: parsedAdded.length + parsedModified.length,
         added,
+        modified,
+        removed,
         syncedAt,
     };
     if (failedItems.length > 0) {

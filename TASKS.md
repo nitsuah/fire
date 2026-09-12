@@ -82,6 +82,28 @@ _(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
     `tests/unit/sync-plaid-route.test.mjs`) — this environment has no real
     Plaid sandbox credentials, so live-API behavior (auth/pagination edge
     cases, real-world `personal_finance_category` values) is unverified.
+  - Follow-up (CodeRabbit, PR #108 review): the initial version only
+    applied `data.added`, silently ignoring `data.modified` (e.g. a
+    pending amount finalizing on posting) and `data.removed` (e.g. a
+    reversed charge) while still advancing the cursor past them —
+    permanently losing those changes. Now applies all three: `modified`
+    upserts the existing record (or removes it if the update no longer
+    qualifies as a trackable expense, e.g. reverted to pending), `removed`
+    deletes the matching record. Also fixed: (1) an item that completes
+    pagination with zero new transactions was wrongly treated as "this
+    item's fetch produced nothing" and could trip the "all items failed"
+    502 path if every OTHER item also happened to add nothing — now a
+    total-failure verdict is based on how many items actually completed
+    pagination, not how many transactions came back; (2) exhausting the
+    20-page defensive cap while Plaid still reported `has_more: true` used
+    to silently advance the cursor past whatever was fetched, permanently
+    skipping the un-fetched remainder — now treated as a failure for that
+    item, discarding its partial batch and keeping the original cursor so
+    the next sync restarts it from the true beginning (per Plaid's own
+    guidance for interrupted pagination); (3) `saveTokens()`'s token-file
+    write is no longer unguarded — a failure there now returns a specific
+    5xx instead of silently reporting `status: 'success'` while the cursor
+    didn't actually move. 5 new tests (411 total, up from 406).
 - [x] Disable manual Fidelity CSV import UI when Plaid sync is active (prevent duplicates)
   - "Active" = a Plaid item is linked AND `plaidSyncEnabled` isn't
     explicitly `false` (same definition `GET /plaid/status`'s new
