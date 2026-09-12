@@ -59,9 +59,60 @@ _(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
 ## PROD Phase 2 — Financial Institution Integration (partially live)
 
 ### Fidelity / Plaid
-- [ ] `POST /api/sync/plaid/transactions` — parse into expense categories
-- [ ] Disable manual Fidelity CSV import UI when Plaid sync is active (prevent duplicates)
-- [ ] Write tests for Plaid routes in `app/routes/sync.js`
+- [x] `POST /api/sync/plaid/transactions` — parse into expense categories
+  - Added to `app/routes/sync.js`: paginates each linked item via Plaid's
+    `/transactions/sync` (cursor persisted per item in `tokens-plaid.json`
+    so repeat calls only fetch what changed), then maps the results into
+    this app's existing expense-category schema via the new
+    `parsePlaidTransactions`/`plaidCategoryToExpenseCategory` in
+    `app/lib/finance-parsing.js` — reusing the same
+    `state.spendingTransactions` store and `{id, date, merchant, amount,
+    category}` shape the Fidelity/Chase/Capital One CSV importer already
+    produces, not a new pipeline. Category resolution tries, in order:
+    Plaid's modern `personal_finance_category.detailed`
+    (`PLAID_CATEGORY_MAP`), then `.primary` (`PLAID_PRIMARY_CATEGORY_MAP`),
+    then a light read of the legacy `category` array, then the same
+    merchant-keyword fallback (`_descToCategory`) Chase/CapOne rows use
+    when their own statement category doesn't map. Dedup by
+    `plaid-${transaction_id}`, same pattern as the eBay ledger sync.
+    Gated behind a new `plaidSyncEnabled` setting (default `true`,
+    `POST /plaid/toggle`) mirroring the eBay sync toggle.
+  - Caveat: only verified against a mocked `/transactions/sync` response
+    shaped to match Plaid's published API docs (see
+    `tests/unit/sync-plaid-route.test.mjs`) — this environment has no real
+    Plaid sandbox credentials, so live-API behavior (auth/pagination edge
+    cases, real-world `personal_finance_category` values) is unverified.
+- [x] Disable manual Fidelity CSV import UI when Plaid sync is active (prevent duplicates)
+  - "Active" = a Plaid item is linked AND `plaidSyncEnabled` isn't
+    explicitly `false` (same definition `GET /plaid/status`'s new
+    `syncEnabled` field reports). `setFidelityImportDisabled()` in
+    `app/lib/csv-import.js` disables the `#csv-drag-zone` (click/drop/file
+    picker all bail out early, plus `pointer-events:none` + dimmed style
+    via `.fo-import-drop.disabled` in `app/lib/css/widgets.css`) and swaps
+    in an explanatory label. Wired up in `app/lib/side-gig.js`'s
+    `checkPlaidConnection()` (runs on page load and right after a
+    successful Plaid Link) and `loadPlaidSettingsPanel()` (Settings tab,
+    runs on load and after toggling), so the gate reacts immediately to
+    both connecting/disconnecting and to the new Settings toggle.
+  - Gap: no automated UI/e2e test clicks the drag zone to confirm it's
+    inert — only the underlying `syncEnabled`/`connected` status the gate
+    reads is covered by route tests. This repo doesn't currently run
+    Playwright e2e specs against browser-side CSV import interactions
+    (`tests/e2e-ui/` is for other flows), so extending that would be a
+    larger addition than this pass's scope.
+- [x] Write tests for Plaid routes in `app/routes/sync.js`
+  - `tests/unit/sync-plaid-route.test.mjs` (14 tests): status/toggle
+    persistence, the disabled-sync 403 gate, the no-token 401, the
+    transactions happy path (categorization + dedup across repeat syncs),
+    partial-item-failure warnings, and the all-items-failed 502 — all via
+    a stubbed global `fetch` standing in for Plaid, same approach
+    `tests/unit/vehicles-route.test.mjs` uses for its VIN-decode endpoint.
+    `tests/unit/plaid-transactions-parsing.test.mjs` (13 tests) covers the
+    categorization/parsing logic directly.
+  - Same gap as the eBay item above: `/plaid/create-link-token`,
+    `/plaid/exchange`, `/plaid/positions`, and `/plaid/accounts` are
+    pre-existing routes with no route-level (HTTP) tests — out of scope
+    for this pass, which focused on the new transaction-sync routes.
 
 ### Real-Time Price Improvements
 - [ ] Write tests for `app/lib/prices-provider.js` (Alpha Vantage + Polygon paths)

@@ -77,6 +77,14 @@
     background: rgba(139,92,246,0.08);
 }
 
+/* Disabled while Plaid transaction sync is active — see
+   setFidelityImportDisabled() in app/lib/csv-import.js */
+.fo-import-drop.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 .fo-upload-icon {
     width: 18px;
     height: 18px;

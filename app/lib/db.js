@@ -76,6 +76,7 @@ function defaultState() {
         importedFiles: [],
         webhookTemplates: [],
         ebaySyncEnabled: true,
+        plaidSyncEnabled: true,
     };
 }
 

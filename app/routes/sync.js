@@ -8,6 +8,7 @@ const jsonata = require('jsonata');
 const { DATA_DIR, readState, mutateState } = require('../lib/db');
 const { encrypt, decrypt } = require('../lib/crypto-utils');
 const { integrateWebhookData } = require('../lib/webhook-integration');
+const { parsePlaidTransactions } = require('../lib/finance-parsing');
 const {
     isConfigured: eBayConfigured,
     buildAuthorizationUrl,
@@ -288,14 +289,39 @@ router.get('/ebay/status', (req, res) => {
 
 router.get('/plaid/status', (req, res) => {
     const tokens = loadTokens('plaid');
+    const db = readState();
+    const syncEnabled = db.plaidSyncEnabled !== false;
     if (!tokens?.items?.length) {
-        return res.json({ connected: false, itemCount: 0 });
+        return res.json({ connected: false, itemCount: 0, syncEnabled });
     }
     res.json({
         connected: true,
         itemCount: tokens.items.length,
         lastUpdated: tokens.lastUpdated,
+        lastTransactionsSync: tokens.transactionsLastSyncedAt || null,
+        syncEnabled,
     });
+});
+
+// Toggle whether Plaid transaction sync is allowed to run. Mirrors
+// /ebay/toggle: a server-side gate independent of the Link/exchange flow,
+// so a user can leave accounts linked but pause automatic/manual
+// transaction syncing without unlinking. The Fidelity CSV import UI also
+// reads this (via /plaid/status) to disable itself while Plaid sync is
+// active, so the two importers can't double-count the same expenses.
+router.post('/plaid/toggle', async (req, res) => {
+    if (!req.body || typeof req.body.enabled !== 'boolean') {
+        return res
+            .status(400)
+            .json({ error: 'enabled (boolean) is required.' });
+    }
+    const enabled = req.body.enabled;
+    const ok = await mutateState((state) => {
+        state.plaidSyncEnabled = enabled;
+    });
+    if (!ok)
+        return res.status(500).json({ error: 'Failed to update setting.' });
+    res.json({ enabled });
 });
 
 // ─── Plaid ───────────────────────────────────────────────────────────────────
@@ -505,6 +531,113 @@ router.post('/plaid/accounts', async (req, res) => {
         accountsResponse.warning = `${failedItems.length} item(s) failed; partial data saved.`;
     }
     res.json(accountsResponse);
+});
+
+// Pulls new/updated transactions for every linked Plaid item via
+// /transactions/sync (Plaid's current recommended endpoint — cursor-based,
+// so repeat calls only fetch what's changed since the last one) and
+// parses them into this app's existing expense-category schema via
+// parsePlaidTransactions (app/lib/finance-parsing.js), reusing the same
+// categorization pipeline and `state.spendingTransactions` store that the
+// Fidelity/Chase/Capital One CSV importer feeds — see that disabled-import
+// gate below and PLAID_CATEGORY_MAP in finance-parsing.js for the mapping.
+router.post('/plaid/transactions', async (req, res) => {
+    const db = readState();
+    if (db.plaidSyncEnabled === false) {
+        return res.status(403).json({
+            error: 'Plaid sync is disabled. Enable it in Settings before syncing.',
+        });
+    }
+    const tokens = loadTokens('plaid');
+    if (!tokens?.items?.length) {
+        return res.status(401).json({
+            error: 'No Plaid tokens. Run /api/sync/plaid/exchange first.',
+        });
+    }
+
+    const allRawTxns = [];
+    const updatedItems = [];
+    const failedItems = [];
+    for (const item of tokens.items) {
+        try {
+            let cursor = item.transactionsCursor || undefined;
+            let hasMore = true;
+            let itemFailed = false;
+            // Plaid paginates /transactions/sync via has_more/next_cursor;
+            // bound the loop defensively so a misbehaving response can't
+            // spin forever.
+            for (let page = 0; hasMore && page < 20; page++) {
+                const r = await fetch(`${plaidBase()}/transactions/sync`, {
+                    method: 'POST',
+                    headers: plaidHeaders(),
+                    body: JSON.stringify({
+                        access_token: item.accessToken,
+                        cursor,
+                        count: 500,
+                    }),
+                    signal: AbortSignal.timeout(15000),
+                });
+                if (!r.ok) {
+                    failedItems.push(r.status);
+                    itemFailed = true;
+                    break;
+                }
+                const data = await r.json();
+                allRawTxns.push(...(data.added || []));
+                cursor = data.next_cursor || cursor;
+                hasMore = Boolean(data.has_more);
+            }
+            updatedItems.push(
+                itemFailed ? item : { ...item, transactionsCursor: cursor },
+            );
+        } catch (err) {
+            console.error('[Plaid] transactions fetch error:', err);
+            failedItems.push(err.message);
+            updatedItems.push(item);
+        }
+    }
+
+    if (failedItems.length > 0 && allRawTxns.length === 0) {
+        return res.status(502).json({
+            error: 'All Plaid transaction fetches failed. Existing data preserved.',
+            failedCount: failedItems.length,
+        });
+    }
+
+    const parsed = parsePlaidTransactions(allRawTxns);
+    let added = 0;
+    const ok = await mutateState((state) => {
+        if (!state.spendingTransactions) state.spendingTransactions = [];
+        for (const txn of parsed) {
+            const exists = state.spendingTransactions.some(
+                (t) => t.id === txn.id,
+            );
+            if (!exists) {
+                state.spendingTransactions.push(txn);
+                added++;
+            }
+        }
+    });
+    if (!ok)
+        return res.status(500).json({ error: 'Failed to save transactions.' });
+
+    const syncedAt = new Date().toISOString();
+    saveTokens('plaid', {
+        ...tokens,
+        items: updatedItems,
+        transactionsLastSyncedAt: syncedAt,
+    });
+
+    const response = {
+        status: 'success',
+        fetched: parsed.length,
+        added,
+        syncedAt,
+    };
+    if (failedItems.length > 0) {
+        response.warning = `${failedItems.length} item(s) failed; partial data synced.`;
+    }
+    res.json(response);
 });
 
 // ─── Webhook templates ────────────────────────────────────────────────────────

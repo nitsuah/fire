@@ -1395,6 +1395,21 @@
                             <p id="settings-ebay-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
                         </div>
 
+                        <!-- Plaid Transaction Sync -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Plaid Transaction Sync</h2>
+                            <p class="card-subtitle">Automatically pull bank/card transactions and auto-categorize them into your Expenses tab, using the same categories as CSV imports. While active, manual Fidelity CSV import is disabled to prevent duplicate expenses. Connect an account from the Plaid Investments card in Financial Overview first.</p>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="setting-plaid-sync-enabled" onchange="togglePlaidSyncSetting()">
+                                    <span class="checkmark"></span>
+                                    Enable Plaid transaction sync
+                                </label>
+                            </div>
+                            <button class="backup-btn mt-2" id="btn-plaid-sync-now" onclick="runPlaidTransactionsSyncNow()">🔄 Sync Now</button>
+                            <p id="settings-plaid-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
+                        </div>
+
                         <!-- Google Drive Backup -->
                         <div class="card glass-card">
                             <h2 class="card-title">Google Drive Backup</h2>
