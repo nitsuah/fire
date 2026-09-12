@@ -344,6 +344,10 @@ module.exports = {
     matchMerchantOverride: parsing.matchMerchantOverride,
     CHASE_CATEGORY_MAP: parsing.CHASE_CATEGORY_MAP,
     CAPITALONE_CATEGORY_MAP: parsing.CAPITALONE_CATEGORY_MAP,
+    PLAID_CATEGORY_MAP: parsing.PLAID_CATEGORY_MAP,
+    PLAID_PRIMARY_CATEGORY_MAP: parsing.PLAID_PRIMARY_CATEGORY_MAP,
+    plaidCategoryToExpenseCategory: parsing.plaidCategoryToExpenseCategory,
+    parsePlaidTransactions: parsing.parsePlaidTransactions,
 
     // from finance-platforms.js
     calculateEbayFees: platforms.calculateEbayFees,
