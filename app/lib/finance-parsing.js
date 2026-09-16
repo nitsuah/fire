@@ -511,6 +511,148 @@ function parseSpendingTransactions(rows, overrides = {}) {
     return txns;
 }
 
+// ─── Plaid transaction sync (server-side, no browser CSV involved) ───────
+// Maps Plaid's `personal_finance_category.detailed` taxonomy → our expense
+// bucket keys. This is the modern, stable category enum Plaid recommends
+// over the legacy `category` array. Kept as its own map (rather than folded
+// into CHASE_CATEGORY_MAP/CAPITALONE_CATEGORY_MAP above) since Plaid's
+// category keys don't overlap with either statement format's vocabulary.
+const PLAID_CATEGORY_MAP = {
+    RENT_AND_UTILITIES_RENT: 'housing',
+    RENT_AND_UTILITIES_GAS_AND_ELECTRICITY: 'utilities',
+    RENT_AND_UTILITIES_INTERNET_AND_CABLE: 'utilities',
+    RENT_AND_UTILITIES_TELEPHONE: 'utilities',
+    RENT_AND_UTILITIES_WATER: 'utilities',
+    RENT_AND_UTILITIES_SEWAGE_AND_WASTE_MANAGEMENT: 'utilities',
+    RENT_AND_UTILITIES_OTHER_UTILITIES: 'utilities',
+    HOME_IMPROVEMENT_REPAIR_AND_MAINTENANCE: 'housing',
+    HOME_IMPROVEMENT_FURNITURE: 'housing',
+    HOME_IMPROVEMENT_HARDWARE: 'housing',
+    HOME_IMPROVEMENT_OTHER_HOME_IMPROVEMENT: 'housing',
+    FOOD_AND_DRINK_GROCERIES: 'food',
+    FOOD_AND_DRINK_RESTAURANT: 'food',
+    FOOD_AND_DRINK_COFFEE: 'food',
+    FOOD_AND_DRINK_FAST_FOOD: 'food',
+    FOOD_AND_DRINK_BEER_WINE_AND_LIQUOR: 'food',
+    FOOD_AND_DRINK_VENDING_MACHINES: 'food',
+    FOOD_AND_DRINK_OTHER_FOOD_AND_DRINK: 'food',
+    TRANSPORTATION_GAS: 'transport',
+    TRANSPORTATION_PARKING: 'transport',
+    TRANSPORTATION_PUBLIC_TRANSIT: 'transport',
+    TRANSPORTATION_TAXIS_AND_RIDE_SHARES: 'transport',
+    TRANSPORTATION_TOLLS: 'transport',
+    TRANSPORTATION_BIKES_AND_SCOOTERS: 'transport',
+    TRANSPORTATION_OTHER_TRANSPORTATION: 'transport',
+    TRAVEL_FLIGHTS: 'transport',
+    TRAVEL_LODGING: 'discretionary',
+    TRAVEL_RENTAL_CARS: 'transport',
+    TRAVEL_PARKING: 'transport',
+    TRAVEL_OTHER_TRAVEL: 'transport',
+    MEDICAL_DENTAL_CARE: 'healthcare',
+    MEDICAL_EYE_CARE: 'healthcare',
+    MEDICAL_NURSING_CARE: 'healthcare',
+    MEDICAL_PHARMACIES_AND_SUPPLEMENTS: 'healthcare',
+    MEDICAL_PRIMARY_CARE: 'healthcare',
+    MEDICAL_VETERINARY_SERVICES: 'healthcare',
+    MEDICAL_OTHER_MEDICAL: 'healthcare',
+    GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES: 'discretionary',
+    GENERAL_MERCHANDISE_ELECTRONICS: 'discretionary',
+    GENERAL_MERCHANDISE_ONLINE_MARKETPLACES: 'discretionary',
+    GENERAL_MERCHANDISE_SUPERSTORES: 'discretionary',
+    GENERAL_MERCHANDISE_DISCOUNT_STORES: 'discretionary',
+    GENERAL_MERCHANDISE_PET_SUPPLIES: 'discretionary',
+    GENERAL_MERCHANDISE_SPORTING_GOODS: 'discretionary',
+    GENERAL_MERCHANDISE_OTHER_GENERAL_MERCHANDISE: 'discretionary',
+    ENTERTAINMENT_MOVIES_AND_DVDS: 'discretionary',
+    ENTERTAINMENT_MUSIC_AND_AUDIO: 'discretionary',
+    ENTERTAINMENT_SPORTING_EVENTS_AMUSEMENT_PARKS_AND_MUSEUMS: 'discretionary',
+    ENTERTAINMENT_TV_AND_MOVIES: 'discretionary',
+    ENTERTAINMENT_VIDEO_GAMES: 'discretionary',
+    ENTERTAINMENT_OTHER_ENTERTAINMENT: 'discretionary',
+    PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS: 'discretionary',
+    PERSONAL_CARE_HAIR_AND_BEAUTY: 'discretionary',
+    PERSONAL_CARE_LAUNDRY_AND_DRY_CLEANING: 'discretionary',
+    PERSONAL_CARE_OTHER_PERSONAL_CARE: 'discretionary',
+    GENERAL_SERVICES_OTHER_GENERAL_SERVICES: 'discretionary',
+};
+
+// Primary-level fallback for when a more granular `detailed` value isn't in
+// the map above (Plaid periodically adds new detailed subcategories, and
+// `RENT_AND_UTILITIES` intentionally has no primary-level entry since it
+// splits between housing and utilities only at the detailed level).
+const PLAID_PRIMARY_CATEGORY_MAP = {
+    HOME_IMPROVEMENT: 'housing',
+    FOOD_AND_DRINK: 'food',
+    TRANSPORTATION: 'transport',
+    TRAVEL: 'transport',
+    MEDICAL: 'healthcare',
+    GENERAL_MERCHANDISE: 'discretionary',
+    ENTERTAINMENT: 'discretionary',
+    PERSONAL_CARE: 'discretionary',
+    GENERAL_SERVICES: 'discretionary',
+    GOVERNMENT_AND_NON_PROFIT: 'discretionary',
+};
+
+// Resolves one Plaid transaction to our expense bucket key. Tries, in
+// order: the modern detailed category, the modern primary category, a
+// light keyword read of the legacy (deprecated by Plaid, but still present
+// in some sandbox fixtures/older Items) `category` array, then finally
+// falls back to the same merchant-keyword heuristic used for Chase/CapOne
+// rows whose statement category doesn't map to a known bucket — reusing
+// _descToCategory rather than duplicating its keyword table.
+function plaidCategoryToExpenseCategory(txn) {
+    const pfc = txn.personal_finance_category;
+    if (pfc?.detailed && PLAID_CATEGORY_MAP[pfc.detailed]) {
+        return PLAID_CATEGORY_MAP[pfc.detailed];
+    }
+    if (pfc?.primary && PLAID_PRIMARY_CATEGORY_MAP[pfc.primary]) {
+        return PLAID_PRIMARY_CATEGORY_MAP[pfc.primary];
+    }
+    const legacy = Array.isArray(txn.category) ? txn.category[0] : null;
+    if (legacy) {
+        const key = legacy.toLowerCase();
+        if (key.includes('food') || key.includes('restaurant')) return 'food';
+        if (key.includes('travel') || key.includes('transport'))
+            return 'transport';
+        if (key.includes('medical') || key.includes('health'))
+            return 'healthcare';
+        if (key.includes('rent') || key.includes('home')) return 'housing';
+        if (key.includes('utilit') || key.includes('service'))
+            return 'utilities';
+    }
+    return _descToCategory(txn.merchant_name || txn.name || '');
+}
+
+// Converts a raw Plaid `/transactions/sync` (or `/transactions/get`) array
+// into this app's per-transaction spending schema — the same
+// {id, date, merchant, amount, category} shape the Fidelity/Chase/CapOne
+// CSV importer produces into `state.spendingTransactions` — so every
+// downstream consumer (totals, the Expenses tab table) works unchanged
+// regardless of whether a row came from a CSV upload or a Plaid sync.
+function parsePlaidTransactions(transactions) {
+    if (!Array.isArray(transactions)) return [];
+    const out = [];
+    for (const txn of transactions) {
+        if (!txn || typeof txn !== 'object') continue;
+        if (txn.pending) continue; // wait for it to post before counting it
+        // Plaid convention: a positive amount is money leaving the
+        // account (an expense); negative/zero is a refund, credit, or
+        // incoming transfer, which this expense pipeline doesn't track.
+        const amount = typeof txn.amount === 'number' ? txn.amount : NaN;
+        if (isNaN(amount) || amount <= 0) continue;
+        const merchant = (txn.merchant_name || txn.name || '').trim();
+        if (!merchant || !txn.transaction_id) continue;
+        out.push({
+            id: `plaid-${txn.transaction_id}`,
+            date: txn.date || '',
+            merchant,
+            amount: Math.round(amount * 100) / 100,
+            category: plaidCategoryToExpenseCategory(txn),
+        });
+    }
+    return out;
+}
+
 module.exports = {
     parseCSVText,
     parseFidelityPositions,
@@ -520,4 +662,8 @@ module.exports = {
     matchMerchantOverride,
     CHASE_CATEGORY_MAP,
     CAPITALONE_CATEGORY_MAP,
+    PLAID_CATEGORY_MAP,
+    PLAID_PRIMARY_CATEGORY_MAP,
+    plaidCategoryToExpenseCategory,
+    parsePlaidTransactions,
 };

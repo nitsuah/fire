@@ -7,7 +7,10 @@ function initCSVImport() {
     const dragZone = document.getElementById('csv-drag-zone');
     const fileInput = document.getElementById('csv-file-input');
 
-    dragZone.addEventListener('click', () => fileInput.click());
+    dragZone.addEventListener('click', () => {
+        if (dragZone.classList.contains('disabled')) return;
+        fileInput.click();
+    });
 
     dragZone.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -21,17 +24,48 @@ function initCSVImport() {
     dragZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dragZone.classList.remove('dragover');
+        if (dragZone.classList.contains('disabled')) return;
         if (e.dataTransfer.files.length) {
             processCSVFile(e.dataTransfer.files[0]);
         }
     });
 
     fileInput.addEventListener('change', (e) => {
+        if (dragZone.classList.contains('disabled')) {
+            fileInput.value = '';
+            return;
+        }
         if (e.target.files.length) {
             processCSVFile(e.target.files[0]);
         }
     });
 }
+
+// Manual Fidelity/Chase/CapOne CSV import and Plaid transaction sync both
+// feed the same expense pipeline, so leaving both on invites duplicate
+// entries. Called whenever Plaid connection/sync-enabled status is checked
+// (see checkPlaidConnection/loadPlaidSettingsPanel in side-gig.js) — Plaid
+// "active" means linked AND not manually paused via the Settings toggle.
+function setFidelityImportDisabled(disabled) {
+    const dragZone = document.getElementById('csv-drag-zone');
+    const fileInput = document.getElementById('csv-file-input');
+    if (!dragZone) return;
+    dragZone.classList.toggle('disabled', disabled);
+    dragZone.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    if (fileInput) fileInput.disabled = disabled;
+    const label = dragZone.querySelector('.fo-import-label');
+    if (!label) return;
+    if (disabled) {
+        if (!label.dataset.originalText) {
+            label.dataset.originalText = label.textContent;
+        }
+        label.textContent =
+            'CSV import disabled while Plaid sync is active (Settings → Plaid Transaction Sync) — prevents duplicate expenses.';
+    } else if (label.dataset.originalText) {
+        label.textContent = label.dataset.originalText;
+    }
+}
+window.setFidelityImportDisabled = setFidelityImportDisabled;
 
 function processCSVFile(file) {
     const reader = new FileReader();

@@ -659,5 +659,6 @@ window.loadSettingsTab = function() {
     loadNotificationSettings();
     loadProjectionDefaults();
     if (typeof loadEbaySettingsPanel === 'function') loadEbaySettingsPanel();
+    if (typeof loadPlaidSettingsPanel === 'function') loadPlaidSettingsPanel();
     if (typeof loadGDriveBackupPanel === 'function') loadGDriveBackupPanel();
 };
