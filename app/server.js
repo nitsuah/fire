@@ -212,6 +212,18 @@ app.post('/api/admin/rotate-key', async (req, res) => {
     }
 });
 
+// Any /api/* request that didn't match a mounted router or route above
+// (typo'd path, wrong method, stale client hitting a renamed/removed
+// endpoint) must still get a JSON response — without this, Express falls
+// through to its built-in default 404, which is an HTML page
+// ("<!DOCTYPE html>...Cannot GET ..."). Every client-side fetch caller in
+// this app expects JSON and calls res.json() on the result, so an HTML 404
+// throws "Unexpected token '<' ... is not valid JSON" out of that call
+// instead of surfacing the actual "not found" error.
+app.use('/api', (req, res) => {
+    res.status(404).json({ error: 'Not found.', path: req.originalUrl });
+});
+
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
     console.error('[Server] Unhandled error:', err);

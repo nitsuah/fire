@@ -21,11 +21,10 @@ function initEnsLookup() {
         resultEl.innerHTML = '';
 
         try {
-            const res = await fetch(
+            const { ok, data } = await fetchJson(
                 `/api/wallets/ens/${encodeURIComponent(name)}`,
             );
-            const data = await res.json();
-            if (!res.ok) {
+            if (!ok) {
                 resultEl.innerHTML = `<div class="veh-est-error">${escHtml(data.error || 'Lookup failed.')}</div>`;
                 return;
             }

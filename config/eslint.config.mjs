@@ -53,6 +53,7 @@ export default [
             'app/lib/tables-positions.js',
             // Shared browser utilities (loaded as <script> globals)
             'app/lib/html-utils.js',
+            'app/lib/fetch-utils.js',
             'app/lib/privacy.js',
             'app/lib/notifications.js',
             // Modular components (refactored structure)
