@@ -153,9 +153,13 @@ function _getAnnualExpensesTotal(expenses, insurances, taxRate) {
     return baseAnnual + baseAnnual * ((taxRate || 0) / 100);
 }
 
-function _getAggregateNetWorth(state) {
-    let cash = 0,
-        equities = 0;
+// The "cash-like" slice of net worth: settled cash/money-market positions
+// plus Cash/Savings/"other" custom accounts (everything _getAggregateNetWorth
+// doesn't classify as equities/CDs/real estate/vehicles/side-gig). Used both
+// for the net worth total and, separately, to seed the cash bucket that
+// post-retirement withdrawals draw from first (see buildProjectionData).
+function _getCashBucket(state) {
+    let cash = 0;
     (state.importedPositions || []).forEach((pos) => {
         const sym = pos.symbol || '';
         const desc = pos.description || '';
@@ -165,16 +169,30 @@ function _getAggregateNetWorth(state) {
             desc.includes('MONEY MARKET')
         ) {
             cash += pos.value || 0;
-        } else {
-            equities += pos.value || 0;
         }
     });
     (state.customAccounts || []).forEach((acc) => {
-        if (acc.type === 'Cash' || acc.type === 'Savings')
-            cash += acc.value || 0;
-        else if (acc.type === 'Brokerage' || acc.type === 'Crypto')
+        if (acc.type === 'Brokerage' || acc.type === 'Crypto') return; // equities, not cash
+        cash += acc.value || 0; // Cash/Savings and "other assets" alike
+    });
+    return cash;
+}
+
+function _getAggregateNetWorth(state) {
+    const cash = _getCashBucket(state);
+    let equities = 0;
+    (state.importedPositions || []).forEach((pos) => {
+        const sym = pos.symbol || '';
+        const desc = pos.description || '';
+        const isCash =
+            sym.includes('SPAXX') ||
+            sym.includes('FDRXX') ||
+            desc.includes('MONEY MARKET');
+        if (!isCash) equities += pos.value || 0;
+    });
+    (state.customAccounts || []).forEach((acc) => {
+        if (acc.type === 'Brokerage' || acc.type === 'Crypto')
             equities += acc.value || 0;
-        else cash += acc.value || 0; // other assets
     });
     const cds = (state.cds || []).reduce((s, cd) => s + (cd.principal || 0), 0);
     const re = (state.realEstate || []).reduce(
@@ -191,6 +209,26 @@ function _getAggregateNetWorth(state) {
         0,
     );
     return cash + equities + cds + re + veh + gig;
+}
+
+// One retirement year's withdrawal: draws `expense` from `cash` first (cash
+// earns no return in this model) and only pulls the remainder from
+// `invested` — after `invested` has already grown at `returnRate` for the
+// year, same "grow then withdraw" order the pre-cash-first model used.
+// Mirrors a real retiree's typical sequencing (spend cash reserves before
+// selling invested assets, especially during a downturn) rather than
+// treating the whole portfolio as one undifferentiated pool.
+function _withdrawCashFirst(cash, invested, returnRate, expense) {
+    const totalBefore = cash + invested;
+    const cashDrawn = Math.min(cash, expense);
+    const remaining = expense - cashDrawn;
+    const rawInvested = invested * (1 + returnRate) - remaining;
+    const nextCash = cash - cashDrawn;
+    return {
+        cash: nextCash,
+        invested: Math.max(0, rawInvested),
+        depletedThisYear: totalBefore > 0 && nextCash + rawInvested <= 0,
+    };
 }
 
 function buildProjectionData(state, scenarioOffset) {
@@ -245,6 +283,18 @@ function buildProjectionData(state, scenarioOffset) {
         bearData = [],
         benchData = [];
 
+    // Cash/invested split, seeded from the real current portfolio
+    // composition and carried forward at that fixed fraction through the
+    // (unchanged) pre-retirement accumulation phase. Populated the moment
+    // each scenario crosses into retirement, below.
+    const cashFraction0 = networth > 0 ? _getCashBucket(state) / networth : 0;
+    let cashBase = null,
+        investedBase = null;
+    let cashBull = null,
+        investedBull = null;
+    let cashBear = null,
+        investedBear = null;
+
     const coastYears = retireAge - currentAge;
     const coastFireTarget =
         coastYears > 0
@@ -261,14 +311,20 @@ function buildProjectionData(state, scenarioOffset) {
 
     for (let yr = 0; yr <= span; yr++) {
         const age = currentAge + yr;
+        const displayBase =
+            cashBase !== null ? cashBase + investedBase : currentNW;
+        const displayBull =
+            cashBull !== null ? cashBull + investedBull : bullNW;
+        const displayBear =
+            cashBear !== null ? cashBear + investedBear : bearNW;
         labels.push(`Age ${age}`);
-        nwData.push(Math.round(currentNW));
+        nwData.push(Math.round(displayBase));
         fireLine.push(Math.round(fireNumber));
         leanFireLine.push(Math.round(fireNumber * 0.75));
         fatFireLine.push(Math.round(fireNumber * 1.25));
         coastFireLine.push(Math.round(coastFireTarget));
-        bullData.push(Math.round(bullNW));
-        bearData.push(Math.round(Math.max(bearNW, 0)));
+        bullData.push(Math.round(displayBull));
+        bearData.push(Math.round(Math.max(displayBear, 0)));
 
         const lower =
             [...ageKeys].reverse().find((a) => a <= age) || ageKeys[0];
@@ -287,39 +343,50 @@ function buildProjectionData(state, scenarioOffset) {
         if (yr < span) {
             const isRetired = age >= retireAge;
             if (isRetired) {
-                if (
-                    currentNW > 0 &&
-                    currentNW * (1 + realReturn) - annualExpenses <= 0 &&
-                    baseDepletionAge === null
-                ) {
+                if (cashBase === null) {
+                    // First retirement year for this scenario: split
+                    // whatever it's accumulated to by the fixed
+                    // real-portfolio cash fraction.
+                    cashBase = currentNW * cashFraction0;
+                    investedBase = currentNW * (1 - cashFraction0);
+                    cashBull = bullNW * cashFraction0;
+                    investedBull = bullNW * (1 - cashFraction0);
+                    cashBear = bearNW * cashFraction0;
+                    investedBear = bearNW * (1 - cashFraction0);
+                }
+
+                const stepBase = _withdrawCashFirst(
+                    cashBase,
+                    investedBase,
+                    realReturn,
+                    annualExpenses,
+                );
+                if (stepBase.depletedThisYear && baseDepletionAge === null)
                     baseDepletionAge = age + 1;
-                }
-                if (
-                    bullNW > 0 &&
-                    bullNW * (1 + bullReturn) - annualExpenses <= 0 &&
-                    bullDepletionAge === null
-                ) {
+                cashBase = stepBase.cash;
+                investedBase = stepBase.invested;
+
+                const stepBull = _withdrawCashFirst(
+                    cashBull,
+                    investedBull,
+                    bullReturn,
+                    annualExpenses,
+                );
+                if (stepBull.depletedThisYear && bullDepletionAge === null)
                     bullDepletionAge = age + 1;
-                }
-                if (
-                    bearNW > 0 &&
-                    bearNW * (1 + bearReturn) - annualExpenses <= 0 &&
-                    bearDepletionAge === null
-                ) {
+                cashBull = stepBull.cash;
+                investedBull = stepBull.invested;
+
+                const stepBear = _withdrawCashFirst(
+                    cashBear,
+                    investedBear,
+                    bearReturn,
+                    annualExpenses,
+                );
+                if (stepBear.depletedThisYear && bearDepletionAge === null)
                     bearDepletionAge = age + 1;
-                }
-                currentNW = Math.max(
-                    0,
-                    currentNW * (1 + realReturn) - annualExpenses,
-                );
-                bullNW = Math.max(
-                    0,
-                    bullNW * (1 + bullReturn) - annualExpenses,
-                );
-                bearNW = Math.max(
-                    0,
-                    bearNW * (1 + bearReturn) - annualExpenses,
-                );
+                cashBear = stepBear.cash;
+                investedBear = stepBear.invested;
             } else {
                 currentNW = currentNW * (1 + realReturn) + savings;
                 bullNW = bullNW * (1 + bullReturn) + savings;
