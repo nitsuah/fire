@@ -184,6 +184,17 @@
     min-height: var(--header-height);
     border-bottom: 1px solid var(--border-divider);
     padding: var(--space-md) var(--space-xl);
+    /* backdrop-filter (below) creates a stacking context on this element,
+       which traps the notification dropdown's z-index:300 (components.css)
+       inside it — without an explicit z-index here, that whole trapped
+       context painted as a plain z-index:0 flex item (a sibling of
+       .scroll-container under .main-content's flex column, see above),
+       so DOM order alone decided the outcome and the dropdown rendered
+       *underneath* dashboard/tab content instead of above it. Applies
+       despite position:static because .header-banner is a flex item of
+       .main-content — z-index applies to flex items regardless of
+       position (https://www.w3.org/TR/css-flexbox-1/#painting). */
+    z-index: 5;
     display: grid;
     gap: var(--space-lg);
     grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));

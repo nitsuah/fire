@@ -94,6 +94,30 @@ test.describe('Dashboard — desktop layout fixes', () => {
         await expect(page.locator('#notif-dropdown')).toBeVisible();
     });
 
+    test('alerts dropdown renders above dashboard cards, not underneath them', async ({
+        page,
+    }) => {
+        // Regression test for a stacking-context trap: .header-banner's
+        // backdrop-filter created its own stacking context, so the
+        // dropdown's z-index:300 was scoped inside it and the whole banner
+        // (a z-index:auto flex sibling earlier in DOM order than the
+        // dashboard content) painted underneath the dashboard cards
+        // regardless of the dropdown's own z-index.
+        await page.locator('#notif-bell-btn').click();
+        const dropdown = page.locator('#notif-dropdown');
+        await expect(dropdown).toBeVisible();
+
+        const box = await dropdown.boundingBox();
+        expect(box).toBeTruthy();
+        const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+        const topElementInfo = await page.evaluate(({ x, y }) => {
+            const el = document.elementFromPoint(x, y);
+            return el ? el.closest('#notif-dropdown') !== null : false;
+        }, point);
+        expect(topElementInfo).toBe(true);
+    });
+
     test('Collapse All button on Top Investment Positions toggles its label', async ({
         page,
     }) => {
