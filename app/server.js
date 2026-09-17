@@ -105,6 +105,14 @@ const syncLimiter = makeRateLimiter(
 
 const app = express();
 
+// Caddy (config/Caddyfile) terminates TLS and reverse-proxies to this app
+// over plain HTTP, setting X-Forwarded-Proto/X-Forwarded-Host along the way.
+// Trusting the first proxy hop lets req.protocol/req.get('host') correctly
+// report "https"/the public host for anything built from the request (e.g.
+// the eBay OAuth redirect URI in routes/sync.js) instead of the app's own
+// plain-HTTP loopback address.
+app.set('trust proxy', 1);
+
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -150,6 +158,13 @@ if (!AUTH_DISABLED) {
     app.use('/api', (req, res, next) => {
         // Only the callback is a browser-redirect that Google initiates; authorize is user-initiated
         if (req.path === '/backup/drive/callback') {
+            return next();
+        }
+        // eBay's own servers call this directly (both the GET challenge-
+        // response verification and the POST deletion notification) — they
+        // can't send our x-api-key. The verification token / endpoint-URL
+        // match (see routes/sync.js) is that endpoint's own trust boundary.
+        if (req.path === '/sync/ebay/marketplace-account-deletion') {
             return next();
         }
         const key = req.headers['x-api-key'];

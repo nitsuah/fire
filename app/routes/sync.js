@@ -16,11 +16,10 @@ const {
     refreshAccessToken,
     fetchCompletedOrders,
     ordersToLedgerEntries,
+    computeMarketplaceDeletionChallengeResponse,
 } = require('../lib/ebay-connector');
 
 const router = express.Router();
-
-const PREFERRED_PORT = parseInt(process.env.PORT) || 3001;
 const SUPPORTED_WEBHOOK_TYPES = [
     'accounts',
     'cds',
@@ -130,6 +129,20 @@ function saveTokens(provider, tokens) {
 
 // ─── eBay OAuth ──────────────────────────────────────────────────────────────
 
+// Prefer an explicit EBAY_REDIRECT_URI (required behind any proxy Express
+// can't correctly introspect); otherwise derive scheme+host from the
+// incoming request itself rather than hardcoding http://localhost — when
+// reached through the Caddy HTTPS front door (config/Caddyfile, which sets
+// X-Forwarded-Proto on reverse_proxy) with `trust proxy` enabled (see
+// server.js), req.protocol correctly reports "https" instead of bypassing
+// TLS by hardcoding the app's own plain-HTTP loopback port.
+function defaultEbayRedirectUri(req) {
+    return (
+        process.env.EBAY_REDIRECT_URI ||
+        `${req.protocol}://${req.get('host')}/api/sync/ebay/callback`
+    );
+}
+
 router.get('/ebay/authorize', (req, res) => {
     if (!eBayConfigured()) {
         return res.status(503).json({
@@ -143,9 +156,7 @@ router.get('/ebay/authorize', (req, res) => {
     }
     const state = crypto.randomBytes(16).toString('hex');
     req.session.eBayOauthState = state;
-    const redirectUri =
-        process.env.EBAY_REDIRECT_URI ||
-        `http://localhost:${PREFERRED_PORT}/api/sync/ebay/callback`;
+    const redirectUri = defaultEbayRedirectUri(req);
     const url = buildAuthorizationUrl(redirectUri, state);
     res.redirect(url);
 });
@@ -159,9 +170,7 @@ router.get('/ebay/callback', async (req, res) => {
     if (!code)
         return res.status(400).json({ error: 'Missing authorization code.' });
     try {
-        const redirectUri =
-            process.env.EBAY_REDIRECT_URI ||
-            `http://localhost:${PREFERRED_PORT}/api/sync/ebay/callback`;
+        const redirectUri = defaultEbayRedirectUri(req);
         const tokens = await exchangeCodeForTokens(code, redirectUri);
         saveTokens('ebay', tokens);
         res.json({
@@ -285,6 +294,74 @@ router.get('/ebay/status', (req, res) => {
         environment: tokens.environment || 'sandbox',
         syncEnabled,
     });
+});
+
+// ─── eBay Marketplace Account Deletion / Closure notifications ───────────────
+// Required by eBay for any app holding a production sell.* OAuth scope
+// (https://developer.ebay.com/marketplace-account-deletion). Two legs:
+//   1. GET  — eBay's one-time (and periodic re-)verification handshake: it
+//      calls with ?challenge_code=... and expects
+//      {challengeResponse: sha256(challengeCode+verificationToken+endpoint)}.
+//   2. POST — the actual deletion/closure notification once verified. eBay
+//      does not sign these; the challenge-response handshake above is what
+//      proves this endpoint owns the verification token, so the endpoint
+//      URL itself (registered in the eBay Developer Portal) is the trust
+//      boundary. Must ack fast — eBay expects a quick 2xx.
+// EBAY_NOTIFICATION_ENDPOINT_URL must exactly match what's registered with
+// eBay; falling back to the incoming request's own URL only works for local
+// verification since eBay's servers need a real public HTTPS URL to reach
+// this endpoint at all (see .env.example).
+function marketplaceDeletionEndpointUrl(req) {
+    return (
+        process.env.EBAY_NOTIFICATION_ENDPOINT_URL ||
+        `${req.protocol}://${req.get('host')}/api/sync/ebay/marketplace-account-deletion`
+    );
+}
+
+router.get('/ebay/marketplace-account-deletion', (req, res) => {
+    const challengeCode = req.query.challenge_code;
+    if (!challengeCode || typeof challengeCode !== 'string') {
+        return res.status(400).json({ error: 'Missing challenge_code.' });
+    }
+    const verificationToken = process.env.EBAY_VERIFICATION_TOKEN;
+    if (!verificationToken) {
+        return res.status(503).json({
+            error: 'EBAY_VERIFICATION_TOKEN is not configured.',
+        });
+    }
+    const endpoint = marketplaceDeletionEndpointUrl(req);
+    const challengeResponse = computeMarketplaceDeletionChallengeResponse(
+        challengeCode,
+        verificationToken,
+        endpoint,
+    );
+    res.status(200).json({ challengeResponse });
+});
+
+router.post('/ebay/marketplace-account-deletion', async (req, res) => {
+    const topic = req.body?.metadata?.topic;
+    const notification = req.body?.notification;
+    if (topic !== 'MARKETPLACE_ACCOUNT_DELETION' || !notification) {
+        return res
+            .status(400)
+            .json({ error: 'Malformed account deletion notification.' });
+    }
+    console.log(
+        `[eBay] Marketplace account deletion received (notificationId=${notification.notificationId || 'unknown'}). Purging locally stored eBay tokens and disabling sync.`,
+    );
+    try {
+        const tokenFile = getTokenFile('ebay');
+        if (fs.existsSync(tokenFile)) fs.unlinkSync(tokenFile);
+    } catch (err) {
+        console.error(
+            '[eBay] Failed to purge stored tokens on account deletion:',
+            err,
+        );
+    }
+    await mutateState((state) => {
+        state.ebaySyncEnabled = false;
+    });
+    res.status(200).json({ status: 'acknowledged' });
 });
 
 router.get('/plaid/status', (req, res) => {

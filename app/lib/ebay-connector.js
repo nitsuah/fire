@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const EBAY_SANDBOX_BASE = 'https://api.sandbox.ebay.com';
 const EBAY_PROD_BASE = 'https://api.ebay.com';
 const EBAY_SANDBOX_AUTH = 'https://auth.sandbox.ebay.com';
@@ -152,6 +154,23 @@ function ordersToLedgerEntries(orders) {
     return entries;
 }
 
+// eBay's Marketplace Account Deletion challenge-response handshake: eBay
+// calls back with a `challenge_code` and expects
+// sha256(challengeCode + verificationToken + notificationEndpoint) hex-
+// encoded, proving this endpoint knows the same verification token
+// registered in the eBay Developer Portal for it.
+// https://developer.ebay.com/marketplace-account-deletion
+function computeMarketplaceDeletionChallengeResponse(
+    challengeCode,
+    verificationToken,
+    endpoint,
+) {
+    return crypto
+        .createHash('sha256')
+        .update(challengeCode + verificationToken + endpoint)
+        .digest('hex');
+}
+
 module.exports = {
     getEnv,
     isConfigured,
@@ -160,4 +179,5 @@ module.exports = {
     refreshAccessToken,
     fetchCompletedOrders,
     ordersToLedgerEntries,
+    computeMarketplaceDeletionChallengeResponse,
 };

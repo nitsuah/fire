@@ -1,4 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import crypto from 'crypto';
 import * as ebay from '../../app/lib/ebay-connector.js';
 
 function clearEnv() {
@@ -305,6 +306,69 @@ describe('ebay-connector', () => {
             expect(entries[0].gross).toBe(0);
             expect(entries[0].fees).toBe(0);
             expect(entries[0].net).toBe(0);
+        });
+    });
+
+    describe('computeMarketplaceDeletionChallengeResponse', () => {
+        it('matches a hand-computed sha256(challengeCode+verificationToken+endpoint)', () => {
+            const challengeCode = 'abc123';
+            const verificationToken = 'my-verification-token';
+            const endpoint = 'https://example.com/ebay/deletion';
+            const expected = crypto
+                .createHash('sha256')
+                .update(challengeCode + verificationToken + endpoint)
+                .digest('hex');
+            expect(
+                ebay.computeMarketplaceDeletionChallengeResponse(
+                    challengeCode,
+                    verificationToken,
+                    endpoint,
+                ),
+            ).toBe(expected);
+        });
+
+        it('is deterministic for the same inputs', () => {
+            const a = ebay.computeMarketplaceDeletionChallengeResponse(
+                'x',
+                'y',
+                'z',
+            );
+            const b = ebay.computeMarketplaceDeletionChallengeResponse(
+                'x',
+                'y',
+                'z',
+            );
+            expect(a).toBe(b);
+            expect(a).toMatch(/^[0-9a-f]{64}$/);
+        });
+
+        it('changes when any input changes', () => {
+            const base = ebay.computeMarketplaceDeletionChallengeResponse(
+                'code',
+                'token',
+                'https://example.com/endpoint',
+            );
+            expect(
+                ebay.computeMarketplaceDeletionChallengeResponse(
+                    'different-code',
+                    'token',
+                    'https://example.com/endpoint',
+                ),
+            ).not.toBe(base);
+            expect(
+                ebay.computeMarketplaceDeletionChallengeResponse(
+                    'code',
+                    'different-token',
+                    'https://example.com/endpoint',
+                ),
+            ).not.toBe(base);
+            expect(
+                ebay.computeMarketplaceDeletionChallengeResponse(
+                    'code',
+                    'token',
+                    'https://example.com/different-endpoint',
+                ),
+            ).not.toBe(base);
         });
     });
 });
