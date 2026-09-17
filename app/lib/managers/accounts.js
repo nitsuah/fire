@@ -7,6 +7,7 @@ function initAccountsManager() {
     const accType = document.getElementById('acc-type');
     const apyGroup = document.getElementById('group-acc-apy');
     const cryptoGroup = document.getElementById('group-crypto-fields');
+    const metalGroup = document.getElementById('group-metal-fields');
 
     function updateTypeFields() {
         const t = accType.value;
@@ -24,6 +25,10 @@ function initAccountsManager() {
         // Crypto-specific fields
         if (cryptoGroup)
             cryptoGroup.style.display = t === 'Crypto' ? '' : 'none';
+        // Metal-specific fields (weight in oz — value still starts as a
+        // manually-entered estimate, same as Crypto, refreshed live after
+        // creation via the "Refresh" button)
+        if (metalGroup) metalGroup.style.display = t === 'Metal' ? '' : 'none';
     }
 
     updateTypeFields();
@@ -51,8 +56,18 @@ function initAccountsManager() {
             type === 'Crypto' && quantityRaw
                 ? parseFloat(quantityRaw) || null
                 : null;
+        const metalType =
+            type === 'Metal'
+                ? document.getElementById('acc-metal-type')?.value || 'gold'
+                : null;
+        const weightOzRaw = document.getElementById('acc-weight-oz')?.value;
+        const weightOz =
+            type === 'Metal' && weightOzRaw
+                ? parseFloat(weightOzRaw) || null
+                : null;
 
         if (!name || isNaN(val)) return;
+        if (type === 'Metal' && (weightOz === null || weightOz <= 0)) return;
 
         const entry = {
             id: Date.now().toString(),
@@ -62,6 +77,7 @@ function initAccountsManager() {
             apy,
             ...(type === 'Crypto' && identifier ? { identifier } : {}),
             ...(type === 'Crypto' && quantity !== null ? { quantity } : {}),
+            ...(type === 'Metal' ? { metalType, weightOz } : {}),
         };
         state.customAccounts.push(entry);
         try {
@@ -128,6 +144,8 @@ window.saveEditAccount = async function (id) {
         `edit-acc-identifier-${id}`,
     );
     const quantityInput = document.getElementById(`edit-acc-quantity-${id}`);
+    const metalTypeInput = document.getElementById(`edit-acc-metaltype-${id}`);
+    const weightOzInput = document.getElementById(`edit-acc-weightoz-${id}`);
 
     const name = nameInput?.value?.trim();
     if (!name) return;
@@ -153,6 +171,12 @@ window.saveEditAccount = async function (id) {
             : {}),
         ...(cur.type === 'Crypto' && quantityInput
             ? { quantity: parseFloat(quantityInput.value) || null }
+            : {}),
+        ...(cur.type === 'Metal' && metalTypeInput
+            ? { metalType: metalTypeInput.value }
+            : {}),
+        ...(cur.type === 'Metal' && weightOzInput
+            ? { weightOz: parseFloat(weightOzInput.value) || null }
             : {}),
     };
 
@@ -188,6 +212,41 @@ window.refreshCryptoAccount = async function (id) {
         }
 
         const { cryptoResult: _cr, ...accountFields } = data;
+        const idx = state.customAccounts.findIndex((a) => a.id === id);
+        if (idx !== -1) {
+            state.customAccounts[idx] = {
+                ...state.customAccounts[idx],
+                ...accountFields,
+            };
+        }
+        refreshAllUI();
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        btns.forEach((b) => {
+            b.disabled = false;
+            b.textContent = '⟳ Refresh';
+        });
+    }
+};
+
+window.refreshMetalAccount = async function (id) {
+    const btns = document.querySelectorAll(`[data-metal-refresh-id="${id}"]`);
+    btns.forEach((b) => {
+        b.disabled = true;
+        b.textContent = 'Refreshing…';
+    });
+    try {
+        const { ok, data } = await fetchJson(
+            `/api/accounts/${encodeURIComponent(id)}/refresh-metal`,
+            { method: 'POST' },
+        );
+        if (!ok) {
+            alert(data.error || 'Refresh failed');
+            return;
+        }
+
+        const { metalResult: _mr, ...accountFields } = data;
         const idx = state.customAccounts.findIndex((a) => a.id === id);
         if (idx !== -1) {
             state.customAccounts[idx] = {

@@ -5,6 +5,7 @@ const express = require('express');
 const { mutateState } = require('../lib/db');
 const { strictNum } = require('../lib/server-utils');
 const { resolveCryptoValue } = require('../lib/crypto-balance');
+const { resolveMetalValue } = require('../lib/metals-prices');
 
 const router = express.Router();
 
@@ -13,8 +14,10 @@ const VALID_TYPES = new Set([
     'Savings',
     'Brokerage',
     'Crypto',
+    'Metal',
     'Other',
 ]);
+const VALID_METAL_TYPES = new Set(['gold', 'silver']);
 
 router.post('/', async (req, res) => {
     const value = req.body.value !== undefined ? strictNum(req.body.value) : 0;
@@ -45,6 +48,23 @@ router.post('/', async (req, res) => {
     if (quantity !== null && !Number.isFinite(quantity)) {
         return res.status(400).json({ error: 'Invalid quantity.' });
     }
+    if (type === 'Metal') {
+        const metalType = String(req.body.metalType || '').toLowerCase();
+        if (!VALID_METAL_TYPES.has(metalType)) {
+            return res.status(400).json({
+                error: `Invalid metalType. Must be one of: ${[...VALID_METAL_TYPES].join(', ')}.`,
+            });
+        }
+        const weightOz =
+            req.body.weightOz !== undefined
+                ? strictNum(req.body.weightOz)
+                : null;
+        if (weightOz === null || !Number.isFinite(weightOz) || weightOz <= 0) {
+            return res
+                .status(400)
+                .json({ error: 'weightOz is required and must be > 0.' });
+        }
+    }
     const newAcc = {
         id: crypto.randomBytes(8).toString('hex'),
         name,
@@ -55,6 +75,12 @@ router.post('/', async (req, res) => {
             ? { identifier: String(req.body.identifier).trim() }
             : {}),
         ...(type === 'Crypto' && quantity !== null ? { quantity } : {}),
+        ...(type === 'Metal'
+            ? {
+                  metalType: String(req.body.metalType).toLowerCase(),
+                  weightOz: strictNum(req.body.weightOz),
+              }
+            : {}),
     };
     const ok = await mutateState((state) => {
         if (!state.customAccounts) state.customAccounts = [];
@@ -98,6 +124,23 @@ router.put('/:id', async (req, res) => {
     ) {
         return res.status(400).json({ error: 'Invalid quantity.' });
     }
+    if (
+        req.body.metalType !== undefined &&
+        !VALID_METAL_TYPES.has(String(req.body.metalType).toLowerCase())
+    ) {
+        return res.status(400).json({
+            error: `Invalid metalType. Must be one of: ${[...VALID_METAL_TYPES].join(', ')}.`,
+        });
+    }
+    if (
+        req.body.weightOz !== undefined &&
+        (!Number.isFinite(strictNum(req.body.weightOz)) ||
+            strictNum(req.body.weightOz) <= 0)
+    ) {
+        return res
+            .status(400)
+            .json({ error: 'weightOz must be a number > 0.' });
+    }
 
     let notFound = false;
     let updated = null;
@@ -133,14 +176,33 @@ router.put('/:id', async (req, res) => {
                           req.body.quantity !== undefined
                               ? strictNum(req.body.quantity)
                               : cur.quantity,
+                      metalType: undefined,
+                      weightOz: undefined,
                   }
-                : {
-                      identifier: undefined,
-                      quantity: undefined,
-                      resolvedAddress: undefined,
-                      balance: undefined,
-                      valueLastRefreshed: undefined,
-                  }),
+                : type === 'Metal'
+                  ? {
+                        metalType:
+                            req.body.metalType !== undefined
+                                ? String(req.body.metalType).toLowerCase()
+                                : cur.metalType,
+                        weightOz:
+                            req.body.weightOz !== undefined
+                                ? strictNum(req.body.weightOz)
+                                : cur.weightOz,
+                        identifier: undefined,
+                        quantity: undefined,
+                        resolvedAddress: undefined,
+                        balance: undefined,
+                    }
+                  : {
+                        identifier: undefined,
+                        quantity: undefined,
+                        resolvedAddress: undefined,
+                        balance: undefined,
+                        valueLastRefreshed: undefined,
+                        metalType: undefined,
+                        weightOz: undefined,
+                    }),
         };
         updated = state.customAccounts[idx];
     });
@@ -229,6 +291,63 @@ router.post('/:id/refresh-crypto', async (req, res) => {
                 error: 'Account was modified concurrently; please retry.',
             });
         res.json({ ...updated, cryptoResult: result });
+    } catch (err) {
+        res.status(err.status || 502).json({ error: err.message });
+    }
+});
+
+// Resolve a Metal account's (metalType, weightOz) to a live spot value —
+// mirrors refresh-crypto above.
+router.post('/:id/refresh-metal', async (req, res) => {
+    const db = require('../lib/db').readState();
+    const account = (db.customAccounts || []).find(
+        (a) => a.id === req.params.id,
+    );
+    if (!account) return res.status(404).json({ error: 'Account not found.' });
+    if (account.type !== 'Metal') {
+        return res
+            .status(400)
+            .json({ error: 'refresh-metal only applies to Metal accounts.' });
+    }
+    if (!account.metalType || !account.weightOz) {
+        return res.status(400).json({
+            error: 'Account has no metalType/weightOz. Set both first.',
+        });
+    }
+
+    const origMetalType = account.metalType;
+    const origWeightOz = account.weightOz;
+    try {
+        const result = await resolveMetalValue(origMetalType, origWeightOz);
+        let updated = null;
+        const ok = await mutateState((state) => {
+            const idx = (state.customAccounts || []).findIndex(
+                (a) => a.id === req.params.id,
+            );
+            if (idx === -1) return;
+            // Revalidate: account must still be Metal with the same
+            // metalType/weightOz (not edited concurrently).
+            const current = state.customAccounts[idx];
+            if (
+                current.type !== 'Metal' ||
+                current.metalType !== origMetalType ||
+                current.weightOz !== origWeightOz
+            )
+                return;
+            state.customAccounts[idx] = {
+                ...state.customAccounts[idx],
+                value: result.usdValue,
+                valueLastRefreshed: new Date().toISOString(),
+            };
+            updated = state.customAccounts[idx];
+        });
+        if (!ok)
+            return res.status(500).json({ error: 'Failed to update account.' });
+        if (!updated)
+            return res.status(409).json({
+                error: 'Account was modified concurrently; please retry.',
+            });
+        res.json({ ...updated, metalResult: result });
     } catch (err) {
         res.status(err.status || 502).json({ error: err.message });
     }

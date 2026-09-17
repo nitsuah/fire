@@ -23,6 +23,7 @@ export default [
             'app/lib/finance-platforms.js',
             'app/lib/web3-prices.js',
             'app/lib/ebay-connector.js',
+            'app/lib/metals-prices.js',
             'app/lib/gdrive-backup.js',
             'app/lib/prices-provider.js',
             'app/lib/vehicle-api.js',
@@ -80,6 +81,7 @@ export default [
             globals: {
                 ...globals.node,
                 ...globals.jest,
+                ...globals.vitest,
             },
         },
     },

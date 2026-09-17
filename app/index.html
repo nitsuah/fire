@@ -282,6 +282,7 @@
                                                     <option value="Cash">Cash &amp; Checking</option>
                                                     <option value="Savings">High Yield Savings</option>
                                                     <option value="Crypto">Cryptocurrency</option>
+                                                    <option value="Metal">Precious Metal</option>
                                                     <option value="Brokerage">Custom Brokerage</option>
                                                     <option value="RealEstate">Real Estate</option>
                                                     <option value="Other">Other</option>
@@ -305,6 +306,20 @@
                                             <div class="form-group">
                                                 <label for="acc-quantity">Quantity <span class="text-muted">(for price × qty)</span></label>
                                                 <input type="number" id="acc-quantity" min="0" step="any" placeholder="e.g. 2.5">
+                                            </div>
+                                        </div>
+                                        <!-- Metal-specific fields (shown when Type = Precious Metal) -->
+                                        <div id="group-metal-fields" class="fo-form-row" style="display:none;">
+                                            <div class="form-group">
+                                                <label for="acc-metal-type">Metal</label>
+                                                <select id="acc-metal-type">
+                                                    <option value="gold">Gold</option>
+                                                    <option value="silver">Silver</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="acc-weight-oz">Weight (troy oz)</label>
+                                                <input type="number" id="acc-weight-oz" min="0" step="any" placeholder="e.g. 5">
                                             </div>
                                         </div>
                                         <button type="submit" class="primary-btn mt-2">Add Account</button>
