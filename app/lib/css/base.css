@@ -30,6 +30,7 @@
     /* Layout Variables */
     --sidebar-width: 260px;
     --header-height: 90px;
+    --mobile-topbar-height: 56px;
     --border-radius: 12px;
     --border-radius-sm: 8px;
     --border-radius-lg: 16px;

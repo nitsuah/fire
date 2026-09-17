@@ -36,8 +36,9 @@
             <div class="brand">
                 <span class="brand-icon">🔥</span>
                 <span class="brand-name">FIRE Tracker</span>
-                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar">
-                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="false">
+                    <svg class="nav-toggle-chevron" viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                    <svg class="nav-toggle-hamburger" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
                 </button>
             </div>
 
@@ -86,6 +87,10 @@
                 </button>
             </div>
         </aside>
+
+        <!-- Mobile nav-drawer backdrop — click to close; only shown (and only
+             does anything) below the 768px breakpoint, see layout.css -->
+        <div class="nav-drawer-backdrop" id="nav-drawer-backdrop" onclick="closeNavDrawer()"></div>
 
         <!-- Main Content Area -->
         <main class="main-content">

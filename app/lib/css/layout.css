@@ -62,6 +62,15 @@
     transition: transform var(--transition-smooth);
 }
 
+/* Two icons live in the same button; only one shows at a time — the
+   desktop collapse chevron above 768px, a hamburger (opens the nav
+   drawer) at or below it. See the @media (max-width: 768px) block below
+   for the swap and .nav-drawer-backdrop/.nav-drawer-open for the drawer
+   itself. */
+.nav-toggle-hamburger {
+    display: none;
+}
+
 @media (min-width: 769px) {
     .app-container.sidebar-collapsed .sidebar {
         width: 76px;
@@ -433,58 +442,107 @@
         width: 100%;
         min-height: 100vh;
     }
+
+    /* Collapsed to a top bar: brand + hamburger only. Nav items live in
+       the drawer below (.nav-menu), not inline — a horizontal scrolling
+       strip of tabs here is exactly the "moved everything to the top bar"
+       pattern the left-nav paradigm is meant to avoid. Fixed (not sticky)
+       so it stays put above the drawer/backdrop overlay; .main-content
+       below gets matching top padding so content doesn't start underneath
+       it. */
     .sidebar {
         width: 100%;
-        height: auto;
+        height: var(--mobile-topbar-height);
         border-right: none;
         border-bottom: 1px solid var(--border-divider);
-        padding: var(--space-sm) var(--space-md);
+        padding: 0 var(--space-md);
         flex-direction: row;
         align-items: center;
         justify-content: flex-start;
-        position: sticky;
+        position: fixed;
         top: 0;
-        z-index: 100;
+        left: 0;
+        right: 0;
+        z-index: 210;
         gap: var(--space-md);
+        background-color: var(--bg-sidebar);
     }
     .brand {
         margin-bottom: 0;
         padding-left: 0;
         flex-shrink: 0;
-        margin-right: var(--space-md);
+        margin-right: 0;
     }
     .brand-name {
         display: none;
     }
-    .nav-menu {
-        flex-direction: row;
-        flex-grow: 1;
-        overflow-x: auto;
-        gap: var(--space-xs);
-        padding-bottom: var(--space-xs);
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-    }
-    .nav-menu::-webkit-scrollbar {
+
+    .nav-toggle-chevron {
         display: none;
     }
-    .nav-btn {
-        padding: var(--space-xs) var(--space-sm);
-        font-size: var(--text-xs);
-        white-space: nowrap;
-        flex-shrink: 0;
-        border-radius: var(--border-radius-sm);
+    .nav-toggle-hamburger {
+        display: block;
     }
-    .nav-btn.active {
-        box-shadow: inset 0 -2px 0 var(--color-primary);
-        background-color: rgba(139, 92, 246, 0.1);
+
+    /* Off-canvas drawer: hidden by default, drops down as an overlay
+       panel below the top bar when opened via the hamburger
+       (.app-container.nav-drawer-open, toggled in navigation.js). Stays a
+       vertical list — same shape as the desktop sidebar's nav — rather
+       than becoming horizontal top tabs. */
+    .nav-menu {
+        position: fixed;
+        top: var(--mobile-topbar-height);
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        gap: var(--space-xs);
+        max-height: calc(100vh - var(--mobile-topbar-height));
+        overflow-y: auto;
+        background-color: var(--bg-sidebar);
+        border-bottom: 1px solid var(--border-divider);
+        padding: var(--space-sm) var(--space-md) var(--space-md);
+        z-index: 205;
+        transform: translateY(-12px);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: var(--transition-smooth);
+    }
+    .app-container.nav-drawer-open .nav-menu {
+        transform: translateY(0);
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+    .nav-btn {
+        padding: var(--space-sm) var(--space-md);
+        font-size: var(--text-base);
+        border-radius: var(--border-radius-sm);
     }
     .sidebar-footer {
         display: none;
     }
+
+    /* Click-outside-to-close scrim, only present (and only rendered) while
+       the drawer is open. */
+    .nav-drawer-backdrop {
+        display: none;
+        position: fixed;
+        top: var(--mobile-topbar-height);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 204;
+    }
+    .app-container.nav-drawer-open .nav-drawer-backdrop {
+        display: block;
+    }
+
     .main-content {
         height: auto;
         overflow: visible;
+        padding-top: var(--mobile-topbar-height);
     }
     .scroll-container {
         overflow: visible;

@@ -151,10 +151,10 @@ test.describe('Financial Overview — ENS wallet lookup', () => {
     });
 });
 
-test.describe('Narrow viewport (mobile)', () => {
+test.describe('Narrow viewport (mobile) — hamburger nav drawer', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test('sidebar becomes a horizontal top bar and page scrolls naturally', async ({
+    test('sidebar collapses to a brand + hamburger top bar, nav items hidden until opened', async ({
         page,
     }) => {
         await expect(page.locator('.sidebar')).toBeVisible();
@@ -165,5 +165,76 @@ test.describe('Narrow viewport (mobile)', () => {
             .locator('.scroll-container')
             .evaluate((el) => getComputedStyle(el).overflow);
         expect(overflow).toBe('visible');
+
+        // The nav list is present in the DOM but not visible/interactive
+        // until the drawer is opened — this used to be an always-visible
+        // horizontal scrolling strip of tabs; now it's a closed drawer.
+        await expect(page.locator('.nav-menu')).toHaveCSS(
+            'visibility',
+            'hidden',
+        );
+        await expect(page.locator('#nav-drawer-backdrop')).toHaveCSS(
+            'display',
+            'none',
+        );
+    });
+
+    test('the collapse arrow is not a dead control — it opens/closes the nav drawer', async ({
+        page,
+    }) => {
+        const toggleBtn = page.locator('#sidebar-collapse-btn');
+        await expect(toggleBtn).toBeVisible();
+
+        await toggleBtn.click();
+        await expect(page.locator('.app-container')).toHaveClass(
+            /nav-drawer-open/,
+        );
+        await expect(page.locator('.nav-menu')).toHaveCSS(
+            'visibility',
+            'visible',
+        );
+        await expect(page.locator('#nav-drawer-backdrop')).toHaveCSS(
+            'display',
+            'block',
+        );
+
+        await toggleBtn.click();
+        await expect(page.locator('.app-container')).not.toHaveClass(
+            /nav-drawer-open/,
+        );
+        await expect(page.locator('.nav-menu')).toHaveCSS(
+            'visibility',
+            'hidden',
+        );
+    });
+
+    test('opening the drawer and selecting a destination navigates and auto-closes it', async ({
+        page,
+    }) => {
+        await page.locator('#sidebar-collapse-btn').click();
+        await expect(page.locator('.app-container')).toHaveClass(
+            /nav-drawer-open/,
+        );
+
+        await page.locator('#btn-tab-financial').click();
+        await expect(page.locator('#tab-financial')).toHaveClass(/active/);
+        await expect(page.locator('.app-container')).not.toHaveClass(
+            /nav-drawer-open/,
+        );
+    });
+
+    test('clicking the backdrop closes the drawer without navigating', async ({
+        page,
+    }) => {
+        await page.locator('#sidebar-collapse-btn').click();
+        await expect(page.locator('.app-container')).toHaveClass(
+            /nav-drawer-open/,
+        );
+
+        await page.locator('#nav-drawer-backdrop').click({ force: true });
+        await expect(page.locator('.app-container')).not.toHaveClass(
+            /nav-drawer-open/,
+        );
+        await expect(page.locator('#tab-dashboard')).toHaveClass(/active/);
     });
 });
