@@ -518,3 +518,43 @@ test.describe('Summary bar — desktop keeps full precision', () => {
         await expect(page.locator('.metric-label-full').first()).toBeVisible();
     });
 });
+
+test.describe('Settings — card order and color-coded grouping', () => {
+    test('cards are ordered Projection Defaults, Notifications, eBay, Plaid, Privacy, Data Management, Google Drive, Danger Zone', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-settings').click();
+        const titles = await page
+            .locator('#tab-settings .card .card-title')
+            .allTextContents();
+        const normalized = titles.map((t) => t.trim());
+        expect(normalized).toEqual([
+            'Projection Defaults',
+            'Notifications & Alerts',
+            'eBay Order Sync',
+            'Plaid Transaction Sync',
+            'Privacy & Terms',
+            'Data Management',
+            'Google Drive Backup',
+            '⚠️ Danger Zone',
+        ]);
+    });
+
+    test('Danger Zone, Privacy/Plaid, and Google Drive cards carry their color-coded accent classes', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-settings').click();
+        await expect(
+            page.locator('#tab-settings .settings-card--danger .card-title'),
+        ).toContainText('Danger Zone');
+        await expect(
+            page.locator('#tab-settings .settings-card--privacy .card-title'),
+        ).toContainText('Privacy & Terms');
+        await expect(
+            page.locator('#tab-settings .settings-card--plaid .card-title'),
+        ).toContainText('Plaid Transaction Sync');
+        await expect(
+            page.locator('#tab-settings .settings-card--gdrive .card-title'),
+        ).toContainText('Google Drive Backup');
+    });
+});

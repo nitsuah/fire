@@ -21,6 +21,37 @@
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), transparent 40%);
 }
 
+/* Settings — restrained color-coded grouping. A left accent border plus a
+   faint tinted wash (same restraint as the pre-existing Danger Zone card),
+   not a full-color fill, so cards stay readable and consistent with the
+   rest of the glass-card family. Privacy/Terms and Plaid intentionally
+   share the same purple accent token — one design-system hue used
+   deliberately for two cards, not two different purples. Selectors are
+   qualified with .card.glass-card so this outranks glass-card's own
+   `border` shorthand (same specificity tier, not left to source order). */
+.card.glass-card.settings-card--danger {
+    border-left: 3px solid var(--color-danger);
+}
+.card.glass-card.settings-card--danger::before {
+    background: linear-gradient(135deg, var(--color-danger-bg), transparent 40%);
+}
+
+.card.glass-card.settings-card--privacy,
+.card.glass-card.settings-card--plaid {
+    border-left: 3px solid var(--color-primary);
+}
+.card.glass-card.settings-card--privacy::before,
+.card.glass-card.settings-card--plaid::before {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), transparent 40%);
+}
+
+.card.glass-card.settings-card--gdrive {
+    border-left: 3px solid var(--color-success);
+}
+.card.glass-card.settings-card--gdrive::before {
+    background: linear-gradient(135deg, var(--color-success-bg), transparent 40%);
+}
+
 /* ==========================================================================
    Privacy Modal — organic
    ========================================================================== */

@@ -1341,6 +1341,42 @@
                 <!-- TAB: Settings -->
                 <section class="tab-pane" id="tab-settings">
                     <div class="dashboard-grid">
+                        <!-- Projection Defaults (moved here for unified access) -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Projection Defaults</h2>
+                            <p class="card-subtitle">Default values used when opening the Projections tab.</p>
+                            <div class="grid-2-col mt-3">
+                                <div class="form-group">
+                                    <label for="default-current-age">Default Current Age</label>
+                                    <input type="number" id="default-current-age" min="18" max="90" value="30" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-retire-age">Default Retirement Age</label>
+                                    <input type="number" id="default-retire-age" min="30" max="90" value="60" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-annual-savings">Default Annual Savings ($)</label>
+                                    <input type="number" id="default-annual-savings" min="0" step="1000" value="20000" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-expected-return">Default Expected Return (%)</label>
+                                    <input type="number" id="default-expected-return" min="0" max="20" step="0.5" value="7.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-inflation">Default Inflation Rate (%)</label>
+                                    <input type="number" id="default-inflation" min="0" max="10" step="0.1" value="3.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-swr">Default SWR (%)</label>
+                                    <input type="number" id="default-swr" min="1" max="10" step="0.1" value="4.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-span-years">Default Projection Span (Years)</label>
+                                    <input type="number" id="default-span-years" min="10" max="60" value="30" onchange="saveProjectionDefaults()">
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Notifications & Alerts -->
                         <div class="card glass-card">
                             <h2 class="card-title">Notifications & Alerts</h2>
@@ -1384,21 +1420,6 @@
                             <p id="notification-permission-status" class="text-muted mt-2" style="font-size:12px;">Checking permission...</p>
                         </div>
 
-                        <!-- Data Export/Import -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Data Management</h2>
-                            <p class="card-subtitle">Export your complete financial profile or import from backup.</p>
-                            <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" onclick="exportFullState()">📤 Export Full State (JSON)</button>
-                                <button class="backup-btn" onclick="exportCSV()">📊 Export Holdings (CSV)</button>
-                                <button class="backup-btn import-btn" onclick="document.getElementById('import-file').click()">📥 Import State (JSON)</button>
-                                <button class="backup-btn import-btn" onclick="document.getElementById('import-csv-file').click()">📋 Import Holdings (CSV)</button>
-                            </div>
-                            <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importFullState(event)">
-                            <input type="file" id="import-csv-file" style="display:none;" accept=".csv" onchange="importCSV(event)">
-                            <p class="text-muted mt-2" style="font-size:11px;">Exports include all accounts, CDs, real estate, vehicles, side gig ledger, and projection settings.</p>
-                        </div>
-
                         <!-- eBay Sync -->
                         <div class="card glass-card">
                             <h2 class="card-title">eBay Order Sync</h2>
@@ -1415,7 +1436,7 @@
                         </div>
 
                         <!-- Plaid Transaction Sync -->
-                        <div class="card glass-card">
+                        <div class="card glass-card settings-card--plaid">
                             <h2 class="card-title">Plaid Transaction Sync</h2>
                             <p class="card-subtitle">Automatically pull bank/card transactions and auto-categorize them into your Expenses tab, using the same categories as CSV imports. While active, manual Fidelity CSV import is disabled to prevent duplicate expenses. Connect an account from the Plaid Investments card in Financial Overview first.</p>
                             <div class="form-group">
@@ -1429,20 +1450,8 @@
                             <p id="settings-plaid-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
                         </div>
 
-                        <!-- Google Drive Backup -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Google Drive Backup</h2>
-                            <p class="card-subtitle">Store an AES-256-GCM encrypted snapshot of your full profile in a private "fire-tracker-backups" folder in your own Google Drive.</p>
-                            <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" id="btn-gdrive-connect" onclick="connectGoogleDrive()">🔗 Connect Google Drive</button>
-                                <button class="backup-btn" id="btn-gdrive-backup-now" onclick="runGDriveBackupNow()" disabled>☁️ Backup Now</button>
-                            </div>
-                            <p id="gdrive-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
-                            <div id="gdrive-backup-list" class="mt-2"></div>
-                        </div>
-
                         <!-- Privacy & Terms -->
-                        <div class="card glass-card">
+                        <div class="card glass-card settings-card--privacy">
                             <h2 class="card-title">Privacy & Terms</h2>
                             <p class="card-subtitle">Review how your data is handled and the terms of service.</p>
                             <div class="grid-organic-2 mt-3">
@@ -1460,44 +1469,35 @@
                             </div>
                         </div>
 
-                        <!-- Projection Defaults (moved here for unified access) -->
+                        <!-- Data Export/Import -->
                         <div class="card glass-card">
-                            <h2 class="card-title">Projection Defaults</h2>
-                            <p class="card-subtitle">Default values used when opening the Projections tab.</p>
-                            <div class="grid-2-col mt-3">
-                                <div class="form-group">
-                                    <label for="default-current-age">Default Current Age</label>
-                                    <input type="number" id="default-current-age" min="18" max="90" value="30" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-retire-age">Default Retirement Age</label>
-                                    <input type="number" id="default-retire-age" min="30" max="90" value="60" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-annual-savings">Default Annual Savings ($)</label>
-                                    <input type="number" id="default-annual-savings" min="0" step="1000" value="20000" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-expected-return">Default Expected Return (%)</label>
-                                    <input type="number" id="default-expected-return" min="0" max="20" step="0.5" value="7.0" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-inflation">Default Inflation Rate (%)</label>
-                                    <input type="number" id="default-inflation" min="0" max="10" step="0.1" value="3.0" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-swr">Default SWR (%)</label>
-                                    <input type="number" id="default-swr" min="1" max="10" step="0.1" value="4.0" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-span-years">Default Projection Span (Years)</label>
-                                    <input type="number" id="default-span-years" min="10" max="60" value="30" onchange="saveProjectionDefaults()">
-                                </div>
+                            <h2 class="card-title">Data Management</h2>
+                            <p class="card-subtitle">Export your complete financial profile or import from backup.</p>
+                            <div class="grid-organic-2 mt-3">
+                                <button class="backup-btn" onclick="exportFullState()">📤 Export Full State (JSON)</button>
+                                <button class="backup-btn" onclick="exportCSV()">📊 Export Holdings (CSV)</button>
+                                <button class="backup-btn import-btn" onclick="document.getElementById('import-file').click()">📥 Import State (JSON)</button>
+                                <button class="backup-btn import-btn" onclick="document.getElementById('import-csv-file').click()">📋 Import Holdings (CSV)</button>
                             </div>
+                            <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importFullState(event)">
+                            <input type="file" id="import-csv-file" style="display:none;" accept=".csv" onchange="importCSV(event)">
+                            <p class="text-muted mt-2" style="font-size:11px;">Exports include all accounts, CDs, real estate, vehicles, side gig ledger, and projection settings.</p>
+                        </div>
+
+                        <!-- Google Drive Backup -->
+                        <div class="card glass-card settings-card--gdrive">
+                            <h2 class="card-title">Google Drive Backup</h2>
+                            <p class="card-subtitle">Store an AES-256-GCM encrypted snapshot of your full profile in a private "fire-tracker-backups" folder in your own Google Drive.</p>
+                            <div class="grid-organic-2 mt-3">
+                                <button class="backup-btn" id="btn-gdrive-connect" onclick="connectGoogleDrive()">🔗 Connect Google Drive</button>
+                                <button class="backup-btn" id="btn-gdrive-backup-now" onclick="runGDriveBackupNow()" disabled>☁️ Backup Now</button>
+                            </div>
+                            <p id="gdrive-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
+                            <div id="gdrive-backup-list" class="mt-2"></div>
                         </div>
 
                         <!-- Advanced / Danger Zone -->
-                        <div class="card glass-card" style="border-color:rgba(244,63,94,0.3);">
+                        <div class="card glass-card settings-card--danger">
                             <h2 class="card-title" style="color:var(--color-danger);">⚠️ Danger Zone</h2>
                             <p class="card-subtitle">Irreversible actions. Use with caution.</p>
                             <div class="grid-organic-2 mt-3">
