@@ -560,6 +560,45 @@
     font-family: var(--font-heading);
 }
 
+/* Income Sources / Monthly Expenses collapse toggle — desktop always shows
+   the full line-item list (button hidden, .cf-collapsed has no effect);
+   mobile defaults to collapsed (total only) until expanded. */
+.cf-toggle-btn {
+    display: none;
+    background: none;
+    border: 1px solid var(--border-divider);
+    color: var(--text-muted);
+    border-radius: var(--border-radius-sm);
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.cf-toggle-btn svg {
+    width: 14px;
+    height: 14px;
+    transition: transform var(--transition-smooth);
+}
+.cf-toggle-btn[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 768px) {
+    .cf-toggle-btn {
+        display: flex;
+    }
+    .cf-list.cf-collapsed .cf-row:not(.cf-total-row) {
+        display: none;
+    }
+    .cf-list.cf-collapsed .cf-total-row {
+        border-top: none;
+        padding-top: 0;
+        margin-top: 0;
+    }
+}
+
 /* Net Cash Flow card */
 .cf-net-container {
     text-align: center;

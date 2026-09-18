@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSideGigManager();
     initPlatformCalculators();
     initProjectionsManager();
+    initCashFlowToggles();
 
     // Initial Render
     refreshAllUI();

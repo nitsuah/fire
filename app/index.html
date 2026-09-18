@@ -226,7 +226,90 @@
                 <!-- TAB: Financial Overview (merged Accounts + CDs + Cash Flow) -->
                 <section class="tab-pane" id="tab-financial">
 
-                    <!-- Compact Import Sub-bar -->
+                    <!-- Cash flow summary row: Net Monthly Cash Flow, Income Sources,
+                         Monthly Expenses, left-to-right on desktop. Stacks on mobile,
+                         where Income Sources / Monthly Expenses default to a collapsed
+                         total-only view (see .cf-collapsible-card / cf-toggle-btn). -->
+                    <div class="fo-cashflow-row">
+
+                        <!-- Net Cash Flow -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Net Monthly Cash Flow</h2>
+                            <div class="cf-net-container">
+                                <div class="cf-net-value" id="cf-net-value">$0</div>
+                                <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
+                                <div class="cf-bar-wrap mt-4">
+                                    <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
+                                    <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
+                                </div>
+                                <div class="cf-savings-rate mt-3">
+                                    <span class="cf-label">Savings Rate</span>
+                                    <span class="cf-val font-bold" id="cf-savings-rate">0%</span>
+                                </div>
+                                <div class="cf-annual-row mt-2">
+                                    <span class="cf-label">Annual Surplus / Deficit</span>
+                                    <span class="cf-val font-bold" id="cf-annual-surplus">$0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Income Sources -->
+                        <div class="card glass-card cf-collapsible-card">
+                            <div class="card-title-row">
+                                <h2 class="card-title">Income Sources</h2>
+                                <button type="button" class="cf-toggle-btn" data-cf-toggle="cashflow-income-list" aria-expanded="false" aria-label="Expand income line items">
+                                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+                                </button>
+                            </div>
+                            <div class="cf-list cf-collapsed" id="cashflow-income-list">
+                                <div class="cf-row">
+                                    <span class="cf-label">Salary / W2 (monthly)</span>
+                                    <span class="cf-val text-emerald" id="cf-salary">$0</span>
+                                </div>
+                                <div class="cf-row">
+                                    <span class="cf-label">Side Hustle (YTD avg)</span>
+                                    <span class="cf-val text-emerald" id="cf-sidegig">$0</span>
+                                </div>
+                                <div class="cf-row">
+                                    <span class="cf-label">CD Interest (monthly)</span>
+                                    <span class="cf-val text-amber" id="cf-cd-interest">$0</span>
+                                </div>
+                                <div class="cf-row">
+                                    <span class="cf-label">Crypto Staking (monthly)</span>
+                                    <span class="cf-val text-amber" id="cf-crypto-staking">$0</span>
+                                </div>
+                                <div class="cf-row cf-total-row">
+                                    <span class="cf-label font-bold">Total Monthly Income</span>
+                                    <span class="cf-val text-emerald font-bold" id="cf-total-income">$0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Expenses -->
+                        <div class="card glass-card cf-collapsible-card">
+                            <div class="card-title-row">
+                                <h2 class="card-title">Monthly Expenses</h2>
+                                <button type="button" class="cf-toggle-btn" data-cf-toggle="cashflow-expenses-list" aria-expanded="false" aria-label="Expand expense line items">
+                                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+                                </button>
+                            </div>
+                            <div class="cf-list cf-collapsed" id="cashflow-expenses-list">
+                                <div class="cf-row"><span class="cf-label">Housing</span><span class="cf-val text-coral" id="cf-housing">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Utilities</span><span class="cf-val text-coral" id="cf-utilities">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Food &amp; Groceries</span><span class="cf-val text-coral" id="cf-food">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Transportation</span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Healthcare</span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Discretionary</span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Car Insurance</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Home / Renters Insurance</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
+                                <div class="cf-row cf-total-row">
+                                    <span class="cf-label font-bold">Total Monthly Expenses</span>
+                                    <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Two-column body -->
                     <div class="fo-body">
 
@@ -564,75 +647,10 @@
                             </div>
                         </div>
 
-                        <!-- RIGHT: Cash Flow panel -->
+                        <!-- RIGHT: Wallets / lookups panel (Net Cash Flow, Income
+                             Sources, Monthly Expenses now live in .fo-cashflow-row
+                             above, as their own left-to-right row) -->
                         <div class="fo-right">
-
-                            <!-- Net Cash Flow (top) -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Net Monthly Cash Flow</h2>
-                                <div class="cf-net-container">
-                                    <div class="cf-net-value" id="cf-net-value">$0</div>
-                                    <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
-                                    <div class="cf-bar-wrap mt-4">
-                                        <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
-                                        <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
-                                    </div>
-                                    <div class="cf-savings-rate mt-3">
-                                        <span class="cf-label">Savings Rate</span>
-                                        <span class="cf-val font-bold" id="cf-savings-rate">0%</span>
-                                    </div>
-                                    <div class="cf-annual-row mt-2">
-                                        <span class="cf-label">Annual Surplus / Deficit</span>
-                                        <span class="cf-val font-bold" id="cf-annual-surplus">$0</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Income Sources -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Income Sources</h2>
-                                <div class="cf-list" id="cashflow-income-list">
-                                    <div class="cf-row">
-                                        <span class="cf-label">Salary / W2 (monthly)</span>
-                                        <span class="cf-val text-emerald" id="cf-salary">$0</span>
-                                    </div>
-                                    <div class="cf-row">
-                                        <span class="cf-label">Side Hustle (YTD avg)</span>
-                                        <span class="cf-val text-emerald" id="cf-sidegig">$0</span>
-                                    </div>
-                                    <div class="cf-row">
-                                        <span class="cf-label">CD Interest (monthly)</span>
-                                        <span class="cf-val text-amber" id="cf-cd-interest">$0</span>
-                                    </div>
-                                    <div class="cf-row">
-                                        <span class="cf-label">Crypto Staking (monthly)</span>
-                                        <span class="cf-val text-amber" id="cf-crypto-staking">$0</span>
-                                    </div>
-                                    <div class="cf-row cf-total-row">
-                                        <span class="cf-label font-bold">Total Monthly Income</span>
-                                        <span class="cf-val text-emerald font-bold" id="cf-total-income">$0</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Monthly Expenses -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Monthly Expenses</h2>
-                                <div class="cf-list">
-                                    <div class="cf-row"><span class="cf-label">Housing</span><span class="cf-val text-coral" id="cf-housing">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Utilities</span><span class="cf-val text-coral" id="cf-utilities">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Food &amp; Groceries</span><span class="cf-val text-coral" id="cf-food">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Transportation</span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Healthcare</span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Discretionary</span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Car Insurance</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Home / Renters Insurance</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
-                                    <div class="cf-row cf-total-row">
-                                        <span class="cf-label font-bold">Total Monthly Expenses</span>
-                                        <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
-                                    </div>
-                                </div>
-                            </div>
 
                             <!-- Crypto Wallet Manager -->
                             <div class="card glass-card">

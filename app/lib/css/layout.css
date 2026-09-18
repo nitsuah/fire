@@ -386,6 +386,23 @@
     flex-wrap: wrap;
 }
 
+/* Net Monthly Cash Flow / Income Sources / Monthly Expenses — left-to-right
+   on desktop, stacked on mobile (see .cf-collapsible-card below for the
+   mobile collapse behavior). */
+.fo-cashflow-row {
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: 1fr;
+    margin-bottom: var(--space-lg);
+}
+
+@media (min-width: 900px) {
+    .fo-cashflow-row {
+        grid-template-columns: repeat(3, 1fr);
+        align-items: start;
+    }
+}
+
 .fo-body {
     display: grid;
     gap: var(--space-lg);

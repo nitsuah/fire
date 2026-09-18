@@ -383,6 +383,26 @@ function renderDiversificationSuggestions(
     block.innerHTML = html;
 }
 
+// Income Sources / Monthly Expenses collapse toggle (mobile only — see
+// .cf-toggle-btn / .cf-collapsed in components.css). Delegated so it keeps
+// working regardless of how many times the surrounding cards re-render;
+// the toggled elements themselves are never rebuilt by renderMonthlyCashFlow
+// (which only mutates existing spans' textContent), so the expanded/
+// collapsed state naturally survives data refreshes without extra
+// bookkeeping.
+function initCashFlowToggles() {
+    document
+        .querySelectorAll('.cf-toggle-btn[data-cf-toggle]')
+        .forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const list = document.getElementById(btn.dataset.cfToggle);
+                if (!list) return;
+                const collapsed = list.classList.toggle('cf-collapsed');
+                btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            });
+        });
+}
+
 function renderMonthlyCashFlow() {
     const grossIncome =
         parseFloat(document.getElementById('tax-gross-income')?.value) || 0;

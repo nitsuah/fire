@@ -233,6 +233,61 @@ test.describe('Financial Overview — ENS wallet lookup', () => {
     });
 });
 
+test.describe('Financial Overview — cash flow row', () => {
+    test('desktop: Net Cash Flow, Income Sources, and Monthly Expenses sit left-to-right', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-financial').click();
+        const netFlow = page.locator('.fo-cashflow-row').getByRole('heading', {
+            name: 'Net Monthly Cash Flow',
+        });
+        const income = page.locator('.fo-cashflow-row').getByRole('heading', {
+            name: 'Income Sources',
+        });
+        const expenses = page
+            .locator('.fo-cashflow-row')
+            .getByRole('heading', { name: 'Monthly Expenses' });
+        await expect(netFlow).toBeVisible();
+        await expect(income).toBeVisible();
+        await expect(expenses).toBeVisible();
+
+        const [netBox, incomeBox, expensesBox] = await Promise.all([
+            netFlow.boundingBox(),
+            income.boundingBox(),
+            expenses.boundingBox(),
+        ]);
+        // Left-to-right order, same row (not stacked).
+        expect(netBox.x).toBeLessThan(incomeBox.x);
+        expect(incomeBox.x).toBeLessThan(expensesBox.x);
+        expect(Math.abs(netBox.y - incomeBox.y)).toBeLessThan(5);
+        expect(Math.abs(incomeBox.y - expensesBox.y)).toBeLessThan(5);
+    });
+
+    test('mobile: Income Sources and Monthly Expenses default collapsed to just the total, and expand independently', async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        // Nav items are behind the hamburger drawer at this width.
+        await page.locator('#sidebar-collapse-btn').click();
+        await page.locator('#btn-tab-financial').click();
+
+        const incomeList = page.locator('#cashflow-income-list');
+        const expensesList = page.locator('#cashflow-expenses-list');
+        await expect(incomeList).toHaveClass(/cf-collapsed/);
+        await expect(expensesList).toHaveClass(/cf-collapsed/);
+        await expect(page.locator('#cf-salary')).toBeHidden();
+        await expect(page.locator('#cf-total-income')).toBeVisible();
+
+        await page
+            .locator('.cf-toggle-btn[data-cf-toggle="cashflow-income-list"]')
+            .click();
+        await expect(incomeList).not.toHaveClass(/cf-collapsed/);
+        await expect(page.locator('#cf-salary')).toBeVisible();
+        // Expenses card is untouched by toggling Income.
+        await expect(expensesList).toHaveClass(/cf-collapsed/);
+    });
+});
+
 test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)', () => {
     test('Quick Stats card is gone', async ({ page }) => {
         await expect(
