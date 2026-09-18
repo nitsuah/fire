@@ -142,7 +142,7 @@ function refreshAllUI() {
 
     const annualTaxDrag = (monthlyBase * 12) * (state.taxRate / 100);
     document.getElementById('summary-annual-tax').textContent = formatCurrency(annualTaxDrag);
-    document.getElementById('summary-total-annual-need').textContent = formatCurrency(annualExpenses);
+    document.getElementById('summary-total-annual-need').textContent = formatCurrency(getAnnualExpensesTotal());
 
     renderSideGigLedgerTable();
     if (typeof renderSpendingTransactionsTable === 'function')
