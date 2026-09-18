@@ -97,6 +97,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Kick off background price refresh (every 5 minutes)
     schedulePriceRefresh();
+
+    // Re-render the summary banner on resize so K/M compaction kicks in
+    // immediately when crossing the mobile breakpoint, not just on the
+    // next unrelated data refresh.
+    let bannerResizeTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(bannerResizeTimer);
+        bannerResizeTimer = setTimeout(renderHeaderBannerMetrics, 150);
+    });
+    // Some browser contexts report a transient (or momentarily 0) viewport
+    // width at the instant DOMContentLoaded fires, before settling on the
+    // real one with no accompanying 'resize' event — re-check once the
+    // layout has had a frame to settle so compact/full mode matches reality.
+    requestAnimationFrame(renderHeaderBannerMetrics);
 });
 
 /* ==========================================================================
@@ -106,27 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function refreshAllUI() {
     calculateEbayProfit();
 
-    const networth = getAggregateNetWorth();
-    const annualExpenses = getAnnualExpensesTotal();
-    const swr = state.projectionSettings.swr / 100;
-    const fireNumber = swr > 0 ? (annualExpenses / swr) : 0;
-    const progressPercent = fireNumber > 0 ? Math.min((networth / fireNumber) * 100, 100) : 0;
-
-    document.getElementById('banner-networth').textContent = formatCurrency(networth);
-    document.getElementById('banner-spend').textContent = formatCurrency(annualExpenses);
-    document.getElementById('banner-progress').textContent = `${progressPercent.toFixed(1)}%`;
-    document.getElementById('banner-target').textContent = `Target: ${formatCurrency(fireNumber)}`;
-
-    const fireBarEl = document.getElementById('banner-fire-bar');
-    if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
-
-    const grossIncome = parseFloat(document.getElementById('tax-gross-income')?.value) || 0;
-    const sideGigNet = getSideGigYTDNet();
-    const grossIncomeEl = document.getElementById('banner-gross-income');
-    if (grossIncomeEl) grossIncomeEl.textContent = formatCurrency(grossIncome);
-    const sideIncomeEl = document.getElementById('banner-side-income');
-    if (sideIncomeEl) sideIncomeEl.textContent = sideGigNet > 0 ? `+ ${formatCurrency(sideGigNet)} side hustle` : 'No side income';
-
+    renderHeaderBannerMetrics();
     renderAllocMiniBarsBanner();
 
     renderDashboardTopPositionsTable();
@@ -355,6 +349,20 @@ function formatCurrency(val) {
         currency: 'USD',
         minimumFractionDigits: 2
     }).format(num);
+}
+
+// K/M/B-abbreviated currency for tight mobile displays; falls back to
+// formatCurrency's full precision below $1,000 since abbreviation buys
+// nothing there.
+function formatCompactCurrency(val) {
+    const num = Number(val);
+    if (isNaN(num)) return '$0';
+    const sign = num < 0 ? '-' : '';
+    const abs = Math.abs(num);
+    if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1).replace(/\.0$/, '')}B`;
+    if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+    if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
+    return formatCurrency(num);
 }
 
 /* ==========================================================================

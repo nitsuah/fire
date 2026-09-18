@@ -447,3 +447,74 @@ test.describe('Narrow viewport (mobile) — hamburger nav drawer', () => {
         await expect(page.locator('#tab-dashboard')).toHaveClass(/active/);
     });
 });
+
+test.describe('Summary bar — mobile K/M compaction', () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test('net worth and spend rate compact to K/M with short labels; FIRE progress stays full-precision', async ({
+        page,
+    }) => {
+        // All e2e-ui tests share one DB, so seed a large-enough account to
+        // guarantee net worth clears the $1,000 compaction floor regardless
+        // of what other tests have already added — don't assert an exact
+        // total, just the *shape* of the formatting.
+        await page.locator('#sidebar-collapse-btn').click();
+        await page.locator('#btn-tab-financial').click();
+        await page.locator('#acc-name').fill('E2E Compact Seed');
+        await page.locator('#acc-type').selectOption('Cash');
+        await page.locator('#acc-val').fill('50000');
+        const saveResponse = page.waitForResponse((r) =>
+            r.url().includes('/api/state'),
+        );
+        await page
+            .locator('#form-custom-account button[type="submit"]')
+            .click();
+        await saveResponse;
+
+        await page.locator('#sidebar-collapse-btn').click();
+        await page.locator('#btn-tab-dashboard').click();
+
+        // formatCompactCurrency never emits a 2-decimal cents suffix; plain
+        // formatCurrency always does — this distinguishes the two modes
+        // without pinning to an exact accumulated dollar figure.
+        await expect(page.locator('#banner-networth')).toHaveText(
+            /^-?\$[\d.]+[KMB]$/,
+        );
+
+        await expect(page.locator('.metric-label-short').first()).toBeVisible();
+        await expect(
+            page.locator('.metric-label-full').first(),
+        ).not.toBeVisible();
+
+        // The FIRE progress bar/target are explicitly out of scope for
+        // compaction — they keep full-precision formatting at every width.
+        await expect(page.locator('#banner-target')).toContainText(
+            /^Target: \$[\d,]+\.\d{2}$/,
+        );
+        await expect(page.locator('#banner-progress')).toContainText('%');
+    });
+});
+
+test.describe('Summary bar — desktop keeps full precision', () => {
+    test('net worth shows full currency formatting and full labels above the mobile breakpoint', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-financial').click();
+        await page.locator('#acc-name').fill('E2E Full Precision Seed');
+        await page.locator('#acc-type').selectOption('Cash');
+        await page.locator('#acc-val').fill('50000');
+        const saveResponse = page.waitForResponse((r) =>
+            r.url().includes('/api/state'),
+        );
+        await page
+            .locator('#form-custom-account button[type="submit"]')
+            .click();
+        await saveResponse;
+
+        await page.locator('#btn-tab-dashboard').click();
+        await expect(page.locator('#banner-networth')).toHaveText(
+            /^-?\$[\d,]+\.\d{2}$/,
+        );
+        await expect(page.locator('.metric-label-full').first()).toBeVisible();
+    });
+});

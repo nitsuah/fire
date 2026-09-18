@@ -3,6 +3,48 @@
                          diversification suggestion renderers
    ========================================================================== */
 
+// Sets the summary banner's Net Worth / Income / Spend Rate / FIRE Progress
+// text. Split out of refreshAllUI so it can also be called from a resize
+// listener (app.js) to switch between full and K/M-compact number
+// formatting as the viewport crosses the mobile breakpoint.
+function renderHeaderBannerMetrics() {
+    const networth = getAggregateNetWorth();
+    const annualExpenses = getAnnualExpensesTotal();
+    const swr = state.projectionSettings.swr / 100;
+    const fireNumber = swr > 0 ? annualExpenses / swr : 0;
+    const progressPercent =
+        fireNumber > 0 ? Math.min((networth / fireNumber) * 100, 100) : 0;
+
+    const compact =
+        typeof isMobileViewport === 'function' && isMobileViewport();
+    const fmtMoney = compact ? formatCompactCurrency : formatCurrency;
+
+    document.getElementById('banner-networth').textContent = fmtMoney(networth);
+    document.getElementById('banner-spend').textContent =
+        fmtMoney(annualExpenses);
+    document.getElementById('banner-progress').textContent =
+        `${progressPercent.toFixed(1)}%`;
+    // Target stays full-precision — the FIRE progress bar/target are meant
+    // to stay visually unchanged by the mobile compaction.
+    document.getElementById('banner-target').textContent =
+        `Target: ${formatCurrency(fireNumber)}`;
+
+    const fireBarEl = document.getElementById('banner-fire-bar');
+    if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
+
+    const grossIncome =
+        parseFloat(document.getElementById('tax-gross-income')?.value) || 0;
+    const sideGigNet = getSideGigYTDNet();
+    const grossIncomeEl = document.getElementById('banner-gross-income');
+    if (grossIncomeEl) grossIncomeEl.textContent = fmtMoney(grossIncome);
+    const sideIncomeEl = document.getElementById('banner-side-income');
+    if (sideIncomeEl)
+        sideIncomeEl.textContent =
+            sideGigNet > 0
+                ? `+ ${fmtMoney(sideGigNet)} side hustle`
+                : 'No side income';
+}
+
 function renderAllocMiniBarsBanner() {
     const el = document.getElementById('banner-alloc-bars');
     if (!el) return;

@@ -219,6 +219,13 @@
     margin-bottom: var(--space-xs);
 }
 
+/* Full label shows by default; the short variant only appears at the
+   mobile breakpoint (below) where space is tight and qualifiers like
+   "Estimated"/"Annual"/"Rate" are redundant next to a compact number. */
+.metric-label-short {
+    display: none;
+}
+
 .metric-value {
     font-family: var(--font-heading);
     font-size: var(--text-2xl);
@@ -578,9 +585,15 @@
     }
     .header-banner {
         grid-template-columns: repeat(2, 1fr);
-        padding: var(--space-md);
-        gap: var(--space-md);
+        padding: var(--space-md) var(--space-md) var(--space-lg);
+        gap: var(--space-md) var(--space-sm);
         min-height: auto;
+    }
+    .metric-label-full {
+        display: none;
+    }
+    .metric-label-short {
+        display: inline;
     }
     .fo-body {
         grid-template-columns: 1fr;
@@ -600,7 +613,7 @@
 @media (max-width: 480px) {
     .header-banner {
         grid-template-columns: 1fr;
-        padding: var(--space-sm) var(--space-md);
+        padding: var(--space-sm) var(--space-md) var(--space-md);
     }
     .platform-tabs {
         flex-wrap: wrap;
