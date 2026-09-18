@@ -165,6 +165,64 @@ test.describe('Expenses tab — spending upload', () => {
         ).toBeVisible();
         await expect(page.locator('#merchant-map-editor')).toBeVisible();
     });
+
+    test('Tax Estimator & Summary card lives here (moved from the former Taxes tab)', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-expenses').click();
+        await expect(
+            page.getByRole('heading', { name: 'Tax Estimator & Summary' }),
+        ).toBeVisible();
+        await expect(page.locator('#tax-gross-income')).toBeVisible();
+        await expect(page.locator('#summary-total-annual-need')).toBeVisible();
+    });
+});
+
+test.describe('Insights tab (renamed from Taxes)', () => {
+    test('nav label reads Insights, not Taxes', async ({ page }) => {
+        await expect(page.locator('#btn-tab-insights')).toContainText(
+            'Insights',
+        );
+        await expect(page.locator('.nav-menu')).not.toContainText('Taxes');
+    });
+
+    test('shows Portfolio Insights (moved from Dashboard) and Tax-Loss Harvesting', async ({
+        page,
+    }) => {
+        // Portfolio Insights renders empty on a zero-net-worth DB (nothing
+        // to suggest against) — seed an account so it has real content to
+        // check for, same as the allocation drill-down test above.
+        await page.locator('#btn-tab-financial').click();
+        await page.locator('#acc-name').fill('E2E Insights Seed');
+        await page.locator('#acc-type').selectOption('Cash');
+        await page.locator('#acc-val').fill('5000');
+        const saveResponse = page.waitForResponse((r) =>
+            r.url().includes('/api/state'),
+        );
+        await page
+            .locator('#form-custom-account button[type="submit"]')
+            .click();
+        await saveResponse;
+
+        await page.locator('#btn-tab-insights').click();
+        await expect(page.locator('#tab-insights')).toHaveClass(/active/);
+        await expect(page.locator('#divs-suggestion-block')).toBeVisible();
+        await expect(
+            page.getByRole('heading', { name: 'Tax-Loss Harvesting Alerts' }),
+        ).toBeVisible();
+        // Tax Estimator no longer lives here — it moved to Expenses.
+        await expect(
+            page.getByRole('heading', { name: 'Tax Estimator & Summary' }),
+        ).toHaveCount(0);
+    });
+
+    test('Portfolio Insights is no longer on the Dashboard tab', async ({
+        page,
+    }) => {
+        await expect(
+            page.locator('#tab-dashboard #divs-suggestion-block'),
+        ).toHaveCount(0);
+    });
 });
 
 test.describe('Financial Overview — ENS wallet lookup', () => {
