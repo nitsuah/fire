@@ -53,8 +53,9 @@ var dashboardProjectionsChart = null;
 // Collapsible state per account name
 var collapsedAccounts = {};
 
-// Active allocation filter (null = all visible)
-var activeAllocationFilter = null;
+// Asset Allocation drill-down path: [] = top-level overview,
+// [categoryKey] = viewing that category's individual items
+var allocDrillPath = [];
 
 // Investment table sort state (default: P&L descending within each account group)
 var tableSortColumn = 'pnl';
@@ -127,7 +128,6 @@ function refreshAllUI() {
 
     renderAllocMiniBarsBanner();
 
-    renderQuickStatsList();
     renderDashboardTopPositionsTable();
     renderDashboardLiquidPanel();
     renderAssetAllocationChart();

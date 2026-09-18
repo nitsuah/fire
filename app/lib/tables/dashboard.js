@@ -383,19 +383,6 @@ function renderDiversificationSuggestions(
     block.innerHTML = html;
 }
 
-function renderQuickStatsList() {
-    const set = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val;
-    };
-    set('stat-cash', formatCurrency(getAggregateCash()));
-    set('stat-cds', formatCurrency(getAggregateCDs()));
-    set('stat-equities', formatCurrency(getAggregateEquities()));
-    set('stat-sidegig', formatCurrency(getSideGigYTDNet()));
-    set('stat-realestate', formatCurrency(getAggregateRealEstate()));
-    set('stat-vehicles', formatCurrency(getAggregateVehicles()));
-}
-
 function renderMonthlyCashFlow() {
     const grossIncome =
         parseFloat(document.getElementById('tax-gross-income')?.value) || 0;

@@ -175,6 +175,78 @@ test.describe('Financial Overview — ENS wallet lookup', () => {
     });
 });
 
+test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)', () => {
+    test('Quick Stats card is gone', async ({ page }) => {
+        await expect(
+            page.getByRole('heading', { name: 'Quick Stats' }),
+        ).toHaveCount(0);
+    });
+
+    test('clicking a slice drills into its individual items, and back returns to the overview', async ({
+        page,
+    }) => {
+        // Seed one account so the allocation chart has a non-zero slice —
+        // a fresh e2e DB starts empty, and an all-zero chart renders no
+        // canvas content to click.
+        await page.locator('#btn-tab-financial').click();
+        await page.locator('#acc-name').fill('E2E Test Savings');
+        await page.locator('#acc-type').selectOption('Cash');
+        await page.locator('#acc-val').fill('5000');
+        const saveResponse = page.waitForResponse((r) =>
+            r.url().includes('/api/state'),
+        );
+        await page
+            .locator('#form-custom-account button[type="submit"]')
+            .click();
+        await saveResponse;
+
+        await page.locator('#btn-tab-dashboard').click();
+        const canvas = page.locator('#chart-asset-allocation');
+        await expect(canvas).toBeVisible();
+
+        // Chart.js's own hit-testing tells us exactly where a slice is,
+        // rather than guessing a fraction of the canvas box — the ring's
+        // position/radius shifts with legend content, so a fixed fraction
+        // isn't reliable across different numbers of slices.
+        const hitPoint = await page.evaluate(() => {
+            const rect = document
+                .getElementById('chart-asset-allocation')
+                .getBoundingClientRect();
+            for (let fx = 0.1; fx <= 0.6; fx += 0.05) {
+                for (let fy = 0.1; fy <= 0.9; fy += 0.05) {
+                    const x = rect.left + rect.width * fx;
+                    const y = rect.top + rect.height * fy;
+                    const hits =
+                        window.assetAllocationChart.getElementsAtEventForMode(
+                            { clientX: x, clientY: y },
+                            'nearest',
+                            { intersect: true },
+                            false,
+                        );
+                    if (hits.length > 0) return { x, y };
+                }
+            }
+            return null;
+        });
+        expect(hitPoint).toBeTruthy();
+        await page.mouse.click(hitPoint.x, hitPoint.y);
+
+        await expect(page.locator('#alloc-back-btn')).toBeVisible();
+        await expect(page.locator('#alloc-breadcrumb-title')).toContainText(
+            'Asset Allocation —',
+        );
+        await expect(page.locator('#alloc-detail-list')).toContainText(
+            'E2E Test Savings',
+        );
+
+        await page.locator('#alloc-back-btn').click();
+        await expect(page.locator('#alloc-back-btn')).toBeHidden();
+        await expect(page.locator('#alloc-breadcrumb-title')).toHaveText(
+            'Asset Allocation',
+        );
+    });
+});
+
 test.describe('Narrow viewport (mobile) — hamburger nav drawer', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 

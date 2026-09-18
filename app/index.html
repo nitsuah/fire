@@ -193,43 +193,18 @@
 
                         <!-- RIGHT COLUMN -->
                         <div class="dash-col-right">
-                            <!-- Asset Allocation -->
+                            <!-- Asset Allocation — drill-down: click a slice to see the
+                                 individual accounts/positions/CDs behind it -->
                             <div class="card glass-card">
-                                <h2 class="card-title">Asset Allocation</h2>
-                                <div class="chart-container" style="position: relative; height:210px;">
+                                <div class="card-title-row">
+                                    <h2 class="card-title" id="alloc-breadcrumb-title">Asset Allocation</h2>
+                                    <button type="button" class="alloc-back-btn" id="alloc-back-btn" style="display:none;" onclick="allocDrillUp()">← All Assets</button>
+                                </div>
+                                <div class="text-muted" id="alloc-breadcrumb-sub" style="font-size:12px;margin-top:-6px;margin-bottom:4px;"></div>
+                                <div class="chart-container" style="position: relative; height:230px;">
                                     <canvas id="chart-asset-allocation"></canvas>
                                 </div>
-                            </div>
-
-                            <!-- Quick Stats -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Quick Stats</h2>
-                                <div class="stats-list">
-                                    <div class="stat-item">
-                                        <span class="stat-name">Liquid Cash & SPAXX</span>
-                                        <span class="stat-val" id="stat-cash">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">CD Balance</span>
-                                        <span class="stat-val" id="stat-cds">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">Equity Investments</span>
-                                        <span class="stat-val" id="stat-equities">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">Real Estate Equity</span>
-                                        <span class="stat-val" id="stat-realestate">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">Vehicle Equity</span>
-                                        <span class="stat-val" id="stat-vehicles">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">Side Hustle Income (YTD)</span>
-                                        <span class="stat-val" id="stat-sidegig">$0.00</span>
-                                    </div>
-                                </div>
+                                <div id="alloc-detail-list"></div>
                             </div>
 
                             <!-- Cash & Fixed Income -->
