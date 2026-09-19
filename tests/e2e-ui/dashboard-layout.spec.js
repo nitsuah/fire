@@ -1008,3 +1008,28 @@ test.describe('Financial Overview — wide top row and vehicle actions', () => {
         ).toBeVisible();
     });
 });
+
+test.describe('Expenses — budget field labels', () => {
+    test('every budget label is two lines of the same height (bold category)', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-expenses').click();
+        const ids = [
+            'housing',
+            'utilities',
+            'food',
+            'transport',
+            'healthcare',
+            'discretionary',
+        ];
+        const heights = [];
+        for (const id of ids) {
+            const label = page.locator(`label[for="exp-${id}"]`);
+            await expect(label.locator('strong')).toBeVisible();
+            await expect(label.locator('.expense-label-hint')).toBeVisible();
+            heights.push((await label.boundingBox()).height);
+        }
+        // Consistent cells: every label is the same height.
+        expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
+    });
+});

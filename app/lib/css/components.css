@@ -1310,3 +1310,26 @@
 .insurance-grid .insurance-row {
     min-width: 0;
 }
+
+/* Budget field labels: bold category on line one, hint on line two, so every
+   input sits at the same height regardless of label length. */
+.expense-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 36px;
+}
+
+.expense-label strong {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.expense-label-hint {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
