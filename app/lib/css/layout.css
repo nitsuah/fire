@@ -722,10 +722,7 @@
 
 @media (min-width: 900px) {
     .proj-hero-row {
-        grid-template-columns: minmax(240px, 300px) 1fr;
-    }
-    .proj-secondary-row {
-        grid-template-columns: 1.3fr 1fr;
+        grid-template-columns: minmax(280px, 360px) 1fr;
     }
 }
 
@@ -807,4 +804,16 @@
     gap: var(--space-sm);
     flex-wrap: wrap;
     justify-content: flex-end;
+}
+
+.proj-milestones-section {
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.proj-milestone-tips {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
 }

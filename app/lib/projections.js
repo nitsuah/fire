@@ -100,6 +100,24 @@ window.applyScenario = function (offset) {
     calculateAndRenderProjections();
 };
 
+// The SWR <select> only lists a few stock rates and compares option values
+// as strings, so a numeric 4 (from state or a preset) never matched the
+// "4.0" option and a preset's 3.25 matched nothing — leaving the select
+// blank and silently falling back to 4.0. Match numerically and add a
+// Custom option when the value isn't already listed.
+function setSwrSelectValue(val) {
+    const sel = document.getElementById('proj-swr');
+    const n = parseFloat(val);
+    if (!sel || !Number.isFinite(n)) return;
+    let opt = [...sel.options].find((o) => parseFloat(o.value) === n);
+    if (!opt) {
+        opt = new Option(`${n}% SWR (Custom)`, String(n));
+        const next = [...sel.options].find((o) => parseFloat(o.value) > n);
+        sel.add(opt, next || null);
+    }
+    sel.value = opt.value;
+}
+
 function applyProjectionSettingsToForm() {
     document.getElementById('proj-savings').value =
         state.projectionSettings.annualSavings;
@@ -107,7 +125,7 @@ function applyProjectionSettingsToForm() {
         state.projectionSettings.expectedReturn;
     document.getElementById('proj-inflation').value =
         state.projectionSettings.inflationRate;
-    document.getElementById('proj-swr').value = state.projectionSettings.swr;
+    setSwrSelectValue(state.projectionSettings.swr);
     document.getElementById('proj-years').value =
         state.projectionSettings.spanYears;
     document.getElementById('proj-current-age').value =
@@ -188,6 +206,10 @@ async function applyProjSettingsPreset(key) {
             inflationRate: 'proj-inflation',
             swr: 'proj-swr',
         };
+        if (field === 'swr') {
+            setSwrSelectValue(val);
+            return;
+        }
         const el = document.getElementById(idMap[field]);
         if (el) el.value = val;
     });

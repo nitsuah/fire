@@ -755,3 +755,47 @@ test.describe('Side Hustle Accelerators', () => {
         await expect(box.locator('.hustle-item h4')).toBeVisible();
     });
 });
+
+test.describe('Projections — merged Growth Settings + Milestones panel', () => {
+    test('milestone selector and predictions live inside the Growth Settings card', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-projections').click();
+        const card = page.locator('#proj-settings-card');
+        await expect(
+            card.locator('#milestone-preset-mount .milestone-preset-selector'),
+        ).toBeVisible();
+        await expect(
+            card.locator('#projection-milestones-container'),
+        ).toBeAttached();
+        await expect(
+            page.locator(
+                '.proj-secondary-row #projection-milestones-container',
+            ),
+        ).toHaveCount(0);
+    });
+
+    test('every SWR preset and the default select the matching SWR and persist it', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-projections').click();
+        const select = page.locator('#proj-swr');
+        // Default (4%) must show as selected, not blank.
+        await expect(select).toHaveValue('4.0');
+
+        const cases = [
+            ['conservative', '3.5', 3.5],
+            ['standard', '4.0', 4],
+            ['aggressive', '4.0', 4],
+            ['earlyRetiree', '3.25', 3.25],
+        ];
+        for (const [key, value, num] of cases) {
+            await page
+                .locator(`.proj-preset-btn[data-preset="${key}"]`)
+                .click();
+            await expect(select).toHaveValue(value);
+            const swr = await page.evaluate(() => state.projectionSettings.swr);
+            expect(swr).toBe(num);
+        }
+    });
+});
