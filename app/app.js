@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCashFlowToggles();
     initCompactFireBar();
     initCompactBarPlacement();
+    initHustleAccelerators();
 
     // Initial Render
     refreshAllUI();

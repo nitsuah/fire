@@ -750,3 +750,21 @@
         display: table-row;
     }
 }
+
+.hustle-item-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.hustle-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.hustle-mantra {
+    text-align: center;
+}

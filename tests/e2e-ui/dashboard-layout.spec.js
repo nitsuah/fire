@@ -1,5 +1,5 @@
 // @ts-check
-/* global state, renderDashboardTopPositionsTable */
+/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -709,5 +709,49 @@ test.describe('Portfolio Rebalancing location', () => {
                 name: 'Portfolio Rebalancing',
             }),
         ).toBeVisible();
+    });
+});
+
+test.describe('Insights — additional watchers', () => {
+    test('aggressive SWR and crypto concentration tiles appear when triggered', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            localStorage.removeItem('fire_dismissed_div_tips');
+            state.customAccounts = [
+                { id: 'e2e-c', name: 'Coins', type: 'Crypto', value: 30000 },
+                { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 70000 },
+            ];
+            state.projectionSettings.swr = 6;
+            renderDiversificationSuggestions();
+        });
+        const block = page.locator('#divs-suggestion-block');
+        await expect(block).toContainText('Aggressive Withdrawal Rate');
+        await expect(block).toContainText('Crypto Share of Net Worth');
+    });
+});
+
+test.describe('Side Hustle Accelerators', () => {
+    test('shows an idea with guide/video links; dismissing all shows a motivational message; restore brings them back', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-sidegig').click();
+        const box = page.locator('#hustle-accelerator');
+        await expect(box.locator('.hustle-item h4')).toBeVisible();
+        await expect(box.locator('a.divs-tile-link').first()).toHaveAttribute(
+            'href',
+            /^https:\/\//,
+        );
+
+        await box.locator('[data-hustle-action="next"]').click();
+        await expect(box).toContainText('2 / 7');
+
+        for (let i = 0; i < 7; i++) {
+            await box.locator('[data-hustle-action="dismiss"]').click();
+        }
+        await expect(box.locator('.hustle-mantra')).toBeVisible();
+
+        await box.locator('[data-hustle-action="restore"]').click();
+        await expect(box.locator('.hustle-item h4')).toBeVisible();
     });
 });
