@@ -772,7 +772,7 @@
                             <div class="insurance-section mt-4">
                                 <h3 class="section-sub-title">Insurance</h3>
                                 <p class="card-subtitle">Enter the amount you pay and how often — we'll normalize to a monthly cost.</p>
-                                <div class="grid-2-col mt-3">
+                                <div class="insurance-grid mt-3">
                                     <div class="insurance-field-group">
                                         <label>Car Insurance</label>
                                         <div class="insurance-row">
@@ -1186,25 +1186,14 @@
                             <div class="proj-settings-presets" id="proj-settings-presets">
                                 <!-- Populated by projections.js: 3-5 quick-configuration buttons -->
                             </div>
-                            <!-- Milestone Predictions (merged into Growth Settings) -->
-                            <div class="proj-milestones-section">
-                                <h3 class="section-sub-title">Milestone Predictions</h3>
-                                <div class="proj-milestone-tips">
-                                    <span class="text-muted" style="font-size:11px;">
-                                        <span class="info-tip" data-tip="Coast FIRE: the amount where, if you stopped saving today, your portfolio would grow on its own to your FIRE number by retirement age.">Coast FIRE</span>
-                                        &nbsp;·&nbsp;
-                                        <span class="info-tip" data-tip="Lean FIRE: retire on a minimal budget (75% of your target FIRE number). Fat FIRE: retire with 25% extra cushion above your target for lifestyle flexibility.">Lean / Fat FIRE</span>
-                                    </span>
-                                </div>
-                                <div id="milestone-preset-mount"></div>
-                                <div class="milestones-grid mt-2" id="projection-milestones-container">
-                                    <!-- Dynamically populated by app.js -->
-                                </div>
-                            </div>
                             <div class="proj-settings-summary" id="proj-settings-summary">
                                 <!-- Read-only summary shown while the form below is collapsed -->
                             </div>
                             <form id="form-projections-settings" class="proj-settings-form collapsed">
+                                <div class="form-group">
+                                    <label>Milestone Preset</label>
+                                    <div id="milestone-preset-mount"></div>
+                                </div>
                                 <div class="form-group">
                                     <label for="proj-current-age">Current Age</label>
                                     <input type="number" id="proj-current-age" min="15" max="90" value="30">
@@ -1281,6 +1270,23 @@
 
                     <!-- Secondary row: Milestone Predictions below the graph, Scenario Comparison next to it -->
                     <div class="proj-secondary-row">
+                        <!-- Milestone Predictions -->
+                        <div class="card glass-card">
+                            <div class="card-title-row">
+                                <h2 class="card-title">Milestone Predictions</h2>
+                                <div class="milestone-header-actions">
+                                    <span class="text-muted" style="font-size:11px;">
+                                        <span class="info-tip" data-tip="Coast FIRE: the amount where, if you stopped saving today, your portfolio would grow on its own to your FIRE number by retirement age.">Coast FIRE</span>
+                                        &nbsp;·&nbsp;
+                                        <span class="info-tip" data-tip="Lean FIRE: retire on a minimal budget (75% of your target FIRE number). Fat FIRE: retire with 25% extra cushion above your target for lifestyle flexibility.">Lean / Fat FIRE</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="milestones-grid mt-2" id="projection-milestones-container">
+                                <!-- Dynamically populated by app.js -->
+                            </div>
+                        </div>
+
                         <!-- Multi-Scenario FIRE Date Comparison -->
                         <div class="card glass-card">
                             <div class="card-title-row">

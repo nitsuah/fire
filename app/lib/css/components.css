@@ -1298,3 +1298,15 @@
     text-align: center;
     padding: var(--space-md) 0;
 }
+/* Each insurance field is an amount input plus a frequency select, so it
+   needs ~260px; below that the fields stack instead of overlapping. */
+.insurance-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.insurance-grid .insurance-field-group,
+.insurance-grid .insurance-row {
+    min-width: 0;
+}

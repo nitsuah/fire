@@ -146,12 +146,16 @@ test.describe('Projections tab reorg', () => {
         ).not.toHaveClass(/collapsed/);
     });
 
-    test('Milestone preset selector sits inline in the card title row', async ({
+    test('Milestone preset selector lives in the Customize section', async ({
         page,
     }) => {
         await page.locator('#btn-tab-projections').click();
-        const mount = page.locator('#milestone-preset-mount');
-        await expect(mount.locator('.milestone-preset-selector')).toBeVisible();
+        await page.locator('#proj-settings-toggle').click();
+        await expect(
+            page.locator(
+                '#form-projections-settings #milestone-preset-mount .milestone-preset-selector',
+            ),
+        ).toBeVisible();
     });
 });
 
@@ -763,23 +767,36 @@ test.describe('Side Hustle Accelerators', () => {
     });
 });
 
-test.describe('Projections — merged Growth Settings + Milestones panel', () => {
-    test('milestone selector and predictions live inside the Growth Settings card', async ({
+test.describe('Projections — Growth Settings presets and milestones', () => {
+    test('Milestone Predictions is its own card beside Scenario Comparison; growth presets drive the milestone preset', async ({
         page,
     }) => {
         await page.locator('#btn-tab-projections').click();
-        const card = page.locator('#proj-settings-card');
-        await expect(
-            card.locator('#milestone-preset-mount .milestone-preset-selector'),
-        ).toBeVisible();
-        await expect(
-            card.locator('#projection-milestones-container'),
-        ).toBeAttached();
         await expect(
             page.locator(
                 '.proj-secondary-row #projection-milestones-container',
             ),
+        ).toBeAttached();
+        await expect(
+            page.locator(
+                '#proj-settings-card #projection-milestones-container',
+            ),
         ).toHaveCount(0);
+
+        await page.locator('#proj-settings-toggle').click();
+        const select = page.locator('#milestone-preset-select');
+        const cases = [
+            ['conservative', 'conservative'],
+            ['aggressive', 'aggressive'],
+            ['earlyRetiree', 'coast'],
+            ['standard', 'standard'],
+        ];
+        for (const [preset, milestone] of cases) {
+            await page
+                .locator(`.proj-preset-btn[data-preset="${preset}"]`)
+                .click();
+            await expect(select).toHaveValue(milestone);
+        }
     });
 
     test('every SWR preset and the default select the matching SWR and persist it', async ({
@@ -848,5 +865,19 @@ test.describe('Alerts bell and narrow positions table', () => {
                 });
             expect(overflow).toBeLessThanOrEqual(1);
         });
+    });
+});
+
+test.describe('Expenses — insurance fields at narrow widths', () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test('car and home insurance stack instead of overlapping', async ({
+        page,
+    }) => {
+        await page.locator('#sidebar-collapse-btn').click();
+        await page.locator('#btn-tab-expenses').click();
+        const car = await page.locator('#ins-car-freq').boundingBox();
+        const home = await page.locator('#ins-home-amt').boundingBox();
+        expect(home.y).toBeGreaterThan(car.y + car.height - 1);
     });
 });

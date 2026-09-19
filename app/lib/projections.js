@@ -181,18 +181,22 @@ function toggleProjSettingsPanel() {
 const PROJ_SETTINGS_PRESETS = {
     conservative: {
         label: 'Conservative',
+        milestonePreset: 'conservative',
         values: { expectedReturn: 6.0, inflationRate: 3.0, swr: 3.5 },
     },
     standard: {
         label: 'Standard',
+        milestonePreset: 'standard',
         values: { expectedReturn: 8.0, inflationRate: 2.5, swr: 4.0 },
     },
     aggressive: {
         label: 'Aggressive',
+        milestonePreset: 'aggressive',
         values: { expectedReturn: 10.0, inflationRate: 2.5, swr: 4.0 },
     },
     earlyRetiree: {
         label: 'Early Retiree',
+        milestonePreset: 'coast',
         values: { expectedReturn: 8.0, inflationRate: 2.5, swr: 3.25 },
     },
 };
@@ -213,6 +217,9 @@ async function applyProjSettingsPreset(key) {
         const el = document.getElementById(idMap[field]);
         if (el) el.value = val;
     });
+    // Keep the milestone preset selector in step with the growth preset.
+    if (preset.milestonePreset && typeof setActivePreset === 'function')
+        setActivePreset(preset.milestonePreset);
     document
         .querySelectorAll('.proj-preset-btn')
         .forEach((b) => b.classList.toggle('active', b.dataset.preset === key));
