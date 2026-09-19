@@ -194,6 +194,7 @@ test.describe('Insights tab (renamed from Taxes)', () => {
         // to suggest against) — seed an account so it has real content to
         // check for, same as the allocation drill-down test above.
         await page.locator('#btn-tab-financial').click();
+        await page.locator('[data-ua-tab="account"]').click();
         await page.locator('#acc-name').fill('E2E Insights Seed');
         await page.locator('#acc-type').selectOption('Cash');
         await page.locator('#acc-val').fill('5000');
@@ -226,11 +227,87 @@ test.describe('Insights tab (renamed from Taxes)', () => {
     });
 });
 
-test.describe('Financial Overview — ENS wallet lookup', () => {
-    test('lookup widget is present', async ({ page }) => {
+test.describe('Financial Overview — unified add form', () => {
+    test('Import CSV is the first and default option', async ({ page }) => {
         await page.locator('#btn-tab-financial').click();
-        await expect(page.locator('#form-ens-lookup')).toBeVisible();
-        await expect(page.locator('#ens-lookup-input')).toBeVisible();
+        const tabs = page.locator('.ua-tab-btn');
+        await expect(tabs.first()).toHaveText('Import CSV');
+        await expect(tabs.first()).toHaveClass(/active/);
+        await expect(page.locator('#csv-drag-zone')).toBeVisible();
+        await expect(page.locator('#ua-panel-account')).toBeHidden();
+    });
+
+    test('API integrations moved from Financial Overview to Settings', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-financial').click();
+        await expect(
+            page.locator('#tab-financial #btn-plaid-link'),
+        ).toHaveCount(0);
+        await expect(
+            page.locator('#tab-financial #btn-ebay-oauth'),
+        ).toHaveCount(0);
+        await page.locator('#btn-tab-settings').click();
+        await expect(
+            page.locator('#tab-settings #btn-ebay-oauth'),
+        ).toBeVisible();
+        await expect(
+            page.locator('#tab-settings #btn-plaid-link'),
+        ).toBeVisible();
+    });
+
+    test('wallets show under the form only for Cryptocurrency; the ENS lookup panel is hidden', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-financial').click();
+        await page.locator('[data-ua-tab="account"]').click();
+        await expect(page.locator('#group-crypto-wallets')).toBeHidden();
+        await page.locator('#acc-type').selectOption('Crypto');
+        await expect(page.locator('#group-crypto-wallets')).toBeVisible();
+        await expect(page.locator('#form-ens-lookup')).toBeHidden();
+    });
+
+    test('an ENS name typed in Name is used as the identifier', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-financial').click();
+        await page.locator('[data-ua-tab="account"]').click();
+        await page.locator('#acc-type').selectOption('Crypto');
+        await page.locator('#acc-name').fill('e2ename.eth');
+        await page.locator('#acc-val').fill('10');
+        const saveResponse = page.waitForResponse((r) =>
+            r.url().includes('/api/state'),
+        );
+        await page
+            .locator('#form-custom-account button[type="submit"]')
+            .click();
+        await saveResponse;
+        const saved = await page.evaluate(() =>
+            state.customAccounts.find((a) => a.name === 'e2ename.eth'),
+        );
+        expect(saved.identifier).toBe('e2ename.eth');
+    });
+
+    test('a friendly Name plus an ENS in Identifier keeps both', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-financial').click();
+        await page.locator('[data-ua-tab="account"]').click();
+        await page.locator('#acc-type').selectOption('Crypto');
+        await page.locator('#acc-name').fill('Cold Wallet E2E');
+        await page.locator('#acc-identifier').fill('e2eident.eth');
+        await page.locator('#acc-val').fill('10');
+        const saveResponse = page.waitForResponse((r) =>
+            r.url().includes('/api/state'),
+        );
+        await page
+            .locator('#form-custom-account button[type="submit"]')
+            .click();
+        await saveResponse;
+        const saved = await page.evaluate(() =>
+            state.customAccounts.find((a) => a.name === 'Cold Wallet E2E'),
+        );
+        expect(saved.identifier).toBe('e2eident.eth');
     });
 });
 
@@ -303,6 +380,7 @@ test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)',
         // a fresh e2e DB starts empty, and an all-zero chart renders no
         // canvas content to click.
         await page.locator('#btn-tab-financial').click();
+        await page.locator('[data-ua-tab="account"]').click();
         await page.locator('#acc-name').fill('E2E Test Savings');
         await page.locator('#acc-type').selectOption('Cash');
         await page.locator('#acc-val').fill('5000');
@@ -451,6 +529,7 @@ test.describe('Narrow viewport (mobile) — hamburger nav drawer', () => {
 
 async function seedCashAccount(page, name, value) {
     await page.locator('#btn-tab-financial').click();
+    await page.locator('[data-ua-tab="account"]').click();
     await page.locator('#acc-name').fill(name);
     await page.locator('#acc-type').selectOption('Cash');
     await page.locator('#acc-val').fill(value);

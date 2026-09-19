@@ -4,7 +4,7 @@
 
 function initUnifiedAssetForm() {
     const tabs = document.querySelectorAll('.ua-tab-btn');
-    const panels = ['account', 'cd', 'realestate', 'vehicle'];
+    const panels = ['csv', 'account', 'cd', 'realestate', 'vehicle'];
     tabs.forEach((btn) => {
         btn.addEventListener('click', () => {
             tabs.forEach((t) => t.classList.remove('active'));

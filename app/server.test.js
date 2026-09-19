@@ -377,6 +377,45 @@ describe('Metal accounts', () => {
     });
 });
 
+describe('Crypto accounts — name/identifier interop', () => {
+    beforeEach(() => resetDB());
+
+    it('uses an ENS name typed in Name as the identifier', async () => {
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'vitalik.eth', type: 'Crypto', value: 1 });
+        expect(res.status).toBe(201);
+        expect(res.body.identifier).toBe('vitalik.eth');
+    });
+
+    it('fills a blank Name from the identifier', async () => {
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: '', identifier: 'ETH', type: 'Crypto', value: 1 });
+        expect(res.status).toBe(201);
+        expect(res.body.name).toBe('ETH');
+        expect(res.body.identifier).toBe('ETH');
+    });
+
+    it('swaps when Name holds the ENS and Identifier holds a label', async () => {
+        const res = await request(app).post('/api/accounts').send({
+            name: 'vitalik.eth',
+            identifier: 'Cold Wallet',
+            type: 'Crypto',
+            value: 1,
+        });
+        expect(res.body.name).toBe('Cold Wallet');
+        expect(res.body.identifier).toBe('vitalik.eth');
+    });
+
+    it('keeps a friendly name with no identifier untouched', async () => {
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'Cold Wallet', type: 'Crypto', value: 1 });
+        expect(res.body.identifier).toBeUndefined();
+    });
+});
+
 // ─── POST /api/cds ─────────────────────────────────────────────────────────────
 
 describe('POST /api/cds', () => {

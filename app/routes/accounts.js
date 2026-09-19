@@ -19,6 +19,11 @@ const VALID_TYPES = new Set([
 ]);
 const VALID_METAL_TYPES = new Set(['gold', 'silver']);
 
+const looksLikeCryptoId = (v) =>
+    /^0x[0-9a-fA-F]{40}$/.test(v) ||
+    /^[a-z0-9-]+(\.[a-z0-9-]+)*\.eth$/i.test(v) ||
+    /^[A-Z0-9]{2,6}$/.test(v);
+
 router.post('/', async (req, res) => {
     const value = req.body.value !== undefined ? strictNum(req.body.value) : 0;
     if (req.body.value !== undefined && !Number.isFinite(value)) {
@@ -33,7 +38,24 @@ router.post('/', async (req, res) => {
             .status(400)
             .json({ error: 'Invalid apy. Must be between 0 and 100.' });
     }
-    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    let name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    let cryptoIdentifier =
+        typeof req.body.identifier === 'string'
+            ? req.body.identifier.trim()
+            : '';
+    // Crypto: Name and identifier are interchangeable (ENS / 0x / ticker).
+    if ((req.body.type || 'Cash') === 'Crypto') {
+        if (!cryptoIdentifier && looksLikeCryptoId(name)) {
+            cryptoIdentifier = name;
+        } else if (
+            cryptoIdentifier &&
+            !looksLikeCryptoId(cryptoIdentifier) &&
+            looksLikeCryptoId(name)
+        ) {
+            [name, cryptoIdentifier] = [cryptoIdentifier, name];
+        }
+        if (!name) name = cryptoIdentifier;
+    }
     if (!name) {
         return res.status(400).json({ error: 'Account name is required.' });
     }
@@ -71,8 +93,8 @@ router.post('/', async (req, res) => {
         type,
         value,
         apy,
-        ...(type === 'Crypto' && req.body.identifier
-            ? { identifier: String(req.body.identifier).trim() }
+        ...(type === 'Crypto' && cryptoIdentifier
+            ? { identifier: cryptoIdentifier }
             : {}),
         ...(type === 'Crypto' && quantity !== null ? { quantity } : {}),
         ...(type === 'Metal'

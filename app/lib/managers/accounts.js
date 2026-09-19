@@ -2,15 +2,55 @@
    managers/accounts.js — Custom account and imported file CRUD manager
    ========================================================================== */
 
+// A crypto identifier is an ENS name, a 0x address, or an uppercase ticker.
+function looksLikeCryptoIdentifier(s) {
+    const v = (s || '').trim();
+    return (
+        /^0x[0-9a-fA-F]{40}$/.test(v) ||
+        /^[a-z0-9-]+(\.[a-z0-9-]+)*\.eth$/i.test(v) ||
+        /^[A-Z0-9]{2,6}$/.test(v)
+    );
+}
+
+// Name and Identifier are interchangeable for Crypto: an ENS/address/ticker
+// typed into either field is used for lookup, and a blank Name falls back to
+// the identifier.
+function normalizeCryptoNameAndIdentifier(nameRaw, identifierRaw) {
+    let name = (nameRaw || '').trim();
+    let identifier = (identifierRaw || '').trim();
+    if (!identifier && looksLikeCryptoIdentifier(name)) {
+        identifier = name;
+    } else if (
+        identifier &&
+        !looksLikeCryptoIdentifier(identifier) &&
+        looksLikeCryptoIdentifier(name)
+    ) {
+        [name, identifier] = [identifier, name];
+    }
+    if (!name) name = identifier;
+    return { name, identifier };
+}
+
 function initAccountsManager() {
     const form = document.getElementById('form-custom-account');
     const accType = document.getElementById('acc-type');
     const apyGroup = document.getElementById('group-acc-apy');
     const cryptoGroup = document.getElementById('group-crypto-fields');
     const metalGroup = document.getElementById('group-metal-fields');
+    const walletsGroup = document.getElementById('group-crypto-wallets');
+    const nameInput = document.getElementById('acc-name');
 
     function updateTypeFields() {
         const t = accType.value;
+        if (nameInput) {
+            nameInput.required = t !== 'Crypto';
+            nameInput.placeholder =
+                t === 'Crypto'
+                    ? 'Name, or an ENS / 0x address / ticker'
+                    : 'e.g. Chase Savings';
+        }
+        if (walletsGroup)
+            walletsGroup.style.display = t === 'Crypto' ? '' : 'none';
         // APY shown for yield-bearing types
         apyGroup.style.display =
             t === 'Savings' || t === 'Cash' || t === 'Crypto'
@@ -37,7 +77,7 @@ function initAccountsManager() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const name = document.getElementById('acc-name').value;
+        const nameRaw = document.getElementById('acc-name').value;
         const type = accType.value;
         const val = parseFloat(document.getElementById('acc-val').value);
         const apyRaw = document.getElementById('acc-apy').value;
@@ -45,12 +85,15 @@ function initAccountsManager() {
             type === 'Savings' || type === 'Cash' || type === 'Crypto'
                 ? parseFloat(apyRaw) || 0
                 : 0;
-        const identifier =
+        const cryptoIds =
             type === 'Crypto'
-                ? (
-                      document.getElementById('acc-identifier')?.value || ''
-                  ).trim()
-                : '';
+                ? normalizeCryptoNameAndIdentifier(
+                      nameRaw,
+                      document.getElementById('acc-identifier')?.value,
+                  )
+                : null;
+        const name = cryptoIds ? cryptoIds.name : nameRaw.trim();
+        const identifier = cryptoIds ? cryptoIds.identifier : '';
         const quantityRaw = document.getElementById('acc-quantity')?.value;
         const quantity =
             type === 'Crypto' && quantityRaw
