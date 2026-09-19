@@ -55,7 +55,7 @@ var collapsedAccounts = {};
 
 // Asset Allocation drill-down path: [] = top-level overview,
 // [categoryKey] = viewing that category's individual items
-var allocDrillPath = [];
+let allocDrillPath = [];
 
 // Investment table sort state (default: P&L descending within each account group)
 var tableSortColumn = 'pnl';

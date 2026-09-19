@@ -32,6 +32,23 @@ const TEST_DATA_DIR = fs.mkdtempSync(
 );
 const TEST_DB = path.join(TEST_DATA_DIR, 'db.json');
 const TOKEN_FILE = path.join(TEST_DATA_DIR, 'tokens-ebay.json');
+const ENV_KEYS = [
+    'FIRE_DATA_DIR',
+    'FIRE_DB_FILE',
+    'FIRE_AUTH_DISABLED',
+    'SYNC_MASTER_KEY',
+    'EBAY_VERIFICATION_TOKEN',
+    'EBAY_NOTIFICATION_ENDPOINT_URL',
+    'EBAY_CLIENT_ID',
+    'EBAY_CLIENT_SECRET',
+];
+const PREV_ENV = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+function restoreEnv() {
+    for (const k of ENV_KEYS) {
+        if (PREV_ENV[k] === undefined) delete process.env[k];
+        else process.env[k] = PREV_ENV[k];
+    }
+}
 process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 process.env.FIRE_DB_FILE = TEST_DB;
 process.env.FIRE_AUTH_DISABLED = 'true';
@@ -113,6 +130,7 @@ afterAll(() => {
     } catch {
         /* ignore */
     }
+    restoreEnv();
 });
 
 describe('eBay Marketplace Account Deletion — end-to-end', () => {

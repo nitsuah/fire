@@ -21,6 +21,17 @@ async function fetchJson(url, options) {
             },
         };
     }
-    const data = await res.json().catch(() => ({}));
+    let data;
+    try {
+        data = await res.json();
+    } catch {
+        return {
+            ok: false,
+            status: res.status,
+            data: {
+                error: `Server returned malformed JSON (HTTP ${res.status}).`,
+            },
+        };
+    }
     return { ok: res.ok, status: res.status, data };
 }

@@ -172,8 +172,9 @@ function _getCashBucket(state) {
         }
     });
     (state.customAccounts || []).forEach((acc) => {
-        if (acc.type === 'Brokerage' || acc.type === 'Crypto') return; // equities, not cash
-        cash += acc.value || 0; // Cash/Savings and "other assets" alike
+        if (acc.type === 'Cash' || acc.type === 'Savings') {
+            cash += acc.value || 0;
+        }
     });
     return cash;
 }
@@ -181,6 +182,7 @@ function _getCashBucket(state) {
 function _getAggregateNetWorth(state) {
     const cash = _getCashBucket(state);
     let equities = 0;
+    let other = 0;
     (state.importedPositions || []).forEach((pos) => {
         const sym = pos.symbol || '';
         const desc = pos.description || '';
@@ -193,6 +195,8 @@ function _getAggregateNetWorth(state) {
     (state.customAccounts || []).forEach((acc) => {
         if (acc.type === 'Brokerage' || acc.type === 'Crypto')
             equities += acc.value || 0;
+        else if (acc.type !== 'Cash' && acc.type !== 'Savings')
+            other += acc.value || 0; // metals, pensions, etc. — not spendable cash
     });
     const cds = (state.cds || []).reduce((s, cd) => s + (cd.principal || 0), 0);
     const re = (state.realEstate || []).reduce(
@@ -208,7 +212,7 @@ function _getAggregateNetWorth(state) {
         (s, sg) => s + (sg.net || 0),
         0,
     );
-    return cash + equities + cds + re + veh + gig;
+    return cash + equities + other + cds + re + veh + gig;
 }
 
 // One retirement year's withdrawal: draws `expense` from `cash` first (cash
@@ -287,7 +291,10 @@ function buildProjectionData(state, scenarioOffset) {
     // composition and carried forward at that fixed fraction through the
     // (unchanged) pre-retirement accumulation phase. Populated the moment
     // each scenario crosses into retirement, below.
-    const cashFraction0 = networth > 0 ? _getCashBucket(state) / networth : 0;
+    const cashFraction0 =
+        networth > 0
+            ? Math.min(Math.max(_getCashBucket(state) / networth, 0), 1)
+            : 0;
     let cashBase = null,
         investedBase = null;
     let cashBull = null,

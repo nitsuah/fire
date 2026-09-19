@@ -60,7 +60,7 @@ function renderCustomAccountsTable() {
                         ${isMetal ? `<br><select class="inline-edit-input" style="width:90px;font-size:11px;" id="edit-acc-metaltype-${acc.id}"><option value="gold" ${acc.metalType === 'gold' ? 'selected' : ''}>Gold</option><option value="silver" ${acc.metalType === 'silver' ? 'selected' : ''}>Silver</option></select><br><input type="number" class="inline-edit-input text-right" style="width:80px;font-size:11px;" id="edit-acc-weightoz-${acc.id}" placeholder="Weight (oz)" step="any" min="0" value="${acc.weightOz != null ? acc.weightOz : ''}">` : ''}
                     </td>
                     <td class="text-right">
-                        <button class="save-btn" onclick="saveEditAccount('${acc.id}')">Save</button>
+                        <button class="save-btn" onclick="saveEditAccount('${acc.id}', this)">Save</button>
                         <button class="cancel-btn" onclick="cancelEditAccount('${acc.id}')">Cancel</button>
                     </td>
                 </tr>
@@ -223,7 +223,7 @@ function renderUnifiedHoldingsTable() {
                 </td>
                 <td>—</td>
                 <td class="text-right">
-                    <button class="save-btn" onclick="saveEditAccount('${acc.id}')">Save</button>
+                    <button class="save-btn" onclick="saveEditAccount('${acc.id}', this)">Save</button>
                     <button class="cancel-btn" onclick="cancelEditAccount('${acc.id}')">Cancel</button>
                 </td>
             </tr>`;

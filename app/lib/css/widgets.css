@@ -662,3 +662,28 @@
     padding: 5px 8px;
     font-size: var(--text-xs);
 }
+
+.alloc-cat-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: var(--space-sm);
+}
+
+.alloc-cat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-main);
+    font-size: var(--text-xs);
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.alloc-cat-btn:hover,
+.alloc-cat-btn:focus-visible {
+    border-color: var(--color-primary);
+}

@@ -27,6 +27,23 @@ const TEST_DATA_DIR = fs.mkdtempSync(
 );
 const TEST_DB = path.join(TEST_DATA_DIR, 'db.json');
 const TOKEN_FILE = path.join(TEST_DATA_DIR, 'tokens-ebay.json');
+const ENV_KEYS = [
+    'FIRE_DATA_DIR',
+    'FIRE_DB_FILE',
+    'FIRE_AUTH_DISABLED',
+    'SYNC_MASTER_KEY',
+    'EBAY_VERIFICATION_TOKEN',
+    'EBAY_NOTIFICATION_ENDPOINT_URL',
+    'EBAY_CLIENT_ID',
+    'EBAY_CLIENT_SECRET',
+];
+const PREV_ENV = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+function restoreEnv() {
+    for (const k of ENV_KEYS) {
+        if (PREV_ENV[k] === undefined) delete process.env[k];
+        else process.env[k] = PREV_ENV[k];
+    }
+}
 process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 process.env.FIRE_DB_FILE = TEST_DB;
 // Test-only 64-hex-char key (not a real secret) — required for
@@ -41,7 +58,6 @@ process.env.EBAY_NOTIFICATION_ENDPOINT_URL =
 // tests/unit/server-hardening.test.js). Vitest can reuse worker processes
 // across test files, so process.env mutations here can otherwise leak into
 // a later-run suite; save the prior value and restore it in afterAll.
-const PREV_FIRE_AUTH_DISABLED = process.env.FIRE_AUTH_DISABLED;
 process.env.FIRE_AUTH_DISABLED = 'true';
 
 fs.writeFileSync(
@@ -90,15 +106,7 @@ afterAll(() => {
     } catch {
         /* ignore */
     }
-    if (PREV_FIRE_AUTH_DISABLED === undefined) {
-        delete process.env.FIRE_AUTH_DISABLED;
-    } else {
-        process.env.FIRE_AUTH_DISABLED = PREV_FIRE_AUTH_DISABLED;
-    }
-    delete process.env.FIRE_DATA_DIR;
-    delete process.env.SYNC_MASTER_KEY;
-    delete process.env.EBAY_VERIFICATION_TOKEN;
-    delete process.env.EBAY_NOTIFICATION_ENDPOINT_URL;
+    restoreEnv();
 });
 
 describe('GET /api/sync/ebay/status', () => {

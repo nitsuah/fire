@@ -136,7 +136,7 @@ window.cancelEditAccount = function (id) {
     renderUnifiedHoldingsTable();
 };
 
-window.saveEditAccount = async function (id) {
+window.saveEditAccount = async function (id, triggerEl) {
     const nameInput = document.getElementById(`edit-acc-name-${id}`);
     const apyInput = document.getElementById(`edit-acc-apy-${id}`);
     const valInput = document.getElementById(`edit-acc-val-${id}`);
@@ -144,8 +144,16 @@ window.saveEditAccount = async function (id) {
         `edit-acc-identifier-${id}`,
     );
     const quantityInput = document.getElementById(`edit-acc-quantity-${id}`);
-    const metalTypeInput = document.getElementById(`edit-acc-metaltype-${id}`);
-    const weightOzInput = document.getElementById(`edit-acc-weightoz-${id}`);
+    // Custom-accounts and unified-holdings tables both render this row's
+    // edit inputs with the same ids, so read the Metal fields from the row
+    // whose Save button was clicked.
+    const row = triggerEl?.closest('tr');
+    const metalTypeInput =
+        row?.querySelector(`[id="edit-acc-metaltype-${id}"]`) ||
+        document.getElementById(`edit-acc-metaltype-${id}`);
+    const weightOzInput =
+        row?.querySelector(`[id="edit-acc-weightoz-${id}"]`) ||
+        document.getElementById(`edit-acc-weightoz-${id}`);
 
     const name = nameInput?.value?.trim();
     if (!name) return;
@@ -159,6 +167,13 @@ window.saveEditAccount = async function (id) {
     if (accIndex === -1) return;
 
     const cur = state.customAccounts[accIndex];
+    const newWeightOz = weightOzInput ? parseFloat(weightOzInput.value) : null;
+    if (
+        cur.type === 'Metal' &&
+        weightOzInput &&
+        !(Number.isFinite(newWeightOz) && newWeightOz > 0)
+    )
+        return;
     const prev = { ...cur };
 
     state.customAccounts[accIndex] = {
@@ -176,7 +191,7 @@ window.saveEditAccount = async function (id) {
             ? { metalType: metalTypeInput.value }
             : {}),
         ...(cur.type === 'Metal' && weightOzInput
-            ? { weightOz: parseFloat(weightOzInput.value) || null }
+            ? { weightOz: newWeightOz }
             : {}),
     };
 

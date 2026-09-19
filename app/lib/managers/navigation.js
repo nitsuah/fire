@@ -60,15 +60,15 @@ function initSidebarCollapseState() {
     } catch {
         /* ignore */
     }
-    if (stored === '1') {
+    if (isMobileViewport()) {
+        setToggleBtnState('Open menu', false);
+    } else if (stored === '1') {
         document
             .querySelector('.app-container')
             ?.classList.add('sidebar-collapsed');
-        const btn = document.getElementById('sidebar-collapse-btn');
-        if (btn) {
-            btn.title = 'Expand sidebar';
-            btn.setAttribute('aria-label', 'Expand sidebar');
-        }
+        setToggleBtnState('Expand sidebar', false);
+    } else {
+        setToggleBtnState('Collapse sidebar', true);
     }
 }
 

@@ -142,6 +142,7 @@ router.put('/:id', async (req, res) => {
             .json({ error: 'weightOz must be a number > 0.' });
     }
 
+    let invalidMetal = false;
     let notFound = false;
     let updated = null;
     const ok = await mutateState((state) => {
@@ -160,6 +161,28 @@ router.put('/:id', async (req, res) => {
         const apy =
             req.body.apy !== undefined ? strictNum(req.body.apy) : cur.apy;
         const type = req.body.type || cur.type;
+        let metalValueStale = false;
+        if (type === 'Metal') {
+            const mType =
+                req.body.metalType !== undefined
+                    ? String(req.body.metalType).toLowerCase()
+                    : cur.metalType;
+            const mWeight =
+                req.body.weightOz !== undefined
+                    ? strictNum(req.body.weightOz)
+                    : cur.weightOz;
+            if (
+                !VALID_METAL_TYPES.has(mType) ||
+                !Number.isFinite(mWeight) ||
+                mWeight <= 0
+            ) {
+                invalidMetal = true;
+                return;
+            }
+            metalValueStale =
+                req.body.value === undefined &&
+                (mType !== cur.metalType || mWeight !== cur.weightOz);
+        }
         state.customAccounts[idx] = {
             ...cur,
             name: req.body.name !== undefined ? req.body.name.trim() : cur.name,
@@ -204,8 +227,19 @@ router.put('/:id', async (req, res) => {
                         weightOz: undefined,
                     }),
         };
+        if (metalValueStale) {
+            // Pricing inputs changed without a new value: don't keep the
+            // old holdings' total.
+            state.customAccounts[idx].value = 0;
+            state.customAccounts[idx].valueLastRefreshed = undefined;
+        }
         updated = state.customAccounts[idx];
     });
+    if (invalidMetal) {
+        return res.status(400).json({
+            error: 'Metal accounts need a valid metalType and a positive weightOz.',
+        });
+    }
     if (notFound) return res.status(404).json({ error: 'Account not found.' });
     if (ok) {
         res.json(updated);

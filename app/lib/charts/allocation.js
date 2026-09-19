@@ -314,6 +314,17 @@ function renderAssetAllocationChart() {
 
     const categoryKeys = slices.map((s) => s.key);
 
+    // Keyboard/AT-accessible equivalent of clicking a doughnut slice.
+    const listEl = document.getElementById('alloc-detail-list');
+    if (listEl) {
+        listEl.innerHTML = `<div class="alloc-cat-buttons">${slices
+            .map(
+                (s) =>
+                    `<button type="button" class="alloc-cat-btn" onclick="allocDrillInto('${s.key}')"><span class="alloc-detail-dot" style="background:${s.color};"></span>${s.label} · ${formatCurrency(s.val)}</button>`,
+            )
+            .join('')}</div>`;
+    }
+
     assetAllocationChart = new Chart(ctx, {
         type: 'doughnut',
         data: {

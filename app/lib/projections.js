@@ -311,7 +311,10 @@ function buildProjectionData() {
     // composition and carried forward at that fixed fraction through the
     // (unchanged) pre-retirement accumulation phase. Populated the moment
     // each scenario crosses into retirement, below.
-    const cashFraction0 = networth > 0 ? getAggregateCash() / networth : 0;
+    const cashFraction0 =
+        networth > 0
+            ? Math.min(Math.max(getAggregateCash() / networth, 0), 1)
+            : 0;
     let cashBase = null,
         investedBase = null;
     let cashBull = null,

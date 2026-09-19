@@ -21,12 +21,14 @@ function getBannerAllocSegments() {
         },
     ];
     const total = parts.reduce((sum, p) => sum + p.amt, 0);
-    const segments =
-        total === 0
-            ? []
-            : parts
-                  .map((p) => ({ ...p, pct: (p.amt / total) * 100 }))
-                  .filter((s) => s.pct > 0);
+    // Percentages are relative to the positive amounts actually drawn, so a
+    // negative component can't push the visible segments past 100%.
+    const shown = parts.filter((p) => p.amt > 0);
+    const shownTotal = shown.reduce((sum, p) => sum + p.amt, 0);
+    const segments = shown.map((p) => ({
+        ...p,
+        pct: (p.amt / shownTotal) * 100,
+    }));
     return { segments, total };
 }
 
@@ -46,7 +48,9 @@ function renderHeaderBannerMetrics() {
     const swr = state.projectionSettings.swr / 100;
     const fireNumber = swr > 0 ? annualExpenses / swr : 0;
     const progressPercent =
-        fireNumber > 0 ? Math.min((networth / fireNumber) * 100, 100) : 0;
+        fireNumber > 0
+            ? Math.max(0, Math.min((networth / fireNumber) * 100, 100))
+            : 0;
 
     document.getElementById('banner-networth').textContent =
         formatCurrency(networth);
@@ -89,6 +93,14 @@ function renderCompactFireBar(progressPercent) {
         )
         .join('');
     pct.textContent = `${progressPercent.toFixed(1)}%`;
+    const bar = document.getElementById('compact-fire-bar');
+    if (bar) {
+        bar.setAttribute('aria-valuenow', progressPercent.toFixed(1));
+        bar.setAttribute(
+            'aria-valuetext',
+            `${progressPercent.toFixed(1)}% of FIRE target`,
+        );
+    }
 }
 
 function buildCompactBarTooltipHtml() {
@@ -102,7 +114,7 @@ function buildCompactBarTooltipHtml() {
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
-    const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.gross + income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
+    const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.gross)}</span></div><div class="at-row"><span class="at-label">Side income YTD</span><span class="at-val">${formatCurrency(income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
     return rows + totalRow + flowRows;
 }
 

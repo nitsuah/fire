@@ -349,18 +349,24 @@ router.post('/ebay/marketplace-account-deletion', async (req, res) => {
     console.log(
         `[eBay] Marketplace account deletion received (notificationId=${notification.notificationId || 'unknown'}). Purging locally stored eBay tokens and disabling sync.`,
     );
+    // Only acknowledge once cleanup is complete, so eBay retries otherwise.
     try {
-        const tokenFile = getTokenFile('ebay');
-        if (fs.existsSync(tokenFile)) fs.unlinkSync(tokenFile);
+        fs.unlinkSync(getTokenFile('ebay'));
     } catch (err) {
-        console.error(
-            '[eBay] Failed to purge stored tokens on account deletion:',
-            err,
-        );
+        if (err.code !== 'ENOENT') {
+            console.error(
+                '[eBay] Failed to purge stored tokens on account deletion:',
+                err,
+            );
+            return res.status(500).json({ error: 'Token purge failed.' });
+        }
     }
-    await mutateState((state) => {
+    const stateOk = await mutateState((state) => {
         state.ebaySyncEnabled = false;
     });
+    if (!stateOk) {
+        return res.status(500).json({ error: 'State update failed.' });
+    }
     res.status(200).json({ status: 'acknowledged' });
 });
 
