@@ -62,6 +62,15 @@
     transition: transform var(--transition-smooth);
 }
 
+/* Two icons live in the same button; only one shows at a time — the
+   desktop collapse chevron above 768px, a hamburger (opens the nav
+   drawer) at or below it. See the @media (max-width: 768px) block below
+   for the swap and .nav-drawer-backdrop/.nav-drawer-open for the drawer
+   itself. */
+.nav-toggle-hamburger {
+    display: none;
+}
+
 @media (min-width: 769px) {
     .app-container.sidebar-collapsed .sidebar {
         width: 76px;
@@ -172,9 +181,25 @@
 
 /* Top Banner Summary Card — organic fluid grid */
 .header-banner {
+    /* Never shrink below its content: as a flex item of the fixed-height
+       .main-content column it otherwise collapses to min-height once data
+       loads, and the metrics spill over the border and the content below. */
+    flex-shrink: 0;
     min-height: var(--header-height);
     border-bottom: 1px solid var(--border-divider);
-    padding: var(--space-md) var(--space-xl);
+    padding: var(--space-md) var(--space-xl) var(--space-lg);
+    /* backdrop-filter (below) creates a stacking context on this element,
+       which traps the notification dropdown's z-index:300 (components.css)
+       inside it — without an explicit z-index here, that whole trapped
+       context painted as a plain z-index:0 flex item (a sibling of
+       .scroll-container under .main-content's flex column, see above),
+       so DOM order alone decided the outcome and the dropdown rendered
+       *underneath* dashboard/tab content instead of above it. Applies
+       despite position:static because .header-banner is a flex item of
+       .main-content — z-index applies to flex items regardless of
+       position (https://www.w3.org/TR/css-flexbox-1/#painting). */
+    z-index: 5;
+    position: relative;
     display: grid;
     gap: var(--space-lg);
     grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
@@ -197,6 +222,10 @@
     color: var(--text-muted);
     font-family: var(--font-heading);
     margin-bottom: var(--space-xs);
+}
+
+.compact-fire-bar {
+    display: none;
 }
 
 .metric-value {
@@ -272,6 +301,44 @@
     .dashboard-body {
         grid-template-columns: 1.5fr 1fr;
     }
+}
+
+/* Wide screens: Retirement Growth Path, Asset Allocation and Cash & Fixed
+   Income share the top row; Top Investment Positions runs full width below.
+   The column wrappers dissolve so all four cards are placed by the grid. */
+@media (min-width: 1400px) {
+    .dashboard-body {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
+    }
+    .dash-col-left,
+    .dash-col-right {
+        display: contents;
+    }
+    #dash-card-growth {
+        order: 1;
+    }
+    #dash-card-alloc {
+        order: 2;
+    }
+    #dash-card-cash {
+        order: 3;
+    }
+    #dash-card-positions {
+        order: 4;
+        grid-column: 1 / -1;
+    }
+    #dash-card-growth.growth-size-wide {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Retirement Growth Path size options (S / M / L / full width). */
+.dash-growth-chart {
+    height: 260px;
+}
+.growth-size-wide .dash-growth-chart {
+    height: 400px;
 }
 
 /* Organic span utilities */
@@ -366,6 +433,25 @@
     flex-wrap: wrap;
 }
 
+/* Net Monthly Cash Flow / Income Sources / Monthly Expenses — left-to-right
+   on desktop, stacked on mobile (see .cf-collapsible-card below for the
+   mobile collapse behavior). */
+.fo-cashflow-row {
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: 1fr;
+    margin-bottom: var(--space-lg);
+}
+
+/* Wide screens: Net Monthly Cash Flow, Income Sources and Monthly Expenses
+   share one row (same breakpoint as the dashboard's top row). */
+@media (min-width: 1400px) {
+    .fo-cashflow-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+    }
+}
+
 .fo-body {
     display: grid;
     gap: var(--space-lg);
@@ -386,18 +472,6 @@
     min-width: 0;
 }
 
-@media (min-width: 900px) {
-    .fo-body {
-        grid-template-columns: 2fr 1fr;
-        align-items: start;
-    }
-}
-
-@media (min-width: 1200px) {
-    .fo-body {
-        grid-template-columns: 1.5fr 1fr;
-    }
-}
 
 /* Financial Overview section label dividers */
 .fo-section-label {
@@ -420,10 +494,62 @@
     .span-2, .span-3, .span-4 {
         grid-column: span 1;
     }
+    /* Narrow widths: collapse the four metric blocks into one minimalist
+       bar — filled portion = FIRE progress, split into net-worth allocation
+       segments, with the breakdown/income/spend in its hover/tap tooltip.
+       Only the alerts bell survives from the FIRE Progress block. */
     .header-banner {
-        grid-template-columns: repeat(2, 1fr);
+        display: flex;
+        align-items: center;
         gap: var(--space-md);
-        padding: var(--space-md) var(--space-lg);
+        padding: var(--space-md) var(--space-lg) var(--space-lg);
+        min-height: auto;
+    }
+    .header-banner > .header-metric:nth-child(-n + 3),
+    .header-banner .fire-prog-wrap,
+    .header-banner .fire-prog-target,
+    .header-banner .metric-label-text {
+        display: none;
+    }
+    .header-banner > .header-metric:nth-child(4) {
+        order: 2;
+        flex-shrink: 0;
+    }
+    .header-banner .metric-label {
+        margin-bottom: 0;
+    }
+    .compact-fire-bar {
+        display: block;
+        order: 1;
+        flex: 1;
+        min-width: 0;
+        margin-right: 40px; /* room for the pinned alerts bell */
+        cursor: pointer;
+    }
+    .cfb-track {
+        position: relative;
+        height: 22px;
+        border-radius: 999px;
+        background: var(--bg-surface, rgba(255, 255, 255, 0.08));
+        overflow: hidden;
+    }
+    .cfb-fill {
+        display: flex;
+        height: 100%;
+        transition: width 0.4s ease;
+    }
+    .cfb-seg {
+        height: 100%;
+    }
+    .cfb-pct {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: var(--text-xs);
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     }
 }
 
@@ -433,68 +559,114 @@
         width: 100%;
         min-height: 100vh;
     }
+
+    /* Collapsed to a top bar: brand + hamburger only. Nav items live in
+       the drawer below (.nav-menu), not inline — a horizontal scrolling
+       strip of tabs here is exactly the "moved everything to the top bar"
+       pattern the left-nav paradigm is meant to avoid. Fixed (not sticky)
+       so it stays put above the drawer/backdrop overlay; .main-content
+       below gets matching top padding so content doesn't start underneath
+       it. */
     .sidebar {
         width: 100%;
-        height: auto;
+        height: var(--mobile-topbar-height);
         border-right: none;
         border-bottom: 1px solid var(--border-divider);
-        padding: var(--space-sm) var(--space-md);
+        padding: 0 var(--space-md);
         flex-direction: row;
         align-items: center;
         justify-content: flex-start;
-        position: sticky;
+        position: fixed;
         top: 0;
-        z-index: 100;
+        left: 0;
+        right: 0;
+        z-index: 210;
         gap: var(--space-md);
+        background-color: var(--bg-sidebar);
     }
     .brand {
         margin-bottom: 0;
         padding-left: 0;
         flex-shrink: 0;
-        margin-right: var(--space-md);
+        margin-right: 0;
     }
     .brand-name {
         display: none;
     }
-    .nav-menu {
-        flex-direction: row;
-        flex-grow: 1;
-        overflow-x: auto;
-        gap: var(--space-xs);
-        padding-bottom: var(--space-xs);
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-    }
-    .nav-menu::-webkit-scrollbar {
+
+    .nav-toggle-chevron {
         display: none;
     }
-    .nav-btn {
-        padding: var(--space-xs) var(--space-sm);
-        font-size: var(--text-xs);
-        white-space: nowrap;
-        flex-shrink: 0;
-        border-radius: var(--border-radius-sm);
+    .nav-toggle-hamburger {
+        display: block;
     }
-    .nav-btn.active {
-        box-shadow: inset 0 -2px 0 var(--color-primary);
-        background-color: rgba(139, 92, 246, 0.1);
+
+    /* Off-canvas drawer: hidden by default, drops down as an overlay
+       panel below the top bar when opened via the hamburger
+       (.app-container.nav-drawer-open, toggled in navigation.js). Stays a
+       vertical list — same shape as the desktop sidebar's nav — rather
+       than becoming horizontal top tabs. */
+    .nav-menu {
+        position: fixed;
+        top: var(--mobile-topbar-height);
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        gap: var(--space-xs);
+        max-height: calc(100vh - var(--mobile-topbar-height));
+        overflow-y: auto;
+        background-color: var(--bg-sidebar);
+        border-bottom: 1px solid var(--border-divider);
+        padding: var(--space-sm) var(--space-md) var(--space-md);
+        z-index: 205;
+        transform: translateY(-12px);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: var(--transition-smooth);
+    }
+    .app-container.nav-drawer-open .nav-menu {
+        transform: translateY(0);
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+    .nav-btn {
+        padding: var(--space-sm) var(--space-md);
+        font-size: var(--text-base);
+        border-radius: var(--border-radius-sm);
     }
     .sidebar-footer {
         display: none;
     }
+
+    /* Click-outside-to-close scrim, only present (and only rendered) while
+       the drawer is open. */
+    .nav-drawer-backdrop {
+        display: none;
+        position: fixed;
+        top: var(--mobile-topbar-height);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 204;
+    }
+    .app-container.nav-drawer-open .nav-drawer-backdrop {
+        display: block;
+    }
+
     .main-content {
         height: auto;
         overflow: visible;
+        padding-top: var(--mobile-topbar-height);
     }
     .scroll-container {
         overflow: visible;
         padding: var(--space-md);
     }
     .header-banner {
-        grid-template-columns: repeat(2, 1fr);
         padding: var(--space-md);
-        gap: var(--space-md);
-        min-height: auto;
     }
     .fo-body {
         grid-template-columns: 1fr;
@@ -511,11 +683,27 @@
     }
 }
 
-@media (max-width: 480px) {
-    .header-banner {
-        grid-template-columns: 1fr;
-        padding: var(--space-sm) var(--space-md);
+/* Portrait at hamburger widths: the summary bar sits in the top bar (moved
+   there by initCompactBarPlacement), so the banner below it goes away. */
+@media (max-width: 768px) and (orientation: portrait) {
+    .app-container.topbar-summary .header-banner {
+        display: none;
     }
+    .app-container.topbar-summary .sidebar {
+        overflow: visible;
+    }
+    .app-container.topbar-summary .sidebar .compact-fire-bar {
+        flex: 1;
+        min-width: 0;
+    }
+    .app-container.topbar-summary .sidebar .notif-bell-wrap {
+        top: 50%;
+        transform: translateY(-50%);
+        right: var(--space-md);
+    }
+}
+
+@media (max-width: 480px) {
     .platform-tabs {
         flex-wrap: wrap;
     }
@@ -570,7 +758,7 @@
 
 @media (min-width: 900px) {
     .proj-hero-row {
-        grid-template-columns: minmax(240px, 300px) 1fr;
+        grid-template-columns: minmax(280px, 360px) 1fr;
     }
     .proj-secondary-row {
         grid-template-columns: 1.3fr 1fr;
@@ -655,4 +843,27 @@
     gap: var(--space-sm);
     flex-wrap: wrap;
     justify-content: flex-end;
+}
+
+.proj-milestones-section {
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--border-divider);
+}
+
+.proj-milestone-tips {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
+}
+
+.proj-panel-section .section-sub-title,
+.proj-panel-section-divided .section-sub-title {
+    margin-bottom: var(--space-xs);
+}
+
+.proj-panel-section-divided {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border-divider);
 }

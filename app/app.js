@@ -53,8 +53,9 @@ var dashboardProjectionsChart = null;
 // Collapsible state per account name
 var collapsedAccounts = {};
 
-// Active allocation filter (null = all visible)
-var activeAllocationFilter = null;
+// Asset Allocation drill-down path: [] = top-level overview,
+// [categoryKey] = viewing that category's individual items
+let allocDrillPath = [];
 
 // Investment table sort state (default: P&L descending within each account group)
 var tableSortColumn = 'pnl';
@@ -89,6 +90,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSideGigManager();
     initPlatformCalculators();
     initProjectionsManager();
+    initCashFlowToggles();
+    initCompactFireBar();
+    initCompactBarPlacement();
+    initHustleAccelerators();
+    initGrowthSizeControls();
 
     // Initial Render
     refreshAllUI();
@@ -104,30 +110,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 function refreshAllUI() {
     calculateEbayProfit();
 
-    const networth = getAggregateNetWorth();
-    const annualExpenses = getAnnualExpensesTotal();
-    const swr = state.projectionSettings.swr / 100;
-    const fireNumber = swr > 0 ? (annualExpenses / swr) : 0;
-    const progressPercent = fireNumber > 0 ? Math.min((networth / fireNumber) * 100, 100) : 0;
-
-    document.getElementById('banner-networth').textContent = formatCurrency(networth);
-    document.getElementById('banner-spend').textContent = formatCurrency(annualExpenses);
-    document.getElementById('banner-progress').textContent = `${progressPercent.toFixed(1)}%`;
-    document.getElementById('banner-target').textContent = `Target: ${formatCurrency(fireNumber)}`;
-
-    const fireBarEl = document.getElementById('banner-fire-bar');
-    if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
-
-    const grossIncome = parseFloat(document.getElementById('tax-gross-income')?.value) || 0;
-    const sideGigNet = getSideGigYTDNet();
-    const grossIncomeEl = document.getElementById('banner-gross-income');
-    if (grossIncomeEl) grossIncomeEl.textContent = formatCurrency(grossIncome);
-    const sideIncomeEl = document.getElementById('banner-side-income');
-    if (sideIncomeEl) sideIncomeEl.textContent = sideGigNet > 0 ? `+ ${formatCurrency(sideGigNet)} side hustle` : 'No side income';
-
+    renderHeaderBannerMetrics();
     renderAllocMiniBarsBanner();
 
-    renderQuickStatsList();
     renderDashboardTopPositionsTable();
     renderDashboardLiquidPanel();
     renderAssetAllocationChart();
@@ -147,7 +132,7 @@ function refreshAllUI() {
 
     const annualTaxDrag = (monthlyBase * 12) * (state.taxRate / 100);
     document.getElementById('summary-annual-tax').textContent = formatCurrency(annualTaxDrag);
-    document.getElementById('summary-total-annual-need').textContent = formatCurrency(annualExpenses);
+    document.getElementById('summary-total-annual-need').textContent = formatCurrency(getAnnualExpensesTotal());
 
     renderSideGigLedgerTable();
     if (typeof renderSpendingTransactionsTable === 'function')

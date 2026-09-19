@@ -44,6 +44,7 @@ function renderCustomAccountsTable() {
 
         if (isEditing) {
             const isCrypto = acc.type === 'Crypto';
+            const isMetal = acc.type === 'Metal';
             const hasYieldEdit =
                 acc.type === 'Savings' || acc.type === 'Cash' || isCrypto;
             html += `
@@ -56,9 +57,10 @@ function renderCustomAccountsTable() {
                     <td class="text-right">
                         <input type="number" class="inline-edit-input text-right" style="width: 120px;" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}">
                         ${isCrypto ? `<br><input type="text" class="inline-edit-input" style="width:120px;font-size:11px;" id="edit-acc-identifier-${acc.id}" placeholder="ETH, 0x…, you.eth" value="${escHtml(acc.identifier || '')}"><br><input type="number" class="inline-edit-input text-right" style="width:80px;font-size:11px;" id="edit-acc-quantity-${acc.id}" placeholder="Qty" step="any" value="${acc.quantity != null ? acc.quantity : ''}">` : ''}
+                        ${isMetal ? `<br><select class="inline-edit-input" style="width:90px;font-size:11px;" id="edit-acc-metaltype-${acc.id}"><option value="gold" ${acc.metalType === 'gold' ? 'selected' : ''}>Gold</option><option value="silver" ${acc.metalType === 'silver' ? 'selected' : ''}>Silver</option></select><br><input type="number" class="inline-edit-input text-right" style="width:80px;font-size:11px;" id="edit-acc-weightoz-${acc.id}" placeholder="Weight (oz)" step="any" min="0" value="${acc.weightOz != null ? acc.weightOz : ''}">` : ''}
                     </td>
                     <td class="text-right">
-                        <button class="save-btn" onclick="saveEditAccount('${acc.id}')">Save</button>
+                        <button class="save-btn" onclick="saveEditAccount('${acc.id}', this)">Save</button>
                         <button class="cancel-btn" onclick="cancelEditAccount('${acc.id}')">Cancel</button>
                     </td>
                 </tr>
@@ -69,14 +71,20 @@ function renderCustomAccountsTable() {
                 acc.type === 'Cash' ||
                 acc.type === 'Crypto';
             const isCrypto = acc.type === 'Crypto';
+            const isMetal = acc.type === 'Metal';
+            const metalLabel =
+                isMetal && acc.metalType
+                    ? `${acc.metalType === 'gold' ? '🥇 Gold' : '🥈 Silver'}${acc.weightOz != null ? ` · ${acc.weightOz}oz` : ''}`
+                    : '';
             html += `
                 <tr>
-                    <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}</td>
+                    <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}${metalLabel ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(metalLabel)}</span>` : ''}</td>
                     <td><span class="text-muted">${escHtml(acc.type)}</span></td>
                     <td class="text-right text-amber font-bold">${hasYield && (!isCrypto || acc.apy) ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
                     <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
                     <td class="text-right">
                         ${isCrypto && acc.identifier ? `<button class="edit-btn" data-crypto-refresh-id="${acc.id}" onclick="refreshCryptoAccount('${acc.id}')">⟳ Refresh</button>` : ''}
+                        ${isMetal && acc.metalType && acc.weightOz ? `<button class="edit-btn" data-metal-refresh-id="${acc.id}" onclick="refreshMetalAccount('${acc.id}')">⟳ Refresh</button>` : ''}
                         <button class="edit-btn" onclick="startEditAccount('${acc.id}')">Edit</button>
                         <button class="delete-btn" onclick="deleteCustomAccount('${acc.id}')">Delete</button>
                     </td>
@@ -194,33 +202,41 @@ function renderUnifiedHoldingsTable() {
         if (!acc || acc.value === undefined) return;
         const isEditing = editingAccounts.includes(acc.id);
         const isCrypto = acc.type === 'Crypto';
+        const isMetal = acc.type === 'Metal';
         const hasYield =
             acc.type === 'Savings' || acc.type === 'Cash' || isCrypto;
+        const metalLabel =
+            isMetal && acc.metalType
+                ? `${acc.metalType === 'gold' ? '🥇 Gold' : '🥈 Silver'}${acc.weightOz != null ? ` · ${acc.weightOz}oz` : ''}`
+                : '';
         if (isEditing) {
             html += `<tr>
                 <td><input type="text" class="inline-edit-input" id="edit-acc-name-${acc.id}" value="${escHtml(acc.name)}"></td>
                 <td><span class="text-muted">${escHtml(acc.type)}</span></td>
                 <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:110px;" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}">
                     ${isCrypto ? `<br><input type="text" class="inline-edit-input" style="width:110px;font-size:11px;" id="edit-acc-identifier-${acc.id}" placeholder="ETH, 0x…, you.eth" value="${escHtml(acc.identifier || '')}">` : ''}
+                    ${isMetal ? `<br><select class="inline-edit-input" style="width:90px;font-size:11px;" id="edit-acc-metaltype-${acc.id}"><option value="gold" ${acc.metalType === 'gold' ? 'selected' : ''}>Gold</option><option value="silver" ${acc.metalType === 'silver' ? 'selected' : ''}>Silver</option></select>` : ''}
                 </td>
                 <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-acc-apy-${acc.id}" step="0.01" value="${Number(acc.apy || 0).toFixed(2)}" ${hasYield ? '' : 'disabled'}>
                     ${isCrypto ? `<br><input type="number" class="inline-edit-input text-right" style="width:70px;font-size:11px;" id="edit-acc-quantity-${acc.id}" placeholder="Qty" step="any" value="${acc.quantity != null ? acc.quantity : ''}">` : ''}
+                    ${isMetal ? `<br><input type="number" class="inline-edit-input text-right" style="width:70px;font-size:11px;" id="edit-acc-weightoz-${acc.id}" placeholder="oz" step="any" min="0" value="${acc.weightOz != null ? acc.weightOz : ''}">` : ''}
                 </td>
                 <td>—</td>
                 <td class="text-right">
-                    <button class="save-btn" onclick="saveEditAccount('${acc.id}')">Save</button>
+                    <button class="save-btn" onclick="saveEditAccount('${acc.id}', this)">Save</button>
                     <button class="cancel-btn" onclick="cancelEditAccount('${acc.id}')">Cancel</button>
                 </td>
             </tr>`;
         } else {
             html += `<tr>
-                <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}</td>
+                <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}${metalLabel ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(metalLabel)}</span>` : ''}</td>
                 <td><span class="badge-type">${escHtml(acc.type)}</span></td>
                 <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
                 <td class="text-right text-amber">${hasYield && (!isCrypto || acc.apy) ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
-                <td class="text-muted">${isCrypto && acc.identifier ? `<span title="${escHtml(acc.identifier)}">${escHtml(acc.identifier.length > 16 ? acc.identifier.slice(0, 8) + '…' + acc.identifier.slice(-6) : acc.identifier)}</span>` : '—'}</td>
+                <td class="text-muted">${isCrypto && acc.identifier ? `<span title="${escHtml(acc.identifier)}">${escHtml(acc.identifier.length > 16 ? acc.identifier.slice(0, 8) + '…' + acc.identifier.slice(-6) : acc.identifier)}</span>` : metalLabel ? escHtml(metalLabel) : '—'}</td>
                 <td class="text-right">
                     ${isCrypto && acc.identifier ? `<button class="edit-btn" data-crypto-refresh-id="${acc.id}" aria-label="Refresh crypto balance" onclick="refreshCryptoAccount('${acc.id}')">⟳</button>` : ''}
+                    ${isMetal && acc.metalType && acc.weightOz ? `<button class="edit-btn" data-metal-refresh-id="${acc.id}" aria-label="Refresh metal value" onclick="refreshMetalAccount('${acc.id}')">⟳</button>` : ''}
                     <button class="edit-btn" onclick="startEditAccount('${acc.id}')">Edit</button>
                     <button class="delete-btn" onclick="deleteCustomAccount('${acc.id}')">Delete</button>
                 </td>

@@ -1,4 +1,4 @@
-updated: 2026-09-11
+updated: 2026-09-19
 
 # Tasks
 
@@ -6,7 +6,34 @@ updated: 2026-09-11
 
 ## In Progress
 
-_(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
+- PR #111 — Product/UI + reliability pass (`fire/product-reliability-pass`): implemented and under final review; see the cycle below.
+
+---
+
+## Product / UI + Reliability Pass (PR #111) — Sep 2026
+
+- [x] eBay: Marketplace Account Deletion endpoint (challenge handshake + purge), HTTPS-aware redirect fallback, `EBAY_VERIFICATION_TOKEN`/`EBAY_NOTIFICATION_ENDPOINT_URL` docs, unit + e2e tests; `/ebay/authorize` and `/ebay/callback` route tests added
+- [x] Wallet flow: JSON 404 for unmatched `/api/*`, `fetchJson` helper, wallet e2e tests
+- [x] Retirement math: cash-first drawdown (both copies), invested bucket at non-cash return, cash-fraction clamp, zero-asset depletion, Emergency Fund milestone basis fix, per-preset sanity test
+- [x] Navigation: fixed dead collapse arrow, hamburger drawer; alerts dropdown stacking fix
+- [x] Dashboard: Quick Stats removed, interactive drill-down allocation, gold/silver accounts with live spot pricing, 3-column top row on wide screens, growth chart expander
+- [x] Insights tab (renamed), Portfolio Insights + 5 new watchers, Tax Estimator moved to Expenses, Rebalancing moved to Insights, Side Hustle Accelerators (rotating/dismissible with links)
+- [x] Financial Overview: unified add form (Import CSV default), crypto Name/Identifier interop, connectors moved to Settings, stacked/collapsed cash-flow cards (3-column on wide), full-width holdings
+- [x] Summary bar: single minimalist bar at narrow widths, top-bar placement in portrait, pinned bell, banner overflow fix
+- [x] Settings reorder + colour-coded groups; Projections panel (growth + milestone sections, presets drive milestones, SWR select fix)
+- [x] Phone-width positions table (+ expander), insurance fields stack, consistent budget labels, vehicle Estimate in Actions
+- [x] Side Gig Ledger: eBay sales-report CSV upload with dedupe
+- [x] Tests: 472 unit, 50 Playwright UI tests (was 251 unit); Playwright image bumped to 1.63.0
+- [ ] Manual step: register the public HTTPS notification URL + verification token in the eBay Developer Portal (cannot be verified in CI)
+- [ ] Verify eBay's `X-EBAY-SIGNATURE` on Marketplace Account Deletion notifications (`app/routes/sync.js`)
+  - Priority: P1 (security) — deferred from PR #111 review (CodeRabbit, `sync.js` thread).
+  - Context: the POST handler currently trusts the secret endpoint URL + verification token. eBay signs notifications: `X-EBAY-SIGNATURE` is base64 JSON `{alg, kid, signature, digest}`; fetch the public key for `kid` from eBay's Notification API, verify the signature over the raw body (needs `rawBody` capture on this route), and reject on mismatch before purging anything. Needs live eBay credentials to test end to end; mock the key fetch in unit tests.
+  - Acceptance Criteria: unsigned/invalid notifications return 4xx without touching tokens or state; valid ones behave as today; tests cover valid, tampered-body and unknown-`kid` cases.
+- [ ] Stop exposing browser helpers as classic-script globals (`app/lib/fetch-utils.js` `fetchJson`, and the rest of `app/lib/**`)
+  - Priority: P3 (maintainability) — deferred from PR #111 review (CodeRabbit, `fetch-utils.js` thread).
+  - Context: the SPA loads ~40 plain `<script>` files that share one global scope, so any helper is a cross-file global by design. Fixing just `fetchJson` would mean converting every consumer to `import`; doing it properly means moving the frontend to ES modules with a bundler (or native `type="module"`) as one migration.
+  - Acceptance Criteria: decision recorded (native modules vs. bundler), helpers exported/imported explicitly, `no-undef` lint enforced for cross-file references, and the Playwright suite still green.
+- [ ] Follow-up: model eBay marginal fee brackets (P2, below) and per-item cost basis for report imports
 
 ---
 
@@ -35,8 +62,8 @@ _(none — all Q4 2026 tasks complete; see ROADMAP.md for phase details)_
 ### eBay API Connector
 - [x] Validate eBay fee rates in `finance-platforms.js` against current published rates
 - [x] UI toggle in settings to enable/disable eBay sync and show last-sync timestamp
-- [ ] Write tests for `app/lib/ebay-connector.js` and the 4 eBay sync routes
-  - `app/lib/ebay-connector.js` already has full lib-level coverage (17 tests, pre-existing). Added route-level tests for the new `/ebay/toggle` route plus `/ebay/status` and the `/ebay/sync` disabled-gate (`tests/unit/sync-ebay-route.test.mjs`). `/ebay/authorize`, `/ebay/callback`, and `/ebay/refresh` still have no route-level (HTTP) tests — they need a session-backed OAuth redirect flow to exercise properly.
+- [~] Write tests for `app/lib/ebay-connector.js` and the 4 eBay sync routes (lib, status/toggle/sync gate, authorize, callback and deletion routes covered; `/ebay/refresh` still untested)
+  - `app/lib/ebay-connector.js` already has full lib-level coverage (17 tests, pre-existing). Added route-level tests for the new `/ebay/toggle` route plus `/ebay/status` and the `/ebay/sync` disabled-gate (`tests/unit/sync-ebay-route.test.mjs`). PR #111 later added route tests for `/ebay/authorize`, `/ebay/callback` and the Marketplace Account Deletion endpoint; only `/ebay/refresh` remains without a route-level (HTTP) test.
 - [ ] Model real eBay fee brackets in `calculateEbayFeesTotal` (`app/lib/side-gig.js`), not just a flat rate + order fee.
   - Priority: P2
   - Context: flagged by CodeRabbit on PR #103 (2026-09-10) — the calculator (pre-existing, not introduced by that PR) applies one percentage across the whole transaction value with the pre-#103-corrected $0.30 order fee. Real eBay fee structure has marginal percentage tiers above each category's sale cap, and several categories' effective rate changes at that cap. The $0.30-vs-$0.40 order-fee threshold was fixed directly (order value ≤$10 vs. >$10); the marginal-bracket-per-category modeling was not — it needs each category's actual cap/tier data (not currently captured anywhere in this codebase) and a real per-category fee-rule schema, not a scalar percentage dropdown.
@@ -189,11 +216,11 @@ See [docs/security-hardening.md](docs/security-hardening.md) for full remediatio
 
 ## PROD Phase 4 — Feature Parity (Q4 2027)
 
-- [ ] Portfolio rebalancing suggestions (target allocation config + current allocation diff)
-- [ ] Tax-loss harvesting alert (flag positions with unrealized losses ≥ threshold)
+- [~] Portfolio rebalancing suggestions — v1 tool on the Insights tab (targets vs. current); suggestion polish pending
+- [~] Tax-loss harvesting alert — v1 table on the Insights tab; threshold config/notifications pending
 - [ ] Income vs. expense 12-month rolling trend view
 - [ ] PWA: `manifest.json` + service worker for installable offline mode
-- [ ] CD maturity and FIRE milestone notification system
+- [~] CD maturity and FIRE milestone notification system — in-app alerts bell + browser-notification settings shipped; push/outbound delivery pending
 - [ ] Optional multi-user mode (separate encrypted db.json per user, HTTP Basic auth gate)
 
 ---
@@ -221,4 +248,4 @@ See [docs/security-hardening.md](docs/security-hardening.md) for full remediatio
 - [x] Financial Overview tab (unified Accounts + CDs + Cash Flow)
 - [x] Header summary bar (allocation bars, income, FIRE progress %)
 - [x] Diversification suggestion block
-- [x] 251 unit/integration tests, 81.1% statement / 80.9% line coverage (measured 2026-08-28; target 80% statements/lines met, branch 68.33% and function 75.67% remain below their 70%/80% thresholds — see PROD Phase 3 below)
+- [x] 472 unit/integration tests + 50 Playwright UI tests (Sep 2026); earlier baseline: 251 unit/integration tests, 81.1% statement / 80.9% line coverage (measured 2026-08-28; target 80% statements/lines met, branch 68.33% and function 75.67% remain below their 70%/80% thresholds — see PROD Phase 3 below)

@@ -12,6 +12,13 @@ function initCSVImport() {
         fileInput.click();
     });
 
+    dragZone.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (dragZone.classList.contains('disabled')) return;
+        fileInput.click();
+    });
+
     dragZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dragZone.classList.add('dragover');
@@ -71,6 +78,7 @@ function processCSVFile(file) {
     const reader = new FileReader();
     reader.onload = async (e) => {
         const text = e.target.result;
+        if (await importEbayReportText(text, file.name)) return;
         const rows = parseCSVText(text);
         if (rows.length === 0) {
             alert('File appears to be empty.');

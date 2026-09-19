@@ -8,7 +8,7 @@ function renderVehiclesTable() {
     const list = state.vehicles || [];
 
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">No vehicles added yet. Use the form to add your first vehicle.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No vehicles added yet. Use the form to add your first vehicle.</td></tr>`;
         renderVehicleStats();
         return;
     }
@@ -52,7 +52,6 @@ function renderVehiclesTable() {
                 <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-value-${v.id}" type="number" value="${v.currentValue || 0}" step="500"></td>
                 <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-loan-${v.id}" type="number" value="${v.loanBalance || 0}" step="500"></td>
                 <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-purchase-${v.id}" type="number" value="${v.purchasePrice || 0}" step="500"></td>
-                <td>—</td>
                 <td class="text-right">
                     <button class="action-btn save-btn" onclick="saveEditVehicle('${v.id}')">Save</button>
                     <button class="action-btn cancel-btn" onclick="cancelEditVehicle('${v.id}')">Cancel</button>
@@ -76,9 +75,7 @@ function renderVehiclesTable() {
                 <td class="text-right text-muted">${(v.purchasePrice || 0) > 0 ? formatCurrency(v.purchasePrice) : '—'}</td>
                 <td class="text-right" style="${depStyle}">${(v.purchasePrice || 0) > 0 ? depStr : '—'}</td>
                 <td class="text-right">
-                    ${canEstimate ? `<button class="action-btn" id="veh-est-btn-${v.id}" onclick="fetchVehicleEstimate('${v.id}')">${escHtml(estimateLabel)}</button>` : '<span class="text-muted" title="Add purchase price or VIN to enable estimates">—</span>'}
-                </td>
-                <td class="text-right">
+                    ${canEstimate ? `<button class="action-btn" id="veh-est-btn-${v.id}" onclick="fetchVehicleEstimate('${v.id}')">${escHtml(estimateLabel)}</button>` : ''}
                     <button class="action-btn edit-btn" onclick="startEditVehicle('${v.id}')">Edit</button>
                     <button class="action-btn delete-btn" onclick="deleteVehicle('${v.id}')">Delete</button>
                 </td>

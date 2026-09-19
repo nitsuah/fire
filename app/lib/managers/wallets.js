@@ -46,13 +46,12 @@ function initWalletManager() {
         const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         try {
-            const res = await fetch('/api/wallets', {
+            const { ok, data } = await fetchJson('/api/wallets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ address, chain, label }),
             });
-            const data = await res.json();
-            if (!res.ok) {
+            if (!ok) {
                 if (errEl) {
                     errEl.textContent = data.error || 'Failed to add wallet.';
                     errEl.style.display = 'block';
@@ -90,9 +89,8 @@ async function loadWallets() {
     const listEl = document.getElementById('wallet-manager-list');
     if (!listEl) return;
     try {
-        const res = await fetch('/api/wallets');
-        const data = await res.json();
-        if (!res.ok) {
+        const { ok, data } = await fetchJson('/api/wallets');
+        if (!ok) {
             throw new Error(data.error || 'Failed to load wallets.');
         }
         _walletCache = Array.isArray(data.wallets) ? data.wallets : [];
@@ -160,12 +158,11 @@ async function refreshWallet(id, btn) {
         btn.textContent = '…';
     }
     try {
-        const res = await fetch(
+        const { ok, data } = await fetchJson(
             `/api/wallets/${encodeURIComponent(id)}/refresh`,
             { method: 'POST' },
         );
-        const data = await res.json();
-        if (!res.ok) {
+        if (!ok) {
             alert(data.error || 'Failed to refresh wallet.');
             return;
         }
@@ -187,11 +184,11 @@ async function removeWallet(id) {
     if (!id) return;
     if (!confirm('Remove this wallet from tracking?')) return;
     try {
-        const res = await fetch(`/api/wallets/${encodeURIComponent(id)}`, {
-            method: 'DELETE',
-        });
-        if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
+        const { ok, data } = await fetchJson(
+            `/api/wallets/${encodeURIComponent(id)}`,
+            { method: 'DELETE' },
+        );
+        if (!ok) {
             alert(data.error || 'Failed to remove wallet.');
             return;
         }

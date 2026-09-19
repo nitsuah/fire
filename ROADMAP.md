@@ -1,6 +1,6 @@
 # 🗺️ FIRE Tracker Roadmap
 
-updated: 2026-08-28
+updated: 2026-09-19
 
 ---
 
@@ -25,7 +25,12 @@ updated: 2026-08-28
 - [x] eBay & Plaid integration UI — connection status, Plaid Link SDK
 - [x] Vehicle estimate overlay — complete CSS styling
 - [ ] Tax drag estimation engine (custom federal/state brackets, capital gains)
-- [ ] Webhook sync end-to-end testing
+- [x] Webhook sync end-to-end testing
+- [x] Responsive shell (hamburger nav, single-bar summary, wide-screen dashboard/FO rows)
+- [x] Insights tab (rename, portfolio insights, rebalancing, tax-loss harvesting)
+- [x] Precious-metals accounts with live spot pricing
+- [x] eBay Marketplace Account Deletion endpoint + eBay sales-report CSV upload
+- [x] Cash-first retirement drawdown, growth/milestone presets in one panel
 - [ ] Lightweight PWA packaging
 
 ---
@@ -43,8 +48,11 @@ Full detail: [docs/prod-plan.md](docs/prod-plan.md)
 - [x] `POST /api/sync/ebay/refresh` — access token refresh
 - [x] eBay Order API deduplication via stable `orderId`
 - [x] Sandbox/production environment toggle (`EBAY_ENVIRONMENT`)
-- [ ] Fee rate table validation against current eBay published rates
-- [ ] UI toggle in settings to enable/disable eBay sync and show last-sync timestamp
+- [x] Fee rate table validation against current eBay published rates
+- [x] UI toggle in settings to enable/disable eBay sync and show last-sync timestamp
+- [x] Marketplace Account Deletion endpoint (needs a public HTTPS URL + `EBAY_VERIFICATION_TOKEN` registered in the eBay Developer Portal)
+- [x] Sales-report CSV upload into the Side Gig Ledger (deduplicated)
+- [ ] Model real eBay marginal fee brackets per category (needs per-category cap/tier data)
 
 ### Web3 / Crypto Wallet Tracking
 - [x] `wallets[]` schema in db.json (address, chain, label, lastBalance, lastFetched)
@@ -61,20 +69,20 @@ Full detail: [docs/prod-plan.md](docs/prod-plan.md)
 - [x] `config/chains.json` registry — add chains without code changes
 - [x] Wallet USD totals aggregated into net worth
 - [x] MCP tool: `get_wallets`
-- [ ] UI: wallet manager section in Financial Overview tab (add/remove wallets, balance display)
+- [x] UI: wallet manager (now under the add form for Type = Cryptocurrency; ENS/0x/ticker accepted in Name or Identifier)
 
 ### Vehicle Value API
 - [x] NHTSA VIN decode (`GET /api/vehicles/vin/:vin`, free, confirms vehicle identity)
 - [x] Vehicle value BYOK integration (`VEHICLE_VALUE_API_KEY`, `VEHICLE_VALUE_PROVIDER`)
 - [x] `POST /api/vehicles/:id/refresh-value` — fetch + update currentValue
-- [ ] UI: "Refresh Value" button on vehicle cards with last-updated timestamp
+- [x] UI: "Refresh Value" / Estimate button (in the Actions column) with last-updated timestamp
 
 ### Encrypted Cloud Backup
 - [x] Google Drive API via service account key (BYOK: `GDRIVE_SERVICE_ACCOUNT_JSON`)
 - [x] `POST /api/backup/drive` — AES-encrypt db.json + upload to Drive
 - [x] `GET /api/backup/drive/list` — list available backups
 - [x] `POST /api/backup/drive/restore` — download → decrypt → apply
-- [ ] UI: backup panel in settings (trigger, list, restore buttons)
+- [x] UI: backup panel in settings (trigger, list, restore buttons)
 
 ---
 
@@ -89,13 +97,15 @@ Goal: real-time read-only position and balance sync from major brokerages and ba
 - [x] `POST /api/sync/plaid/positions` — sync investment holdings → `importedPositions`
 - [x] `POST /api/sync/plaid/accounts` — sync balances → `customAccounts`
 - [x] Encrypted token storage (per-provider token files, AES-256-GCM)
-- [ ] Transaction import → expense categorization
-- [ ] Disable manual Fidelity CSV import UI when Plaid sync is active (prevent duplicates)
+- [x] Transaction import → expense categorization
+- [x] Disable manual Fidelity CSV import UI when Plaid sync is active (prevent duplicates)
 
 ### Real-Time Price Improvements
 - [x] Price provider abstraction (`app/lib/prices-provider.js`) — swap Yahoo / Alpha Vantage / Polygon via env var
 - [x] CoinGecko free API for crypto token prices (used in web3-prices.js; optional key via `COINGECKO_API_KEY`)
 - [x] SSE endpoint `GET /api/prices/stream` for live price push to browser dashboard
+- [x] Precious-metals spot (metals.dev BYOK, free Yahoo futures fallback)
+- [ ] Unit tests for `app/lib/prices-provider.js` (Alpha Vantage / Polygon / fallback paths)
 
 ### Car Values
 - [x] Free fallback: NHTSA VIN decode via `GET /api/vehicles/vin/:vin`
@@ -119,9 +129,10 @@ Full detail: [docs/security-hardening.md](docs/security-hardening.md)
 - [x] `POST /api/admin/rotate-key` — re-encrypt db.json with new SYNC_MASTER_KEY (`FIRE_ADMIN_KEY`-gated)
 - [x] MCP audit log (`data/mcp-audit.log`): tool name, timestamp, response byte size
 - [x] Wallet address truncation in MCP responses (last 8 chars shown)
-- [ ] HTTPS via Caddy reverse proxy in docker-compose.yml
-- [ ] `FIRE_API_KEY` required by default (currently opt-in; `FIRE_AUTH_DISABLED=true` opt-out planned)
-- [ ] Vitest test asserting no write tools are registered in MCP server
+- [x] HTTPS via Caddy reverse proxy in docker-compose.yml (app port loopback-only)
+- [x] `FIRE_API_KEY` required by default (`FIRE_AUTH_DISABLED=true` opt-out)
+- [x] Vitest test asserting no write tools are registered in MCP server
+- [x] CSP/SRI headers on CDN scripts
 - [ ] Penetration testing checklist (see docs/security-hardening.md)
 
 ---
@@ -130,11 +141,11 @@ Full detail: [docs/security-hardening.md](docs/security-hardening.md)
 
 Goal: match Fidelity NetBenefits + Rocket Money from a tracking standpoint while preserving local-first privacy.
 
-- [ ] Portfolio rebalancing suggestions (target vs. actual allocation)
-- [ ] Tax-loss harvesting alerts (unrealized loss detection)
+- [~] Portfolio rebalancing suggestions — v1 tool shipped on the Insights tab (target vs. actual); suggestions/refinements pending
+- [~] Tax-loss harvesting alerts — v1 table shipped on the Insights tab; threshold config and notifications pending
 - [ ] Income vs. expense 12-month rolling trend
 - [ ] PWA — installable, offline-capable
-- [ ] Notification system (CD maturity alerts, FIRE milestone push)
+- [~] Notification system — in-app alerts bell and browser-notification settings shipped; push/outbound delivery pending
 - [ ] Optional multi-user mode (separate encrypted db.json per user, auth-gated)
 - [ ] **Unified sync-health widget** — every integration (eBay, Plaid, each wallet chain, Drive backup) currently gets its own "show last-sync timestamp" UI task tracked separately in TASKS.md; consolidate into one settings panel showing last-sync time, status, and a manual "sync now" per connector. Closes 4 of the scattered PROD Phase 1/2 UI tasks with one component instead of four.
 - [ ] **Outbound webhook / notification hook** — the webhook framework (`app/lib/webhook-integration.js`) is inbound-only today. A scheduled outbound POST of a net-worth/FIRE-progress snapshot to a user-supplied webhook URL (Discord, Slack, ntfy) would reuse the existing HMAC + JSONata infrastructure in reverse and is a natural pairing with the planned CD-maturity notification system.

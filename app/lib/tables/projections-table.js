@@ -114,6 +114,7 @@ const MILESTONE_PRESETS = {
             {
                 name: 'Emergency Fund (6 mo expenses)',
                 multiplier: (annualExpenses) => annualExpenses * 0.5,
+                isExpenseBased: true,
                 color: 'text-emerald',
             },
             { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
@@ -136,6 +137,7 @@ const MILESTONE_PRESETS = {
             {
                 name: 'Emergency Fund (6 mo expenses)',
                 multiplier: (annualExpenses) => annualExpenses * 0.5,
+                isExpenseBased: true,
                 color: 'text-emerald',
             },
             { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
@@ -168,6 +170,7 @@ const MILESTONE_PRESETS = {
             {
                 name: 'Emergency Fund (12 mo expenses)',
                 multiplier: (annualExpenses) => annualExpenses,
+                isExpenseBased: true,
                 color: 'text-emerald',
             },
             { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
@@ -205,6 +208,7 @@ const MILESTONE_PRESETS = {
             {
                 name: 'Emergency Fund (6 mo expenses)',
                 multiplier: (annualExpenses) => annualExpenses * 0.5,
+                isExpenseBased: true,
                 color: 'text-emerald',
             },
             { name: 'Coast FIRE', isCoast: true, color: 'text-purple' },
@@ -232,6 +236,7 @@ const MILESTONE_PRESETS = {
             {
                 name: 'Emergency Fund (6 mo expenses)',
                 multiplier: (annualExpenses) => annualExpenses * 0.5,
+                isExpenseBased: true,
                 color: 'text-emerald',
             },
             {
@@ -264,8 +269,11 @@ let activePreset = 'standard';
 function setActivePreset(presetKey) {
     if (MILESTONE_PRESETS[presetKey]) {
         activePreset = presetKey;
-        const el = document.getElementById('milestone-preset-select');
-        if (el) el.value = presetKey;
+        document
+            .querySelectorAll('.milestone-preset-btn')
+            .forEach((b) =>
+                b.classList.toggle('active', b.dataset.milestone === presetKey),
+            );
         calculateAndRenderProjections();
     }
 }
@@ -291,7 +299,11 @@ function buildMilestonesList(rawData, depletionAge) {
         if (m.isCoast) {
             target = coastFireTarget;
         } else if (m.multiplier) {
-            const basis = m.isCoastBased ? coastFireTarget : fireNumber;
+            const basis = m.isExpenseBased
+                ? annualExpenses
+                : m.isCoastBased
+                  ? coastFireTarget
+                  : fireNumber;
             target = m.multiplier(basis);
         }
         return { ...m, target: target || 0 };
@@ -333,26 +345,22 @@ function renderMilestones(
 
     // Preset selector renders into the card-title-row (top-right, inline with
     // the title/cost labels) rather than stretching across the card body.
-    let selectorHtml = `
-        <div class="milestone-preset-selector">
-            <label for="milestone-preset-select" class="text-muted" style="font-size:11px;">Preset:</label>
-            <select id="milestone-preset-select" class="milestone-preset-select">
-    `;
+    let selectorHtml =
+        '<div class="proj-settings-presets" id="milestone-preset-buttons">';
     Object.entries(MILESTONE_PRESETS).forEach(([key, preset]) => {
-        selectorHtml += `<option value="${key}" ${key === activePreset ? 'selected' : ''}>${preset.label}</option>`;
+        selectorHtml += `<button type="button" class="proj-preset-btn milestone-preset-btn${key === activePreset ? ' active' : ''}" data-milestone="${key}" title="${preset.description}">${preset.label}</button>`;
     });
-    selectorHtml += `
-            </select>
-            <span class="info-tip" data-tip="${getActivePreset().description}">?</span>
-        </div>
-    `;
+    selectorHtml += `</div>
+        <p class="text-muted mt-2" style="font-size:11px;" id="milestone-preset-desc">${getActivePreset().description}</p>`;
     const mount = document.getElementById('milestone-preset-mount');
     if (mount) {
         mount.innerHTML = selectorHtml;
-        const mountSel = mount.querySelector('#milestone-preset-select');
-        if (mountSel)
-            mountSel.addEventListener('change', (e) =>
-                setActivePreset(e.target.value),
+        mount
+            .querySelectorAll('[data-milestone]')
+            .forEach((btn) =>
+                btn.addEventListener('click', () =>
+                    setActivePreset(btn.dataset.milestone),
+                ),
             );
     }
 

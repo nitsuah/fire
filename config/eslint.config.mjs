@@ -23,6 +23,7 @@ export default [
             'app/lib/finance-platforms.js',
             'app/lib/web3-prices.js',
             'app/lib/ebay-connector.js',
+            'app/lib/metals-prices.js',
             'app/lib/gdrive-backup.js',
             'app/lib/prices-provider.js',
             'app/lib/vehicle-api.js',
@@ -46,6 +47,7 @@ export default [
             'app/lib/state.js',
             'app/lib/prices.js',
             'app/lib/csv-import.js',
+            'app/lib/ebay-report.js',
             'app/lib/expenses.js',
             'app/lib/side-gig.js',
             'app/lib/projections.js',
@@ -53,6 +55,7 @@ export default [
             'app/lib/tables-positions.js',
             // Shared browser utilities (loaded as <script> globals)
             'app/lib/html-utils.js',
+            'app/lib/fetch-utils.js',
             'app/lib/privacy.js',
             'app/lib/notifications.js',
             // Modular components (refactored structure)
@@ -79,6 +82,7 @@ export default [
             globals: {
                 ...globals.node,
                 ...globals.jest,
+                ...globals.vitest,
             },
         },
     },

@@ -5,13 +5,11 @@
       "name": "fire",
       "runtimeExecutable": "docker",
       "runtimeArgs": [
-        "run", "--rm",
-        "-p", "3001:3001",
-        "-v", "${workspaceFolder}:/app",
-        "-v", "/app/node_modules",
-        "-w", "/app",
-        "node:22-alpine",
-        "node", "app/server.js"
+        "compose", "-f", "config/docker-compose.yml",
+        "run", "--rm", "--service-ports",
+        "-e", "FIRE_AUTH_DISABLED=true",
+        "-e", "SESSION_SECRET=local-dev-session-secret-not-for-prod-0000",
+        "fire"
       ],
       "port": 3001
     }

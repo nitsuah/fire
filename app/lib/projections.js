@@ -2,7 +2,7 @@
    projections.js — Net Worth Projections Engine & Chart Controls
    Depends on globals: state, scenarioOffset, projLineToggles, dashProjWindow,
    projWindow, US_MEDIAN_SAVINGS, saveState, refreshAllUI,
-   getAggregateNetWorth, getAnnualExpensesTotal,
+   getAggregateNetWorth, getAggregateCash, getAnnualExpensesTotal,
    renderDashboardProjectionsChart, renderProjectionsChart,
    renderMilestones, renderScenarioComparison
    ========================================================================== */
@@ -100,6 +100,24 @@ window.applyScenario = function (offset) {
     calculateAndRenderProjections();
 };
 
+// The SWR <select> only lists a few stock rates and compares option values
+// as strings, so a numeric 4 (from state or a preset) never matched the
+// "4.0" option and a preset's 3.25 matched nothing — leaving the select
+// blank and silently falling back to 4.0. Match numerically and add a
+// Custom option when the value isn't already listed.
+function setSwrSelectValue(val) {
+    const sel = document.getElementById('proj-swr');
+    const n = parseFloat(val);
+    if (!sel || !Number.isFinite(n)) return;
+    let opt = [...sel.options].find((o) => parseFloat(o.value) === n);
+    if (!opt) {
+        opt = new Option(`${n}% SWR (Custom)`, String(n));
+        const next = [...sel.options].find((o) => parseFloat(o.value) > n);
+        sel.add(opt, next || null);
+    }
+    sel.value = opt.value;
+}
+
 function applyProjectionSettingsToForm() {
     document.getElementById('proj-savings').value =
         state.projectionSettings.annualSavings;
@@ -107,7 +125,7 @@ function applyProjectionSettingsToForm() {
         state.projectionSettings.expectedReturn;
     document.getElementById('proj-inflation').value =
         state.projectionSettings.inflationRate;
-    document.getElementById('proj-swr').value = state.projectionSettings.swr;
+    setSwrSelectValue(state.projectionSettings.swr);
     document.getElementById('proj-years').value =
         state.projectionSettings.spanYears;
     document.getElementById('proj-current-age').value =
@@ -163,19 +181,28 @@ function toggleProjSettingsPanel() {
 const PROJ_SETTINGS_PRESETS = {
     conservative: {
         label: 'Conservative',
+        milestonePreset: 'conservative',
         values: { expectedReturn: 6.0, inflationRate: 3.0, swr: 3.5 },
     },
     standard: {
         label: 'Standard',
+        milestonePreset: 'standard',
         values: { expectedReturn: 8.0, inflationRate: 2.5, swr: 4.0 },
     },
     aggressive: {
         label: 'Aggressive',
+        milestonePreset: 'aggressive',
         values: { expectedReturn: 10.0, inflationRate: 2.5, swr: 4.0 },
     },
     earlyRetiree: {
         label: 'Early Retiree',
-        values: { expectedReturn: 8.0, inflationRate: 2.5, swr: 3.25 },
+        milestonePreset: 'coast',
+        values: {
+            expectedReturn: 8.0,
+            inflationRate: 2.5,
+            swr: 3.25,
+            retireAge: 50,
+        },
     },
 };
 
@@ -187,10 +214,18 @@ async function applyProjSettingsPreset(key) {
             expectedReturn: 'proj-return',
             inflationRate: 'proj-inflation',
             swr: 'proj-swr',
+            retireAge: 'proj-retire-age',
         };
+        if (field === 'swr') {
+            setSwrSelectValue(val);
+            return;
+        }
         const el = document.getElementById(idMap[field]);
         if (el) el.value = val;
     });
+    // Keep the milestone preset selector in step with the growth preset.
+    if (preset.milestonePreset && typeof setActivePreset === 'function')
+        setActivePreset(preset.milestonePreset);
     document
         .querySelectorAll('.proj-preset-btn')
         .forEach((b) => b.classList.toggle('active', b.dataset.preset === key));
@@ -250,6 +285,29 @@ function initProjectionsManager() {
     });
 }
 
+// One retirement year's withdrawal: draws `expense` from `cash` first (cash
+// earns no return in this model) and only pulls the remainder from
+// `invested` — after `invested` has already grown at `returnRate` for the
+// year, same "grow then withdraw" order the pre-cash-first model used.
+// Mirrors a real retiree's typical sequencing (spend cash reserves before
+// selling invested assets, especially during a downturn) rather than
+// treating the whole portfolio as one undifferentiated pool. Kept in sync
+// with the identical helper in app/lib/finance-calcs.js (server/MCP side).
+function _withdrawCashFirst(cash, invested, returnRate, expense) {
+    const totalBefore = cash + invested;
+    const cashDrawn = Math.min(cash, expense);
+    const remaining = expense - cashDrawn;
+    const rawInvested = invested * (1 + returnRate) - remaining;
+    const nextCash = cash - cashDrawn;
+    return {
+        cash: nextCash,
+        invested: Math.max(0, rawInvested),
+        // An unpaid withdrawal from an already-empty portfolio is depletion too.
+        depletedThisYear:
+            (totalBefore > 0 || expense > 0) && nextCash + rawInvested <= 0,
+    };
+}
+
 function buildProjectionData() {
     const networth = getAggregateNetWorth();
     const annualExpenses = getAnnualExpensesTotal();
@@ -286,6 +344,21 @@ function buildProjectionData() {
     let bullDepletionAge = null;
     let bearDepletionAge = null;
 
+    // Cash/invested split, seeded from the real current portfolio
+    // composition and carried forward at that fixed fraction through the
+    // (unchanged) pre-retirement accumulation phase. Populated the moment
+    // each scenario crosses into retirement, below.
+    const cashFraction0 =
+        networth > 0
+            ? Math.min(Math.max(getAggregateCash() / networth, 0), 1)
+            : 0;
+    let cashBase = null,
+        investedBase = null;
+    let cashBull = null,
+        investedBull = null;
+    let cashBear = null,
+        investedBear = null;
+
     const coastYears = retireAge - currentAge;
     const coastFireTarget =
         coastYears > 0
@@ -302,14 +375,20 @@ function buildProjectionData() {
 
     for (let yr = 0; yr <= span; yr++) {
         const age = currentAge + yr;
+        const displayBase =
+            cashBase !== null ? cashBase + investedBase : currentNW;
+        const displayBull =
+            cashBull !== null ? cashBull + investedBull : bullNW;
+        const displayBear =
+            cashBear !== null ? cashBear + investedBear : bearNW;
         labels.push(`Age ${age}`);
-        nwData.push(Math.round(currentNW));
+        nwData.push(Math.round(displayBase));
         fireLine.push(Math.round(fireNumber));
         leanFireLine.push(Math.round(fireNumber * 0.75));
         fatFireLine.push(Math.round(fireNumber * 1.25));
         coastFireLine.push(Math.round(coastFireTarget));
-        bullData.push(Math.round(bullNW));
-        bearData.push(Math.round(Math.max(bearNW, 0)));
+        bullData.push(Math.round(displayBull));
+        bearData.push(Math.round(Math.max(displayBear, 0)));
 
         // Interpolate US median for this age
         const lower =
@@ -329,20 +408,50 @@ function buildProjectionData() {
         if (yr < span) {
             const isRetired = age >= retireAge;
             if (isRetired) {
-                const nextBase = currentNW * (1 + realReturn) - annualExpenses;
-                if (currentNW > 0 && nextBase <= 0 && baseDepletionAge === null)
+                if (cashBase === null) {
+                    // First retirement year for this scenario: split
+                    // whatever it's accumulated to by the fixed
+                    // real-portfolio cash fraction.
+                    cashBase = currentNW * cashFraction0;
+                    investedBase = currentNW * (1 - cashFraction0);
+                    cashBull = bullNW * cashFraction0;
+                    investedBull = bullNW * (1 - cashFraction0);
+                    cashBear = bearNW * cashFraction0;
+                    investedBear = bearNW * (1 - cashFraction0);
+                }
+
+                const stepBase = _withdrawCashFirst(
+                    cashBase,
+                    investedBase,
+                    realReturn,
+                    annualExpenses,
+                );
+                if (stepBase.depletedThisYear && baseDepletionAge === null)
                     baseDepletionAge = age + 1;
-                currentNW = Math.max(0, nextBase);
+                cashBase = stepBase.cash;
+                investedBase = stepBase.invested;
 
-                const nextBull = bullNW * (1 + bullReturn) - annualExpenses;
-                if (bullNW > 0 && nextBull <= 0 && bullDepletionAge === null)
+                const stepBull = _withdrawCashFirst(
+                    cashBull,
+                    investedBull,
+                    bullReturn,
+                    annualExpenses,
+                );
+                if (stepBull.depletedThisYear && bullDepletionAge === null)
                     bullDepletionAge = age + 1;
-                bullNW = Math.max(0, nextBull);
+                cashBull = stepBull.cash;
+                investedBull = stepBull.invested;
 
-                const nextBear = bearNW * (1 + bearReturn) - annualExpenses;
-                if (bearNW > 0 && nextBear <= 0 && bearDepletionAge === null)
+                const stepBear = _withdrawCashFirst(
+                    cashBear,
+                    investedBear,
+                    bearReturn,
+                    annualExpenses,
+                );
+                if (stepBear.depletedThisYear && bearDepletionAge === null)
                     bearDepletionAge = age + 1;
-                bearNW = Math.max(0, nextBear);
+                cashBear = stepBear.cash;
+                investedBear = stepBear.invested;
             } else {
                 currentNW = currentNW * (1 + realReturn) + savings;
                 bullNW = bullNW * (1 + bullReturn) + savings;

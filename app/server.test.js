@@ -254,6 +254,170 @@ describe('DELETE /api/accounts/:id', () => {
     });
 });
 
+// ─── Metal accounts (POST/PUT /api/accounts, POST /api/accounts/:id/refresh-metal) ──
+
+describe('Metal accounts', () => {
+    beforeEach(() => resetDB());
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('creates a Metal account with metalType and weightOz', async () => {
+        const res = await request(app).post('/api/accounts').send({
+            name: 'Gold Coins',
+            type: 'Metal',
+            metalType: 'gold',
+            weightOz: 5,
+            value: 0,
+        });
+        expect(res.status).toBe(201);
+        expect(res.body.type).toBe('Metal');
+        expect(res.body.metalType).toBe('gold');
+        expect(res.body.weightOz).toBe(5);
+    });
+
+    it('rejects a Metal account with an invalid metalType', async () => {
+        const res = await request(app).post('/api/accounts').send({
+            name: 'Bad Metal',
+            type: 'Metal',
+            metalType: 'platinum',
+            weightOz: 5,
+        });
+        expect(res.status).toBe(400);
+        expect(res.body.error).toMatch(/metalType/i);
+    });
+
+    it('rejects a Metal account with a missing/invalid weightOz', async () => {
+        const res = await request(app).post('/api/accounts').send({
+            name: 'No Weight',
+            type: 'Metal',
+            metalType: 'silver',
+        });
+        expect(res.status).toBe(400);
+        expect(res.body.error).toMatch(/weightOz/i);
+    });
+
+    it('clears metal fields when a Metal account is edited to a different type', async () => {
+        const create = await request(app).post('/api/accounts').send({
+            name: 'Silver Bars',
+            type: 'Metal',
+            metalType: 'silver',
+            weightOz: 10,
+        });
+        const res = await request(app)
+            .put(`/api/accounts/${create.body.id}`)
+            .send({ type: 'Cash', value: 500 });
+        expect(res.status).toBe(200);
+        expect(res.body.type).toBe('Cash');
+        expect(res.body.metalType).toBeUndefined();
+        expect(res.body.weightOz).toBeUndefined();
+    });
+
+    it('clears crypto fields when an account is edited to Metal', async () => {
+        const create = await request(app).post('/api/accounts').send({
+            name: 'Some Crypto',
+            type: 'Crypto',
+            identifier: 'ETH',
+            quantity: 2,
+        });
+        const res = await request(app)
+            .put(`/api/accounts/${create.body.id}`)
+            .send({ type: 'Metal', metalType: 'gold', weightOz: 3 });
+        expect(res.status).toBe(200);
+        expect(res.body.type).toBe('Metal');
+        expect(res.body.identifier).toBeUndefined();
+        expect(res.body.quantity).toBeUndefined();
+        expect(res.body.metalType).toBe('gold');
+        expect(res.body.weightOz).toBe(3);
+    });
+
+    it('POST /api/accounts/:id/refresh-metal resolves live spot value via the Yahoo fallback', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    chart: {
+                        result: [{ meta: { regularMarketPrice: 2000 } }],
+                    },
+                }),
+            }),
+        );
+        const create = await request(app).post('/api/accounts').send({
+            name: 'Gold Bar',
+            type: 'Metal',
+            metalType: 'gold',
+            weightOz: 2,
+        });
+        const res = await request(app).post(
+            `/api/accounts/${create.body.id}/refresh-metal`,
+        );
+        expect(res.status).toBe(200);
+        expect(res.body.value).toBe(4000);
+        expect(res.body.valueLastRefreshed).toBeDefined();
+        expect(res.body.metalResult.source).toBe('yahoo-finance');
+    });
+
+    it('POST /api/accounts/:id/refresh-metal rejects a non-Metal account', async () => {
+        const create = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'Cash Acct', type: 'Cash', value: 100 });
+        const res = await request(app).post(
+            `/api/accounts/${create.body.id}/refresh-metal`,
+        );
+        expect(res.status).toBe(400);
+        expect(res.body.error).toMatch(/Metal accounts/i);
+    });
+
+    it('POST /api/accounts/:id/refresh-metal returns 404 for an unknown id', async () => {
+        const res = await request(app).post(
+            '/api/accounts/does-not-exist/refresh-metal',
+        );
+        expect(res.status).toBe(404);
+    });
+});
+
+describe('Crypto accounts — name/identifier interop', () => {
+    beforeEach(() => resetDB());
+
+    it('uses an ENS name typed in Name as the identifier', async () => {
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'vitalik.eth', type: 'Crypto', value: 1 });
+        expect(res.status).toBe(201);
+        expect(res.body.identifier).toBe('vitalik.eth');
+    });
+
+    it('fills a blank Name from the identifier', async () => {
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: '', identifier: 'ETH', type: 'Crypto', value: 1 });
+        expect(res.status).toBe(201);
+        expect(res.body.name).toBe('ETH');
+        expect(res.body.identifier).toBe('ETH');
+    });
+
+    it('swaps when Name holds the ENS and Identifier holds a label', async () => {
+        const res = await request(app).post('/api/accounts').send({
+            name: 'vitalik.eth',
+            identifier: 'Cold Wallet',
+            type: 'Crypto',
+            value: 1,
+        });
+        expect(res.body.name).toBe('Cold Wallet');
+        expect(res.body.identifier).toBe('vitalik.eth');
+    });
+
+    it('keeps a friendly name with no identifier untouched', async () => {
+        const res = await request(app)
+            .post('/api/accounts')
+            .send({ name: 'Cold Wallet', type: 'Crypto', value: 1 });
+        expect(res.status).toBe(201);
+        expect(res.body.name).toBe('Cold Wallet');
+        expect(res.body.identifier).toBeUndefined();
+    });
+});
+
 // ─── POST /api/cds ─────────────────────────────────────────────────────────────
 
 describe('POST /api/cds', () => {

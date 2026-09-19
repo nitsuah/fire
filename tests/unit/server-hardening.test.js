@@ -72,6 +72,13 @@ describe('FIRE_API_KEY middleware', () => {
         const res = await request(app).get('/api/backup/drive/callback');
         expect(res.status).not.toBe(401);
     });
+
+    it('bypasses the key check for the eBay Marketplace Account Deletion endpoint (eBay cannot send X-Api-Key)', async () => {
+        const res = await request(app).get(
+            '/api/sync/ebay/marketplace-account-deletion',
+        );
+        expect(res.status).not.toBe(401);
+    });
 });
 
 describe('POST /api/admin/rotate-key', () => {

@@ -3,53 +3,218 @@
                          diversification suggestion renderers
    ========================================================================== */
 
+function getBannerAllocSegments() {
+    const parts = [
+        { amt: getAggregateCash(), color: '#10b981', label: 'Cash' },
+        { amt: getAggregateCDs(), color: '#f59e0b', label: 'CDs' },
+        { amt: getAggregateEquities(), color: '#8b5cf6', label: 'Equities' },
+        {
+            amt: getAggregateRealEstate(),
+            color: '#06b6d4',
+            label: 'Real Estate',
+        },
+        { amt: getAggregateVehicles(), color: '#f97316', label: 'Vehicles' },
+        {
+            amt: getAggregateOtherAssets() + getSideGigYTDNet(),
+            color: '#3b82f6',
+            label: 'Other',
+        },
+    ];
+    const total = parts.reduce((sum, p) => sum + p.amt, 0);
+    // Percentages are relative to the positive amounts actually drawn, so a
+    // negative component can't push the visible segments past 100%.
+    const shown = parts.filter((p) => p.amt > 0);
+    const shownTotal = shown.reduce((sum, p) => sum + p.amt, 0);
+    const segments = shown.map((p) => ({
+        ...p,
+        pct: (p.amt / shownTotal) * 100,
+    }));
+    return { segments, total };
+}
+
+function getBannerIncome() {
+    return {
+        gross:
+            parseFloat(document.getElementById('tax-gross-income')?.value) || 0,
+        side: getSideGigYTDNet(),
+    };
+}
+
+// Sets the summary banner's Net Worth / Income / Spend Rate / FIRE Progress
+// text, plus the narrow-width single-bar variant of the same data.
+function renderHeaderBannerMetrics() {
+    const networth = getAggregateNetWorth();
+    const annualExpenses = getAnnualExpensesTotal();
+    const swr = state.projectionSettings.swr / 100;
+    const fireNumber = swr > 0 ? annualExpenses / swr : 0;
+    const progressPercent =
+        fireNumber > 0
+            ? Math.max(0, Math.min((networth / fireNumber) * 100, 100))
+            : 0;
+
+    document.getElementById('banner-networth').textContent =
+        formatCurrency(networth);
+    document.getElementById('banner-spend').textContent =
+        formatCurrency(annualExpenses);
+    document.getElementById('banner-progress').textContent =
+        `${progressPercent.toFixed(1)}%`;
+    document.getElementById('banner-target').textContent =
+        `Target: ${formatCurrency(fireNumber)}`;
+
+    const fireBarEl = document.getElementById('banner-fire-bar');
+    if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
+
+    const income = getBannerIncome();
+    const grossIncomeEl = document.getElementById('banner-gross-income');
+    if (grossIncomeEl) grossIncomeEl.textContent = formatCurrency(income.gross);
+    const sideIncomeEl = document.getElementById('banner-side-income');
+    if (sideIncomeEl)
+        sideIncomeEl.textContent =
+            income.side > 0
+                ? `+ ${formatCurrency(income.side)} side hustle`
+                : 'No side income';
+
+    renderCompactFireBar(progressPercent);
+}
+
+// Narrow-width single bar: the filled portion is FIRE progress, split into
+// net-worth allocation segments. Hidden by CSS on wide screens.
+function renderCompactFireBar(progressPercent) {
+    const fill = document.getElementById('cfb-fill');
+    const pct = document.getElementById('cfb-pct');
+    if (!fill || !pct) return;
+    const { segments } = getBannerAllocSegments();
+    const shown = Math.min(progressPercent, 100);
+    fill.style.width = `${shown}%`;
+    fill.innerHTML = segments
+        .map(
+            (s) =>
+                `<span class="cfb-seg" style="width:${s.pct.toFixed(2)}%;background:${s.color};"></span>`,
+        )
+        .join('');
+    pct.textContent = `${progressPercent.toFixed(1)}%`;
+    const bar = document.getElementById('compact-fire-bar');
+    if (bar) {
+        bar.setAttribute('aria-valuenow', progressPercent.toFixed(1));
+        bar.setAttribute(
+            'aria-valuetext',
+            `${progressPercent.toFixed(1)}% of FIRE target`,
+        );
+    }
+}
+
+function buildCompactBarTooltipHtml() {
+    const { segments, total } = getBannerAllocSegments();
+    const annualExpenses = getAnnualExpensesTotal();
+    const income = getBannerIncome();
+    const rows = segments
+        .map(
+            (s) =>
+                `<div class="at-row"><span class="at-dot" style="background:${s.color};"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+        )
+        .join('');
+    const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
+    const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.gross)}</span></div><div class="at-row"><span class="at-label">Side income YTD</span><span class="at-val">${formatCurrency(income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
+    return rows + totalRow + flowRows;
+}
+
+function initCompactFireBar() {
+    const bar = document.getElementById('compact-fire-bar');
+    const tip = document.getElementById('alloc-tooltip');
+    if (!bar || !tip) return;
+    const show = () => {
+        tip.innerHTML = buildCompactBarTooltipHtml();
+        tip.style.display = 'block';
+        const r = bar.getBoundingClientRect();
+        const tw = tip.offsetWidth || 240;
+        tip.style.left =
+            Math.max(8, Math.min(r.left, window.innerWidth - tw - 8)) + 'px';
+        tip.style.top = r.bottom + 8 + 'px';
+    };
+    const hide = () => {
+        tip.style.display = 'none';
+    };
+    bar.addEventListener('mouseenter', show);
+    bar.addEventListener('mouseleave', hide);
+    bar.addEventListener('focus', show);
+    bar.addEventListener('blur', hide);
+    // Mouse users get hover; touch has no hover, so a tap toggles instead.
+    let lastPointerType = 'mouse';
+    bar.addEventListener('pointerdown', (e) => {
+        lastPointerType = e.pointerType;
+    });
+    bar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (lastPointerType !== 'touch') return;
+        if (tip.style.display === 'block') hide();
+        else show();
+    });
+    document.addEventListener('click', hide);
+}
+
+// In portrait at hamburger widths the summary bar (and the alerts bell) live
+// in the fixed top bar next to the menu button instead of a banner below it.
+// Landscape keeps the banner, since a top bar there would eat scarce height.
+function initCompactBarPlacement() {
+    const bar = document.getElementById('compact-fire-bar');
+    const bell = document.querySelector('.notif-bell-wrap');
+    const banner = document.querySelector('.header-banner');
+    const sidebar = document.querySelector('.sidebar');
+    const container = document.querySelector('.app-container');
+    if (!bar || !bell || !banner || !sidebar || !container) return;
+    const bellHome = bell.parentElement;
+    const mq = window.matchMedia(
+        '(max-width: 768px) and (orientation: portrait)',
+    );
+    const place = () => {
+        if (mq.matches) {
+            sidebar.append(bar, bell);
+            container.classList.add('topbar-summary');
+        } else {
+            banner.appendChild(bar);
+            bellHome.appendChild(bell);
+            container.classList.remove('topbar-summary');
+        }
+    };
+    mq.addEventListener('change', place);
+    place();
+}
+
+// Retirement Growth Path expander: full-width (wide screens) and taller.
+function initGrowthSizeControls() {
+    const card = document.getElementById('dash-card-growth');
+    const btn = document.getElementById('growth-expand-btn');
+    if (!card || !btn) return;
+    const apply = (expanded) => {
+        card.classList.toggle('growth-size-wide', expanded);
+        btn.classList.toggle('active', expanded);
+        btn.setAttribute('aria-pressed', expanded ? 'true' : 'false');
+        try {
+            localStorage.setItem('fire_growth_expanded', expanded ? '1' : '0');
+        } catch {
+            /* storage unavailable — just won't persist */
+        }
+    };
+    let saved = false;
+    try {
+        saved = localStorage.getItem('fire_growth_expanded') === '1';
+    } catch {
+        /* ignore */
+    }
+    apply(saved);
+    btn.addEventListener('click', () =>
+        apply(!card.classList.contains('growth-size-wide')),
+    );
+}
+
 function renderAllocMiniBarsBanner() {
     const el = document.getElementById('banner-alloc-bars');
     if (!el) return;
-    const cash = getAggregateCash(),
-        cds = getAggregateCDs(),
-        equities = getAggregateEquities();
-    const re = getAggregateRealEstate(),
-        veh = getAggregateVehicles();
-    const other = getAggregateOtherAssets() + getSideGigYTDNet();
-    const total = cash + cds + equities + re + veh + other;
+    const { segments, total } = getBannerAllocSegments();
     if (total === 0) {
         el.innerHTML = '';
         return;
     }
-    const segments = [
-        {
-            amt: cash,
-            pct: (cash / total) * 100,
-            color: '#10b981',
-            label: 'Cash',
-        },
-        { amt: cds, pct: (cds / total) * 100, color: '#f59e0b', label: 'CDs' },
-        {
-            amt: equities,
-            pct: (equities / total) * 100,
-            color: '#8b5cf6',
-            label: 'Equities',
-        },
-        {
-            amt: re,
-            pct: (re / total) * 100,
-            color: '#06b6d4',
-            label: 'Real Estate',
-        },
-        {
-            amt: veh,
-            pct: (veh / total) * 100,
-            color: '#f97316',
-            label: 'Vehicles',
-        },
-        {
-            amt: other,
-            pct: (other / total) * 100,
-            color: '#3b82f6',
-            label: 'Other',
-        },
-    ].filter((s) => s.pct > 0);
     el.innerHTML = `<div class="alloc-bar-track">${segments
         .map(
             (s) =>
@@ -288,6 +453,91 @@ const DIVERSIFICATION_TIPS = [
             },
         ],
     },
+    {
+        id: 'emergency-fund',
+        title: 'Emergency Fund Watcher',
+        icon: '🛟',
+        check: ({ monthlyExpenses, cashMonths }) =>
+            monthlyExpenses > 0 && cashMonths < 6,
+        severity: ({ cashMonths }) => (cashMonths < 3 ? 'warning' : 'info'),
+        message: ({ cashMonths }) =>
+            `Liquid cash covers about ${cashMonths.toFixed(1)} months of expenses — 3–6 months is the usual safety net before investing the rest.`,
+        links: [
+            {
+                label: 'How Big Should It Be?',
+                url: 'https://www.investopedia.com/terms/e/emergency_fund.asp',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'savings-rate',
+        title: 'Savings Rate Check',
+        icon: '🏦',
+        check: ({ grossIncome, annualExpenses }) =>
+            grossIncome > 0 &&
+            annualExpenses > 0 &&
+            (grossIncome - annualExpenses) / grossIncome < 0.15,
+        severity: ({ grossIncome, annualExpenses }) =>
+            grossIncome - annualExpenses < 0 ? 'warning' : 'info',
+        message: ({ grossIncome, annualExpenses }) =>
+            `Your rough savings rate is ${(((grossIncome - annualExpenses) / grossIncome) * 100).toFixed(0)}% (income vs. expenses incl. tax drag). Rates above ~20% shorten the road to FIRE dramatically.`,
+        links: [
+            {
+                label: 'Savings Rate & FIRE',
+                url: 'https://www.investopedia.com/terms/s/savings-rate.asp',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'cd-maturing-soon',
+        title: 'CD Maturing Soon',
+        icon: '⏰',
+        check: ({ cdsSoon }) => cdsSoon.length > 0,
+        severity: 'info',
+        message: ({ cdsSoon }) =>
+            `${cdsSoon.length} CD${cdsSoon.length === 1 ? '' : 's'} mature within 60 days — decide now whether to roll over, ladder, or redeploy so the cash isn't left idle.`,
+        links: [
+            {
+                label: 'CD Ladder Strategy',
+                url: 'https://www.investopedia.com/terms/c/cdladder.asp',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'aggressive-swr',
+        title: 'Aggressive Withdrawal Rate',
+        icon: '🎯',
+        check: ({ swr }) => swr > 4.5,
+        severity: 'warning',
+        message: ({ swr }) =>
+            `Your safe withdrawal rate is set to ${swr}% — above the classic 4% rule, which raises the risk of running out in a long retirement.`,
+        links: [
+            {
+                label: 'The 4% Rule',
+                url: 'https://www.investopedia.com/terms/f/four-percent-rule.asp',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'crypto-share',
+        title: 'Crypto Share of Net Worth',
+        icon: '🪙',
+        check: ({ cryptoPct }) => cryptoPct > 10,
+        severity: 'info',
+        message: ({ cryptoPct }) =>
+            `Crypto is ${cryptoPct.toFixed(0)}% of net worth — high volatility; many planners cap speculative assets around 5–10%.`,
+        links: [
+            {
+                label: 'Rebalancing Basics',
+                url: 'https://www.investopedia.com/terms/r/rebalancing.asp',
+                external: true,
+            },
+        ],
+    },
 ];
 
 function getDismissedTips() {
@@ -334,7 +584,32 @@ function renderDiversificationSuggestions(
     const cdsPct = (getAggregateCDs() / nw) * 100;
     const rePct = (getAggregateRealEstate() / nw) * 100;
 
-    const ctx = { nw, totalPortfolioValue, cashPct, eqPct, cdsPct, rePct };
+    const annualExpenses = getAnnualExpensesTotal();
+    const monthlyExpenses = annualExpenses / 12;
+    const cryptoValue = (state.customAccounts || [])
+        .filter((a) => a.type === 'Crypto')
+        .reduce((sum, a) => sum + (a.value || 0), 0);
+    const now = Date.now();
+    const cdsSoon = (state.cds || []).filter((cd) => {
+        const days = (new Date(cd.maturity).getTime() - now) / 86400000;
+        return days >= 0 && days <= 60;
+    });
+    const ctx = {
+        nw,
+        totalPortfolioValue,
+        cashPct,
+        eqPct,
+        cdsPct,
+        rePct,
+        annualExpenses,
+        monthlyExpenses,
+        cashMonths:
+            monthlyExpenses > 0 ? getAggregateCash() / monthlyExpenses : 0,
+        grossIncome: getBannerIncome().gross,
+        cdsSoon,
+        swr: state.projectionSettings?.swr || 0,
+        cryptoPct: (cryptoValue / nw) * 100,
+    };
     const dismissed = getDismissedTips();
     const activeTips = DIVERSIFICATION_TIPS.filter((tip) => {
         if (dismissed.includes(tip.id)) return false;
@@ -360,8 +635,11 @@ function renderDiversificationSuggestions(
     html += '<div class="divs-tiles">';
     activeTips.forEach((tip) => {
         const msg = tip.message(ctx);
-        const severityClass =
-            tip.severity === 'warning' ? 'divs-tile-warning' : '';
+        const severity =
+            typeof tip.severity === 'function'
+                ? tip.severity(ctx)
+                : tip.severity;
+        const severityClass = severity === 'warning' ? 'divs-tile-warning' : '';
         html += `
             <div class="divs-tile ${severityClass}" data-tip-id="${tip.id}">
                 <div class="divs-tile-header">
@@ -383,17 +661,24 @@ function renderDiversificationSuggestions(
     block.innerHTML = html;
 }
 
-function renderQuickStatsList() {
-    const set = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val;
-    };
-    set('stat-cash', formatCurrency(getAggregateCash()));
-    set('stat-cds', formatCurrency(getAggregateCDs()));
-    set('stat-equities', formatCurrency(getAggregateEquities()));
-    set('stat-sidegig', formatCurrency(getSideGigYTDNet()));
-    set('stat-realestate', formatCurrency(getAggregateRealEstate()));
-    set('stat-vehicles', formatCurrency(getAggregateVehicles()));
+// Income Sources / Monthly Expenses collapse toggle (mobile only — see
+// .cf-toggle-btn / .cf-collapsed in components.css). Delegated so it keeps
+// working regardless of how many times the surrounding cards re-render;
+// the toggled elements themselves are never rebuilt by renderMonthlyCashFlow
+// (which only mutates existing spans' textContent), so the expanded/
+// collapsed state naturally survives data refreshes without extra
+// bookkeeping.
+function initCashFlowToggles() {
+    document
+        .querySelectorAll('.cf-toggle-btn[data-cf-toggle]')
+        .forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const list = document.getElementById(btn.dataset.cfToggle);
+                if (!list) return;
+                const collapsed = list.classList.toggle('cf-collapsed');
+                btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            });
+        });
 }
 
 function renderMonthlyCashFlow() {

@@ -21,6 +21,37 @@
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), transparent 40%);
 }
 
+/* Settings — restrained color-coded grouping. A left accent border plus a
+   faint tinted wash (same restraint as the pre-existing Danger Zone card),
+   not a full-color fill, so cards stay readable and consistent with the
+   rest of the glass-card family. Privacy/Terms and Plaid intentionally
+   share the same purple accent token — one design-system hue used
+   deliberately for two cards, not two different purples. Selectors are
+   qualified with .card.glass-card so this outranks glass-card's own
+   `border` shorthand (same specificity tier, not left to source order). */
+.card.glass-card.settings-card--danger {
+    border-left: 3px solid var(--color-danger);
+}
+.card.glass-card.settings-card--danger::before {
+    background: linear-gradient(135deg, var(--color-danger-bg), transparent 40%);
+}
+
+.card.glass-card.settings-card--privacy,
+.card.glass-card.settings-card--plaid {
+    border-left: 3px solid var(--color-primary);
+}
+.card.glass-card.settings-card--privacy::before,
+.card.glass-card.settings-card--plaid::before {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), transparent 40%);
+}
+
+.card.glass-card.settings-card--gdrive {
+    border-left: 3px solid var(--color-success);
+}
+.card.glass-card.settings-card--gdrive::before {
+    background: linear-gradient(135deg, var(--color-success-bg), transparent 40%);
+}
+
 /* ==========================================================================
    Privacy Modal — organic
    ========================================================================== */
@@ -558,6 +589,39 @@
     font-size: var(--text-base);
     font-weight: 600;
     font-family: var(--font-heading);
+}
+
+/* Income Sources / Monthly Expenses collapse toggle — at every width they
+   default to collapsed (total only) until expanded. */
+.cf-toggle-btn {
+    display: flex;
+    background: none;
+    border: 1px solid var(--border-divider);
+    color: var(--text-muted);
+    border-radius: var(--border-radius-sm);
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.cf-toggle-btn svg {
+    width: 14px;
+    height: 14px;
+    transition: transform var(--transition-smooth);
+}
+.cf-toggle-btn[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+
+.cf-list.cf-collapsed .cf-row:not(.cf-total-row) {
+    display: none;
+}
+.cf-list.cf-collapsed .cf-total-row {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
 }
 
 /* Net Cash Flow card */
@@ -1116,7 +1180,12 @@
    Progress / projection bar instead of a dashboard card.
    ========================================================================== */
 .notif-bell-wrap {
-    position: relative;
+    /* Pinned to the right end of whichever bar hosts it (the summary banner
+       or the mobile top bar), regardless of the layout beside it. */
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-md);
+    z-index: 2;
     display: inline-flex;
 }
 
@@ -1228,4 +1297,39 @@
     font-size: var(--text-sm);
     text-align: center;
     padding: var(--space-md) 0;
+}
+/* Each insurance field is an amount input plus a frequency select, so it
+   needs ~260px; below that the fields stack instead of overlapping. */
+.insurance-grid {
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.insurance-grid .insurance-field-group,
+.insurance-grid .insurance-row {
+    min-width: 0;
+}
+
+/* Budget field labels: bold category on line one, hint on line two, so every
+   input sits at the same height regardless of label length. */
+.expense-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 36px;
+}
+
+.expense-label strong {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.expense-label-hint {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

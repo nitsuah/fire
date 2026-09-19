@@ -15,10 +15,10 @@ function renderSideGigLedgerTable() {
     state.sideGigLedger.forEach((sg) => {
         html += `
             <tr>
-                <td class="font-bold">${escHtml(sg.desc)}</td>
-                <td><span class="text-muted">${escHtml(sg.category)}</span></td>
-                <td class="text-right text-white">${formatCurrency(sg.revenue)}</td>
-                <td class="text-right text-coral">${formatCurrency(sg.expenses)}</td>
+                <td class="font-bold">${escHtml(sg.desc || sg.description || '')}</td>
+                <td><span class="text-muted">${escHtml(sg.category || sg.platform || '')}</span></td>
+                <td class="text-right text-white">${formatCurrency(sg.revenue ?? sg.gross ?? 0)}</td>
+                <td class="text-right text-coral">${formatCurrency(sg.expenses ?? sg.fees ?? 0)}</td>
                 <td class="text-right font-bold text-emerald">${formatCurrency(sg.net)}</td>
                 <td class="text-right">
                     <button class="delete-btn" onclick="deleteSideGigEntry('${sg.id}')">Delete</button>

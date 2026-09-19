@@ -2,12 +2,43 @@
    tables/positions.js — Investment positions table renderer
    ========================================================================== */
 
+// Positions whose hidden-at-narrow-width details are expanded (keyed
+// "account|symbol"); kept outside the render so re-renders preserve it.
+const expandedPositions = new Set();
+
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('.pos-expand-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    const key = btn.dataset.key;
+    const open = !expandedPositions.has(key);
+    if (open) expandedPositions.add(key);
+    else expandedPositions.delete(key);
+    btn.textContent = open ? '−' : '+';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    const detail = btn.closest('tr')?.nextElementSibling;
+    if (detail?.classList.contains('position-detail-row')) {
+        detail.hidden = !open;
+    }
+});
+
+// Below 768px the description/qty/price/cost columns are display:none, so a
+// colspan sized for all eight columns would make the table create phantom
+// columns and scroll sideways. Span only the visible ones.
+const narrowPositionsMq = window.matchMedia('(max-width: 768px)');
+narrowPositionsMq.addEventListener('change', () => {
+    if (typeof renderDashboardTopPositionsTable === 'function')
+        renderDashboardTopPositionsTable();
+});
+
 function renderDashboardTopPositionsTable() {
+    const totalCols = narrowPositionsMq.matches ? 4 : 8;
+    const groupSpan = narrowPositionsMq.matches ? 1 : 4;
     const tbody = document.querySelector('#table-dashboard-positions tbody');
     if (!tbody) return;
 
     if (state.importedPositions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${totalCols}" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td></tr>`;
         updateSortHeaders();
         updateCollapseAllButtonLabel();
         renderDiversificationSuggestions(0);
@@ -86,10 +117,11 @@ function renderDashboardTopPositionsTable() {
 
         html += `
             <tr class="table-group-header" data-acc-name="${escHtml(accName)}" onclick="toggleAccountGroup(this.dataset.accName)">
-                <td colspan="4"><span class="${chevronClass}">▼</span> <strong>${escHtml(accName)}</strong>${rollupBadge}</td>
-                <td class="text-right font-bold text-muted">${accCostBasis > 0 ? formatCurrency(accCostBasis) : '—'}</td>
+                <td colspan="${groupSpan}"><span class="${chevronClass}">▼</span> <strong>${escHtml(accName)}</strong>${rollupBadge}</td>
+                <td class="text-right font-bold text-muted pos-col-cost">${accCostBasis > 0 ? formatCurrency(accCostBasis) : '—'}</td>
                 <td class="text-right font-bold" style="${accStyle}">${formatCurrency(accTotalVal)}</td>
                 <td class="text-right font-bold" style="${accStyle}">${accPnLStr}</td>
+                <td class="pos-expand-cell"></td>
             </tr>
         `;
 
@@ -128,15 +160,39 @@ function renderDashboardTopPositionsTable() {
                 }
 
                 const sym = pos.symbol || '';
+                // Rows can share account+symbol, so key by a per-position id
+                // (assigned lazily; persisted on the next save).
+                if (!pos.id)
+                    pos.id = `pos-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+                const posKey = pos.id;
+                const isOpen = expandedPositions.has(posKey);
+                const qtyStr = (pos.quantity || 0).toLocaleString(undefined, {
+                    maximumFractionDigits: 3,
+                });
+                const costStr =
+                    (pos.costBasis || 0) > 0
+                        ? formatCurrency(pos.costBasis)
+                        : '—';
                 html += `
                     <tr class="position-row" data-account="${escHtml(accName)}" data-symbol="${escHtml(sym)}">
                         <td class="font-bold text-purple">${escHtml(sym)} ${riskBadge}</td>
-                        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(pos.description || '')}</td>
-                        <td class="text-right">${(pos.quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
-                        <td class="text-right">${formatCurrency(pos.lastPrice || 0)}</td>
-                        <td class="text-right text-muted">${(pos.costBasis || 0) > 0 ? formatCurrency(pos.costBasis) : '—'}</td>
+                        <td class="pos-col-desc" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(pos.description || '')}</td>
+                        <td class="text-right pos-col-qty">${qtyStr}</td>
+                        <td class="text-right pos-col-price">${formatCurrency(pos.lastPrice || 0)}</td>
+                        <td class="text-right text-muted pos-col-cost">${costStr}</td>
                         <td class="text-right font-bold" style="${posStyle}">${formatCurrency(pos.value || 0)}</td>
                         <td class="text-right font-bold" style="${posStyle}">${pnlText} ${mktBadge}</td>
+                        <td class="pos-expand-cell"><button type="button" class="pos-expand-btn" data-key="${escHtml(posKey)}" aria-expanded="${isOpen}" aria-label="Show details for ${escHtml(sym)}">${isOpen ? '−' : '+'}</button></td>
+                    </tr>
+                    <tr class="position-detail-row" ${isOpen ? '' : 'hidden'}>
+                        <td colspan="${totalCols}">
+                            <dl class="pos-detail-list">
+                                <div><dt>Description</dt><dd>${escHtml(pos.description || '—')}</dd></div>
+                                <div><dt>Quantity</dt><dd>${qtyStr}</dd></div>
+                                <div><dt>Last Price</dt><dd>${formatCurrency(pos.lastPrice || 0)}</dd></div>
+                                <div><dt>Cost Basis</dt><dd>${costStr}</dd></div>
+                            </dl>
+                        </td>
                     </tr>
                 `;
             });

@@ -105,6 +105,14 @@ const syncLimiter = makeRateLimiter(
 
 const app = express();
 
+// Caddy (config/Caddyfile) terminates TLS and reverse-proxies to this app
+// over plain HTTP, setting X-Forwarded-Proto/X-Forwarded-Host along the way.
+// Trusting the first proxy hop lets req.protocol/req.get('host') correctly
+// report "https"/the public host for anything built from the request (e.g.
+// the eBay OAuth redirect URI in routes/sync.js) instead of the app's own
+// plain-HTTP loopback address.
+app.set('trust proxy', 1);
+
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -152,6 +160,13 @@ if (!AUTH_DISABLED) {
         if (req.path === '/backup/drive/callback') {
             return next();
         }
+        // eBay's own servers call this directly (both the GET challenge-
+        // response verification and the POST deletion notification) — they
+        // can't send our x-api-key. The verification token / endpoint-URL
+        // match (see routes/sync.js) is that endpoint's own trust boundary.
+        if (req.path === '/sync/ebay/marketplace-account-deletion') {
+            return next();
+        }
         const key = req.headers['x-api-key'];
         if (!key || key !== API_KEY) {
             return res.status(401).json({ error: 'Unauthorized.' });
@@ -195,6 +210,18 @@ app.post('/api/admin/rotate-key', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// Any /api/* request that didn't match a mounted router or route above
+// (typo'd path, wrong method, stale client hitting a renamed/removed
+// endpoint) must still get a JSON response — without this, Express falls
+// through to its built-in default 404, which is an HTML page
+// ("<!DOCTYPE html>...Cannot GET ..."). Every client-side fetch caller in
+// this app expects JSON and calls res.json() on the result, so an HTML 404
+// throws "Unexpected token '<' ... is not valid JSON" out of that call
+// instead of surfacing the actual "not found" error.
+app.use('/api', (req, res) => {
+    res.status(404).json({ error: 'Not found.', path: req.originalUrl });
 });
 
 // eslint-disable-next-line no-unused-vars

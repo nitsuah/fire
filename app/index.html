@@ -36,8 +36,9 @@
             <div class="brand">
                 <span class="brand-icon">🔥</span>
                 <span class="brand-name">FIRE Tracker</span>
-                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar">
-                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="false">
+                    <svg class="nav-toggle-chevron" viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                    <svg class="nav-toggle-hamburger" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
                 </button>
             </div>
 
@@ -54,9 +55,9 @@
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v2h4v2H9V7h6v2z"/></svg>
                     <span class="nav-label">Expenses</span>
                 </button>
-                <button class="nav-btn" data-tab="taxes" id="btn-tab-taxes" title="Taxes">
+                <button class="nav-btn" data-tab="insights" id="btn-tab-insights" title="Insights">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 2.75c1.24 0 2.25 1.01 2.25 2.25S13.24 11.25 12 11.25 9.75 10.24 9.75 9s1.01-2.25 2.25-2.25zM16 17H8v-.75c0-1.33 2.67-2 4-2s4 .67 4 2V17z"/></svg>
-                    <span class="nav-label">Taxes</span>
+                    <span class="nav-label">Insights</span>
                 </button>
                 <button class="nav-btn" data-tab="sidegig" id="btn-tab-sidegig" title="Side Hustle Hub">
                     <svg class="nav-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
@@ -87,6 +88,10 @@
             </div>
         </aside>
 
+        <!-- Mobile nav-drawer backdrop — click to close; only shown (and only
+             does anything) below the 768px breakpoint, see layout.css -->
+        <div class="nav-drawer-backdrop" id="nav-drawer-backdrop" onclick="closeNavDrawer()"></div>
+
         <!-- Main Content Area -->
         <main class="main-content">
             <!-- Top Summary Banner -->
@@ -107,7 +112,7 @@
                 </div>
                 <div class="header-metric">
                     <span class="metric-label">
-                        FIRE Progress
+                        <span class="metric-label-text">FIRE Progress</span>
                         <span class="notif-bell-wrap">
                             <button class="notif-bell-btn" id="notif-bell-btn" onclick="toggleNotifDropdown()" title="Alerts & notifications" aria-label="Alerts & notifications" aria-haspopup="true" aria-expanded="false">
                                 🔔<span class="notif-bell-badge" id="notif-bell-badge" style="display:none;">0</span>
@@ -129,6 +134,17 @@
                     </div>
                     <span class="fire-prog-target" id="banner-target">Target: $0.00</span>
                 </div>
+                <!-- Minimalist single-bar summary, shown only on narrow widths
+                     (see layout.css) in place of the four metric blocks. The
+                     filled portion is FIRE progress, split into net-worth
+                     allocation segments; hover/tap reveals the breakdown plus
+                     income and spend rate. -->
+                <div class="compact-fire-bar" id="compact-fire-bar" role="progressbar" aria-label="FIRE progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+                    <div class="cfb-track">
+                        <div class="cfb-fill" id="cfb-fill"></div>
+                        <span class="cfb-pct" id="cfb-pct">0%</span>
+                    </div>
+                </div>
             </header>
             <div id="alloc-tooltip" class="alloc-tooltip" style="display:none;"></div>
 
@@ -140,9 +156,10 @@
                         <!-- LEFT COLUMN -->
                         <div class="dash-col-left">
                             <!-- Retirement Growth Path -->
-                            <div class="card glass-card">
+                            <div class="card glass-card" id="dash-card-growth">
                                 <div class="card-title-row">
                                     <h2 class="card-title">Retirement Growth Path</h2>
+                                    <button type="button" class="period-btn" id="growth-expand-btn" aria-pressed="false" title="Expand to full width (wide screens)" aria-label="Expand chart to full width">⤢</button>
                                     <div class="period-btns" id="dash-period-btns">
                                         <button class="period-btn" onclick="setDashProjWindow('1m')">1M</button>
                                         <button class="period-btn" onclick="setDashProjWindow('1y')">1Y</button>
@@ -152,13 +169,13 @@
                                         <button class="period-btn active" onclick="setDashProjWindow('all')">All</button>
                                     </div>
                                 </div>
-                                <div class="chart-container" style="position: relative; height:220px;">
+                                <div class="chart-container dash-growth-chart" style="position: relative;">
                                     <canvas id="chart-dashboard-projections"></canvas>
                                 </div>
                             </div>
 
                             <!-- Top Investment Positions -->
-                            <div class="card glass-card">
+                            <div class="card glass-card" id="dash-card-positions">
                                 <div class="card-title-row">
                                     <h2 class="card-title">Top Investment Positions</h2>
                                     <button class="collapse-all-btn" onclick="collapseAllGroups()">Collapse All</button>
@@ -168,17 +185,18 @@
                                         <thead>
                                             <tr>
                                                 <th class="sortable-th" data-sort="symbol" onclick="setTableSort('symbol')">Symbol</th>
-                                                <th class="sortable-th" data-sort="desc" onclick="setTableSort('desc')">Description</th>
-                                                <th class="sortable-th text-right" data-sort="qty" onclick="setTableSort('qty')">Quantity</th>
-                                                <th class="sortable-th text-right" data-sort="price" onclick="setTableSort('price')">Last Price</th>
-                                                <th class="sortable-th text-right" data-sort="cost" onclick="setTableSort('cost')">Cost Basis</th>
+                                                <th class="sortable-th pos-col-desc" data-sort="desc" onclick="setTableSort('desc')">Description</th>
+                                                <th class="sortable-th text-right pos-col-qty" data-sort="qty" onclick="setTableSort('qty')">Quantity</th>
+                                                <th class="sortable-th text-right pos-col-price" data-sort="price" onclick="setTableSort('price')">Last Price</th>
+                                                <th class="sortable-th text-right pos-col-cost" data-sort="cost" onclick="setTableSort('cost')">Cost Basis</th>
                                                 <th class="sortable-th text-right" data-sort="value" onclick="setTableSort('value')">Current Value</th>
                                                 <th class="sortable-th text-right sort-desc" data-sort="pnl" onclick="setTableSort('pnl')">Total PnL</th>
+                                                <th class="pos-expand-cell"><span class="sr-only">Details</span></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td colspan="7" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td>
+                                                <td colspan="8" class="text-center text-muted">No investments imported yet. Upload a Fidelity CSV statement in the Accounts tab.</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -188,59 +206,32 @@
 
                         <!-- RIGHT COLUMN -->
                         <div class="dash-col-right">
-                            <!-- Asset Allocation -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Asset Allocation</h2>
-                                <div class="chart-container" style="position: relative; height:210px;">
+                            <!-- Asset Allocation — drill-down: click a slice to see the
+                                 individual accounts/positions/CDs behind it -->
+                            <div class="card glass-card" id="dash-card-alloc">
+                                <div class="card-title-row">
+                                    <h2 class="card-title" id="alloc-breadcrumb-title">Asset Allocation</h2>
+                                    <button type="button" class="alloc-back-btn" id="alloc-back-btn" style="display:none;" onclick="allocDrillUp()">← All Assets</button>
+                                </div>
+                                <div class="text-muted" id="alloc-breadcrumb-sub" style="font-size:12px;margin-top:-6px;margin-bottom:4px;"></div>
+                                <div class="chart-container" style="position: relative; height:230px;">
                                     <canvas id="chart-asset-allocation"></canvas>
                                 </div>
-                            </div>
-
-                            <!-- Quick Stats -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Quick Stats</h2>
-                                <div class="stats-list">
-                                    <div class="stat-item">
-                                        <span class="stat-name">Liquid Cash & SPAXX</span>
-                                        <span class="stat-val" id="stat-cash">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">CD Balance</span>
-                                        <span class="stat-val" id="stat-cds">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">Equity Investments</span>
-                                        <span class="stat-val" id="stat-equities">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">Real Estate Equity</span>
-                                        <span class="stat-val" id="stat-realestate">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">Vehicle Equity</span>
-                                        <span class="stat-val" id="stat-vehicles">$0.00</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-name">Side Hustle Income (YTD)</span>
-                                        <span class="stat-val" id="stat-sidegig">$0.00</span>
-                                    </div>
-                                </div>
+                                <div id="alloc-detail-list"></div>
                             </div>
 
                             <!-- Cash & Fixed Income -->
-                            <div class="card glass-card">
+                            <div class="card glass-card" id="dash-card-cash">
                                 <h2 class="card-title">Cash &amp; Fixed Income</h2>
                                 <div id="dashboard-liquid-panel">
                                     <p class="text-muted text-center" style="padding:12px 0;">No cash or CDs recorded yet.</p>
                                 </div>
                             </div>
 
-                            <!-- Diversification Suggestions -->
-                            <div class="card glass-card">
-                                <div id="divs-suggestion-block" class="divs-suggestion-block"></div>
-                            </div>
-                            <!-- Alerts & Notifications now live in the bell icon next to the
-                                 FIRE Progress bar in the top nav (see header-banner above). -->
+                            <!-- Portfolio Insights (Diversification Suggestions) now
+                                 lives on the Insights tab. Alerts & Notifications live
+                                 in the bell icon next to the FIRE Progress bar in the
+                                 top nav (see header-banner above). -->
                         </div>
                     </div>
                 </section>
@@ -248,7 +239,90 @@
                 <!-- TAB: Financial Overview (merged Accounts + CDs + Cash Flow) -->
                 <section class="tab-pane" id="tab-financial">
 
-                    <!-- Compact Import Sub-bar -->
+                    <!-- Cash flow summary row: Net Monthly Cash Flow, Income Sources,
+                         Monthly Expenses, left-to-right on desktop. Stacks on mobile,
+                         where Income Sources / Monthly Expenses default to a collapsed
+                         total-only view (see .cf-collapsible-card / cf-toggle-btn). -->
+                    <div class="fo-cashflow-row">
+
+                        <!-- Net Cash Flow -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Net Monthly Cash Flow</h2>
+                            <div class="cf-net-container">
+                                <div class="cf-net-value" id="cf-net-value">$0</div>
+                                <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
+                                <div class="cf-bar-wrap mt-4">
+                                    <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
+                                    <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
+                                </div>
+                                <div class="cf-savings-rate mt-3">
+                                    <span class="cf-label">Savings Rate</span>
+                                    <span class="cf-val font-bold" id="cf-savings-rate">0%</span>
+                                </div>
+                                <div class="cf-annual-row mt-2">
+                                    <span class="cf-label">Annual Surplus / Deficit</span>
+                                    <span class="cf-val font-bold" id="cf-annual-surplus">$0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Income Sources -->
+                        <div class="card glass-card cf-collapsible-card">
+                            <div class="card-title-row">
+                                <h2 class="card-title">Income Sources</h2>
+                                <button type="button" class="cf-toggle-btn" data-cf-toggle="cashflow-income-list" aria-expanded="false" aria-label="Expand income line items">
+                                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+                                </button>
+                            </div>
+                            <div class="cf-list cf-collapsed" id="cashflow-income-list">
+                                <div class="cf-row">
+                                    <span class="cf-label">Salary / W2 (monthly)</span>
+                                    <span class="cf-val text-emerald" id="cf-salary">$0</span>
+                                </div>
+                                <div class="cf-row">
+                                    <span class="cf-label">Side Hustle (YTD avg)</span>
+                                    <span class="cf-val text-emerald" id="cf-sidegig">$0</span>
+                                </div>
+                                <div class="cf-row">
+                                    <span class="cf-label">CD Interest (monthly)</span>
+                                    <span class="cf-val text-amber" id="cf-cd-interest">$0</span>
+                                </div>
+                                <div class="cf-row">
+                                    <span class="cf-label">Crypto Staking (monthly)</span>
+                                    <span class="cf-val text-amber" id="cf-crypto-staking">$0</span>
+                                </div>
+                                <div class="cf-row cf-total-row">
+                                    <span class="cf-label font-bold">Total Monthly Income</span>
+                                    <span class="cf-val text-emerald font-bold" id="cf-total-income">$0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Expenses -->
+                        <div class="card glass-card cf-collapsible-card">
+                            <div class="card-title-row">
+                                <h2 class="card-title">Monthly Expenses</h2>
+                                <button type="button" class="cf-toggle-btn" data-cf-toggle="cashflow-expenses-list" aria-expanded="false" aria-label="Expand expense line items">
+                                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+                                </button>
+                            </div>
+                            <div class="cf-list cf-collapsed" id="cashflow-expenses-list">
+                                <div class="cf-row"><span class="cf-label">Housing</span><span class="cf-val text-coral" id="cf-housing">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Utilities</span><span class="cf-val text-coral" id="cf-utilities">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Food &amp; Groceries</span><span class="cf-val text-coral" id="cf-food">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Transportation</span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Healthcare</span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Discretionary</span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Car Insurance</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Home / Renters Insurance</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
+                                <div class="cf-row cf-total-row">
+                                    <span class="cf-label font-bold">Total Monthly Expenses</span>
+                                    <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Two-column body -->
                     <div class="fo-body">
 
@@ -258,13 +332,42 @@
                             <!-- Unified Add Form -->
                             <div class="card glass-card">
                                 <div class="ua-type-tabs">
-                                    <button class="ua-tab-btn active" data-ua-tab="account">Account / Asset</button>
+                                    <button class="ua-tab-btn active" data-ua-tab="csv">Import CSV</button>
+                                    <button class="ua-tab-btn" data-ua-tab="account">Account / Asset</button>
                                     <button class="ua-tab-btn" data-ua-tab="cd">Certificate of Deposit</button>
                                     <button class="ua-tab-btn" data-ua-tab="realestate">Real Estate</button>
                                     <button class="ua-tab-btn" data-ua-tab="vehicle">Vehicle</button>
                                 </div>
 
-                                <div id="ua-panel-account" class="ua-panel">
+                                <div id="ua-panel-csv" class="ua-panel">
+                                <!-- CSV import (default option of the unified add form) -->
+                                <div>
+                                    <h3 style="font-size:13px; margin-bottom:8px;">📁 Import CSV (local only)</h3>
+                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Drop Fidelity, Chase, Capital One CSV files — read-only, never leaves your browser.</p>
+                                    <div class="fo-import-drop" id="csv-drag-zone" role="button" tabindex="0" aria-label="Upload CSV file">
+                                        <svg class="fo-upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                                        <span class="fo-import-label">Drop CSV — Fidelity, Chase, Capital One &nbsp;·&nbsp; read-only, local</span>
+                                        <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
+                                    </div>
+                                    <div class="table-container mt-2">
+                                        <table class="data-table fo-import-table" id="table-imported-files">
+                                            <thead>
+                                                <tr>
+                                                    <th>File</th>
+                                                    <th>Source</th>
+                                                    <th>Records</th>
+                                                    <th class="text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td colspan="4" class="text-center text-muted">No files imported yet.</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                </div>
+
+                                <div id="ua-panel-account" class="ua-panel" style="display:none;">
                                     <form id="form-custom-account">
                                         <div class="fo-form-row">
                                             <div class="form-group">
@@ -277,6 +380,7 @@
                                                     <option value="Cash">Cash &amp; Checking</option>
                                                     <option value="Savings">High Yield Savings</option>
                                                     <option value="Crypto">Cryptocurrency</option>
+                                                    <option value="Metal">Precious Metal</option>
                                                     <option value="Brokerage">Custom Brokerage</option>
                                                     <option value="RealEstate">Real Estate</option>
                                                     <option value="Other">Other</option>
@@ -294,7 +398,7 @@
                                         <!-- Crypto-specific fields (shown when Type = Crypto) -->
                                         <div id="group-crypto-fields" class="fo-form-row" style="display:none;">
                                             <div class="form-group">
-                                                <label for="acc-identifier">Identifier <span class="text-muted">(optional)</span></label>
+                                                <label for="acc-identifier">Identifier <span class="text-muted">(ENS, 0x address or ticker — or put it in Name)</span></label>
                                                 <input type="text" id="acc-identifier" placeholder="ETH · BTC · USDC · nitsuah.eth · 0x1a2b…">
                                             </div>
                                             <div class="form-group">
@@ -302,8 +406,65 @@
                                                 <input type="number" id="acc-quantity" min="0" step="any" placeholder="e.g. 2.5">
                                             </div>
                                         </div>
+                                        <!-- Metal-specific fields (shown when Type = Precious Metal) -->
+                                        <div id="group-metal-fields" class="fo-form-row" style="display:none;">
+                                            <div class="form-group">
+                                                <label for="acc-metal-type">Metal</label>
+                                                <select id="acc-metal-type">
+                                                    <option value="gold">Gold</option>
+                                                    <option value="silver">Silver</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="acc-weight-oz">Weight (troy oz)</label>
+                                                <input type="number" id="acc-weight-oz" min="0" step="any" placeholder="e.g. 5">
+                                            </div>
+                                        </div>
                                         <button type="submit" class="primary-btn mt-2">Add Account</button>
                                     </form>
+                                    <!-- Wallet tracking: shown only while Type = Cryptocurrency -->
+                                    <div id="group-crypto-wallets" style="display:none;">
+                            <!-- Crypto Wallet Manager -->
+                            <div class="mt-4">
+                                <h2 class="card-title">Crypto Wallets</h2>
+                                <p class="card-subtitle">Track balances across chains. Only the last 8 characters of an address are ever shown here.</p>
+                                <form class="wallet-add-form" id="form-add-wallet">
+                                    <input type="text" id="wallet-address-input" placeholder="Wallet address" autocomplete="off" aria-label="Wallet address" required>
+                                    <select id="wallet-chain-select" aria-label="Chain">
+                                        <option value="ethereum">Ethereum</option>
+                                        <option value="bnb">BNB Smart Chain</option>
+                                        <option value="polygon">Polygon</option>
+                                        <option value="arbitrum">Arbitrum One</option>
+                                        <option value="base">Base</option>
+                                        <option value="avalanche">Avalanche</option>
+                                        <option value="bitcoin">Bitcoin</option>
+                                        <option value="solana">Solana</option>
+                                    </select>
+                                    <input type="text" id="wallet-label-input" placeholder="Label (e.g. Cold Wallet)" autocomplete="off" aria-label="Wallet label" maxlength="60" required>
+                                    <button type="submit" class="action-btn">Add Wallet</button>
+                                </form>
+                                <div id="wallet-manager-error" class="veh-est-error" style="display:none; margin-top:8px;"></div>
+                                <div id="wallet-manager-list" class="mt-3">
+                                    <p class="text-muted" style="font-size:12px;">Loading wallets…</p>
+                                </div>
+                                <div class="wallet-total-row" id="wallet-total-row" style="display:none;">
+                                    <span class="font-bold">Total Tracked Value</span>
+                                    <span class="font-bold" id="wallet-total-value">$0</span>
+                                </div>
+                            </div>
+
+                                    </div>
+                            <!-- ENS / Crypto Wallet Lookup -->
+                            <div class="card glass-card" hidden>
+                                <h2 class="card-title">Crypto Wallet Lookup (ENS)</h2>
+                                <p class="card-subtitle">Resolve a .eth address and total the value held across every configured EVM chain.</p>
+                                <form class="ens-lookup-form" id="form-ens-lookup">
+                                    <input type="text" id="ens-lookup-input" placeholder="vitalik.eth" autocomplete="off" aria-label="ENS name">
+                                    <button type="submit" class="action-btn">Look Up</button>
+                                </form>
+                                <div id="ens-lookup-result" class="ens-lookup-result"></div>
+                            </div>
+
                                 </div>
 
                                 <div id="ua-panel-cd" class="ua-panel" style="display:none;">
@@ -542,12 +703,11 @@
                                                 <th class="text-right">Loan Balance</th>
                                                 <th class="text-right">Purchase Price</th>
                                                 <th class="text-right">Depreciation</th>
-                                                <th class="text-right">Value Estimate</th>
                                                 <th class="text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr><td colspan="10" class="text-center text-muted">No vehicles added yet.</td></tr>
+                                            <tr><td colspan="9" class="text-center text-muted">No vehicles added yet.</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -571,176 +731,169 @@
                             </div>
                         </div>
 
-                        <!-- RIGHT: Cash Flow panel -->
-                        <div class="fo-right">
+                    </div>
 
-                            <!-- Net Cash Flow (top) -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Net Monthly Cash Flow</h2>
-                                <div class="cf-net-container">
-                                    <div class="cf-net-value" id="cf-net-value">$0</div>
-                                    <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
-                                    <div class="cf-bar-wrap mt-4">
-                                        <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
-                                        <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
-                                    </div>
-                                    <div class="cf-savings-rate mt-3">
-                                        <span class="cf-label">Savings Rate</span>
-                                        <span class="cf-val font-bold" id="cf-savings-rate">0%</span>
-                                    </div>
-                                    <div class="cf-annual-row mt-2">
-                                        <span class="cf-label">Annual Surplus / Deficit</span>
-                                        <span class="cf-val font-bold" id="cf-annual-surplus">$0</span>
-                                    </div>
+                </section>
+
+                <!-- TAB: Expenses -->
+                <section class="tab-pane" id="tab-expenses">
+                    <div class="dashboard-grid">
+                        <!-- Spending & Expense Input -->
+                        <div class="card glass-card span-2">
+                            <h2 class="card-title">Basic Budget & Expenses</h2>
+                            <p class="card-subtitle">These values establish your baseline for annual expenditure, which directly dictates your FIRE number.</p>
+                            <div class="grid-2-col mt-4">
+                                <div class="form-group">
+                                    <label for="exp-housing" class="expense-label"><strong>Housing</strong><span class="expense-label-hint">Rent / mortgage, monthly</span></label>
+                                    <input type="number" id="exp-housing" class="expense-input" value="1500">
+                                </div>
+                                <div class="form-group">
+                                    <label for="exp-utilities" class="expense-label"><strong>Utilities</strong><span class="expense-label-hint">Electric, water, internet</span></label>
+                                    <input type="number" id="exp-utilities" class="expense-input" value="250">
+                                </div>
+                                <div class="form-group">
+                                    <label for="exp-food" class="expense-label"><strong>Food &amp; Groceries</strong><span class="expense-label-hint">Monthly</span></label>
+                                    <input type="number" id="exp-food" class="expense-input" value="400">
+                                </div>
+                                <div class="form-group">
+                                    <label for="exp-transport" class="expense-label"><strong>Transportation</strong><span class="expense-label-hint">Gas, insurance, car loan</span></label>
+                                    <input type="number" id="exp-transport" class="expense-input" value="300">
+                                </div>
+                                <div class="form-group">
+                                    <label for="exp-healthcare" class="expense-label"><strong>Healthcare &amp; Insurance</strong><span class="expense-label-hint">Monthly</span></label>
+                                    <input type="number" id="exp-healthcare" class="expense-input" value="150">
+                                </div>
+                                <div class="form-group">
+                                    <label for="exp-discretionary" class="expense-label"><strong>Discretionary</strong><span class="expense-label-hint">Entertainment, shopping</span></label>
+                                    <input type="number" id="exp-discretionary" class="expense-input" value="500">
                                 </div>
                             </div>
 
-                            <!-- Income Sources -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Income Sources</h2>
-                                <div class="cf-list" id="cashflow-income-list">
-                                    <div class="cf-row">
-                                        <span class="cf-label">Salary / W2 (monthly)</span>
-                                        <span class="cf-val text-emerald" id="cf-salary">$0</span>
+                            <div class="insurance-section mt-4">
+                                <h3 class="section-sub-title">Insurance</h3>
+                                <p class="card-subtitle">Enter the amount you pay and how often — we'll normalize to a monthly cost.</p>
+                                <div class="insurance-grid mt-3">
+                                    <div class="insurance-field-group">
+                                        <label>Car Insurance</label>
+                                        <div class="insurance-row">
+                                            <input type="number" id="ins-car-amt" class="insurance-amt-input" min="0" step="1" placeholder="0.00" value="0">
+                                            <select id="ins-car-freq" class="insurance-freq-select">
+                                                <option value="monthly">per month</option>
+                                                <option value="6month" selected>every 6 months</option>
+                                                <option value="annual">per year (upfront)</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div class="cf-row">
-                                        <span class="cf-label">Side Hustle (YTD avg)</span>
-                                        <span class="cf-val text-emerald" id="cf-sidegig">$0</span>
-                                    </div>
-                                    <div class="cf-row">
-                                        <span class="cf-label">CD Interest (monthly)</span>
-                                        <span class="cf-val text-amber" id="cf-cd-interest">$0</span>
-                                    </div>
-                                    <div class="cf-row">
-                                        <span class="cf-label">Crypto Staking (monthly)</span>
-                                        <span class="cf-val text-amber" id="cf-crypto-staking">$0</span>
-                                    </div>
-                                    <div class="cf-row cf-total-row">
-                                        <span class="cf-label font-bold">Total Monthly Income</span>
-                                        <span class="cf-val text-emerald font-bold" id="cf-total-income">$0</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Monthly Expenses -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Monthly Expenses</h2>
-                                <div class="cf-list">
-                                    <div class="cf-row"><span class="cf-label">Housing</span><span class="cf-val text-coral" id="cf-housing">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Utilities</span><span class="cf-val text-coral" id="cf-utilities">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Food &amp; Groceries</span><span class="cf-val text-coral" id="cf-food">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Transportation</span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Healthcare</span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Discretionary</span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Car Insurance</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
-                                    <div class="cf-row"><span class="cf-label">Home / Renters Insurance</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
-                                    <div class="cf-row cf-total-row">
-                                        <span class="cf-label font-bold">Total Monthly Expenses</span>
-                                        <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
+                                    <div class="insurance-field-group">
+                                        <label>Home / Renters Insurance</label>
+                                        <div class="insurance-row">
+                                            <input type="number" id="ins-home-amt" class="insurance-amt-input" min="0" step="1" placeholder="0.00" value="0">
+                                            <select id="ins-home-freq" class="insurance-freq-select">
+                                                <option value="monthly" selected>per month</option>
+                                                <option value="6month">every 6 months</option>
+                                                <option value="annual">per year (upfront)</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Crypto Wallet Manager -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Crypto Wallets</h2>
-                                <p class="card-subtitle">Track balances across chains. Only the last 8 characters of an address are ever shown here.</p>
-                                <form class="wallet-add-form" id="form-add-wallet">
-                                    <input type="text" id="wallet-address-input" placeholder="Wallet address" autocomplete="off" aria-label="Wallet address" required>
-                                    <select id="wallet-chain-select" aria-label="Chain">
-                                        <option value="ethereum">Ethereum</option>
-                                        <option value="bnb">BNB Smart Chain</option>
-                                        <option value="polygon">Polygon</option>
-                                        <option value="arbitrum">Arbitrum One</option>
-                                        <option value="base">Base</option>
-                                        <option value="avalanche">Avalanche</option>
-                                        <option value="bitcoin">Bitcoin</option>
-                                        <option value="solana">Solana</option>
-                                    </select>
-                                    <input type="text" id="wallet-label-input" placeholder="Label (e.g. Cold Wallet)" autocomplete="off" aria-label="Wallet label" maxlength="60" required>
-                                    <button type="submit" class="action-btn">Add Wallet</button>
-                                </form>
-                                <div id="wallet-manager-error" class="veh-est-error" style="display:none; margin-top:8px;"></div>
-                                <div id="wallet-manager-list" class="mt-3">
-                                    <p class="text-muted" style="font-size:12px;">Loading wallets…</p>
-                                </div>
-                                <div class="wallet-total-row" id="wallet-total-row" style="display:none;">
-                                    <span class="font-bold">Total Tracked Value</span>
-                                    <span class="font-bold" id="wallet-total-value">$0</span>
-                                </div>
-                            </div>
-
-                            <!-- ENS / Crypto Wallet Lookup -->
-                            <div class="card glass-card">
-                                <h2 class="card-title">Crypto Wallet Lookup (ENS)</h2>
-                                <p class="card-subtitle">Resolve a .eth address and total the value held across every configured EVM chain.</p>
-                                <form class="ens-lookup-form" id="form-ens-lookup">
-                                    <input type="text" id="ens-lookup-input" placeholder="vitalik.eth" autocomplete="off" aria-label="ENS name">
-                                    <button type="submit" class="action-btn">Look Up</button>
-                                </form>
-                                <div id="ens-lookup-result" class="ens-lookup-result"></div>
-                            </div>
-
-                            <!-- API Integrations -->
-                            <div class="card glass-card fo-import-card">
-                                <h2 class="card-title">API Integrations</h2>
-
-                                <!-- eBay Connector -->
-                                <div class="api-connector-panel mt-3 pt-3 border-t">
-                                    <div class="connector-header">
-                                        <h3 style="font-size:13px; margin-bottom:8px;">🔌 eBay Seller API</h3>
-                                        <span class="badge-type badge-cd" style="font-size:9px; padding:2px 6px;">Sandbox</span>
-                                    </div>
-                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Sync completed orders to your Side Income ledger automatically.</p>
-                                    <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-ebay-oauth">
-                                        <span>Sync Profile with eBay API</span>
-                                    </button>
-                                    <div id="ebay-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Disconnected</div>
-                                </div>
-
-                                <!-- Plaid Connector -->
-                                <div class="api-connector-panel mt-3 pt-3 border-t">
-                                    <div class="connector-header">
-                                        <h3 style="font-size:13px; margin-bottom:8px;">🔗 Plaid Investments</h3>
-                                        <span class="badge-type badge-cd" style="font-size:9px; padding:2px 6px;">Sandbox</span>
-                                    </div>
-                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Connect brokerage accounts to auto-import holdings and balances.</p>
-                                    <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-plaid-link">
-                                        <span>Link Investment Account via Plaid</span>
-                                    </button>
-                                    <div id="plaid-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Not Linked</div>
-                                </div>
-
-                                <!-- CSV Import (compact, bottom of right panel) -->
-                                <div class="api-connector-panel mt-3 pt-3 border-t">
-                                    <h2 class="card-title" style="font-size:13px; margin-bottom:8px;">📁 CSV Import (Local Only)</h2>
-                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Drop Fidelity, Chase, Capital One CSV files — read-only, never leaves your browser.</p>
-                                    <div class="fo-import-drop" id="csv-drag-zone">
-                                        <svg class="fo-upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                                        <span class="fo-import-label">Drop CSV — Fidelity, Chase, Capital One &nbsp;·&nbsp; read-only, local</span>
-                                        <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
-                                    </div>
-                                    <div class="table-container mt-2">
-                                        <table class="data-table fo-import-table" id="table-imported-files">
-                                            <thead>
-                                                <tr>
-                                                    <th>File</th>
-                                                    <th>Source</th>
-                                                    <th>Records</th>
-                                                    <th class="text-right">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr><td colspan="4" class="text-center text-muted">No files imported yet.</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
 
-                        <!-- Portfolio Rebalancing -->
+                        <!-- Tax Estimator (moved here from the former Taxes tab — its
+                             output, the "Adjusted Annual FIRE Need", is an expenses
+                             figure, and this keeps all budget/spend inputs on one tab) -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Tax Estimator & Summary</h2>
+                            <p class="card-subtitle">Enter your gross income and filing state — we'll estimate your effective tax rate and annual FIRE need.</p>
+                            <div class="form-group">
+                                <label for="tax-gross-income">Gross Annual Income ($)</label>
+                                <input type="number" id="tax-gross-income" value="100000" step="5000">
+                            </div>
+                            <div class="form-group">
+                                <label for="tax-filing-state">Filing State</label>
+                                <select id="tax-filing-state">
+                                    <option value="TX">Texas (TX - No Income Tax)</option>
+                                    <option value="FL">Florida (FL - No Income Tax)</option>
+                                    <option value="CA">California (CA - State Progressive)</option>
+                                    <option value="NY" selected>New York (NY - State Progressive)</option>
+                                    <option value="WA">Washington (WA - No Income Tax)</option>
+                                    <option value="NV">Nevada (NV - No Income Tax)</option>
+                                    <option value="IL">Illinois (IL - 4.95% Flat State Tax)</option>
+                                    <option value="Other">Other State (4.0% average Flat Tax)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="tax-rate">Estimated Effective Tax Rate (%)</label>
+                                <input type="range" id="tax-rate" min="0" max="50" value="20" class="slider-input">
+                                <div class="slider-val text-center font-bold" id="tax-rate-display">20%</div>
+                            </div>
+                            <div class="tax-summary mt-4">
+                                <div class="stat-item">
+                                    <span class="stat-name">Base Monthly Expenses</span>
+                                    <span class="stat-val" id="summary-monthly-spend">$3,100.00</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-name">Estimated Annual Spending</span>
+                                    <span class="stat-val text-coral" id="summary-annual-spend">$37,200.00</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-name">Effective Annual Tax Drag</span>
+                                    <span class="stat-val text-amber" id="summary-annual-tax">$9,300.00</span>
+                                </div>
+                                <div class="stat-item pt-2 border-t font-bold">
+                                    <span class="stat-name">Adjusted Annual FIRE Need</span>
+                                    <span class="stat-val text-emerald" id="summary-total-annual-need">$46,500.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Spending CSV Upload -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Spending Upload</h2>
+                            <p class="card-subtitle">Upload a Chase, Capital One, or generic (Date/Description/Amount) spending CSV — each transaction is auto-categorized and lands in the table below, fully editable.</p>
+                            <div class="import-drag-zone" id="spending-drag-zone" tabindex="0" role="button" aria-label="Upload spending CSV">
+                                <p>Drag &amp; drop a spending CSV, or click to browse</p>
+                                <input type="file" id="spending-file-input" accept=".csv" style="display:none;" aria-label="Spending CSV file">
+                            </div>
+
+                            <div class="table-container mt-3">
+                                <table class="data-table spending-tx-table" id="table-spending-transactions">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Merchant</th>
+                                            <th class="text-right">Amount</th>
+                                            <th>Category</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-spending-transactions">
+                                        <tr><td colspan="5" class="text-center text-muted">No transactions uploaded yet.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-t">
+                                <h3 class="section-sub-title">Category Mapping</h3>
+                                <p class="card-subtitle">Customize which category a merchant keyword maps to — checked before the built-in categorization on every future upload.</p>
+                                <div class="merchant-map-editor" id="merchant-map-editor"></div>
+                                <button type="button" class="action-btn mt-2" id="btn-add-merchant-map-row">+ Add mapping</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- TAB: Insights (formerly Taxes — Tax Estimator moved to
+                     Expenses; Portfolio Insights moved here from Dashboard) -->
+                <section class="tab-pane" id="tab-insights">
+                    <div class="dashboard-grid">
+                        <!-- Portfolio Insights (moved from Dashboard) -->
+                        <div class="card glass-card span-2">
+                            <div id="divs-suggestion-block" class="divs-suggestion-block"></div>
+                        </div>
+
+                        <!-- Portfolio Rebalancing (moved from Financial Overview) -->
                         <div class="card glass-card span-2">
                             <div class="card-title-row">
                                 <h2 class="card-title">Portfolio Rebalancing</h2>
@@ -786,160 +939,6 @@
                                         <tr><td colspan="6" class="text-center text-muted">Click Recalculate to see rebalancing suggestions.</td></tr>
                                     </tbody>
                                 </table>
-                            </div>
-                        </div>
-
-                    </div>
-
-                </section>
-
-                <!-- TAB: Expenses & Taxes -->
-                <section class="tab-pane" id="tab-expenses">
-                    <div class="dashboard-grid">
-                        <!-- Spending & Expense Input -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Basic Budget & Expenses</h2>
-                            <p class="card-subtitle">These values establish your baseline for annual expenditure, which directly dictates your FIRE number.</p>
-                            <div class="grid-2-col mt-4">
-                                <div class="form-group">
-                                    <label for="exp-housing">Housing (Rent/Mortgage Monthly)</label>
-                                    <input type="number" id="exp-housing" class="expense-input" value="1500">
-                                </div>
-                                <div class="form-group">
-                                    <label for="exp-utilities">Utilities (Electric, Water, Internet)</label>
-                                    <input type="number" id="exp-utilities" class="expense-input" value="250">
-                                </div>
-                                <div class="form-group">
-                                    <label for="exp-food">Food & Groceries (Monthly)</label>
-                                    <input type="number" id="exp-food" class="expense-input" value="400">
-                                </div>
-                                <div class="form-group">
-                                    <label for="exp-transport">Transportation (Gas, Ins, Car Loan)</label>
-                                    <input type="number" id="exp-transport" class="expense-input" value="300">
-                                </div>
-                                <div class="form-group">
-                                    <label for="exp-healthcare">Healthcare & Insurance (Monthly)</label>
-                                    <input type="number" id="exp-healthcare" class="expense-input" value="150">
-                                </div>
-                                <div class="form-group">
-                                    <label for="exp-discretionary">Discretionary (Entertainment, Shopping)</label>
-                                    <input type="number" id="exp-discretionary" class="expense-input" value="500">
-                                </div>
-                            </div>
-
-                            <div class="insurance-section mt-4">
-                                <h3 class="section-sub-title">Insurance</h3>
-                                <p class="card-subtitle">Enter the amount you pay and how often — we'll normalize to a monthly cost.</p>
-                                <div class="grid-2-col mt-3">
-                                    <div class="insurance-field-group">
-                                        <label>Car Insurance</label>
-                                        <div class="insurance-row">
-                                            <input type="number" id="ins-car-amt" class="insurance-amt-input" min="0" step="1" placeholder="0.00" value="0">
-                                            <select id="ins-car-freq" class="insurance-freq-select">
-                                                <option value="monthly">per month</option>
-                                                <option value="6month" selected>every 6 months</option>
-                                                <option value="annual">per year (upfront)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="insurance-field-group">
-                                        <label>Home / Renters Insurance</label>
-                                        <div class="insurance-row">
-                                            <input type="number" id="ins-home-amt" class="insurance-amt-input" min="0" step="1" placeholder="0.00" value="0">
-                                            <select id="ins-home-freq" class="insurance-freq-select">
-                                                <option value="monthly" selected>per month</option>
-                                                <option value="6month">every 6 months</option>
-                                                <option value="annual">per year (upfront)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Spending CSV Upload -->
-                        <div class="card glass-card span-2">
-                            <h2 class="card-title">Spending Upload</h2>
-                            <p class="card-subtitle">Upload a Chase, Capital One, or generic (Date/Description/Amount) spending CSV — each transaction is auto-categorized and lands in the table below, fully editable.</p>
-                            <div class="import-drag-zone" id="spending-drag-zone" tabindex="0" role="button" aria-label="Upload spending CSV">
-                                <p>Drag &amp; drop a spending CSV, or click to browse</p>
-                                <input type="file" id="spending-file-input" accept=".csv" style="display:none;" aria-label="Spending CSV file">
-                            </div>
-
-                            <div class="table-container mt-3">
-                                <table class="data-table spending-tx-table" id="table-spending-transactions">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Merchant</th>
-                                            <th class="text-right">Amount</th>
-                                            <th>Category</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody-spending-transactions">
-                                        <tr><td colspan="5" class="text-center text-muted">No transactions uploaded yet.</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div class="mt-4 pt-3 border-t">
-                                <h3 class="section-sub-title">Category Mapping</h3>
-                                <p class="card-subtitle">Customize which category a merchant keyword maps to — checked before the built-in categorization on every future upload.</p>
-                                <div class="merchant-map-editor" id="merchant-map-editor"></div>
-                                <button type="button" class="action-btn mt-2" id="btn-add-merchant-map-row">+ Add mapping</button>
-                            </div>
-                        </div>
-
-                    </div>
-                </section>
-
-                <!-- TAB: Taxes -->
-                <section class="tab-pane" id="tab-taxes">
-                    <div class="dashboard-grid">
-                        <!-- Tax Estimator -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Tax Estimator & Summary</h2>
-                            <p class="card-subtitle">Enter your gross income and filing state — we'll estimate your effective tax rate and annual FIRE need.</p>
-                            <div class="form-group">
-                                <label for="tax-gross-income">Gross Annual Income ($)</label>
-                                <input type="number" id="tax-gross-income" value="100000" step="5000">
-                            </div>
-                            <div class="form-group">
-                                <label for="tax-filing-state">Filing State</label>
-                                <select id="tax-filing-state">
-                                    <option value="TX">Texas (TX - No Income Tax)</option>
-                                    <option value="FL">Florida (FL - No Income Tax)</option>
-                                    <option value="CA">California (CA - State Progressive)</option>
-                                    <option value="NY" selected>New York (NY - State Progressive)</option>
-                                    <option value="WA">Washington (WA - No Income Tax)</option>
-                                    <option value="NV">Nevada (NV - No Income Tax)</option>
-                                    <option value="IL">Illinois (IL - 4.95% Flat State Tax)</option>
-                                    <option value="Other">Other State (4.0% average Flat Tax)</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="tax-rate">Estimated Effective Tax Rate (%)</label>
-                                <input type="range" id="tax-rate" min="0" max="50" value="20" class="slider-input">
-                                <div class="slider-val text-center font-bold" id="tax-rate-display">20%</div>
-                            </div>
-                            <div class="tax-summary mt-4">
-                                <div class="stat-item">
-                                    <span class="stat-name">Base Monthly Expenses</span>
-                                    <span class="stat-val" id="summary-monthly-spend">$3,100.00</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-name">Estimated Annual Spending</span>
-                                    <span class="stat-val text-coral" id="summary-annual-spend">$37,200.00</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-name">Effective Annual Tax Drag</span>
-                                    <span class="stat-val text-amber" id="summary-annual-tax">$9,300.00</span>
-                                </div>
-                                <div class="stat-item pt-2 border-t font-bold">
-                                    <span class="stat-name">Adjusted Annual FIRE Need</span>
-                                    <span class="stat-val text-emerald" id="summary-total-annual-need">$46,500.00</span>
-                                </div>
                             </div>
                         </div>
 
@@ -1044,13 +1043,7 @@
                                 <button type="button" class="primary-btn mt-3 w-full" id="btn-save-ebay-sale">Log Sale to Side Income History</button>
                             </div>
                             
-                            <div class="ebay-connector-panel mt-4 pt-3 border-t">
-                                <h3 style="font-size:13px; margin-bottom:8px;">🔌 eBay Connector Integration</h3>
-                                <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-ebay-oauth">
-                                    <span>Sync Profile with eBay API (Mock Connector)</span>
-                                </button>
-                                <div id="ebay-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Disconnected</div>
-                            </div>
+                            <p class="text-muted mt-4" style="font-size:11px;">Connect your eBay account in Settings → eBay Order Sync.</p>
                             </div><!-- /calc-panel-ebay -->
 
                             <!-- Etsy Panel -->
@@ -1126,26 +1119,19 @@
                         <!-- Side Hustle Ideas / Suggestions -->
                         <div class="card glass-card">
                             <h2 class="card-title">Side Hustle Accelerators</h2>
-                            <p class="card-subtitle">Automate your income with these common side hustles:</p>
-                            <div class="hustle-tips-container mt-3">
-                                <div class="hustle-item">
-                                    <h4>💡 E-commerce Arbitrage</h4>
-                                    <p>Find clearance items locally, scan barcodes, and flip on Amazon or eBay. Targets 35%+ ROI.</p>
-                                </div>
-                                <div class="hustle-item">
-                                    <h4>💡 High-Yield CD Ladders</h4>
-                                    <p>Auto-renew cash deposits in staggered 3, 6, and 12-month intervals for steady monthly distributions.</p>
-                                </div>
-                                <div class="hustle-item">
-                                    <h4>💡 Local Service Agency</h4>
-                                    <p>Offer mobile car detailing or gutter cleaning. Low setup overhead, high hourly yields ($50-$80/hr).</p>
-                                </div>
-                            </div>
+                            <p class="card-subtitle">Ideas with guides and videos to get moving. They rotate on their own — dismiss the ones that aren't for you.</p>
+                            <div id="hustle-accelerator" class="hustle-accelerator mt-3"></div>
                         </div>
 
                         <!-- Side Gig Ledger -->
                         <div class="card glass-card span-3">
-                            <h2 class="card-title">Side Gig Ledger (Manual Sales / Income History)</h2>
+                            <div class="card-title-row">
+                                <h2 class="card-title">Side Gig Ledger (Manual Sales / Income History)</h2>
+                                <div>
+                                    <button type="button" class="action-btn" id="btn-ebay-report-upload">⬆ Upload eBay sales report (CSV)</button>
+                                    <input type="file" id="ebay-report-input" accept=".csv" style="display:none;">
+                                </div>
+                            </div>
                             <div class="table-container">
                                 <table class="data-table" id="table-sidegig-history">
                                     <thead>
@@ -1203,8 +1189,12 @@
                                 <h2 class="card-title">Growth Settings</h2>
                                 <button type="button" class="proj-settings-toggle" id="proj-settings-toggle">Customize ▾</button>
                             </div>
-                            <div class="proj-settings-presets" id="proj-settings-presets">
-                                <!-- Populated by projections.js: 3-5 quick-configuration buttons -->
+                            <!-- Section 1: growth assumptions -->
+                            <div class="proj-panel-section">
+                                <h3 class="section-sub-title">Growth Scenario</h3>
+                                <div class="proj-settings-presets" id="proj-settings-presets">
+                                    <!-- Populated by projections.js: 3-5 quick-configuration buttons -->
+                                </div>
                             </div>
                             <div class="proj-settings-summary" id="proj-settings-summary">
                                 <!-- Read-only summary shown while the form below is collapsed -->
@@ -1243,6 +1233,15 @@
                                     <input type="number" id="proj-years" min="5" max="50" value="30">
                                 </div>
                             </form>
+
+                            <!-- Section 2: which milestones to track -->
+                            <div class="proj-panel-section proj-panel-section-divided">
+                                <h3 class="section-sub-title">Milestone Focus</h3>
+                                <div class="proj-milestone-tips">
+                                    <span class="info-tip" data-tip="Choose which milestones the Milestone Predictions card tracks. Growth presets pick a matching focus for you; change it any time.">?</span>
+                                </div>
+                                <div id="milestone-preset-mount"></div>
+                            </div>
                         </div>
 
                         <!-- Projections Visualizer — the visual hero of this tab -->
@@ -1286,7 +1285,7 @@
 
                     <!-- Secondary row: Milestone Predictions below the graph, Scenario Comparison next to it -->
                     <div class="proj-secondary-row">
-                        <!-- Projection Stats / Milestones -->
+                        <!-- Milestone Predictions -->
                         <div class="card glass-card">
                             <div class="card-title-row">
                                 <h2 class="card-title">Milestone Predictions</h2>
@@ -1296,7 +1295,6 @@
                                         &nbsp;·&nbsp;
                                         <span class="info-tip" data-tip="Lean FIRE: retire on a minimal budget (75% of your target FIRE number). Fat FIRE: retire with 25% extra cushion above your target for lifestyle flexibility.">Lean / Fat FIRE</span>
                                     </span>
-                                    <div id="milestone-preset-mount"></div>
                                 </div>
                             </div>
                             <div class="milestones-grid mt-2" id="projection-milestones-container">
@@ -1322,6 +1320,42 @@
                 <!-- TAB: Settings -->
                 <section class="tab-pane" id="tab-settings">
                     <div class="dashboard-grid">
+                        <!-- Projection Defaults (moved here for unified access) -->
+                        <div class="card glass-card">
+                            <h2 class="card-title">Projection Defaults</h2>
+                            <p class="card-subtitle">Default values used when opening the Projections tab.</p>
+                            <div class="grid-2-col mt-3">
+                                <div class="form-group">
+                                    <label for="default-current-age">Default Current Age</label>
+                                    <input type="number" id="default-current-age" min="18" max="90" value="30" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-retire-age">Default Retirement Age</label>
+                                    <input type="number" id="default-retire-age" min="30" max="90" value="60" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-annual-savings">Default Annual Savings ($)</label>
+                                    <input type="number" id="default-annual-savings" min="0" step="1000" value="20000" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-expected-return">Default Expected Return (%)</label>
+                                    <input type="number" id="default-expected-return" min="0" max="20" step="0.5" value="7.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-inflation">Default Inflation Rate (%)</label>
+                                    <input type="number" id="default-inflation" min="0" max="10" step="0.1" value="3.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-swr">Default SWR (%)</label>
+                                    <input type="number" id="default-swr" min="1" max="10" step="0.1" value="4.0" onchange="saveProjectionDefaults()">
+                                </div>
+                                <div class="form-group">
+                                    <label for="default-span-years">Default Projection Span (Years)</label>
+                                    <input type="number" id="default-span-years" min="10" max="60" value="30" onchange="saveProjectionDefaults()">
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Notifications & Alerts -->
                         <div class="card glass-card">
                             <h2 class="card-title">Notifications & Alerts</h2>
@@ -1365,25 +1399,23 @@
                             <p id="notification-permission-status" class="text-muted mt-2" style="font-size:12px;">Checking permission...</p>
                         </div>
 
-                        <!-- Data Export/Import -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Data Management</h2>
-                            <p class="card-subtitle">Export your complete financial profile or import from backup.</p>
-                            <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" onclick="exportFullState()">📤 Export Full State (JSON)</button>
-                                <button class="backup-btn" onclick="exportCSV()">📊 Export Holdings (CSV)</button>
-                                <button class="backup-btn import-btn" onclick="document.getElementById('import-file').click()">📥 Import State (JSON)</button>
-                                <button class="backup-btn import-btn" onclick="document.getElementById('import-csv-file').click()">📋 Import Holdings (CSV)</button>
-                            </div>
-                            <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importFullState(event)">
-                            <input type="file" id="import-csv-file" style="display:none;" accept=".csv" onchange="importCSV(event)">
-                            <p class="text-muted mt-2" style="font-size:11px;">Exports include all accounts, CDs, real estate, vehicles, side gig ledger, and projection settings.</p>
-                        </div>
-
                         <!-- eBay Sync -->
                         <div class="card glass-card">
                             <h2 class="card-title">eBay Order Sync</h2>
-                            <p class="card-subtitle">Automatically pull completed eBay orders into your Side Income ledger. Connect your account from the eBay Seller API card in Financial Overview first.</p>
+                            <p class="card-subtitle">Connect your eBay seller account, then automatically pull completed orders into your Side Income ledger.</p>
+                                <!-- eBay Connector -->
+                                <div class="api-connector-panel mt-3">
+                                    <div class="connector-header">
+                                        <h3 style="font-size:13px; margin-bottom:8px;">🔌 eBay Seller API</h3>
+                                        <span class="badge-type badge-cd" style="font-size:9px; padding:2px 6px;">Sandbox</span>
+                                    </div>
+                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Sync completed orders to your Side Income ledger automatically.</p>
+                                    <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-ebay-oauth">
+                                        <span>Sync Profile with eBay API</span>
+                                    </button>
+                                    <div id="ebay-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Disconnected</div>
+                                </div>
+
                             <div class="form-group">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="setting-ebay-sync-enabled" onchange="toggleEbaySyncSetting()">
@@ -1396,9 +1428,22 @@
                         </div>
 
                         <!-- Plaid Transaction Sync -->
-                        <div class="card glass-card">
+                        <div class="card glass-card settings-card--plaid">
                             <h2 class="card-title">Plaid Transaction Sync</h2>
-                            <p class="card-subtitle">Automatically pull bank/card transactions and auto-categorize them into your Expenses tab, using the same categories as CSV imports. While active, manual Fidelity CSV import is disabled to prevent duplicate expenses. Connect an account from the Plaid Investments card in Financial Overview first.</p>
+                            <p class="card-subtitle">Link your accounts via Plaid, then automatically pull bank/card transactions and auto-categorize them into your Expenses tab, using the same categories as CSV imports. While active, manual Fidelity CSV import is disabled to prevent duplicate expenses.</p>
+                                <!-- Plaid Connector -->
+                                <div class="api-connector-panel mt-3">
+                                    <div class="connector-header">
+                                        <h3 style="font-size:13px; margin-bottom:8px;">🔗 Plaid Investments</h3>
+                                        <span class="badge-type badge-cd" style="font-size:9px; padding:2px 6px;">Sandbox</span>
+                                    </div>
+                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Connect brokerage accounts to auto-import holdings and balances.</p>
+                                    <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-plaid-link">
+                                        <span>Link Investment Account via Plaid</span>
+                                    </button>
+                                    <div id="plaid-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Not Linked</div>
+                                </div>
+
                             <div class="form-group">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="setting-plaid-sync-enabled" onchange="togglePlaidSyncSetting()">
@@ -1410,20 +1455,8 @@
                             <p id="settings-plaid-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
                         </div>
 
-                        <!-- Google Drive Backup -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">Google Drive Backup</h2>
-                            <p class="card-subtitle">Store an AES-256-GCM encrypted snapshot of your full profile in a private "fire-tracker-backups" folder in your own Google Drive.</p>
-                            <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" id="btn-gdrive-connect" onclick="connectGoogleDrive()">🔗 Connect Google Drive</button>
-                                <button class="backup-btn" id="btn-gdrive-backup-now" onclick="runGDriveBackupNow()" disabled>☁️ Backup Now</button>
-                            </div>
-                            <p id="gdrive-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
-                            <div id="gdrive-backup-list" class="mt-2"></div>
-                        </div>
-
                         <!-- Privacy & Terms -->
-                        <div class="card glass-card">
+                        <div class="card glass-card settings-card--privacy">
                             <h2 class="card-title">Privacy & Terms</h2>
                             <p class="card-subtitle">Review how your data is handled and the terms of service.</p>
                             <div class="grid-organic-2 mt-3">
@@ -1441,44 +1474,35 @@
                             </div>
                         </div>
 
-                        <!-- Projection Defaults (moved here for unified access) -->
+                        <!-- Data Export/Import -->
                         <div class="card glass-card">
-                            <h2 class="card-title">Projection Defaults</h2>
-                            <p class="card-subtitle">Default values used when opening the Projections tab.</p>
-                            <div class="grid-2-col mt-3">
-                                <div class="form-group">
-                                    <label for="default-current-age">Default Current Age</label>
-                                    <input type="number" id="default-current-age" min="18" max="90" value="30" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-retire-age">Default Retirement Age</label>
-                                    <input type="number" id="default-retire-age" min="30" max="90" value="60" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-annual-savings">Default Annual Savings ($)</label>
-                                    <input type="number" id="default-annual-savings" min="0" step="1000" value="20000" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-expected-return">Default Expected Return (%)</label>
-                                    <input type="number" id="default-expected-return" min="0" max="20" step="0.5" value="7.0" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-inflation">Default Inflation Rate (%)</label>
-                                    <input type="number" id="default-inflation" min="0" max="10" step="0.1" value="3.0" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-swr">Default SWR (%)</label>
-                                    <input type="number" id="default-swr" min="1" max="10" step="0.1" value="4.0" onchange="saveProjectionDefaults()">
-                                </div>
-                                <div class="form-group">
-                                    <label for="default-span-years">Default Projection Span (Years)</label>
-                                    <input type="number" id="default-span-years" min="10" max="60" value="30" onchange="saveProjectionDefaults()">
-                                </div>
+                            <h2 class="card-title">Data Management</h2>
+                            <p class="card-subtitle">Export your complete financial profile or import from backup.</p>
+                            <div class="grid-organic-2 mt-3">
+                                <button class="backup-btn" onclick="exportFullState()">📤 Export Full State (JSON)</button>
+                                <button class="backup-btn" onclick="exportCSV()">📊 Export Holdings (CSV)</button>
+                                <button class="backup-btn import-btn" onclick="document.getElementById('import-file').click()">📥 Import State (JSON)</button>
+                                <button class="backup-btn import-btn" onclick="document.getElementById('import-csv-file').click()">📋 Import Holdings (CSV)</button>
                             </div>
+                            <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importFullState(event)">
+                            <input type="file" id="import-csv-file" style="display:none;" accept=".csv" onchange="importCSV(event)">
+                            <p class="text-muted mt-2" style="font-size:11px;">Exports include all accounts, CDs, real estate, vehicles, side gig ledger, and projection settings.</p>
+                        </div>
+
+                        <!-- Google Drive Backup -->
+                        <div class="card glass-card settings-card--gdrive">
+                            <h2 class="card-title">Google Drive Backup</h2>
+                            <p class="card-subtitle">Store an AES-256-GCM encrypted snapshot of your full profile in a private "fire-tracker-backups" folder in your own Google Drive.</p>
+                            <div class="grid-organic-2 mt-3">
+                                <button class="backup-btn" id="btn-gdrive-connect" onclick="connectGoogleDrive()">🔗 Connect Google Drive</button>
+                                <button class="backup-btn" id="btn-gdrive-backup-now" onclick="runGDriveBackupNow()" disabled>☁️ Backup Now</button>
+                            </div>
+                            <p id="gdrive-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
+                            <div id="gdrive-backup-list" class="mt-2"></div>
                         </div>
 
                         <!-- Advanced / Danger Zone -->
-                        <div class="card glass-card" style="border-color:rgba(244,63,94,0.3);">
+                        <div class="card glass-card settings-card--danger">
                             <h2 class="card-title" style="color:var(--color-danger);">⚠️ Danger Zone</h2>
                             <p class="card-subtitle">Irreversible actions. Use with caution.</p>
                             <div class="grid-organic-2 mt-3">
@@ -1511,8 +1535,10 @@
 
     <!-- Extracted modules (load before app.js) -->
     <script src="lib/html-utils.js"></script>
+    <script src="lib/fetch-utils.js"></script>
     <script src="lib/state.js"></script>
     <script src="lib/prices.js"></script>
+    <script src="lib/ebay-report.js"></script>
     <script src="lib/csv-import.js"></script>
     <script src="lib/expenses.js"></script>
     <script src="lib/side-gig.js"></script>
@@ -1542,6 +1568,7 @@
     <script src="lib/managers/wallets.js"></script>
     <script src="lib/managers/gdrive-backup.js"></script>
     <script src="lib/managers/spending-upload.js"></script>
+    <script src="lib/managers/hustle-accelerators.js"></script>
     <!-- Main Controller Script -->
     <script src="app.js"></script>
     <!-- Taxes & Tax-Loss Harvesting -->
