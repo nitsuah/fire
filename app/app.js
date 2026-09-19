@@ -91,26 +91,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     initPlatformCalculators();
     initProjectionsManager();
     initCashFlowToggles();
+    initCompactFireBar();
 
     // Initial Render
     refreshAllUI();
 
     // Kick off background price refresh (every 5 minutes)
     schedulePriceRefresh();
-
-    // Re-render the summary banner on resize so K/M compaction kicks in
-    // immediately when crossing the mobile breakpoint, not just on the
-    // next unrelated data refresh.
-    let bannerResizeTimer = null;
-    window.addEventListener('resize', () => {
-        clearTimeout(bannerResizeTimer);
-        bannerResizeTimer = setTimeout(renderHeaderBannerMetrics, 150);
-    });
-    // Some browser contexts report a transient (or momentarily 0) viewport
-    // width at the instant DOMContentLoaded fires, before settling on the
-    // real one with no accompanying 'resize' event — re-check once the
-    // layout has had a frame to settle so compact/full mode matches reality.
-    requestAnimationFrame(renderHeaderBannerMetrics);
 });
 
 /* ==========================================================================
@@ -349,20 +336,6 @@ function formatCurrency(val) {
         currency: 'USD',
         minimumFractionDigits: 2
     }).format(num);
-}
-
-// K/M/B-abbreviated currency for tight mobile displays; falls back to
-// formatCurrency's full precision below $1,000 since abbreviation buys
-// nothing there.
-function formatCompactCurrency(val) {
-    const num = Number(val);
-    if (isNaN(num)) return '$0';
-    const sign = num < 0 ? '-' : '';
-    const abs = Math.abs(num);
-    if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1).replace(/\.0$/, '')}B`;
-    if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
-    if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
-    return formatCurrency(num);
 }
 
 /* ==========================================================================

@@ -3,10 +3,43 @@
                          diversification suggestion renderers
    ========================================================================== */
 
+function getBannerAllocSegments() {
+    const parts = [
+        { amt: getAggregateCash(), color: '#10b981', label: 'Cash' },
+        { amt: getAggregateCDs(), color: '#f59e0b', label: 'CDs' },
+        { amt: getAggregateEquities(), color: '#8b5cf6', label: 'Equities' },
+        {
+            amt: getAggregateRealEstate(),
+            color: '#06b6d4',
+            label: 'Real Estate',
+        },
+        { amt: getAggregateVehicles(), color: '#f97316', label: 'Vehicles' },
+        {
+            amt: getAggregateOtherAssets() + getSideGigYTDNet(),
+            color: '#3b82f6',
+            label: 'Other',
+        },
+    ];
+    const total = parts.reduce((sum, p) => sum + p.amt, 0);
+    const segments =
+        total === 0
+            ? []
+            : parts
+                  .map((p) => ({ ...p, pct: (p.amt / total) * 100 }))
+                  .filter((s) => s.pct > 0);
+    return { segments, total };
+}
+
+function getBannerIncome() {
+    return {
+        gross:
+            parseFloat(document.getElementById('tax-gross-income')?.value) || 0,
+        side: getSideGigYTDNet(),
+    };
+}
+
 // Sets the summary banner's Net Worth / Income / Spend Rate / FIRE Progress
-// text. Split out of refreshAllUI so it can also be called from a resize
-// listener (app.js) to switch between full and K/M-compact number
-// formatting as the viewport crosses the mobile breakpoint.
+// text, plus the narrow-width single-bar variant of the same data.
 function renderHeaderBannerMetrics() {
     const networth = getAggregateNetWorth();
     const annualExpenses = getAnnualExpensesTotal();
@@ -15,83 +48,106 @@ function renderHeaderBannerMetrics() {
     const progressPercent =
         fireNumber > 0 ? Math.min((networth / fireNumber) * 100, 100) : 0;
 
-    const compact =
-        typeof isMobileViewport === 'function' && isMobileViewport();
-    const fmtMoney = compact ? formatCompactCurrency : formatCurrency;
-
-    document.getElementById('banner-networth').textContent = fmtMoney(networth);
+    document.getElementById('banner-networth').textContent =
+        formatCurrency(networth);
     document.getElementById('banner-spend').textContent =
-        fmtMoney(annualExpenses);
+        formatCurrency(annualExpenses);
     document.getElementById('banner-progress').textContent =
         `${progressPercent.toFixed(1)}%`;
-    // Target stays full-precision — the FIRE progress bar/target are meant
-    // to stay visually unchanged by the mobile compaction.
     document.getElementById('banner-target').textContent =
         `Target: ${formatCurrency(fireNumber)}`;
 
     const fireBarEl = document.getElementById('banner-fire-bar');
     if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
 
-    const grossIncome =
-        parseFloat(document.getElementById('tax-gross-income')?.value) || 0;
-    const sideGigNet = getSideGigYTDNet();
+    const income = getBannerIncome();
     const grossIncomeEl = document.getElementById('banner-gross-income');
-    if (grossIncomeEl) grossIncomeEl.textContent = fmtMoney(grossIncome);
+    if (grossIncomeEl) grossIncomeEl.textContent = formatCurrency(income.gross);
     const sideIncomeEl = document.getElementById('banner-side-income');
     if (sideIncomeEl)
         sideIncomeEl.textContent =
-            sideGigNet > 0
-                ? `+ ${fmtMoney(sideGigNet)} side hustle`
+            income.side > 0
+                ? `+ ${formatCurrency(income.side)} side hustle`
                 : 'No side income';
+
+    renderCompactFireBar(progressPercent);
+}
+
+// Narrow-width single bar: the filled portion is FIRE progress, split into
+// net-worth allocation segments. Hidden by CSS on wide screens.
+function renderCompactFireBar(progressPercent) {
+    const fill = document.getElementById('cfb-fill');
+    const pct = document.getElementById('cfb-pct');
+    if (!fill || !pct) return;
+    const { segments } = getBannerAllocSegments();
+    const shown = Math.min(progressPercent, 100);
+    fill.style.width = `${shown}%`;
+    fill.innerHTML = segments
+        .map(
+            (s) =>
+                `<span class="cfb-seg" style="width:${s.pct.toFixed(2)}%;background:${s.color};"></span>`,
+        )
+        .join('');
+    pct.textContent = `${progressPercent.toFixed(1)}%`;
+}
+
+function buildCompactBarTooltipHtml() {
+    const { segments, total } = getBannerAllocSegments();
+    const annualExpenses = getAnnualExpensesTotal();
+    const income = getBannerIncome();
+    const rows = segments
+        .map(
+            (s) =>
+                `<div class="at-row"><span class="at-dot" style="background:${s.color};"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+        )
+        .join('');
+    const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
+    const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.gross + income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
+    return rows + totalRow + flowRows;
+}
+
+function initCompactFireBar() {
+    const bar = document.getElementById('compact-fire-bar');
+    const tip = document.getElementById('alloc-tooltip');
+    if (!bar || !tip) return;
+    const show = () => {
+        tip.innerHTML = buildCompactBarTooltipHtml();
+        tip.style.display = 'block';
+        const r = bar.getBoundingClientRect();
+        const tw = tip.offsetWidth || 240;
+        tip.style.left =
+            Math.max(8, Math.min(r.left, window.innerWidth - tw - 8)) + 'px';
+        tip.style.top = r.bottom + 8 + 'px';
+    };
+    const hide = () => {
+        tip.style.display = 'none';
+    };
+    bar.addEventListener('mouseenter', show);
+    bar.addEventListener('mouseleave', hide);
+    bar.addEventListener('focus', show);
+    bar.addEventListener('blur', hide);
+    // Mouse users get hover; touch has no hover, so a tap toggles instead.
+    let lastPointerType = 'mouse';
+    bar.addEventListener('pointerdown', (e) => {
+        lastPointerType = e.pointerType;
+    });
+    bar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (lastPointerType !== 'touch') return;
+        if (tip.style.display === 'block') hide();
+        else show();
+    });
+    document.addEventListener('click', hide);
 }
 
 function renderAllocMiniBarsBanner() {
     const el = document.getElementById('banner-alloc-bars');
     if (!el) return;
-    const cash = getAggregateCash(),
-        cds = getAggregateCDs(),
-        equities = getAggregateEquities();
-    const re = getAggregateRealEstate(),
-        veh = getAggregateVehicles();
-    const other = getAggregateOtherAssets() + getSideGigYTDNet();
-    const total = cash + cds + equities + re + veh + other;
+    const { segments, total } = getBannerAllocSegments();
     if (total === 0) {
         el.innerHTML = '';
         return;
     }
-    const segments = [
-        {
-            amt: cash,
-            pct: (cash / total) * 100,
-            color: '#10b981',
-            label: 'Cash',
-        },
-        { amt: cds, pct: (cds / total) * 100, color: '#f59e0b', label: 'CDs' },
-        {
-            amt: equities,
-            pct: (equities / total) * 100,
-            color: '#8b5cf6',
-            label: 'Equities',
-        },
-        {
-            amt: re,
-            pct: (re / total) * 100,
-            color: '#06b6d4',
-            label: 'Real Estate',
-        },
-        {
-            amt: veh,
-            pct: (veh / total) * 100,
-            color: '#f97316',
-            label: 'Vehicles',
-        },
-        {
-            amt: other,
-            pct: (other / total) * 100,
-            color: '#3b82f6',
-            label: 'Other',
-        },
-    ].filter((s) => s.pct > 0);
     el.innerHTML = `<div class="alloc-bar-track">${segments
         .map(
             (s) =>
