@@ -224,7 +224,7 @@ fire/
 │   ├── playwright.config.js    # real-browser UI regression suite (tests/e2e-ui)
 │   └── eslint.config.mjs
 ├── scripts/
-│   └── test-mcp.mjs            # MCP smoke test (all functional tools)
+│   └── test-mcp.mjs            # MCP smoke test (the 8 original tools in EXPECTED_TOOLS)
 ├── data/                       # db.json lives here (git-ignored)
 ├── docs/                       # Architecture notes
 ├── .env.example                # Environment variable reference

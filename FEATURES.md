@@ -16,7 +16,7 @@
 
 - **12 Functional Read-Only Tools** — `fire_status_summary`, `get_net_worth`, `get_accounts`, `get_portfolio`, `get_cds`, `get_expenses`, `get_projection_settings`, `get_side_gig_income`, `get_wallets`, `get_concentration_risk`, `simulate_rebalance`, `get_emergency_runway` (plus 7 registered `not_implemented` stubs); a test asserts no write tools exist.
 - **Claude Code Integration** — `.mcp.json` at repo root auto-connects the server when Claude Code starts in this directory.
-- **Smoke Test** — `scripts/test-mcp.mjs` runs the full MCP handshake and calls the functional tools with response validation.
+- **Smoke Test** — `scripts/test-mcp.mjs` runs the full MCP handshake and validates the 8 original read-only tools listed in its `EXPECTED_TOOLS` (the four newer tools are covered by unit tests, not the smoke script).
 
 ## Net Worth Tracking
 
@@ -123,7 +123,7 @@
 
 - **Vitest Suite** — 472 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
 - **Playwright UI Suite** — 50 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
-- **MCP Smoke Test** — `scripts/test-mcp.mjs` exercises all 8 tools end-to-end via the SDK client.
+- **MCP Smoke Test** — `scripts/test-mcp.mjs` exercises the 8 tools in `EXPECTED_TOOLS` end-to-end via the SDK client.
 
 ## Planned
 
