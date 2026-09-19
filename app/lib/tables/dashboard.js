@@ -180,38 +180,31 @@ function initCompactBarPlacement() {
     place();
 }
 
-// Retirement Growth Path panel size (S / M / L / full-width), remembered.
+// Retirement Growth Path expander: full-width (wide screens) and taller.
 function initGrowthSizeControls() {
     const card = document.getElementById('dash-card-growth');
-    const group = document.getElementById('growth-size-btns');
-    if (!card || !group) return;
-    const sizes = ['s', 'm', 'l', 'wide'];
-    const apply = (size) => {
-        sizes.forEach((s) =>
-            card.classList.toggle(`growth-size-${s}`, s === size),
-        );
-        group
-            .querySelectorAll('[data-size]')
-            .forEach((b) =>
-                b.classList.toggle('active', b.dataset.size === size),
-            );
+    const btn = document.getElementById('growth-expand-btn');
+    if (!card || !btn) return;
+    const apply = (expanded) => {
+        card.classList.toggle('growth-size-wide', expanded);
+        btn.classList.toggle('active', expanded);
+        btn.setAttribute('aria-pressed', expanded ? 'true' : 'false');
         try {
-            localStorage.setItem('fire_growth_size', size);
+            localStorage.setItem('fire_growth_expanded', expanded ? '1' : '0');
         } catch {
-            /* storage unavailable — size just won't persist */
+            /* storage unavailable — just won't persist */
         }
     };
-    let saved = 'm';
+    let saved = false;
     try {
-        saved = localStorage.getItem('fire_growth_size') || 'm';
+        saved = localStorage.getItem('fire_growth_expanded') === '1';
     } catch {
         /* ignore */
     }
-    apply(sizes.includes(saved) ? saved : 'm');
-    group.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-size]');
-        if (btn) apply(btn.dataset.size);
-    });
+    apply(saved);
+    btn.addEventListener('click', () =>
+        apply(!card.classList.contains('growth-size-wide')),
+    );
 }
 
 function renderAllocMiniBarsBanner() {

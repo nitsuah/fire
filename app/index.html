@@ -156,15 +156,10 @@
                         <!-- LEFT COLUMN -->
                         <div class="dash-col-left">
                             <!-- Retirement Growth Path -->
-                            <div class="card glass-card growth-size-m" id="dash-card-growth">
+                            <div class="card glass-card" id="dash-card-growth">
                                 <div class="card-title-row">
                                     <h2 class="card-title">Retirement Growth Path</h2>
-                                    <div class="period-btns" id="growth-size-btns" role="group" aria-label="Chart size">
-                                        <button type="button" class="period-btn" data-size="s" title="Small" aria-label="Small chart">S</button>
-                                        <button type="button" class="period-btn active" data-size="m" title="Medium" aria-label="Medium chart">M</button>
-                                        <button type="button" class="period-btn" data-size="l" title="Large" aria-label="Large chart">L</button>
-                                        <button type="button" class="period-btn" data-size="wide" title="Full width (wide screens)" aria-label="Full-width chart">⤢</button>
-                                    </div>
+                                    <button type="button" class="period-btn" id="growth-expand-btn" aria-pressed="false" title="Expand to full width (wide screens)" aria-label="Expand chart to full width">⤢</button>
                                     <div class="period-btns" id="dash-period-btns">
                                         <button class="period-btn" onclick="setDashProjWindow('1m')">1M</button>
                                         <button class="period-btn" onclick="setDashProjWindow('1y')">1Y</button>
@@ -1130,7 +1125,13 @@
 
                         <!-- Side Gig Ledger -->
                         <div class="card glass-card span-3">
-                            <h2 class="card-title">Side Gig Ledger (Manual Sales / Income History)</h2>
+                            <div class="card-title-row">
+                                <h2 class="card-title">Side Gig Ledger (Manual Sales / Income History)</h2>
+                                <div>
+                                    <button type="button" class="action-btn" id="btn-ebay-report-upload">⬆ Upload eBay sales report (CSV)</button>
+                                    <input type="file" id="ebay-report-input" accept=".csv" style="display:none;">
+                                </div>
+                            </div>
                             <div class="table-container">
                                 <table class="data-table" id="table-sidegig-history">
                                     <thead>
@@ -1537,6 +1538,7 @@
     <script src="lib/fetch-utils.js"></script>
     <script src="lib/state.js"></script>
     <script src="lib/prices.js"></script>
+    <script src="lib/ebay-report.js"></script>
     <script src="lib/csv-import.js"></script>
     <script src="lib/expenses.js"></script>
     <script src="lib/side-gig.js"></script>

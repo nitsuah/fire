@@ -337,10 +337,6 @@
 .dash-growth-chart {
     height: 260px;
 }
-.growth-size-s .dash-growth-chart {
-    height: 180px;
-}
-.growth-size-l .dash-growth-chart,
 .growth-size-wide .dash-growth-chart {
     height: 400px;
 }

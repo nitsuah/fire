@@ -78,6 +78,7 @@ function processCSVFile(file) {
     const reader = new FileReader();
     reader.onload = async (e) => {
         const text = e.target.result;
+        if (await importEbayReportText(text, file.name)) return;
         const rows = parseCSVText(text);
         if (rows.length === 0) {
             alert('File appears to be empty.');

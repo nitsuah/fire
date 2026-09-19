@@ -47,6 +47,7 @@ export default [
             'app/lib/state.js',
             'app/lib/prices.js',
             'app/lib/csv-import.js',
+            'app/lib/ebay-report.js',
             'app/lib/expenses.js',
             'app/lib/side-gig.js',
             'app/lib/projections.js',

@@ -450,7 +450,55 @@ window.deleteSideGigEntry = async function (id) {
     refreshAllUI();
 };
 
+// Import an eBay Seller Hub listings sales report into the Side Gig Ledger.
+// Returns true when the text was an eBay report (even if nothing was new).
+async function importEbayReportText(text, fileName) {
+    const report = parseEbayListingsReport(parseCSVText(text));
+    if (!report) return false;
+    if (report.items.length === 0) {
+        alert('That eBay report has no sales rows to import.');
+        return true;
+    }
+    const before = state.sideGigLedger;
+    const merged = mergeEbayReport(before, report);
+    state.sideGigLedger = merged.ledger;
+    try {
+        await saveState();
+    } catch (err) {
+        state.sideGigLedger = before;
+        console.error('Failed to save eBay report import:', err);
+        alert('Could not save the eBay import.');
+        return true;
+    }
+    refreshAllUI();
+    const parts = [`${merged.added} added`];
+    if (merged.replaced)
+        parts.push(`${merged.replaced} updated from a newer report`);
+    if (merged.skipped) parts.push(`${merged.skipped} already imported`);
+    alert(`eBay report ${fileName || ''}: ${parts.join(', ')}.`);
+    return true;
+}
+
+function initEbayReportUpload() {
+    const btn = document.getElementById('btn-ebay-report-upload');
+    const input = document.getElementById('ebay-report-input');
+    if (!btn || !input) return;
+    btn.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const ok = await importEbayReportText(e.target.result, file.name);
+            if (!ok) alert('That file is not an eBay listings sales report.');
+            input.value = '';
+        };
+        reader.readAsText(file);
+    });
+}
+
 function initPlatformCalculators() {
+    initEbayReportUpload();
     // Tab switching
     document.querySelectorAll('.platform-tab-btn').forEach((btn) => {
         btn.addEventListener('click', () => {

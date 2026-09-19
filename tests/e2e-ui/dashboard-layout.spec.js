@@ -940,24 +940,26 @@ test.describe('Dashboard — wide layout and growth chart sizes', () => {
         expect(p.width).toBeGreaterThan(g.width * 2.5);
     });
 
-    test('size buttons resize the growth chart panel and are remembered', async ({
+    test('the expander widens and lengthens the growth chart, is remembered, and there are no S/M/L buttons', async ({
         page,
     }) => {
+        await expect(page.locator('#growth-size-btns')).toHaveCount(0);
         const chart = page.locator('#dash-card-growth .dash-growth-chart');
-        const h = async () => (await chart.boundingBox()).height;
-        await page.locator('#growth-size-btns [data-size="s"]').click();
-        const small = await h();
-        await page.locator('#growth-size-btns [data-size="l"]').click();
-        const large = await h();
-        expect(large).toBeGreaterThan(small + 100);
-
-        await page.locator('#growth-size-btns [data-size="wide"]').click();
+        const before = (await chart.boundingBox()).height;
+        await page.locator('#growth-expand-btn').click();
         const card = await page.locator('#dash-card-growth').boundingBox();
         const body = await page.locator('.dashboard-body').boundingBox();
         expect(card.width).toBeGreaterThan(body.width - 2);
+        expect((await chart.boundingBox()).height).toBeGreaterThan(
+            before + 100,
+        );
 
         await page.reload();
         await expect(page.locator('#dash-card-growth')).toHaveClass(
+            /growth-size-wide/,
+        );
+        await page.locator('#growth-expand-btn').click();
+        await expect(page.locator('#dash-card-growth')).not.toHaveClass(
             /growth-size-wide/,
         );
     });
@@ -1092,5 +1094,51 @@ test.describe('Projection math per growth preset', () => {
         expect(results.earlyRetiree.swr).toBe(3.25);
         // "6 months of expenses" really is ~6 months (was FIRE number × 0.5).
         expect(results.standard.monthsCovered).toBeCloseTo(6, 1);
+    });
+});
+
+test.describe('Side Gig Ledger — eBay report upload', () => {
+    const header =
+        'Listing title,eBay item ID,Quantity sold,Total sales (Includes taxes),Item sales,Taxes and government fees paid by buyer to you,Taxes and government fees paid by buyer to eBay,Shipping and handling paid by buyer to you,Total selling costs,Insertion fees,Optional listing upgrade fees,Final value fees,Promoted Listings - General fees,Promoted Listings - Priority fees,Ads Express fees,Promoted Offsite - Fees,International fees,Other eBay fees,Deposit processing fees,Fee credits,Shipping labels cost (Amount you paid to buy shipping labels on eBay),Net sales (Net of taxes and selling costs),Average Selling price,Quantity sold via promoted listing,';
+    const csv = [
+        'Disclaimers',
+        '"Report for Jan 1, 2026 to Sep 18, 2026"',
+        header,
+        'E2E Test Cartridge,999000111222,1,$27.02,$20.78,$0.00,$0.00,$6.24,$10.31,$0,$0,$4.07,$0,$0,$0,$0,$0,$0,$0,$0,$6.24,$16.71,$13.51,0',
+    ].join('\n');
+
+    test('uploads once, and a re-upload is skipped as a duplicate', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-sidegig').click();
+        const messages = [];
+        page.on('dialog', async (d) => {
+            messages.push(d.message());
+            await d.accept();
+        });
+        const upload = async () => {
+            await page.locator('#ebay-report-input').setInputFiles({
+                name: 'report.csv',
+                mimeType: 'text/csv',
+                buffer: Buffer.from(csv),
+            });
+            await expect.poll(() => messages.length).toBeGreaterThan(0);
+        };
+        await upload();
+        const cell = page
+            .locator('#table-sidegig-history')
+            .getByText('E2E Test Cartridge');
+        await expect(cell).toHaveCount(1);
+        expect(messages.at(-1)).toContain('1 added');
+
+        const seen = messages.length;
+        await page.locator('#ebay-report-input').setInputFiles({
+            name: 'report.csv',
+            mimeType: 'text/csv',
+            buffer: Buffer.from(csv),
+        });
+        await expect.poll(() => messages.length).toBeGreaterThan(seen);
+        await expect(cell).toHaveCount(1);
+        expect(messages.at(-1)).toContain('already imported');
     });
 });
