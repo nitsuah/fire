@@ -152,6 +152,34 @@ function initCompactFireBar() {
     document.addEventListener('click', hide);
 }
 
+// In portrait at hamburger widths the summary bar (and the alerts bell) live
+// in the fixed top bar next to the menu button instead of a banner below it.
+// Landscape keeps the banner, since a top bar there would eat scarce height.
+function initCompactBarPlacement() {
+    const bar = document.getElementById('compact-fire-bar');
+    const bell = document.querySelector('.notif-bell-wrap');
+    const banner = document.querySelector('.header-banner');
+    const sidebar = document.querySelector('.sidebar');
+    const container = document.querySelector('.app-container');
+    if (!bar || !bell || !banner || !sidebar || !container) return;
+    const bellHome = bell.parentElement;
+    const mq = window.matchMedia(
+        '(max-width: 768px) and (orientation: portrait)',
+    );
+    const place = () => {
+        if (mq.matches) {
+            sidebar.append(bar, bell);
+            container.classList.add('topbar-summary');
+        } else {
+            banner.appendChild(bar);
+            bellHome.appendChild(bell);
+            container.classList.remove('topbar-summary');
+        }
+    };
+    mq.addEventListener('change', place);
+    place();
+}
+
 function renderAllocMiniBarsBanner() {
     const el = document.getElementById('banner-alloc-bars');
     if (!el) return;

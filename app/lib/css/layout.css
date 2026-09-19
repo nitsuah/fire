@@ -649,6 +649,24 @@
     }
 }
 
+/* Portrait at hamburger widths: the summary bar sits in the top bar (moved
+   there by initCompactBarPlacement), so the banner below it goes away. */
+@media (max-width: 768px) and (orientation: portrait) {
+    .app-container.topbar-summary .header-banner {
+        display: none;
+    }
+    .app-container.topbar-summary .sidebar {
+        overflow: visible;
+    }
+    .app-container.topbar-summary .sidebar .compact-fire-bar {
+        flex: 1;
+        min-width: 0;
+    }
+    .app-container.topbar-summary .sidebar .notif-bell-wrap {
+        flex-shrink: 0;
+    }
+}
+
 @media (max-width: 480px) {
     .platform-tabs {
         flex-wrap: wrap;

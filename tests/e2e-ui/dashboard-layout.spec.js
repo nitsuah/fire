@@ -1,4 +1,5 @@
 // @ts-check
+/* global state, renderDashboardTopPositionsTable */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -546,5 +547,88 @@ test.describe('Settings — card order and color-coded grouping', () => {
         await expect(
             page.locator('#tab-settings .settings-card--gdrive .card-title'),
         ).toContainText('Google Drive Backup');
+    });
+});
+
+test.describe('Summary bar — top bar placement', () => {
+    test.describe('portrait at hamburger width', () => {
+        test.use({ viewport: { width: 390, height: 844 } });
+
+        test('the compact bar and bell live in the top bar; the banner is gone', async ({
+            page,
+        }) => {
+            await expect(
+                page.locator('.sidebar #compact-fire-bar'),
+            ).toBeVisible();
+            await expect(
+                page.locator('.sidebar .notif-bell-wrap'),
+            ).toBeVisible();
+            await expect(page.locator('.header-banner')).toBeHidden();
+        });
+    });
+
+    test.describe('landscape at the same width', () => {
+        test.use({ viewport: { width: 740, height: 360 } });
+
+        test('the compact bar stays in the banner', async ({ page }) => {
+            await expect(
+                page.locator('.header-banner #compact-fire-bar'),
+            ).toBeVisible();
+            await expect(
+                page.locator('.sidebar #compact-fire-bar'),
+            ).toHaveCount(0);
+        });
+    });
+});
+
+test.describe('Top Investment Positions — narrow widths', () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test('shows symbol, value and PnL with a + that expands the hidden fields', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            state.importedPositions = [
+                {
+                    account: 'E2E Brokerage',
+                    symbol: 'ZZTEST',
+                    description: 'E2E TEST FUND',
+                    quantity: 10,
+                    lastPrice: 12.5,
+                    costBasis: 100,
+                    value: 125,
+                    pnlDollar: 25,
+                    pnlPercent: 25,
+                },
+            ];
+            renderDashboardTopPositionsTable();
+        });
+        const table = page.locator('#table-dashboard-positions');
+        await expect(table.locator('th.pos-col-desc')).toBeHidden();
+        await expect(table.locator('th.pos-col-price')).toBeHidden();
+        await expect(table.locator('th.pos-col-cost')).toBeHidden();
+
+        const detail = table.locator('.position-detail-row');
+        await expect(detail).toBeHidden();
+        await table.locator('.pos-expand-btn').click();
+        await expect(detail).toBeVisible();
+        await expect(detail).toContainText('E2E TEST FUND');
+        await expect(detail).toContainText('Last Price');
+        await expect(detail).toContainText('Cost Basis');
+    });
+});
+
+test.describe('Portfolio Rebalancing location', () => {
+    test('lives on Insights, not Financial Overview', async ({ page }) => {
+        await page.locator('#btn-tab-financial').click();
+        await expect(
+            page.locator('#tab-financial #table-rebalancing'),
+        ).toHaveCount(0);
+        await page.locator('#btn-tab-insights').click();
+        await expect(
+            page.locator('#tab-insights').getByRole('heading', {
+                name: 'Portfolio Rebalancing',
+            }),
+        ).toBeVisible();
     });
 });

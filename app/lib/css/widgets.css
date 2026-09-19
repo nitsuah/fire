@@ -687,3 +687,66 @@
 .alloc-cat-btn:focus-visible {
     border-color: var(--color-primary);
 }
+
+/* Top Investment Positions: narrow widths show symbol, value and PnL only;
+   the hidden fields live behind a "+" in an otherwise empty column. */
+.pos-expand-cell,
+.position-detail-row {
+    display: none;
+}
+
+.pos-expand-btn {
+    background: none;
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-main);
+    width: 24px;
+    height: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.pos-detail-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 16px;
+    margin: 0;
+    font-size: var(--text-xs);
+}
+
+.pos-detail-list dt {
+    color: var(--text-muted);
+}
+
+.pos-detail-list dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .pos-col-desc,
+    .pos-col-qty,
+    .pos-col-price,
+    .pos-col-cost {
+        display: none;
+    }
+    .pos-expand-cell {
+        display: table-cell;
+        width: 1%;
+        padding-left: 4px;
+        padding-right: 4px;
+        text-align: center;
+    }
+    .position-detail-row:not([hidden]) {
+        display: table-row;
+    }
+}

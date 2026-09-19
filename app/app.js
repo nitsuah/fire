@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initProjectionsManager();
     initCashFlowToggles();
     initCompactFireBar();
+    initCompactBarPlacement();
 
     // Initial Render
     refreshAllUI();
