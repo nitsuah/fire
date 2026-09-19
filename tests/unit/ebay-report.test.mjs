@@ -109,4 +109,12 @@ describe('mergeEbayReport', () => {
         expect(b.replaced).toBe(0);
         expect(b.ledger[0]).toBe(manual);
     });
+
+    it('refuses to merge a report with no readable date range', () => {
+        const noRange = parseEbayListingsReport(
+            parseCSVText([HEADER, ROW_A].join('\n')),
+        );
+        expect(noRange.range).toBeNull();
+        expect(() => mergeEbayReport([], noRange)).toThrow(/date range/);
+    });
 });

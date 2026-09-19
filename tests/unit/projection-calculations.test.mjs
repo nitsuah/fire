@@ -378,4 +378,19 @@ describe('buildProjectionData — retirement withdrawal & cash-first drawdown', 
         const data = buildProjectionData(state, 0);
         expect(data.nwData.every((v) => Number.isFinite(v))).toBe(true);
     });
+
+    it('records depletion when retirement starts with zero assets and positive expenses', () => {
+        const state = makeRetirementState({
+            customAccounts: [],
+            expenses: { housing: 2000 },
+            projectionSettings: {
+                currentAge: 60,
+                retireAge: 60,
+                annualSavings: 0,
+            },
+        });
+        const data = buildProjectionData(state, 0);
+        expect(data.depletionAge.base).not.toBeNull();
+        expect(data.portfolioSurvives).toBe(false);
+    });
 });

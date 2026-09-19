@@ -105,6 +105,9 @@ const entryRange = (e) =>
 //    (a later, cumulative report) -> replaced by the new row
 //  - otherwise (disjoint / partially overlapping ranges) -> added alongside
 function mergeEbayReport(ledger, report) {
+    if (!report.range) {
+        throw new Error('eBay report has no readable date range.');
+    }
     const start = report.range?.start || null;
     const end = report.range?.end || null;
     let next = [...(ledger || [])];

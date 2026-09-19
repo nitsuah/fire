@@ -455,6 +455,12 @@ window.deleteSideGigEntry = async function (id) {
 async function importEbayReportText(text, fileName) {
     const report = parseEbayListingsReport(parseCSVText(text));
     if (!report) return false;
+    if (!report.range) {
+        alert(
+            'Could not read the report date range ("Report for … to …"), so it was not imported.',
+        );
+        return true;
+    }
     if (report.items.length === 0) {
         alert('That eBay report has no sales rows to import.');
         return true;
@@ -484,16 +490,18 @@ function initEbayReportUpload() {
     const input = document.getElementById('ebay-report-input');
     if (!btn || !input) return;
     btn.addEventListener('click', () => input.click());
-    input.addEventListener('change', () => {
+    input.addEventListener('change', async () => {
         const file = input.files && input.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const ok = await importEbayReportText(e.target.result, file.name);
+        try {
+            const ok = await importEbayReportText(await file.text(), file.name);
             if (!ok) alert('That file is not an eBay listings sales report.');
+        } catch (err) {
+            console.error('Failed to read eBay report:', err);
+            alert('Could not read that file.');
+        } finally {
             input.value = '';
-        };
-        reader.readAsText(file);
+        }
     });
 }
 

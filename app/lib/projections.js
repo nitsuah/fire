@@ -302,7 +302,9 @@ function _withdrawCashFirst(cash, invested, returnRate, expense) {
     return {
         cash: nextCash,
         invested: Math.max(0, rawInvested),
-        depletedThisYear: totalBefore > 0 && nextCash + rawInvested <= 0,
+        // An unpaid withdrawal from an already-empty portfolio is depletion too.
+        depletedThisYear:
+            (totalBefore > 0 || expense > 0) && nextCash + rawInvested <= 0,
     };
 }
 
