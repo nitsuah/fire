@@ -591,11 +591,10 @@
     font-family: var(--font-heading);
 }
 
-/* Income Sources / Monthly Expenses collapse toggle — desktop always shows
-   the full line-item list (button hidden, .cf-collapsed has no effect);
-   mobile defaults to collapsed (total only) until expanded. */
+/* Income Sources / Monthly Expenses collapse toggle — at every width they
+   default to collapsed (total only) until expanded. */
 .cf-toggle-btn {
-    display: none;
+    display: flex;
     background: none;
     border: 1px solid var(--border-divider);
     color: var(--text-muted);
@@ -616,18 +615,13 @@
     transform: rotate(180deg);
 }
 
-@media (max-width: 768px) {
-    .cf-toggle-btn {
-        display: flex;
-    }
-    .cf-list.cf-collapsed .cf-row:not(.cf-total-row) {
-        display: none;
-    }
-    .cf-list.cf-collapsed .cf-total-row {
-        border-top: none;
-        padding-top: 0;
-        margin-top: 0;
-    }
+.cf-list.cf-collapsed .cf-row:not(.cf-total-row) {
+    display: none;
+}
+.cf-list.cf-collapsed .cf-total-row {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
 }
 
 /* Net Cash Flow card */
@@ -1186,7 +1180,12 @@
    Progress / projection bar instead of a dashboard card.
    ========================================================================== */
 .notif-bell-wrap {
-    position: relative;
+    /* Pinned to the right end of whichever bar hosts it (the summary banner
+       or the mobile top bar), regardless of the layout beside it. */
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-md);
+    z-index: 2;
     display: inline-flex;
 }
 

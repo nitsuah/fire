@@ -312,33 +312,40 @@ test.describe('Financial Overview — unified add form', () => {
 });
 
 test.describe('Financial Overview — cash flow row', () => {
-    test('desktop: Net Cash Flow, Income Sources, and Monthly Expenses sit left-to-right', async ({
+    test('desktop: Income Sources and Monthly Expenses stack under Net Cash Flow, collapsed by default', async ({
         page,
     }) => {
         await page.locator('#btn-tab-financial').click();
-        const netFlow = page.locator('.fo-cashflow-row').getByRole('heading', {
+        const row = page.locator('.fo-cashflow-row');
+        const netFlow = row.getByRole('heading', {
             name: 'Net Monthly Cash Flow',
         });
-        const income = page.locator('.fo-cashflow-row').getByRole('heading', {
-            name: 'Income Sources',
-        });
-        const expenses = page
-            .locator('.fo-cashflow-row')
-            .getByRole('heading', { name: 'Monthly Expenses' });
-        await expect(netFlow).toBeVisible();
-        await expect(income).toBeVisible();
-        await expect(expenses).toBeVisible();
-
+        const income = row.getByRole('heading', { name: 'Income Sources' });
+        const expenses = row.getByRole('heading', { name: 'Monthly Expenses' });
         const [netBox, incomeBox, expensesBox] = await Promise.all([
             netFlow.boundingBox(),
             income.boundingBox(),
             expenses.boundingBox(),
         ]);
-        // Left-to-right order, same row (not stacked).
-        expect(netBox.x).toBeLessThan(incomeBox.x);
-        expect(incomeBox.x).toBeLessThan(expensesBox.x);
-        expect(Math.abs(netBox.y - incomeBox.y)).toBeLessThan(5);
-        expect(Math.abs(incomeBox.y - expensesBox.y)).toBeLessThan(5);
+        expect(netBox.y).toBeLessThan(incomeBox.y);
+        expect(incomeBox.y).toBeLessThan(expensesBox.y);
+        expect(Math.abs(netBox.x - incomeBox.x)).toBeLessThan(5);
+        await expect(page.locator('#cashflow-income-list')).toHaveClass(
+            /cf-collapsed/,
+        );
+        await expect(page.locator('#cashflow-expenses-list')).toHaveClass(
+            /cf-collapsed/,
+        );
+        await expect(page.locator('#cf-salary')).toBeHidden();
+    });
+
+    test('desktop: holdings section uses the full content width', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-financial').click();
+        const body = await page.locator('.fo-body').boundingBox();
+        const left = await page.locator('.fo-left').boundingBox();
+        expect(left.width).toBeGreaterThan(body.width - 2);
     });
 
     test('mobile: Income Sources and Monthly Expenses default collapsed to just the total, and expand independently', async ({
@@ -797,5 +804,49 @@ test.describe('Projections — merged Growth Settings + Milestones panel', () =>
             const swr = await page.evaluate(() => state.projectionSettings.swr);
             expect(swr).toBe(num);
         }
+    });
+});
+
+test.describe('Alerts bell and narrow positions table', () => {
+    test('the bell stays pinned to the right end of the banner', async ({
+        page,
+    }) => {
+        const banner = await page.locator('.header-banner').boundingBox();
+        const bell = await page.locator('.notif-bell-wrap').boundingBox();
+        expect(banner.x + banner.width - (bell.x + bell.width)).toBeLessThan(
+            40,
+        );
+    });
+
+    test.describe('at phone width', () => {
+        test.use({ viewport: { width: 390, height: 844 } });
+
+        test('the positions table does not scroll sideways', async ({
+            page,
+        }) => {
+            await page.evaluate(() => {
+                state.importedPositions = [
+                    {
+                        account: 'E2E Long Account Name Brokerage',
+                        symbol: 'ZZTEST',
+                        description: 'E2E TEST FUND',
+                        quantity: 10,
+                        lastPrice: 12.5,
+                        costBasis: 100,
+                        value: 220683.48,
+                        pnlDollar: 105950,
+                        pnlPercent: 132.2,
+                    },
+                ];
+                renderDashboardTopPositionsTable();
+            });
+            const overflow = await page
+                .locator('#table-dashboard-positions')
+                .evaluate((t) => {
+                    const c = t.closest('.table-container');
+                    return c.scrollWidth - c.clientWidth;
+                });
+            expect(overflow).toBeLessThanOrEqual(1);
+        });
     });
 });

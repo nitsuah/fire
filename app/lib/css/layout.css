@@ -195,6 +195,7 @@
        .main-content — z-index applies to flex items regardless of
        position (https://www.w3.org/TR/css-flexbox-1/#painting). */
     z-index: 5;
+    position: relative;
     display: grid;
     gap: var(--space-lg);
     grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
@@ -400,13 +401,6 @@
     margin-bottom: var(--space-lg);
 }
 
-@media (min-width: 900px) {
-    .fo-cashflow-row {
-        grid-template-columns: repeat(3, 1fr);
-        align-items: start;
-    }
-}
-
 .fo-body {
     display: grid;
     gap: var(--space-lg);
@@ -427,18 +421,6 @@
     min-width: 0;
 }
 
-@media (min-width: 900px) {
-    .fo-body {
-        grid-template-columns: 2fr 1fr;
-        align-items: start;
-    }
-}
-
-@media (min-width: 1200px) {
-    .fo-body {
-        grid-template-columns: 1.5fr 1fr;
-    }
-}
 
 /* Financial Overview section label dividers */
 .fo-section-label {
@@ -490,6 +472,7 @@
         order: 1;
         flex: 1;
         min-width: 0;
+        margin-right: 40px; /* room for the pinned alerts bell */
         cursor: pointer;
     }
     .cfb-track {
@@ -663,7 +646,9 @@
         min-width: 0;
     }
     .app-container.topbar-summary .sidebar .notif-bell-wrap {
-        flex-shrink: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        right: var(--space-md);
     }
 }
 

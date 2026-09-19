@@ -749,6 +749,15 @@
     .position-detail-row:not([hidden]) {
         display: table-row;
     }
+    /* Tighten and allow wrapping so symbol, value, PnL and + fit the card. */
+    #table-dashboard-positions th,
+    #table-dashboard-positions td {
+        padding-left: 6px;
+        padding-right: 6px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        font-size: var(--text-xs);
+    }
 }
 
 .hustle-item-head {
