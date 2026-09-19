@@ -1,5 +1,5 @@
 // @ts-check
-/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions, refreshAllUI, renderVehiclesTable */
+/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions, refreshAllUI, renderVehiclesTable, buildProjectionData, buildMilestonesList */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -146,16 +146,21 @@ test.describe('Projections tab reorg', () => {
         ).not.toHaveClass(/collapsed/);
     });
 
-    test('Milestone preset selector lives in the Customize section', async ({
+    test('Milestone Focus is its own always-visible section of the panel, with buttons like the growth presets', async ({
         page,
     }) => {
         await page.locator('#btn-tab-projections').click();
-        await page.locator('#proj-settings-toggle').click();
+        const card = page.locator('#proj-settings-card');
         await expect(
-            page.locator(
-                '#form-projections-settings #milestone-preset-mount .milestone-preset-selector',
-            ),
+            card.getByRole('heading', { name: 'Growth Scenario' }),
         ).toBeVisible();
+        await expect(
+            card.getByRole('heading', { name: 'Milestone Focus' }),
+        ).toBeVisible();
+        await expect(card.locator('.milestone-preset-btn')).toHaveCount(5);
+        await expect(card.locator('.milestone-preset-btn.active')).toHaveCount(
+            1,
+        );
     });
 });
 
@@ -783,8 +788,6 @@ test.describe('Projections — Growth Settings presets and milestones', () => {
             ),
         ).toHaveCount(0);
 
-        await page.locator('#proj-settings-toggle').click();
-        const select = page.locator('#milestone-preset-select');
         const cases = [
             ['conservative', 'conservative'],
             ['aggressive', 'aggressive'],
@@ -795,7 +798,11 @@ test.describe('Projections — Growth Settings presets and milestones', () => {
             await page
                 .locator(`.proj-preset-btn[data-preset="${preset}"]`)
                 .click();
-            await expect(select).toHaveValue(milestone);
+            await expect(
+                page.locator(
+                    `.milestone-preset-btn[data-milestone="${milestone}"]`,
+                ),
+            ).toHaveClass(/active/);
         }
     });
 
@@ -1031,5 +1038,59 @@ test.describe('Expenses — budget field labels', () => {
         }
         // Consistent cells: every label is the same height.
         expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
+    });
+});
+
+test.describe('Projection math per growth preset', () => {
+    test('each preset yields a sane, distinct projection; Early Retiree retires early; emergency fund scales off expenses', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            state.customAccounts = [
+                { id: 'pm-a', name: 'Cash', type: 'Cash', value: 100000 },
+                {
+                    id: 'pm-b',
+                    name: 'Brokerage',
+                    type: 'Brokerage',
+                    value: 400000,
+                },
+            ];
+            refreshAllUI();
+        });
+        await page.locator('#btn-tab-projections').click();
+        const results = {};
+        for (const key of [
+            'conservative',
+            'standard',
+            'aggressive',
+            'earlyRetiree',
+        ]) {
+            await page
+                .locator(`.proj-preset-btn[data-preset="${key}"]`)
+                .click();
+            results[key] = await page.evaluate(() => {
+                const d = buildProjectionData();
+                const ms = buildMilestonesList(d, d.depletionAge);
+                const ef = ms.find((m) => m.name.startsWith('Emergency Fund'));
+                return {
+                    finite: d.nwData.every((v) => Number.isFinite(v) && v >= 0),
+                    end: d.nwData[d.nwData.length - 1],
+                    retireAge: state.projectionSettings.retireAge,
+                    swr: state.projectionSettings.swr,
+                    efTarget: ef ? ef.target : null,
+                    monthsCovered: ef
+                        ? ef.target / (d.annualExpenses / 12)
+                        : null,
+                };
+            });
+            expect(results[key].finite).toBe(true);
+        }
+        // More return => more wealth at the end of the same span.
+        expect(results.standard.end).toBeGreaterThan(results.conservative.end);
+        expect(results.aggressive.end).toBeGreaterThan(results.standard.end);
+        expect(results.earlyRetiree.retireAge).toBe(50);
+        expect(results.earlyRetiree.swr).toBe(3.25);
+        // "6 months of expenses" really is ~6 months (was FIRE number × 0.5).
+        expect(results.standard.monthsCovered).toBeCloseTo(6, 1);
     });
 });

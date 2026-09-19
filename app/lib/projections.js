@@ -197,7 +197,12 @@ const PROJ_SETTINGS_PRESETS = {
     earlyRetiree: {
         label: 'Early Retiree',
         milestonePreset: 'coast',
-        values: { expectedReturn: 8.0, inflationRate: 2.5, swr: 3.25 },
+        values: {
+            expectedReturn: 8.0,
+            inflationRate: 2.5,
+            swr: 3.25,
+            retireAge: 50,
+        },
     },
 };
 
@@ -209,6 +214,7 @@ async function applyProjSettingsPreset(key) {
             expectedReturn: 'proj-return',
             inflationRate: 'proj-inflation',
             swr: 'proj-swr',
+            retireAge: 'proj-retire-age',
         };
         if (field === 'swr') {
             setSwrSelectValue(val);
