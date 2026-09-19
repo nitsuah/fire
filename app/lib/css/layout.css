@@ -181,6 +181,10 @@
 
 /* Top Banner Summary Card — organic fluid grid */
 .header-banner {
+    /* Never shrink below its content: as a flex item of the fixed-height
+       .main-content column it otherwise collapses to min-height once data
+       loads, and the metrics spill over the border and the content below. */
+    flex-shrink: 0;
     min-height: var(--header-height);
     border-bottom: 1px solid var(--border-divider);
     padding: var(--space-md) var(--space-xl) var(--space-lg);
@@ -299,6 +303,48 @@
     }
 }
 
+/* Wide screens: Retirement Growth Path, Asset Allocation and Cash & Fixed
+   Income share the top row; Top Investment Positions runs full width below.
+   The column wrappers dissolve so all four cards are placed by the grid. */
+@media (min-width: 1400px) {
+    .dashboard-body {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
+    }
+    .dash-col-left,
+    .dash-col-right {
+        display: contents;
+    }
+    #dash-card-growth {
+        order: 1;
+    }
+    #dash-card-alloc {
+        order: 2;
+    }
+    #dash-card-cash {
+        order: 3;
+    }
+    #dash-card-positions {
+        order: 4;
+        grid-column: 1 / -1;
+    }
+    #dash-card-growth.growth-size-wide {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Retirement Growth Path size options (S / M / L / full width). */
+.dash-growth-chart {
+    height: 260px;
+}
+.growth-size-s .dash-growth-chart {
+    height: 180px;
+}
+.growth-size-l .dash-growth-chart,
+.growth-size-wide .dash-growth-chart {
+    height: 400px;
+}
+
 /* Organic span utilities */
 .span-2 {
     grid-column: span 2;
@@ -399,6 +445,15 @@
     gap: var(--space-lg);
     grid-template-columns: 1fr;
     margin-bottom: var(--space-lg);
+}
+
+/* Wide screens: Net Monthly Cash Flow, Income Sources and Monthly Expenses
+   share one row (same breakpoint as the dashboard's top row). */
+@media (min-width: 1400px) {
+    .fo-cashflow-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+    }
 }
 
 .fo-body {

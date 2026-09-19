@@ -180,6 +180,40 @@ function initCompactBarPlacement() {
     place();
 }
 
+// Retirement Growth Path panel size (S / M / L / full-width), remembered.
+function initGrowthSizeControls() {
+    const card = document.getElementById('dash-card-growth');
+    const group = document.getElementById('growth-size-btns');
+    if (!card || !group) return;
+    const sizes = ['s', 'm', 'l', 'wide'];
+    const apply = (size) => {
+        sizes.forEach((s) =>
+            card.classList.toggle(`growth-size-${s}`, s === size),
+        );
+        group
+            .querySelectorAll('[data-size]')
+            .forEach((b) =>
+                b.classList.toggle('active', b.dataset.size === size),
+            );
+        try {
+            localStorage.setItem('fire_growth_size', size);
+        } catch {
+            /* storage unavailable — size just won't persist */
+        }
+    };
+    let saved = 'm';
+    try {
+        saved = localStorage.getItem('fire_growth_size') || 'm';
+    } catch {
+        /* ignore */
+    }
+    apply(sizes.includes(saved) ? saved : 'm');
+    group.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-size]');
+        if (btn) apply(btn.dataset.size);
+    });
+}
+
 function renderAllocMiniBarsBanner() {
     const el = document.getElementById('banner-alloc-bars');
     if (!el) return;

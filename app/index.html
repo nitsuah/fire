@@ -156,9 +156,15 @@
                         <!-- LEFT COLUMN -->
                         <div class="dash-col-left">
                             <!-- Retirement Growth Path -->
-                            <div class="card glass-card">
+                            <div class="card glass-card growth-size-m" id="dash-card-growth">
                                 <div class="card-title-row">
                                     <h2 class="card-title">Retirement Growth Path</h2>
+                                    <div class="period-btns" id="growth-size-btns" role="group" aria-label="Chart size">
+                                        <button type="button" class="period-btn" data-size="s" title="Small" aria-label="Small chart">S</button>
+                                        <button type="button" class="period-btn active" data-size="m" title="Medium" aria-label="Medium chart">M</button>
+                                        <button type="button" class="period-btn" data-size="l" title="Large" aria-label="Large chart">L</button>
+                                        <button type="button" class="period-btn" data-size="wide" title="Full width (wide screens)" aria-label="Full-width chart">⤢</button>
+                                    </div>
                                     <div class="period-btns" id="dash-period-btns">
                                         <button class="period-btn" onclick="setDashProjWindow('1m')">1M</button>
                                         <button class="period-btn" onclick="setDashProjWindow('1y')">1Y</button>
@@ -168,13 +174,13 @@
                                         <button class="period-btn active" onclick="setDashProjWindow('all')">All</button>
                                     </div>
                                 </div>
-                                <div class="chart-container" style="position: relative; height:220px;">
+                                <div class="chart-container dash-growth-chart" style="position: relative;">
                                     <canvas id="chart-dashboard-projections"></canvas>
                                 </div>
                             </div>
 
                             <!-- Top Investment Positions -->
-                            <div class="card glass-card">
+                            <div class="card glass-card" id="dash-card-positions">
                                 <div class="card-title-row">
                                     <h2 class="card-title">Top Investment Positions</h2>
                                     <button class="collapse-all-btn" onclick="collapseAllGroups()">Collapse All</button>
@@ -207,7 +213,7 @@
                         <div class="dash-col-right">
                             <!-- Asset Allocation — drill-down: click a slice to see the
                                  individual accounts/positions/CDs behind it -->
-                            <div class="card glass-card">
+                            <div class="card glass-card" id="dash-card-alloc">
                                 <div class="card-title-row">
                                     <h2 class="card-title" id="alloc-breadcrumb-title">Asset Allocation</h2>
                                     <button type="button" class="alloc-back-btn" id="alloc-back-btn" style="display:none;" onclick="allocDrillUp()">← All Assets</button>
@@ -220,7 +226,7 @@
                             </div>
 
                             <!-- Cash & Fixed Income -->
-                            <div class="card glass-card">
+                            <div class="card glass-card" id="dash-card-cash">
                                 <h2 class="card-title">Cash &amp; Fixed Income</h2>
                                 <div id="dashboard-liquid-panel">
                                     <p class="text-muted text-center" style="padding:12px 0;">No cash or CDs recorded yet.</p>
@@ -702,12 +708,11 @@
                                                 <th class="text-right">Loan Balance</th>
                                                 <th class="text-right">Purchase Price</th>
                                                 <th class="text-right">Depreciation</th>
-                                                <th class="text-right">Value Estimate</th>
                                                 <th class="text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr><td colspan="10" class="text-center text-muted">No vehicles added yet.</td></tr>
+                                            <tr><td colspan="9" class="text-center text-muted">No vehicles added yet.</td></tr>
                                         </tbody>
                                     </table>
                                 </div>

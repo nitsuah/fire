@@ -1,5 +1,5 @@
 // @ts-check
-/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions */
+/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions, refreshAllUI, renderVehiclesTable */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -879,5 +879,132 @@ test.describe('Expenses — insurance fields at narrow widths', () => {
         const car = await page.locator('#ins-car-freq').boundingBox();
         const home = await page.locator('#ins-home-amt').boundingBox();
         expect(home.y).toBeGreaterThan(car.y + car.height - 1);
+    });
+});
+
+test.describe('Summary banner keeps its content inside its box once data loads', () => {
+    test.use({ viewport: { width: 1900, height: 600 } });
+
+    test('no metric spills below the banner', async ({ page }) => {
+        await page.evaluate(() => {
+            state.customAccounts = [
+                { id: 'e2e-a', name: 'Cash', type: 'Cash', value: 250000 },
+                { id: 'e2e-b', name: 'Coins', type: 'Crypto', value: 90000 },
+            ];
+            refreshAllUI();
+        });
+        const { contentEdge, metricsBottom } = await page.evaluate(() => {
+            const hb = document.querySelector('.header-banner');
+            const padBottom = parseFloat(getComputedStyle(hb).paddingBottom);
+            return {
+                contentEdge: hb.getBoundingClientRect().bottom - padBottom,
+                metricsBottom: Math.max(
+                    ...[...hb.querySelectorAll('.header-metric')].map(
+                        (m) => m.getBoundingClientRect().bottom,
+                    ),
+                ),
+            };
+        });
+        // Content must end inside the banner's padding box, above its bottom
+        // padding — if the banner shrinks under load the metrics spill past it.
+        expect(metricsBottom).toBeLessThanOrEqual(contentEdge + 1);
+    });
+});
+
+test.describe('Dashboard — wide layout and growth chart sizes', () => {
+    test.use({ viewport: { width: 1600, height: 1000 } });
+
+    test('growth, allocation and cash sit in one row above full-width positions', async ({
+        page,
+    }) => {
+        const [g, a, c, p] = await Promise.all(
+            [
+                '#dash-card-growth',
+                '#dash-card-alloc',
+                '#dash-card-cash',
+                '#dash-card-positions',
+            ].map((s) => page.locator(s).boundingBox()),
+        );
+        expect(Math.abs(g.y - a.y)).toBeLessThan(2);
+        expect(Math.abs(a.y - c.y)).toBeLessThan(2);
+        expect(g.x).toBeLessThan(a.x);
+        expect(a.x).toBeLessThan(c.x);
+        expect(p.y).toBeGreaterThan(g.y + g.height - 1);
+        expect(p.width).toBeGreaterThan(g.width * 2.5);
+    });
+
+    test('size buttons resize the growth chart panel and are remembered', async ({
+        page,
+    }) => {
+        const chart = page.locator('#dash-card-growth .dash-growth-chart');
+        const h = async () => (await chart.boundingBox()).height;
+        await page.locator('#growth-size-btns [data-size="s"]').click();
+        const small = await h();
+        await page.locator('#growth-size-btns [data-size="l"]').click();
+        const large = await h();
+        expect(large).toBeGreaterThan(small + 100);
+
+        await page.locator('#growth-size-btns [data-size="wide"]').click();
+        const card = await page.locator('#dash-card-growth').boundingBox();
+        const body = await page.locator('.dashboard-body').boundingBox();
+        expect(card.width).toBeGreaterThan(body.width - 2);
+
+        await page.reload();
+        await expect(page.locator('#dash-card-growth')).toHaveClass(
+            /growth-size-wide/,
+        );
+    });
+});
+
+test.describe('Financial Overview — wide top row and vehicle actions', () => {
+    test.describe('wide screens', () => {
+        test.use({ viewport: { width: 1600, height: 1000 } });
+
+        test('cash flow cards share one row', async ({ page }) => {
+            await page.locator('#btn-tab-financial').click();
+            const row = page.locator('.fo-cashflow-row');
+            const boxes = await Promise.all(
+                [
+                    'Net Monthly Cash Flow',
+                    'Income Sources',
+                    'Monthly Expenses',
+                ].map((name) =>
+                    row.getByRole('heading', { name }).boundingBox(),
+                ),
+            );
+            expect(Math.abs(boxes[0].y - boxes[1].y)).toBeLessThan(5);
+            expect(Math.abs(boxes[1].y - boxes[2].y)).toBeLessThan(5);
+            expect(boxes[0].x).toBeLessThan(boxes[1].x);
+            expect(boxes[1].x).toBeLessThan(boxes[2].x);
+        });
+    });
+
+    test('vehicle Estimate button lives in Actions; no Value Estimate column', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            state.vehicles = [
+                {
+                    id: 'e2e-v',
+                    year: 2019,
+                    make: 'Test',
+                    model: 'Car',
+                    condition: 'Good',
+                    mileage: 1000,
+                    currentValue: 10000,
+                    purchasePrice: 12000,
+                    loanBalance: 0,
+                },
+            ];
+            renderVehiclesTable();
+        });
+        await page.locator('#btn-tab-financial').click();
+        await expect(
+            page.getByRole('columnheader', { name: 'Value Estimate' }),
+        ).toHaveCount(0);
+        const row = page.locator('#table-vehicles tbody tr').first();
+        await expect(
+            row.locator('td:last-child #veh-est-btn-e2e-v'),
+        ).toBeVisible();
     });
 });

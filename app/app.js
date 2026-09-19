@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCompactFireBar();
     initCompactBarPlacement();
     initHustleAccelerators();
+    initGrowthSizeControls();
 
     // Initial Render
     refreshAllUI();
