@@ -138,7 +138,10 @@ let hustlePaused = false;
 
 function getDismissedHustles() {
     try {
-        return JSON.parse(localStorage.getItem(HUSTLE_DISMISS_KEY) || '[]');
+        const parsed = JSON.parse(
+            localStorage.getItem(HUSTLE_DISMISS_KEY) || '[]',
+        );
+        return Array.isArray(parsed) ? parsed : [];
     } catch {
         return [];
     }

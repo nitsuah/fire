@@ -367,4 +367,15 @@ describe('buildProjectionData — retirement withdrawal & cash-first drawdown', 
         const data = buildProjectionData(state, 0);
         expect(data.nwData.every((v) => Number.isFinite(v))).toBe(true);
     });
+
+    it('projects finite values when cash carries an APY alongside a brokerage balance', () => {
+        const state = makeRetirementState({
+            customAccounts: [
+                { type: 'Cash', value: 100000, apy: 4 },
+                { type: 'Brokerage', value: 100000 },
+            ],
+        });
+        const data = buildProjectionData(state, 0);
+        expect(data.nwData.every((v) => Number.isFinite(v))).toBe(true);
+    });
 });

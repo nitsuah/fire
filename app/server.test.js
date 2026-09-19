@@ -412,6 +412,8 @@ describe('Crypto accounts — name/identifier interop', () => {
         const res = await request(app)
             .post('/api/accounts')
             .send({ name: 'Cold Wallet', type: 'Crypto', value: 1 });
+        expect(res.status).toBe(201);
+        expect(res.body.name).toBe('Cold Wallet');
         expect(res.body.identifier).toBeUndefined();
     });
 });

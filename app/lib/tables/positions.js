@@ -160,7 +160,11 @@ function renderDashboardTopPositionsTable() {
                 }
 
                 const sym = pos.symbol || '';
-                const posKey = `${accName}|${sym}`;
+                // Rows can share account+symbol, so key by a per-position id
+                // (assigned lazily; persisted on the next save).
+                if (!pos.id)
+                    pos.id = `pos-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+                const posKey = pos.id;
                 const isOpen = expandedPositions.has(posKey);
                 const qtyStr = (pos.quantity || 0).toLocaleString(undefined, {
                     maximumFractionDigits: 3,

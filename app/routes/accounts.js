@@ -223,6 +223,10 @@ router.put('/:id', async (req, res) => {
                               : cur.quantity,
                       metalType: undefined,
                       weightOz: undefined,
+                      // A Metal quote's timestamp doesn't describe a Crypto value.
+                      ...(cur.type !== 'Crypto' && req.body.value === undefined
+                          ? { valueLastRefreshed: undefined }
+                          : {}),
                   }
                 : type === 'Metal'
                   ? {

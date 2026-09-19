@@ -12,6 +12,13 @@ function initCSVImport() {
         fileInput.click();
     });
 
+    dragZone.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (dragZone.classList.contains('disabled')) return;
+        fileInput.click();
+    });
+
     dragZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dragZone.classList.add('dragover');

@@ -79,7 +79,17 @@ function _getPassiveIncome(state) {
 // is applied to a consistent portfolio value.
 // CDs use locked rates, savings use APY, everything else uses equityReturnPct.
 // Call separately for each scenario so CD locked rates don't shift with bull/bear.
-function _getBlendedNominalReturn(state, equityReturnPct) {
+function _isCashPosition(pos) {
+    const sym = pos.symbol || '';
+    const desc = pos.description || '';
+    return (
+        sym.includes('SPAXX') ||
+        sym.includes('FDRXX') ||
+        desc.includes('MONEY MARKET')
+    );
+}
+
+function _getBlendedNominalReturn(state, equityReturnPct, excludeCash = false) {
     let weightedIncome = 0;
     let totalValue = 0;
 
@@ -91,6 +101,7 @@ function _getBlendedNominalReturn(state, equityReturnPct) {
 
     (state.customAccounts || []).forEach((a) => {
         const v = a.value || 0;
+        if (excludeCash && (a.type === 'Cash' || a.type === 'Savings')) return;
         if ((a.type === 'Cash' || a.type === 'Savings') && (a.apy || 0) > 0) {
             weightedIncome += v * ((a.apy || 0) / 100);
         } else {
@@ -101,6 +112,7 @@ function _getBlendedNominalReturn(state, equityReturnPct) {
 
     (state.importedPositions || []).forEach((p) => {
         const v = p.value || 0;
+        if (excludeCash && _isCashPosition(p)) return;
         weightedIncome += v * (equityReturnPct / 100);
         totalValue += v;
     });
@@ -265,6 +277,25 @@ function buildProjectionData(state, scenarioOffset) {
     const toRealReturn = (nominalPct) =>
         (1 + nominalPct / 100) / (1 + inflation) - 1;
     const realReturn = toRealReturn(blendedNominalReturn);
+    // Once cash is split out (cash-first drawdown), the invested bucket must
+    // grow at the return of the *non-cash* assets — the blended rate above
+    // includes cash APY, which would understate it.
+    const investedReturn = toRealReturn(
+        _getBlendedNominalReturn(state, equityReturnPct, true),
+    );
+    const investedBullReturn = toRealReturn(
+        _getBlendedNominalReturn(state, equityReturnPct + 2, true),
+    );
+    const investedBearReturn = Math.max(
+        toRealReturn(
+            _getBlendedNominalReturn(
+                state,
+                Math.max(equityReturnPct - 2, 0),
+                true,
+            ),
+        ),
+        -0.01,
+    );
     const span = state.projectionSettings.spanYears || 30;
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
@@ -365,7 +396,7 @@ function buildProjectionData(state, scenarioOffset) {
                 const stepBase = _withdrawCashFirst(
                     cashBase,
                     investedBase,
-                    realReturn,
+                    investedReturn,
                     annualExpenses,
                 );
                 if (stepBase.depletedThisYear && baseDepletionAge === null)
@@ -376,7 +407,7 @@ function buildProjectionData(state, scenarioOffset) {
                 const stepBull = _withdrawCashFirst(
                     cashBull,
                     investedBull,
-                    bullReturn,
+                    investedBullReturn,
                     annualExpenses,
                 );
                 if (stepBull.depletedThisYear && bullDepletionAge === null)
@@ -387,7 +418,7 @@ function buildProjectionData(state, scenarioOffset) {
                 const stepBear = _withdrawCashFirst(
                     cashBear,
                     investedBear,
-                    bearReturn,
+                    investedBearReturn,
                     annualExpenses,
                 );
                 if (stepBear.depletedThisYear && bearDepletionAge === null)
