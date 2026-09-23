@@ -1,6 +1,7 @@
 # 🔥 FIRE Tracker
 
 [![CI](https://github.com/nitsuah/fire/actions/workflows/ci.yml/badge.svg)](https://github.com/nitsuah/fire/actions/workflows/ci.yml)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/2daa3b19-e0a6-46e5-95b3-189b61df5d5f/deploy-status)](https://app.netlify.com/projects/lifefire/deploys)
 
 > A self-hosted Financial Independence, Retire Early (FIRE) tracker and API server. Runs locally via Docker. All financial data is stored in `data/db.json` on your machine with optional AES-256-GCM encryption (`SYNC_MASTER_KEY`). Read-only with respect to external financial accounts (no transactions initiated); local CRUD is fully supported. Being productionized toward real-time API-driven sync (eBay, Web3 wallets, Fidelity/Plaid) in PROD Phases 1–4. See [docs/prod-plan.md](docs/prod-plan.md).
 
