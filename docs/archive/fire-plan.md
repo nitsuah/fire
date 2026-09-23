@@ -1,3 +1,9 @@
+> **Archived 2026-09-23**: original implementation plan; describes a 100%
+> client-side, localStorage-only app with no live API integrations, which no
+> longer matches reality (Plaid, eBay, wallet, and Google Drive sync all
+> shipped — see `docs/ROADMAP.md` PROD Phase 1/2 and `docs/FEATURES.md`). Kept
+> for historical reference only.
+
 Implementation Plan - Lightweight FIRE Tracker & Calculator
 A lightweight, secure, and privacy-preserving FIRE (Financial Independence, Retire Early) calculator and tracker. The app operates 100% client-side, storing data in localStorage and allowing users to import positions/statements (like Fidelity CSVs) to track net worth, CDs, expenses, side-income (e.g., eBay), and run projections.
 
