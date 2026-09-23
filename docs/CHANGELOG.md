@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Several review-round fixes (CodeRabbit) across projections, CSV a11y, position expand keys and hustle storage.
 
 ### Since the last changelog update (merged to `main`, Aug 27 → Sep 18)
-- **Plaid transaction sync** with auto-categorization, cursor persistence and modified/removed handling (#108); Fidelity CSV import disabled while Plaid sync is active.
+- **Plaid transaction sync** (`POST /api/sync/plaid/transactions`, #108) with auto-categorization, cursor persistence and modified/removed handling; Fidelity CSV import disabled while Plaid sync is active. Follow-up fixes: apply `data.modified`/`data.removed`, not just `data.added` (was silently losing posted/reversed changes while still advancing the cursor); an item finishing pagination with zero new transactions no longer counts toward the "all items failed" 502 path; exhausting the 20-page defensive cap while Plaid still reports `has_more: true` now discards that item's partial batch and keeps the original cursor instead of silently skipping the unfetched remainder; a `saveTokens()` write failure now returns a specific 5xx instead of reporting `status: 'success'` with a stalled cursor.
 - **Security** — `FIRE_API_KEY` required by default (`FIRE_AUTH_DISABLED=true` opt-out), Caddy HTTPS with loopback-only app port, MCP read-only guard test (found and fixed a write tool) (#105); CSP/SRI headers (#91); fail-fast and rate-limit fallback tests (#107).
 - **UI wiring** for eBay sync, wallet manager, vehicle refresh and Drive backup (#103).
 - **Expenses CSV spending upload** with auto-categorization and merchant mapping; ENS wallet lookup; collapsible nav and dashboard scroll fixes.

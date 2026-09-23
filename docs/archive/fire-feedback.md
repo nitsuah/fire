@@ -1,3 +1,9 @@
+> **Archived 2026-09-23**: raw feature-request notes; all items below have
+> since shipped (chart line toggles, position PnL/risk badges, CD yield
+> display, header/income reorg, diversification suggestions — see
+> `docs/FEATURES.md` and `docs/CHANGELOG.md`). Kept for historical reference
+> only.
+
 1. there should be a line in the retirment growth path chart that shows when we reach our 75 100 125 % goals 
     . we should also include a line that shows the average retirement savings for people in our age group for comparison
     . Additionally, we can add a line that represents the projected growth of our retirement savings based on our current contributions and expected rate of return.
