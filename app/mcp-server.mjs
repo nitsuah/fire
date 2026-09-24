@@ -16,6 +16,7 @@ const require = createRequire(import.meta.url);
 // tests/unit/mcp-server-read-only.test.mjs.
 const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
+const { summarizeSideGigTax } = require('./lib/side-gig-tax.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
 
@@ -81,6 +82,20 @@ const TOOLS = [
         description:
             'Side hustle income log grouped by platform with per-platform and overall totals.',
         inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_side_gig_tax_summary',
+        description:
+            'Side gig sales rolled up by how each item was acquired (business/resale, personal, gift, free): estimated taxable resale profit, taxable gains on personal items, non-deductible personal losses, and sales still missing a tag or cost basis. Optional year filter.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                year: {
+                    type: 'number',
+                    description: 'Limit to sales dated in this calendar year.',
+                },
+            },
+        },
     },
     {
         name: 'get_wallets',
@@ -382,12 +397,13 @@ function handleTool(name, state, toolArgs = {}) {
             const ledger = state.sideGigLedger || [];
             const byPlatform = {};
             for (const entry of ledger) {
-                const platform = entry.platform || 'Other';
+                // Ledger entries use category/revenue; platform/gross are legacy.
+                const platform = entry.category || entry.platform || 'Other';
                 if (!byPlatform[platform]) {
                     byPlatform[platform] = { count: 0, gross: 0, net: 0 };
                 }
                 byPlatform[platform].count++;
-                byPlatform[platform].gross += entry.gross || 0;
+                byPlatform[platform].gross += entry.revenue ?? entry.gross ?? 0;
                 byPlatform[platform].net += entry.net || 0;
             }
             return {
@@ -399,6 +415,13 @@ function handleTool(name, state, toolArgs = {}) {
                     ) / 100,
                 count: ledger.length,
             };
+        }
+
+        case 'get_side_gig_tax_summary': {
+            const year = Number.isInteger(toolArgs.year)
+                ? toolArgs.year
+                : undefined;
+            return summarizeSideGigTax(state.sideGigLedger || [], { year });
         }
 
         case 'get_concentration_risk': {

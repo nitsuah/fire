@@ -1132,21 +1132,24 @@
                                     <input type="file" id="ebay-report-input" accept=".csv" style="display:none;">
                                 </div>
                             </div>
+                            <p class="text-muted mb-2" id="sidegig-tax-summary"></p>
                             <div class="table-container">
                                 <table class="data-table" id="table-sidegig-history">
                                     <thead>
                                         <tr>
                                             <th>Hustle Name / Item</th>
                                             <th>Category</th>
+                                            <th title="How you got the item: decides whether a sale is taxable">Tax Tag</th>
                                             <th class="text-right">Gross Revenue</th>
                                             <th class="text-right">Fees/Expenses</th>
+                                            <th class="text-right" title="What you (or the gift giver) paid for it. Blank = unknown">Item Cost</th>
                                             <th class="text-right">Net Return</th>
                                             <th class="text-right">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td colspan="6" class="text-center text-muted">No manual side hustle income logged yet. Use the eBay calculator or add below.</td>
+                                            <td colspan="8" class="text-center text-muted">No manual side hustle income logged yet. Use the eBay calculator or add below.</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1170,6 +1173,18 @@
                                 </div>
                                 <div class="form-group">
                                     <input type="number" id="sg-expense" min="0" step="0.01" placeholder="Fees & Expenses ($)">
+                                </div>
+                                <div class="form-group">
+                                    <select id="sg-basis" aria-label="How was this item acquired?">
+                                        <option value="">Tax tag (optional)</option>
+                                        <option value="business">Business / bought to resell</option>
+                                        <option value="personal">Personal item</option>
+                                        <option value="gift">Gift (giver’s cost)</option>
+                                        <option value="free">Free / $0 cost</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <input type="number" id="sg-cost" min="0" step="0.01" placeholder="Item Cost ($, blank = unknown)">
                                 </div>
                                 <div class="form-group span-4 text-right">
                                     <button type="submit" class="primary-btn px-6">Record Side Income</button>
@@ -1539,6 +1554,7 @@
     <script src="lib/state.js"></script>
     <script src="lib/prices.js"></script>
     <script src="lib/ebay-report.js"></script>
+    <script src="lib/side-gig-tax.js"></script>
     <script src="lib/csv-import.js"></script>
     <script src="lib/expenses.js"></script>
     <script src="lib/side-gig.js"></script>

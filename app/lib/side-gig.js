@@ -35,12 +35,17 @@ function initSideGigManager() {
             const costBasis = parseFloat(costInput.value);
             const netProfit = gross - fees - shippingCost - costBasis;
 
+            // Item cost is kept out of `expenses` so tax tagging can apply it
+            // as cost basis (see side-gig-tax.js).
             state.sideGigLedger.push({
                 id: Date.now().toString(),
+                date: new Date().toISOString().slice(0, 10),
                 desc: `eBay Sale: $${priceInput.value} Item`,
                 category: 'eBay',
                 revenue: gross,
-                expenses: fees + shippingCost + costBasis,
+                expenses: fees + shippingCost,
+                costBasis,
+                basisType: 'business',
                 net: netProfit,
             });
             await saveState();
@@ -74,15 +79,23 @@ function initSideGigManager() {
         const revenue = parseFloat(document.getElementById('sg-revenue').value);
         const expense =
             parseFloat(document.getElementById('sg-expense').value) || 0;
+        const basisType = document.getElementById('sg-basis').value;
+        const costRaw = document.getElementById('sg-cost').value;
+        const costBasis = costRaw === '' ? null : parseFloat(costRaw);
 
         if (desc && !isNaN(revenue)) {
             state.sideGigLedger.push({
                 id: Date.now().toString(),
+                date: new Date().toISOString().slice(0, 10),
                 desc: desc,
                 category: cat,
                 revenue: revenue,
                 expenses: expense,
-                net: revenue - expense,
+                ...(basisType ? { basisType } : {}),
+                ...(costBasis !== null && !isNaN(costBasis)
+                    ? { costBasis }
+                    : {}),
+                net: revenue - expense - (costBasis || 0),
             });
             await saveState();
             refreshAllUI();
@@ -443,6 +456,28 @@ function calculateEbayProfit() {
         profitBox.className = 'result-value text-emerald';
     }
 }
+
+// Inline edits from the ledger table: tag how an item was acquired, and its
+// cost basis (blank = unknown).
+window.updateSideGigTax = async function (id, field, value) {
+    const entry = state.sideGigLedger.find((sg) => sg.id === id);
+    if (!entry) return;
+    if (field === 'basisType') {
+        if (value) entry.basisType = value;
+        else delete entry.basisType;
+    } else if (field === 'costBasis') {
+        const n = parseFloat(value);
+        if (value === '' || isNaN(n)) delete entry.costBasis;
+        else entry.costBasis = n;
+        const revenue = entry.revenue ?? entry.gross ?? 0;
+        const expenses = entry.expenses ?? entry.fees ?? 0;
+        entry.net =
+            Math.round((revenue - expenses - (entry.costBasis || 0)) * 100) /
+            100;
+    }
+    await saveState();
+    refreshAllUI();
+};
 
 window.deleteSideGigEntry = async function (id) {
     state.sideGigLedger = state.sideGigLedger.filter((sg) => sg.id !== id);

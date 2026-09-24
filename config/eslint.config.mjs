@@ -48,6 +48,7 @@ export default [
             'app/lib/prices.js',
             'app/lib/csv-import.js',
             'app/lib/ebay-report.js',
+            'app/lib/side-gig-tax.js',
             'app/lib/expenses.js',
             'app/lib/side-gig.js',
             'app/lib/projections.js',
