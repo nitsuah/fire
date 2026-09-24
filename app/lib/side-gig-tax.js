@@ -28,20 +28,70 @@ function isBasisType(t) {
     return Object.prototype.hasOwnProperty.call(SIDE_GIG_BASIS_TYPES, t);
 }
 
+// First value that is a finite number; blank strings count as absent.
+function firstNumber(...values) {
+    for (const v of values) {
+        if (v === undefined || v === null || v === '') continue;
+        const n = Number(v);
+        if (Number.isFinite(n)) return n;
+    }
+    return null;
+}
+
 // Legacy entries were written with platform/gross/fees field names.
 function saleAmounts(entry) {
-    const revenue = Number(entry.revenue ?? entry.gross ?? 0) || 0;
-    const sellingCosts = Number(entry.expenses ?? entry.fees ?? 0) || 0;
-    const hasBasis =
-        entry.costBasis !== undefined &&
-        entry.costBasis !== null &&
-        entry.costBasis !== '' &&
-        Number.isFinite(Number(entry.costBasis));
     return {
-        revenue,
-        sellingCosts,
-        costBasis: hasBasis ? Number(entry.costBasis) : null,
+        revenue: firstNumber(entry.revenue, entry.gross) ?? 0,
+        sellingCosts: firstNumber(entry.expenses, entry.fees) ?? 0,
+        costBasis: firstNumber(entry.costBasis),
     };
+}
+
+// YYYY-MM-DD in local time, so a late-evening sale keeps its calendar year.
+function localIsoDate(d = new Date()) {
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+// Rows the eBay calculator wrote before costBasis was split out carry the
+// item cost inside `expenses`.
+function isLegacyCalculatorRow(entry) {
+    return (
+        entry.category === 'eBay' &&
+        /^eBay Sale: \$/.test(entry.desc || '') &&
+        !('costBasis' in entry)
+    );
+}
+
+// Returns a copy of `entry` with its cost basis set (blank = unknown). For
+// legacy calculator rows the same amount is moved out of `expenses` exactly
+// once, and moved back if the basis is changed or cleared.
+function applyCostBasis(entry, value) {
+    const next = { ...entry };
+    const legacy =
+        'legacyCostInExpenses' in next || isLegacyCalculatorRow(next);
+    if ('legacyCostInExpenses' in next) {
+        next.expenses = round2(
+            (firstNumber(next.expenses) ?? 0) + next.legacyCostInExpenses,
+        );
+        delete next.legacyCostInExpenses;
+    }
+    const basis = firstNumber(value);
+    if (basis === null) {
+        delete next.costBasis;
+    } else {
+        next.costBasis = basis;
+        if (legacy) {
+            const expenses = firstNumber(next.expenses) ?? 0;
+            const moved = Math.min(basis, expenses);
+            next.expenses = round2(expenses - moved);
+            next.legacyCostInExpenses = moved;
+        }
+    }
+    const { revenue, sellingCosts } = saleAmounts(next);
+    next.net = round2(revenue - sellingCosts - (next.costBasis || 0));
+    return next;
 }
 
 // ISO date → year; falls back to the eBay report range or a Date.now() id.
@@ -142,6 +192,9 @@ function summarizeSideGigTax(ledger, { year } = {}) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         SIDE_GIG_BASIS_TYPES,
+        saleAmounts,
+        localIsoDate,
+        applyCostBasis,
         classifySideGigSale,
         summarizeSideGigTax,
         entryYear,

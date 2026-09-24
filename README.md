@@ -180,7 +180,7 @@ fire/
 ├── app/
 │   ├── index.html              # Single-page app entry point
 │   ├── server.js               # Express server (port 3001)
-│   ├── mcp-server.mjs          # MCP server — 12 functional tools + 7 registered stubs
+│   ├── mcp-server.mjs          # MCP server — 13 functional tools + 7 registered stubs
 │   ├── lib/
 │   │   ├── db.js               # State persistence (db.json, atomic writes)
 │   │   ├── crypto-utils.js     # AES-256-GCM encrypt/decrypt

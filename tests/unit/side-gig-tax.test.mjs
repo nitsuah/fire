@@ -3,6 +3,9 @@ import path from 'path';
 import os from 'os';
 import {
     SIDE_GIG_BASIS_TYPES,
+    saleAmounts,
+    localIsoDate,
+    applyCostBasis,
     classifySideGigSale,
     summarizeSideGigTax,
     entryYear,
@@ -118,6 +121,66 @@ describe('classifySideGigSale', () => {
             'gift',
             'free',
         ]);
+    });
+});
+
+describe('saleAmounts', () => {
+    it('treats a blank revenue as absent and falls back to gross', () => {
+        expect(saleAmounts({ revenue: '', gross: 120 }).revenue).toBe(120);
+        expect(saleAmounts({ revenue: 0, gross: 120 }).revenue).toBe(0);
+        expect(saleAmounts({}).revenue).toBe(0);
+    });
+});
+
+describe('localIsoDate', () => {
+    it('uses the local calendar date, not UTC', () => {
+        expect(localIsoDate(new Date(2026, 11, 31, 23, 30))).toBe('2026-12-31');
+        expect(localIsoDate(new Date(2027, 0, 5))).toBe('2027-01-05');
+    });
+});
+
+describe('applyCostBasis', () => {
+    const legacy = {
+        id: '1',
+        desc: 'eBay Sale: $100 Item',
+        category: 'eBay',
+        revenue: 100,
+        expenses: 55, // 15 fees/shipping + 40 item cost
+        net: 45,
+    };
+
+    it('moves a legacy calculator row’s cost out of expenses exactly once', () => {
+        const once = applyCostBasis(legacy, '40');
+        expect(once).toMatchObject({ expenses: 15, costBasis: 40, net: 45 });
+        const again = applyCostBasis(once, '40');
+        expect(again).toMatchObject({ expenses: 15, costBasis: 40, net: 45 });
+        const changed = applyCostBasis(again, '30');
+        expect(changed).toMatchObject({ expenses: 25, costBasis: 30, net: 45 });
+        expect(
+            classifySideGigSale({ ...changed, basisType: 'business' }).taxable,
+        ).toBe(45);
+    });
+
+    it('restores a legacy row when the cost is cleared', () => {
+        const cleared = applyCostBasis(applyCostBasis(legacy, '40'), '');
+        expect(cleared.expenses).toBe(55);
+        expect('costBasis' in cleared).toBe(false);
+        expect('legacyCostInExpenses' in cleared).toBe(false);
+        expect(legacy.expenses).toBe(55); // input not mutated
+    });
+
+    it('leaves expenses alone on non-legacy rows', () => {
+        const row = {
+            category: 'eBay',
+            desc: 'Lamp',
+            revenue: 50,
+            expenses: 5,
+        };
+        expect(applyCostBasis(row, '20')).toMatchObject({
+            expenses: 5,
+            costBasis: 20,
+            net: 25,
+        });
     });
 });
 

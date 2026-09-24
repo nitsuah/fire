@@ -16,7 +16,7 @@ const require = createRequire(import.meta.url);
 // tests/unit/mcp-server-read-only.test.mjs.
 const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
-const { summarizeSideGigTax } = require('./lib/side-gig-tax.js');
+const { saleAmounts, summarizeSideGigTax } = require('./lib/side-gig-tax.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
 
@@ -403,7 +403,7 @@ function handleTool(name, state, toolArgs = {}) {
                     byPlatform[platform] = { count: 0, gross: 0, net: 0 };
                 }
                 byPlatform[platform].count++;
-                byPlatform[platform].gross += entry.revenue ?? entry.gross ?? 0;
+                byPlatform[platform].gross += saleAmounts(entry).revenue;
                 byPlatform[platform].net += entry.net || 0;
             }
             return {

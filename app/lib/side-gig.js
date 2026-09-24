@@ -39,7 +39,7 @@ function initSideGigManager() {
             // as cost basis (see side-gig-tax.js).
             state.sideGigLedger.push({
                 id: Date.now().toString(),
-                date: new Date().toISOString().slice(0, 10),
+                date: localIsoDate(),
                 desc: `eBay Sale: $${priceInput.value} Item`,
                 category: 'eBay',
                 revenue: gross,
@@ -86,7 +86,7 @@ function initSideGigManager() {
         if (desc && !isNaN(revenue)) {
             state.sideGigLedger.push({
                 id: Date.now().toString(),
-                date: new Date().toISOString().slice(0, 10),
+                date: localIsoDate(),
                 desc: desc,
                 category: cat,
                 revenue: revenue,
@@ -103,6 +103,7 @@ function initSideGigManager() {
         }
     });
 
+    initSideGigLedgerActions();
     calculateEbayProfit();
 }
 
@@ -460,24 +461,32 @@ function calculateEbayProfit() {
 // Inline edits from the ledger table: tag how an item was acquired, and its
 // cost basis (blank = unknown).
 window.updateSideGigTax = async function (id, field, value) {
-    const entry = state.sideGigLedger.find((sg) => sg.id === id);
-    if (!entry) return;
+    const idx = state.sideGigLedger.findIndex((sg) => sg.id === id);
+    if (idx < 0) return;
+    const entry = state.sideGigLedger[idx];
     if (field === 'basisType') {
         if (value) entry.basisType = value;
         else delete entry.basisType;
     } else if (field === 'costBasis') {
-        const n = parseFloat(value);
-        if (value === '' || isNaN(n)) delete entry.costBasis;
-        else entry.costBasis = n;
-        const revenue = entry.revenue ?? entry.gross ?? 0;
-        const expenses = entry.expenses ?? entry.fees ?? 0;
-        entry.net =
-            Math.round((revenue - expenses - (entry.costBasis || 0)) * 100) /
-            100;
+        state.sideGigLedger[idx] = applyCostBasis(entry, value);
     }
     await saveState();
     refreshAllUI();
 };
+
+// Delegated so ledger ids never end up inside inline JS handlers.
+function initSideGigLedgerActions() {
+    const table = document.getElementById('table-sidegig-history');
+    if (!table) return;
+    table.addEventListener('change', (e) => {
+        const el = e.target.closest('[data-sg-field]');
+        if (el) updateSideGigTax(el.dataset.sgId, el.dataset.sgField, el.value);
+    });
+    table.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sg-delete]');
+        if (btn) deleteSideGigEntry(btn.dataset.sgDelete);
+    });
+}
 
 window.deleteSideGigEntry = async function (id) {
     state.sideGigLedger = state.sideGigLedger.filter((sg) => sg.id !== id);

@@ -8,12 +8,12 @@ function sideGigBasisSelect(sg) {
         const sel = sg.basisType === value ? ' selected' : '';
         opts += `<option value="${value}"${sel}>${escHtml(label)}</option>`;
     }
-    return `<select class="sg-basis-select" aria-label="How was this item acquired?" onchange="updateSideGigTax('${sg.id}', 'basisType', this.value)">${opts}</select>`;
+    return `<select class="sg-basis-select" aria-label="How was this item acquired?" data-sg-id="${escHtml(String(sg.id))}" data-sg-field="basisType">${opts}</select>`;
 }
 
 function sideGigCostInput(sg) {
     const val = sg.costBasis ?? '';
-    return `<input type="number" class="sg-cost-input" min="0" step="0.01" placeholder="?" aria-label="Item cost basis" value="${escHtml(String(val))}" onchange="updateSideGigTax('${sg.id}', 'costBasis', this.value)">`;
+    return `<input type="number" class="sg-cost-input" min="0" step="0.01" placeholder="?" aria-label="Item cost basis" value="${escHtml(String(val))}" data-sg-id="${escHtml(String(sg.id))}" data-sg-field="costBasis">`;
 }
 
 function renderSideGigTaxSummary() {
@@ -59,7 +59,7 @@ function renderSideGigLedgerTable() {
                 <td class="text-right">${sideGigCostInput(sg)}</td>
                 <td class="text-right font-bold text-emerald">${formatCurrency(sg.net)}</td>
                 <td class="text-right">
-                    <button class="delete-btn" onclick="deleteSideGigEntry('${sg.id}')">Delete</button>
+                    <button class="delete-btn" data-sg-delete="${escHtml(String(sg.id))}">Delete</button>
                 </td>
             </tr>
         `;
