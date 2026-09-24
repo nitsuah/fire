@@ -4,8 +4,8 @@
 
 | Metric                            | Current                                  | Target  | Status       |
 | :-------------------------------- | :--------------------------------------- | :------ | :----------- |
-| Code Coverage | 83.76% stmts / **68.68% branch** / 82.81% funcs / 83.87% lines (Docker, 2026-09-24) | 80% stmts/funcs/lines, 70% branch (`config/vitest.config.ts`) | **Below Target (branch)**: `npm run test:coverage` exits 1 with `Coverage for branches (68.68%) does not meet global threshold (70%)`. See TASKS.md |
-| Total Tests | 472 (42 files, all passing, Docker 2026-09-24) | 100+ | Met |
+| Code Coverage | 84.62% stmts / 74.85% branch / 85.15% funcs / 84.85% lines (Docker, 2026-09-24, 484 tests) | 80% stmts/funcs/lines, 70% branch (`config/vitest.config.ts`) | Met. CI now runs `npm run test:coverage`, so a threshold drop fails the PR |
+| Total Tests | 484 (43 files, all passing, Docker 2026-09-24) | 100+ | Met |
 | CI/CD Build Status                | Passing (GitHub Actions)                 | Passing | Met          |
 | ESLint Violations                 | 0                                        | 0       | Met          |
 | Dependency Vulnerabilities        | 1 high (dev deps only, via `npm audit`)  | 0       | Below Target |
@@ -15,7 +15,7 @@
 | Client JS Size (app/lib/)         | TBD (no build step, modules served raw)  | N/A     | N/A          |
 | Build Success Rate                | N/A (no build step)                      | 99%     | N/A          |
 | Deployment Frequency              | TBD                                      | Weekly  | Untracked    |
-| Last updated | 2026-09-24 (PMO audit: `docker build --target test -t fire-test .` + `docker run --rm -u root fire-test npm run test:coverage`. `-u root` is needed because the image can't write `/app/coverage`, see TASKS.md) |  |  |
+| Last updated | 2026-09-24 (`docker build --target test -t fire-test . && docker run --rm fire-test npm run test:coverage`; `-u root` is no longer needed after the Dockerfile `chown` fix) |  |  |
 
 ## How to Update
 

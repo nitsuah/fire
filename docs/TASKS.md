@@ -14,10 +14,10 @@ for shipped capabilities. Its follow-up items are below._
 
 ## Follow-ups from PR #111 — Sep 2026
 
-- [ ] **Branch coverage is below the enforced 70% threshold, and CI doesn't check it.** (P1 · Tech Debt · Confidence: High)
+- [x] **Branch coverage is below the enforced 70% threshold, and CI doesn't check it.** Fixed 2026-09-24: new `tests/unit/finance-calcs-branches.test.mjs` raised branch coverage to 74.85% (484 tests), and CI now runs `npm run test:coverage`. (P1 · Tech Debt · Confidence: High)
   - Evidence (2026-09-24 PMO audit): `docker run --rm -u root fire-test npm run test:coverage` gives 472/472 tests passing in 42 files, and stmts 83.76%, branch 68.68%, funcs 82.81%, lines 83.87%. The command then **exits 1** with `Coverage for branches (68.68%) does not meet global threshold (70%)`. The last measurement (2026-09-18, native, 411 tests) had branch at 70.13%. Since then #111 and #113 merged and the suite grew by 61 tests, but branch coverage fell below the threshold. `.github/workflows` runs `npm test` (no `--coverage`), so CI stays green.
   - Acceptance Criteria: `npm run test:coverage` exits 0 in Docker (add branch tests for the #111 code paths). Then either add a coverage step to CI or document that the threshold is enforced only locally.
-- [ ] **The Docker `test` image can't write coverage output.** (P3 · Bug · Confidence: High)
+- [x] **The Docker `test` image can't write coverage output.** (P3 · Bug · Confidence: High) Fixed 2026-09-24: the Dockerfile now runs `chown node:node /app`.
   - Evidence: `docker run --rm fire-test npm run test:coverage` fails with `EACCES: permission denied, mkdir '/app/coverage'`. The Dockerfile runs `COPY --chown=node:node . .` into a root-owned `WORKDIR /app`, then `USER node`, so `node` can't create new top-level directories.
   - Acceptance Criteria: `chown node:node /app` (or pre-create `/app/coverage` with `node:node` ownership) so the coverage command works in the `test` target without `-u root`.
 
