@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09 — Side gig tax tagging
+
+#### Added
+- **Tax tags on Side Gig Ledger sales** (`app/lib/side-gig-tax.js`): tag each sale as business/resale, personal, gift or free ($0 basis) with an optional item cost. The ledger shows an estimated-taxable summary, flags untagged sales and personal/gift sales missing a cost, and treats personal losses as non-taxable and non-deductible.
+- **MCP tool `get_side_gig_tax_summary`** (read-only, optional `year`).
+
+#### Fixed
+- `get_side_gig_income` grouped every entry under "Other" with $0 gross because it read legacy `platform`/`gross` fields; it now reads `category`/`revenue`.
+- The eBay calculator no longer folds item cost into Fees/Expenses; it is stored as `costBasis` (net is unchanged).
+
 ### 2026-09 — Product / UI + Reliability pass (PR #111)
 
 #### Added

@@ -153,7 +153,7 @@ Connect Claude Code to your live financial data. The project ships a `.mcp.json`
 }
 ```
 
-**Functional tools (12):** `fire_status_summary`, `get_net_worth`, `get_accounts`, `get_portfolio`, `get_cds`, `get_expenses`, `get_projection_settings`, `get_side_gig_income`, `get_wallets`, `get_concentration_risk`, `simulate_rebalance`, `get_emergency_runway`
+**Functional tools (13):** `fire_status_summary`, `get_net_worth`, `get_accounts`, `get_portfolio`, `get_cds`, `get_expenses`, `get_projection_settings`, `get_side_gig_income`, `get_side_gig_tax_summary`, `get_wallets`, `get_concentration_risk`, `simulate_rebalance`, `get_emergency_runway`
 
 **Registered stubs (return `not_implemented`):** `get_market_correlation`, `get_swr_sensitivity`, `set_price_target_alert`, `auto_reconcile_csv`, `get_dividend_forecast`, `get_net_worth_trend`, `get_diversification_score`
 
@@ -180,7 +180,7 @@ fire/
 ├── app/
 │   ├── index.html              # Single-page app entry point
 │   ├── server.js               # Express server (port 3001)
-│   ├── mcp-server.mjs          # MCP server — 12 functional tools + 7 registered stubs
+│   ├── mcp-server.mjs          # MCP server — 13 functional tools + 7 registered stubs
 │   ├── lib/
 │   │   ├── db.js               # State persistence (db.json, atomic writes)
 │   │   ├── crypto-utils.js     # AES-256-GCM encrypt/decrypt
