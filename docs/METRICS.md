@@ -4,8 +4,8 @@
 
 | Metric                            | Current                                  | Target  | Status       |
 | :-------------------------------- | :--------------------------------------- | :------ | :----------- |
-| Code Coverage | 84.62% stmts / 73.30% branch / 85.15% funcs / 84.85% lines (Docker, 2026-09-24, 484 tests) | 80% stmts/funcs/lines, 70% branch (`config/vitest.config.ts`) | Met. CI now runs `npm run test:coverage`, so a threshold drop fails the PR |
-| Total Tests | 472 (42 files, all passing, Docker 2026-09-24) | 100+ | Met |
+| Code Coverage | 84.62% stmts / 74.85% branch / 85.15% funcs / 84.85% lines (Docker, 2026-09-24, 484 tests) | 80% stmts/funcs/lines, 70% branch (`config/vitest.config.ts`) | Met. CI now runs `npm run test:coverage`, so a threshold drop fails the PR |
+| Total Tests | 484 (43 files, all passing, Docker 2026-09-24) | 100+ | Met |
 | CI/CD Build Status                | Passing (GitHub Actions)                 | Passing | Met          |
 | ESLint Violations                 | 0                                        | 0       | Met          |
 | Dependency Vulnerabilities        | 1 high (dev deps only, via `npm audit`)  | 0       | Below Target |

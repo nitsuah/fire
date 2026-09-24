@@ -93,8 +93,15 @@ describe('buildProjectionData — sparse account fields fall back to 0', () => {
     });
 
     it('treats a missing scenario offset as 0', () => {
-        expect(buildProjectionData(sparseState).networth).toBe(
-            buildProjectionData(sparseState, 0).networth,
-        );
+        // networth ignores the offset, so compare the projection series, which
+        // grows at (expectedReturn + offset) on a funded equity account.
+        const funded = {
+            projectionSettings: { expectedReturn: 7, annualSavings: 0 },
+            customAccounts: [{ type: 'Brokerage', value: 100000 }],
+        };
+        const missing = buildProjectionData(funded).nwData;
+        expect(missing).toEqual(buildProjectionData(funded, 0).nwData);
+        // Sanity check that the series is offset-sensitive at all.
+        expect(missing).not.toEqual(buildProjectionData(funded, 2).nwData);
     });
 });
