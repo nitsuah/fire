@@ -28,8 +28,10 @@ jobs:
     - name: Run linter
       run: npm run lint
     
-    - name: Run tests
-      run: npm test
+    - name: Run tests with coverage thresholds
+      # test:coverage runs the full suite AND enforces config/vitest.config.ts
+      # thresholds; plain `npm test` let a branch-coverage drop merge green.
+      run: npm run test:coverage
     
     - name: Build
       run: npm run build

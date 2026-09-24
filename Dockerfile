@@ -4,7 +4,9 @@ COPY package.json ./
 COPY package-lock.json ./
 RUN npm install
 COPY --chown=node:node . .
-RUN mkdir -p /app/data && chown node:node /app/data
+# /app itself is created by WORKDIR as root; hand it to node so tools can
+# create output dirs (e.g. vitest --coverage writes /app/coverage).
+RUN mkdir -p /app/data && chown node:node /app /app/data
 USER node
 
 # `docker build --target test -t fire-test . && docker run --rm fire-test`
