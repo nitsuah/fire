@@ -15,7 +15,6 @@ updated: 2026-09-24
 
 PROD Phase 1 (real-time data connectors: eBay API, Web3 wallets across 9 chains, vehicle value, encrypted Drive backup) is shipped; these are what's left, plus open 2026 Q4 items.
 
-- [ ] **Verify eBay `X-EBAY-SIGNATURE`** on Marketplace Account Deletion notifications — **P1 security (CWE-345), do now, not gated on Q1 planning**: validate the signature before any token/state cleanup and reject invalid notifications. Deferred from PR #111 — see TASKS.md.
 - [ ] Model real eBay marginal fee brackets per category (needs per-category cap/tier data) *(PROD Phase 1)*
 - [ ] Tax drag estimation engine (custom federal/state brackets, capital gains) *(carried from 2026 Q4; side-gig tax tagging #120 is a first input)*
 - [ ] Lightweight PWA packaging *(carried from 2026 Q4; the installable/offline PWA in Phase 4 builds on this)*
