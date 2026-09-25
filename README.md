@@ -290,6 +290,7 @@ See [docs/prod-plan.md](docs/prod-plan.md) for the full productionization roadma
 - Shipped features → [FEATURES.md](./docs/FEATURES.md)
 
 <!-- docs-index:start -->
+
 ## Docs Index
 
 Every tracked doc in this repo, so nothing is orphaned (also used by the Obsidian vault mirror).
@@ -304,9 +305,11 @@ Every tracked doc in this repo, so nothing is orphaned (also used by the Obsidia
 - [FIRE Tracker — Privacy Policy & Terms of Use](./docs/privacy-policy.md) — `docs/privacy-policy.md`
 - [PROD Plan — FIRE Tracker Productionization](./docs/prod-plan.md) — `docs/prod-plan.md`
 - [Security Hardening Plan](./docs/security-hardening.md) — `docs/security-hardening.md`
+- [Weekly financial check-in prompt (local)](./docs/weekly-checkin-prompt.md) — `docs/weekly-checkin-prompt.md`
 
 **`docs/archive/`**
 
 - [fire-feedback](./docs/archive/fire-feedback.md) — `docs/archive/fire-feedback.md`
 - [fire-plan](./docs/archive/fire-plan.md) — `docs/archive/fire-plan.md`
+
 <!-- docs-index:end -->
