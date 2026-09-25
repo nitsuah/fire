@@ -238,6 +238,25 @@ function getAggregateOtherAssets(customAccounts) {
     }, 0);
 }
 
+// Estimated yearly interest from interest-bearing cash: HYSA/cash accounts
+// with an APY (open-ended, so simply balance × APY) plus CDs (principal ×
+// rate). Returns { savings, cds, total } in dollars per year.
+function getEstimatedAnnualInterest(customAccounts, cds) {
+    const savings = (customAccounts || []).reduce(
+        (sum, acc) =>
+            (acc.type === 'Savings' || acc.type === 'Cash') &&
+            (acc.apy || 0) > 0
+                ? sum + (acc.value || 0) * (acc.apy / 100)
+                : sum,
+        0,
+    );
+    const cdInterest = (cds || []).reduce(
+        (sum, cd) => sum + (cd.principal || 0) * ((cd.rate || 0) / 100),
+        0,
+    );
+    return { savings, cds: cdInterest, total: savings + cdInterest };
+}
+
 function getSideGigYTDNet(sideGigLedger) {
     return (sideGigLedger || []).reduce((sum, sg) => sum + (sg.net || 0), 0);
 }
@@ -370,6 +389,7 @@ module.exports = {
     getAggregateCDs,
     getAggregateEquities,
     getAggregateOtherAssets,
+    getEstimatedAnnualInterest,
     getSideGigYTDNet,
     getAggregateRealEstate,
     getAggregateVehicles,

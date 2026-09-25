@@ -304,8 +304,9 @@
 }
 
 /* Wide screens: Retirement Growth Path, Asset Allocation and Cash & Fixed
-   Income share the top row; Top Investment Positions runs full width below.
-   The column wrappers dissolve so all four cards are placed by the grid. */
+   Income share the top row; Top Investment Positions and then Other Assets
+   run full width below. The column wrappers dissolve so all five cards are
+   placed by the grid. */
 @media (min-width: 1400px) {
     .dashboard-body {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -326,6 +327,10 @@
     }
     #dash-card-positions {
         order: 4;
+        grid-column: 1 / -1;
+    }
+    #dash-card-other {
+        order: 5;
         grid-column: 1 / -1;
     }
     #dash-card-growth.growth-size-wide {

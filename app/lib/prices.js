@@ -1,12 +1,18 @@
 /* ==========================================================================
-   prices.js — Real-Time Stock Price Engine
-   Depends on globals: state, priceRefreshTimer, saveState, refreshAllUI
+   prices.js — Real-Time Stock Price Engine (+ Gold/Silver)
+   Depends on globals: state, priceRefreshTimer, metalsRefreshTimer, saveState, refreshAllUI
    ========================================================================== */
 
 function schedulePriceRefresh() {
     fetchAndApplyPrices();
     if (priceRefreshTimer) clearInterval(priceRefreshTimer);
     priceRefreshTimer = setInterval(fetchAndApplyPrices, 5 * 60 * 1000);
+}
+
+function scheduleMetalsRefresh() {
+    fetchAndApplyMetals();
+    if (metalsRefreshTimer) clearInterval(metalsRefreshTimer);
+    metalsRefreshTimer = setInterval(fetchAndApplyMetals, 5 * 60 * 1000);
 }
 
 async function fetchAndApplyPrices() {
@@ -38,12 +44,14 @@ async function fetchAndApplyPrices() {
         const prices = await res.json();
 
         let updated = false;
+        const now = new Date().toISOString();
         state.importedPositions.forEach((pos) => {
             const cleanSym = pos.symbol.trim().replace(/\*+$/, '');
             if (prices[cleanSym]) {
                 const newPrice = prices[cleanSym].price;
                 if (newPrice && newPrice > 0) {
                     pos.lastPrice = newPrice;
+                    pos.priceUpdatedAt = now;
                     // Recalculate current value based on quantity × new price
                     if (pos.quantity > 0) {
                         pos.value = pos.quantity * newPrice;
@@ -68,5 +76,49 @@ async function fetchAndApplyPrices() {
         }
     } catch (err) {
         console.warn('[Prices] Could not fetch real-time quotes:', err);
+    }
+}
+
+async function fetchAndApplyMetals() {
+    const metalAccounts = (state.customAccounts || []).filter(
+        (a) => a.type === 'Metal',
+    );
+    if (metalAccounts.length === 0) return;
+
+    try {
+        const res = await fetch('/api/metals');
+        if (!res.ok) return;
+        const metals = await res.json();
+
+        let updated = false;
+        metalAccounts.forEach((acc) => {
+            const quote = metals[acc.metalType?.toLowerCase()];
+            if (!quote?.price || !(acc.weightOz > 0)) return;
+            // Value at what a dealer pays (95% of spot for gold, 88% for
+            // silver — set server-side), not full spot.
+            const payoutPct = quote.payoutPct || 1;
+            const newValue = quote.price * payoutPct * acc.weightOz;
+            if (
+                newValue !== acc.value ||
+                acc.spotPricePerOz !== quote.price ||
+                acc.payoutPct !== payoutPct
+            ) {
+                acc.value = newValue;
+                acc.spotPricePerOz = quote.price;
+                acc.payoutPct = payoutPct;
+                acc.valueLastRefreshed = new Date().toISOString();
+                updated = true;
+            }
+        });
+
+        if (updated) {
+            await saveState();
+            refreshAllUI();
+            console.log(
+                '[Metals] Updated metal account values from spot prices.',
+            );
+        }
+    } catch (err) {
+        console.warn('[Metals] Could not fetch spot prices:', err);
     }
 }

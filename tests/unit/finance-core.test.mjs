@@ -16,6 +16,7 @@ import {
     getAggregateCDs,
     getAggregateEquities,
     getAggregateOtherAssets,
+    getEstimatedAnnualInterest,
     getSideGigYTDNet,
     getAggregateRealEstate,
     getAggregateVehicles,
@@ -75,5 +76,26 @@ describe('finance-core', () => {
         expect(typeof calculateFBFees).toBe('function');
         expect(typeof calculateFBNetProfit).toBe('function');
         expect(typeof US_MEDIAN_SAVINGS).toBe('object');
+    });
+});
+
+describe('getEstimatedAnnualInterest', () => {
+    it('sums HYSA/cash APY and CD interest, ignoring other account types', () => {
+        const r = getEstimatedAnnualInterest(
+            [
+                { type: 'Savings', value: 10000, apy: 4 },
+                { type: 'Cash', value: 1000, apy: 0 },
+                { type: 'Crypto', value: 5000, apy: 7 },
+                { type: 'Metal', value: 2000 },
+            ],
+            [{ principal: 20000, rate: 5 }],
+        );
+        expect(r.savings).toBeCloseTo(400, 6);
+        expect(r.cds).toBeCloseTo(1000, 6);
+        expect(r.total).toBeCloseTo(1400, 6);
+    });
+
+    it('handles missing inputs', () => {
+        expect(getEstimatedAnnualInterest(undefined, undefined).total).toBe(0);
     });
 });

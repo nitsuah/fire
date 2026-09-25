@@ -51,11 +51,13 @@ describe('parseEbayListingsReport', () => {
         expect(a.itemId).toBe('227297193518');
         expect(a.qty).toBe(2);
         expect(a.revenue).toBe(27.02); // item sales + shipping paid by buyer
-        expect(a.expenses).toBe(16.55); // selling costs + shipping labels
-        expect(a.net).toBe(10.47);
+        // "Total selling costs" already includes the $6.24 label, so it must
+        // not be added again; net matches eBay's own Net sales column.
+        expect(a.expenses).toBe(10.31);
+        expect(a.net).toBe(16.71);
         const refund = parsed.items[1];
         expect(refund.revenue).toBe(0);
-        expect(refund.net).toBe(-36.44);
+        expect(refund.net).toBe(-18.42);
     });
 
     it('returns null for a non-eBay CSV', () => {
@@ -72,6 +74,24 @@ describe('mergeEbayReport', () => {
         expect(again.added).toBe(0);
         expect(again.skipped).toBe(1);
         expect(again.ledger).toHaveLength(1);
+    });
+
+    it('refreshes amounts when the same report is re-imported with different numbers', () => {
+        const r = parse('Jan 1, 2026 to Sep 18, 2026', [ROW_A]);
+        const stale = {
+            ...mergeEbayReport([], r).ledger[0],
+            expenses: 16.55,
+            net: 10.47,
+            basisType: 'business',
+            costBasis: 5,
+        };
+        const again = mergeEbayReport([stale], r);
+        expect(again.updated).toBe(1);
+        expect(again.added).toBe(0);
+        expect(again.ledger).toHaveLength(1);
+        expect(again.ledger[0].expenses).toBe(10.31);
+        expect(again.ledger[0].net).toBe(11.71); // 27.02 - 10.31 - 5 cost
+        expect(again.ledger[0].basisType).toBe('business');
     });
 
     it('replaces an older range contained in a newer cumulative report', () => {

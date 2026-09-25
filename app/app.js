@@ -73,8 +73,9 @@ var projLineToggles = {
 // Base return rate before scenario offset is applied (null = use projectionSettings)
 var scenarioOffset = 0; // +2 = bull, -2 = bear, 0 = base
 
-// Price refresh timer
+// Price refresh timers (stocks, gold/silver)
 var priceRefreshTimer = null;
+var metalsRefreshTimer = null;
 
 // Initialize App on DOM Load
 document.addEventListener('DOMContentLoaded', async () => {
@@ -101,6 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Kick off background price refresh (every 5 minutes)
     schedulePriceRefresh();
+    scheduleMetalsRefresh();
 });
 
 /* ==========================================================================
@@ -115,6 +117,7 @@ function refreshAllUI() {
 
     renderDashboardTopPositionsTable();
     renderDashboardLiquidPanel();
+    renderDashboardOtherAssetsPanel();
     renderAssetAllocationChart();
     renderDashboardProjectionsChart();
 
@@ -227,6 +230,22 @@ function getAggregateOtherAssets() {
         }
     });
     return sum;
+}
+
+// Estimated yearly interest: HYSA/cash balance × APY (open-ended, no end
+// date) plus CD principal × rate. See finance-core.js for the tested twin.
+function getEstimatedAnnualInterest() {
+    let savings = 0;
+    state.customAccounts.forEach(acc => {
+        if ((acc.type === 'Cash' || acc.type === 'Savings') && (acc.apy || 0) > 0) {
+            savings += (acc.value || 0) * (acc.apy / 100);
+        }
+    });
+    let cds = 0;
+    state.cds.forEach(cd => {
+        cds += (cd.principal || 0) * ((cd.rate || 0) / 100);
+    });
+    return { savings, cds, total: savings + cds };
 }
 
 function getSideGigYTDNet() {

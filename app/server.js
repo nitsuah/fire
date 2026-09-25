@@ -18,6 +18,7 @@ const syncRouter = require('./routes/sync');
 const accountsRouter = require('./routes/accounts');
 const cdsRouter = require('./routes/cds');
 const pricesRouter = require('./routes/prices');
+const metalsRouter = require('./routes/metals');
 const walletsRouter = require('./routes/wallets');
 const backupRouter = require('./routes/backup');
 const vehiclesRouter = require('./routes/vehicles');
@@ -126,7 +127,7 @@ app.use((req, res, next) => {
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
             "font-src 'self' fonts.gstatic.com",
             "img-src 'self' data:",
-            "connect-src 'self' query1.finance.yahoo.com finance.yahoo.com",
+            "connect-src 'self' query1.finance.yahoo.com finance.yahoo.com cdn.jsdelivr.net",
             "frame-ancestors 'none'",
         ].join('; '),
     );
@@ -185,6 +186,7 @@ app.use('/api/sync', syncRouter);
 app.use('/api/accounts', accountsRouter);
 app.use('/api/cds', cdsRouter);
 app.use('/api/prices', pricesRouter);
+app.use('/api/metals', metalsRouter);
 app.use('/api/wallets', walletsRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/vehicles', vehiclesRouter);

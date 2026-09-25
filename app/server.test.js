@@ -353,7 +353,10 @@ describe('Metal accounts', () => {
             `/api/accounts/${create.body.id}/refresh-metal`,
         );
         expect(res.status).toBe(200);
-        expect(res.body.value).toBe(4000);
+        // 2oz × $2000 spot × 95% gold payout
+        expect(res.body.value).toBeCloseTo(3800, 6);
+        expect(res.body.spotPricePerOz).toBe(2000);
+        expect(res.body.payoutPct).toBe(0.95);
         expect(res.body.valueLastRefreshed).toBeDefined();
         expect(res.body.metalResult.source).toBe('yahoo-finance');
     });
