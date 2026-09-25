@@ -44,7 +44,6 @@ const SHELL_ASSETS = [
     '/lib/managers/asset-form.js',
     '/lib/css/base.css',
     '/lib/css/components.css',
-    '/lib/css/components-data.css',
     '/lib/css/charts.css',
     '/lib/css/layout.css',
     '/lib/css/widgets.css',

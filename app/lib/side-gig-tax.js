@@ -16,13 +16,13 @@
 /* global module */
 
 const SIDE_GIG_BASIS_TYPES = {
-    business: 'Business / bought to resell',
-    personal: 'Personal item',
-    gift: 'Gift (giver’s cost)',
-    free: 'Free / $0 cost',
+    business: "Business / bought to resell",
+    personal: "Personal item",
+    gift: "Gift (giver's cost)",
+    free: "Free / $0 cost",
 };
 
-const round2 = (n) => Math.round(n * 100) / 100;
+// round2 is defined in ebay-report.js (loads first); reuse it to avoid redeclaration error
 
 function isBasisType(t) {
     return Object.prototype.hasOwnProperty.call(SIDE_GIG_BASIS_TYPES, t);
@@ -94,7 +94,7 @@ function applyCostBasis(entry, value) {
     return next;
 }
 
-// ISO date → year; falls back to the eBay report range or a Date.now() id.
+// ISO date -> year; falls back to the eBay report range or a Date.now() id.
 function entryYear(entry) {
     const iso = entry.date || entry.reportEnd || entry.reportStart;
     if (iso && /^\d{4}/.test(iso)) return Number(iso.slice(0, 4));
@@ -199,4 +199,15 @@ if (typeof module !== 'undefined' && module.exports) {
         summarizeSideGigTax,
         entryYear,
     };
+}
+
+// Make functions globally available for browser scripts
+if (typeof window !== 'undefined') {
+    window.SIDE_GIG_BASIS_TYPES = SIDE_GIG_BASIS_TYPES;
+    window.saleAmounts = saleAmounts;
+    window.localIsoDate = localIsoDate;
+    window.applyCostBasis = applyCostBasis;
+    window.classifySideGigSale = classifySideGigSale;
+    window.summarizeSideGigTax = summarizeSideGigTax;
+    window.entryYear = entryYear;
 }

@@ -126,7 +126,7 @@ app.use((req, res, next) => {
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
             "font-src 'self' fonts.gstatic.com",
             "img-src 'self' data:",
-            "connect-src 'self' query1.finance.yahoo.com finance.yahoo.com",
+            "connect-src 'self' query1.finance.yahoo.com finance.yahoo.com cdn.jsdelivr.net",
             "frame-ancestors 'none'",
         ].join('; '),
     );
