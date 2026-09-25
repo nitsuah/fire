@@ -37,7 +37,8 @@ async function fetchAndCacheMetal(metal) {
 
 router.get('/', async (req, res) => {
     const { metal } = req.query;
-    const metals = metal ? [metal.toLowerCase()] : ['gold', 'silver'];
+    // String(): a repeated ?metal= arrives as an array under Express 5.
+    const metals = metal ? [String(metal).toLowerCase()] : ['gold', 'silver'];
     const results = {};
 
     for (const m of metals) {
