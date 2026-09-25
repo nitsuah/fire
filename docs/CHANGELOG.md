@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09 — eBay notification signature verification (PR #123)
+
+#### Security
+- **Marketplace Account Deletion notifications are now signature-verified** (CWE-345). `POST /api/sync/ebay/marketplace-account-deletion` checks eBay's `X-EBAY-SIGNATURE` (ECDSA, public key per `kid` fetched from the Notification API and cached) over the raw request body, falling back to `JSON.stringify(body)` as eBay's SDKs do, before purging tokens or disabling sync. Unsigned, tampered or unknown-`kid` notifications get `412`; key-lookup failures or missing `EBAY_CLIENT_ID`/`EBAY_CLIENT_SECRET` get `503` so eBay retries. Previously the endpoint trusted only the secret URL + verification token.
+
 ### 2026-09 — Coverage gate + docs reset
 
 #### Fixed
