@@ -22,10 +22,6 @@ for shipped capabilities. Its follow-up items are below._
   - Acceptance Criteria: `chown node:node /app` (or pre-create `/app/coverage` with `node:node` ownership) so the coverage command works in the `test` target without `-u root`.
 
 - [ ] Manual step: register the public HTTPS notification URL + verification token in the eBay Developer Portal (cannot be verified in CI)
-- [ ] Verify eBay's `X-EBAY-SIGNATURE` on Marketplace Account Deletion notifications (`app/routes/sync.js`)
-  - Priority: P1 (security) — deferred from PR #111 review (CodeRabbit, `sync.js` thread).
-  - Context: the POST handler currently trusts the secret endpoint URL + verification token. eBay signs notifications: `X-EBAY-SIGNATURE` is base64 JSON `{alg, kid, signature, digest}`; fetch the public key for `kid` from eBay's Notification API, verify the signature over the raw body (needs `rawBody` capture on this route), and reject on mismatch before purging anything. Needs live eBay credentials to test end to end; mock the key fetch in unit tests.
-  - Acceptance Criteria: unsigned/invalid notifications return 4xx without touching tokens or state; valid ones behave as today; tests cover valid, tampered-body and unknown-`kid` cases.
 - [ ] Stop exposing browser helpers as classic-script globals (`app/lib/fetch-utils.js` `fetchJson`, and the rest of `app/lib/**`)
   - Priority: P3 (maintainability) — deferred from PR #111 review (CodeRabbit, `fetch-utils.js` thread).
   - Context: the SPA loads ~40 plain `<script>` files that share one global scope, so any helper is a cross-file global by design. Fixing just `fetchJson` would mean converting every consumer to `import`; doing it properly means moving the frontend to ES modules with a bundler (or native `type="module"`) as one migration.
