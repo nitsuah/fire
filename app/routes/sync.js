@@ -17,6 +17,7 @@ const {
     fetchCompletedOrders,
     ordersToLedgerEntries,
     computeMarketplaceDeletionChallengeResponse,
+    verifyNotificationSignature,
 } = require('../lib/ebay-connector');
 
 const router = express.Router();
@@ -303,10 +304,11 @@ router.get('/ebay/status', (req, res) => {
 //      calls with ?challenge_code=... and expects
 //      {challengeResponse: sha256(challengeCode+verificationToken+endpoint)}.
 //   2. POST — the actual deletion/closure notification once verified. eBay
-//      does not sign these; the challenge-response handshake above is what
-//      proves this endpoint owns the verification token, so the endpoint
-//      URL itself (registered in the eBay Developer Portal) is the trust
-//      boundary. Must ack fast — eBay expects a quick 2xx.
+//      signs it (X-EBAY-SIGNATURE); the signature is verified over the raw
+//      request bytes (req.rawBody, captured by the express.json verify hook
+//      in app/server.js) against eBay's public key for the header's kid
+//      BEFORE any token/state cleanup. Must ack fast — eBay expects a
+//      quick 2xx.
 // EBAY_NOTIFICATION_ENDPOINT_URL must exactly match what's registered with
 // eBay; falling back to the incoming request's own URL only works for local
 // verification since eBay's servers need a real public HTTPS URL to reach
@@ -339,6 +341,32 @@ router.get('/ebay/marketplace-account-deletion', (req, res) => {
 });
 
 router.post('/ebay/marketplace-account-deletion', async (req, res) => {
+    // Signature check first: nothing below may run for an unsigned/forged
+    // notification. The public key lookup needs app credentials.
+    if (!eBayConfigured()) {
+        return res.status(503).json({
+            error: 'eBay not configured. Set EBAY_CLIENT_ID and EBAY_CLIENT_SECRET.',
+        });
+    }
+    let verification;
+    try {
+        verification = await verifyNotificationSignature(
+            req.rawBody,
+            req.get('X-EBAY-SIGNATURE'),
+        );
+    } catch (err) {
+        // Couldn't reach eBay to fetch the key — 5xx so eBay retries later.
+        console.error('[eBay] Notification signature check failed:', err);
+        return res
+            .status(503)
+            .json({ error: 'Signature verification unavailable.' });
+    }
+    if (!verification.valid) {
+        console.warn(
+            `[eBay] Rejected account deletion notification: ${verification.reason}.`,
+        );
+        return res.status(412).json({ error: 'Invalid eBay signature.' });
+    }
     const topic = req.body?.metadata?.topic;
     const notification = req.body?.notification;
     if (topic !== 'MARKETPLACE_ACCOUNT_DELETION' || !notification) {

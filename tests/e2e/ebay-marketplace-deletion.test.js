@@ -14,11 +14,13 @@
  *      eBay-sourced sideGigLedger history already synced in.
  *   2. eBay's one-time verification handshake (GET with challenge_code) is
  *      answered correctly.
- *   3. eBay's actual deletion notification (POST) is accepted, purges the
+ *   3. eBay's actual deletion notification (POST), signed with
+ *      X-EBAY-SIGNATURE (eBay's public-key endpoint is stubbed with a
+ *      locally generated ECDSA key — no live eBay calls), is accepted, purges the
  *      stored OAuth tokens and disables further sync — but leaves the
  *      user's own already-synced financial ledger history untouched, since
  *      that's the user's own data, not eBay's to delete.
- *   4. A malformed/unverifiable notification is rejected without crashing
+ *   4. An unsigned/unverifiable notification is rejected without crashing
  *      the process or affecting stored state.
  */
 
@@ -56,6 +58,55 @@ process.env.SYNC_MASTER_KEY = '22'.repeat(32);
 process.env.EBAY_VERIFICATION_TOKEN = 'e2e-test-verification-token-1234567890';
 process.env.EBAY_NOTIFICATION_ENDPOINT_URL =
     'https://fire.example.test/api/sync/ebay/marketplace-account-deletion';
+process.env.EBAY_CLIENT_ID = 'e2e-client-id';
+process.env.EBAY_CLIENT_SECRET = 'e2e-client-secret';
+
+const SIGNING_KID = 'e2e-signing-kid';
+const signingKeys = crypto.generateKeyPairSync('ec', {
+    namedCurve: 'prime256v1',
+});
+
+// Stands in for eBay's OAuth + Notification public_key endpoints.
+function stubEbayPublicKeyApi() {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url) => {
+            const u = String(url);
+            if (u.endsWith('/identity/v1/oauth2/token')) {
+                return new Response(
+                    JSON.stringify({ access_token: 'app', expires_in: 7200 }),
+                    { status: 200 },
+                );
+            }
+            if (u.endsWith(`/public_key/${SIGNING_KID}`)) {
+                return new Response(
+                    JSON.stringify({
+                        algorithm: 'ECDSA',
+                        digest: 'SHA1',
+                        key: signingKeys.publicKey
+                            .export({ type: 'spki', format: 'pem' })
+                            .replace(/\n/g, ''),
+                    }),
+                    { status: 200 },
+                );
+            }
+            return new Response('not found', { status: 404 });
+        }),
+    );
+}
+
+function ebaySignatureHeader(rawBody) {
+    return Buffer.from(
+        JSON.stringify({
+            alg: 'ECDSA',
+            kid: SIGNING_KID,
+            signature: crypto
+                .sign('sha1', Buffer.from(rawBody), signingKeys.privateKey)
+                .toString('base64'),
+            digest: 'SHA1',
+        }),
+    ).toString('base64');
+}
 
 const request = require('supertest');
 const app = require('../../app/server');
@@ -133,6 +184,10 @@ afterAll(() => {
     restoreEnv();
 });
 
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
+
 describe('eBay Marketplace Account Deletion — end-to-end', () => {
     beforeEach(() => {
         resetState();
@@ -167,25 +222,29 @@ describe('eBay Marketplace Account Deletion — end-to-end', () => {
     });
 
     it('processes a real deletion notification end-to-end: purges tokens, disables sync, keeps ledger history', async () => {
+        stubEbayPublicKeyApi();
+        const rawBody = JSON.stringify({
+            metadata: {
+                topic: 'MARKETPLACE_ACCOUNT_DELETION',
+                schemaVersion: '1.0',
+            },
+            notification: {
+                notificationId: crypto.randomUUID(),
+                eventDate: new Date().toISOString(),
+                publishDate: new Date().toISOString(),
+                publishAttemptCount: 1,
+                data: {
+                    username: 'e2e-test-seller',
+                    userId: 'e2e-user-id',
+                    eiasToken: 'eias-token-placeholder',
+                },
+            },
+        });
         const notifyRes = await request(app)
             .post('/api/sync/ebay/marketplace-account-deletion')
-            .send({
-                metadata: {
-                    topic: 'MARKETPLACE_ACCOUNT_DELETION',
-                    schemaVersion: '1.0',
-                },
-                notification: {
-                    notificationId: crypto.randomUUID(),
-                    eventDate: new Date().toISOString(),
-                    publishDate: new Date().toISOString(),
-                    publishAttemptCount: 1,
-                    data: {
-                        username: 'e2e-test-seller',
-                        userId: 'e2e-user-id',
-                        eiasToken: 'eias-token-placeholder',
-                    },
-                },
-            });
+            .set('Content-Type', 'application/json')
+            .set('X-EBAY-SIGNATURE', ebaySignatureHeader(rawBody))
+            .send(rawBody);
 
         expect(notifyRes.status).toBe(200);
         expect(notifyRes.body.status).toBe('acknowledged');
@@ -206,12 +265,16 @@ describe('eBay Marketplace Account Deletion — end-to-end', () => {
         );
     });
 
-    it('rejects a malformed/unverifiable notification without touching stored state', async () => {
+    it('rejects an unsigned notification without touching stored state', async () => {
+        stubEbayPublicKeyApi();
         const res = await request(app)
             .post('/api/sync/ebay/marketplace-account-deletion')
-            .send({ some: 'unrelated payload' });
+            .send({
+                metadata: { topic: 'MARKETPLACE_ACCOUNT_DELETION' },
+                notification: { notificationId: 'forged' },
+            });
 
-        expect(res.status).toBe(400);
+        expect(res.status).toBe(412);
         // Nothing should have been purged or disabled by a rejected request.
         expect(fs.existsSync(TOKEN_FILE)).toBe(true);
         const status = await request(app).get('/api/sync/ebay/status');

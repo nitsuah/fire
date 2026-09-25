@@ -171,6 +171,182 @@ function computeMarketplaceDeletionChallengeResponse(
         .digest('hex');
 }
 
+// ─── Notification signature verification ─────────────────────────────────────
+// eBay signs every Notification API push (incl. Marketplace Account
+// Deletion) with an `X-EBAY-SIGNATURE` header: base64-encoded JSON
+// {alg, kid, signature, digest}. The public key for `kid` comes from
+// GET /commerce/notification/v1/public_key/{kid}, which needs an
+// application (client-credentials) access token. Keys are cached per kid,
+// matching eBay's own event-notification SDKs (1h TTL).
+// https://developer.ebay.com/api-docs/commerce/notification/resources/public_key/methods/getPublicKey
+const APP_SCOPE = 'https://api.ebay.com/oauth/api_scope';
+const PUBLIC_KEY_TTL_MS = 60 * 60 * 1000;
+const SUPPORTED_SIGNATURE_ALGS = new Set(['ECDSA']);
+const SUPPORTED_DIGESTS = { SHA1: 'sha1', SHA256: 'sha256' };
+
+let appTokenCache = null;
+const publicKeyCache = new Map();
+
+function resetNotificationKeyCache() {
+    appTokenCache = null;
+    publicKeyCache.clear();
+}
+
+async function getApplicationAccessToken() {
+    if (appTokenCache && appTokenCache.expiresAt > Date.now()) {
+        return appTokenCache.token;
+    }
+    const { clientId, clientSecret } = getEnv();
+    const { api } = getBaseUrls();
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
+        'base64',
+    );
+    const body = new URLSearchParams({
+        grant_type: 'client_credentials',
+        scope: APP_SCOPE,
+    });
+    const res = await fetch(`${api}/identity/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Authorization: `Basic ${credentials}`,
+        },
+        body: body.toString(),
+        signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(
+            `eBay application token request failed (${res.status}): ${text}`,
+        );
+    }
+    const json = await res.json();
+    // Refresh a minute early so a token never expires mid-request.
+    const ttlMs = Math.max(0, (Number(json.expires_in) || 0) - 60) * 1000;
+    appTokenCache = { token: json.access_token, expiresAt: Date.now() + ttlMs };
+    return json.access_token;
+}
+
+// eBay returns the PEM on a single line ("-----BEGIN PUBLIC KEY-----MFkw...");
+// decode the base64 body as DER/SPKI instead of relying on PEM line wrapping.
+function parseEbayPublicKey(pem) {
+    const b64 = String(pem)
+        .replace(/-----(BEGIN|END) PUBLIC KEY-----/g, '')
+        .replace(/\s+/g, '');
+    return crypto.createPublicKey({
+        key: Buffer.from(b64, 'base64'),
+        format: 'der',
+        type: 'spki',
+    });
+}
+
+// Resolves to {key, algorithm, digest}, or null when eBay doesn't know the
+// kid (404). Any other failure throws, so callers can distinguish "forged
+// notification" (4xx) from "we couldn't check right now" (5xx → eBay retries).
+async function fetchNotificationPublicKey(kid) {
+    const cached = publicKeyCache.get(kid);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+    const token = await getApplicationAccessToken();
+    const { api } = getBaseUrls();
+    const res = await fetch(
+        `${api}/commerce/notification/v1/public_key/${encodeURIComponent(kid)}`,
+        {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(15000),
+        },
+    );
+    if (res.status === 404) return null;
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(
+            `eBay public key lookup failed (${res.status}): ${text}`,
+        );
+    }
+    const json = await res.json();
+    const value = {
+        key: parseEbayPublicKey(json.key),
+        algorithm: String(json.algorithm || '').toUpperCase(),
+        digest: String(json.digest || '').toUpperCase(),
+    };
+    publicKeyCache.set(kid, {
+        value,
+        expiresAt: Date.now() + PUBLIC_KEY_TTL_MS,
+    });
+    return value;
+}
+
+function decodeSignatureHeader(header) {
+    if (!header || typeof header !== 'string') return null;
+    try {
+        const parsed = JSON.parse(
+            Buffer.from(header, 'base64').toString('utf8'),
+        );
+        if (
+            !parsed ||
+            typeof parsed.kid !== 'string' ||
+            !parsed.kid ||
+            typeof parsed.signature !== 'string' ||
+            !parsed.signature
+        ) {
+            return null;
+        }
+        return {
+            alg: String(parsed.alg || '').toUpperCase(),
+            kid: parsed.kid,
+            signature: parsed.signature,
+            digest: String(parsed.digest || '').toUpperCase(),
+        };
+    } catch {
+        return null;
+    }
+}
+
+// Verifies an eBay notification's X-EBAY-SIGNATURE over the exact raw
+// request bytes. Returns {valid: true} or {valid: false, reason}; throws
+// only when the key couldn't be fetched for reasons other than an unknown
+// kid (network/5xx/auth), which the caller should surface as a 5xx.
+async function verifyNotificationSignature(rawBody, signatureHeader) {
+    if (!Buffer.isBuffer(rawBody) || rawBody.length === 0) {
+        return { valid: false, reason: 'missing body' };
+    }
+    const sig = decodeSignatureHeader(signatureHeader);
+    if (!sig)
+        return {
+            valid: false,
+            reason: 'missing or malformed signature header',
+        };
+    if (!SUPPORTED_SIGNATURE_ALGS.has(sig.alg)) {
+        return { valid: false, reason: 'unsupported signature algorithm' };
+    }
+    const hash = SUPPORTED_DIGESTS[sig.digest];
+    if (!hash) return { valid: false, reason: 'unsupported digest' };
+
+    const publicKey = await fetchNotificationPublicKey(sig.kid);
+    if (!publicKey) return { valid: false, reason: 'unknown key id' };
+    if (
+        publicKey.algorithm !== sig.alg ||
+        (publicKey.digest && publicKey.digest !== sig.digest)
+    ) {
+        return { valid: false, reason: 'key/algorithm mismatch' };
+    }
+
+    let ok = false;
+    try {
+        ok = crypto.verify(
+            hash,
+            rawBody,
+            publicKey.key,
+            Buffer.from(sig.signature, 'base64'),
+        );
+    } catch {
+        ok = false;
+    }
+    return ok
+        ? { valid: true }
+        : { valid: false, reason: 'signature mismatch' };
+}
+
 module.exports = {
     getEnv,
     isConfigured,
@@ -180,4 +356,6 @@ module.exports = {
     fetchCompletedOrders,
     ordersToLedgerEntries,
     computeMarketplaceDeletionChallengeResponse,
+    verifyNotificationSignature,
+    resetNotificationKeyCache,
 };
