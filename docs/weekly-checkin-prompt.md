@@ -13,8 +13,10 @@ phase, recovering from burnout.
 1. Today's date and week number
 2. Upcoming dates (end of month, quarter-end if applicable)
 3. Actual CD maturity dates from get_cds, and current net worth / runway snapshot
-4. Current market HYSA and 3/6/12-month CD rates (web search) vs. what get_cds shows
-   they are earning now — flag if they could be earning meaningfully more
+4. What get_cds shows the CDs earning now, compared with current market HYSA and
+   3/6/12-month CD rates **if the session has a web search tool** (the fire-tracker MCP
+   server doesn't provide one). Flag if they could be earning meaningfully more; if no
+   web search is available, list the current rates and say the market comparison was skipped
 5. One concrete action item based on real data (e.g. a specific CD maturing this month)
 6. One-sentence reminder to stay mindful of spending during this phase
 
