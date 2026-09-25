@@ -5,8 +5,10 @@ import {
     beforeAll,
     afterAll,
     afterEach,
+    beforeEach,
     vi,
 } from 'vitest';
+import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -77,11 +79,16 @@ fs.writeFileSync(
 
 let app;
 let computeMarketplaceDeletionChallengeResponse;
+let readState;
+let mutateState;
 
 beforeAll(async () => {
     app = (await import('../../app/server.js')).default;
     ({ computeMarketplaceDeletionChallengeResponse } =
         await import('../../app/lib/ebay-connector.js'));
+    // db.json is encrypted at rest under SYNC_MASTER_KEY, so go through the
+    // app's own accessors rather than parsing the file.
+    ({ readState, mutateState } = await import('../../app/lib/db.js'));
 });
 
 afterEach(() => {
@@ -317,35 +324,220 @@ describe('GET /api/sync/ebay/marketplace-account-deletion', () => {
     });
 });
 
+// eBay signs deletion notifications with X-EBAY-SIGNATURE (base64 JSON
+// {alg, kid, signature, digest}). These tests generate a throwaway ECDSA
+// key pair, sign bodies with it, and stub global fetch so the connector's
+// app-token + public-key lookups hit the stub instead of eBay. Each test
+// uses its own kid because the route's connector instance caches keys.
+const signingKeys = crypto.generateKeyPairSync('ec', {
+    namedCurve: 'prime256v1',
+});
+// eBay returns the PEM on one line; mimic that.
+const EBAY_STYLE_PEM = signingKeys.publicKey
+    .export({ type: 'spki', format: 'pem' })
+    .replace(/\n/g, '');
+let kidCounter = 0;
+const nextKid = () => `test-kid-${Date.now()}-${++kidCounter}`;
+
+function signatureHeader(rawBody, kid, overrides = {}) {
+    const signature = crypto
+        .sign('sha1', Buffer.from(rawBody), signingKeys.privateKey)
+        .toString('base64');
+    return Buffer.from(
+        JSON.stringify({
+            alg: 'ECDSA',
+            kid,
+            signature,
+            digest: 'SHA1',
+            ...overrides,
+        }),
+    ).toString('base64');
+}
+
+// knownKids: kids eBay "knows"; any other kid gets eBay's 404. keyStatus
+// overrides the public-key response status (e.g. 500 = eBay is down).
+function stubEbayFetch({ knownKids = [], keyStatus } = {}) {
+    const fetchMock = vi.fn(async (url) => {
+        const u = String(url);
+        if (u.endsWith('/identity/v1/oauth2/token')) {
+            return new Response(
+                JSON.stringify({ access_token: 'app-token', expires_in: 7200 }),
+                { status: 200 },
+            );
+        }
+        const m = u.match(/\/commerce\/notification\/v1\/public_key\/(.+)$/);
+        if (m) {
+            const kid = decodeURIComponent(m[1]);
+            if (keyStatus) return new Response('boom', { status: keyStatus });
+            if (!knownKids.includes(kid)) {
+                return new Response('{"errors":[]}', { status: 404 });
+            }
+            return new Response(
+                JSON.stringify({
+                    algorithm: 'ECDSA',
+                    digest: 'SHA1',
+                    key: EBAY_STYLE_PEM,
+                }),
+                { status: 200 },
+            );
+        }
+        throw new Error(`Unexpected fetch in test: ${u}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+}
+
+const VALID_NOTIFICATION = JSON.stringify({
+    metadata: { topic: 'MARKETPLACE_ACCOUNT_DELETION' },
+    notification: {
+        notificationId: 'test-notification-id',
+        data: { username: 'testuser', userId: 'abc123' },
+    },
+});
+
+// /api/sync is rate-limited to 30 req/min per client IP; the app trusts
+// one proxy hop, so a distinct X-Forwarded-For per request keeps this
+// block from tripping the limiter (429) regardless of test ordering.
+let clientIpCounter = 0;
+function postDeletion(rawBody, header) {
+    const req = request(app)
+        .post('/api/sync/ebay/marketplace-account-deletion')
+        .set('X-Forwarded-For', `203.0.113.${++clientIpCounter}`)
+        .set('Content-Type', 'application/json');
+    if (header) req.set('X-EBAY-SIGNATURE', header);
+    return req.send(rawBody);
+}
+
 describe('POST /api/sync/ebay/marketplace-account-deletion', () => {
-    it('rejects a malformed notification', async () => {
-        const res = await request(app)
-            .post('/api/sync/ebay/marketplace-account-deletion')
-            .send({ not: 'a real eBay payload' });
-        expect(res.status).toBe(400);
-        expect(res.body.error).toMatch(/Malformed/i);
+    beforeEach(async () => {
+        process.env.EBAY_CLIENT_ID = 'test-client-id';
+        process.env.EBAY_CLIENT_SECRET = 'test-client-secret';
+        fs.writeFileSync(TOKEN_FILE, JSON.stringify({ data: 'placeholder' }));
+        await mutateState((state) => {
+            state.ebaySyncEnabled = true;
+        });
     });
 
-    it('acknowledges a well-formed notification, purges stored tokens, and disables sync', async () => {
-        fs.writeFileSync(TOKEN_FILE, JSON.stringify({ data: 'placeholder' }));
-        await request(app)
-            .post('/api/sync/ebay/toggle')
-            .send({ enabled: true });
+    const syncEnabled = () => readState().ebaySyncEnabled;
 
-        const res = await request(app)
-            .post('/api/sync/ebay/marketplace-account-deletion')
-            .send({
-                metadata: { topic: 'MARKETPLACE_ACCOUNT_DELETION' },
-                notification: {
-                    notificationId: 'test-notification-id',
-                    data: { username: 'testuser', userId: 'abc123' },
-                },
-            });
+    function expectUntouched() {
+        expect(fs.existsSync(TOKEN_FILE)).toBe(true);
+        expect(syncEnabled()).toBe(true);
+    }
+
+    it('acknowledges a validly signed notification, purges stored tokens, and disables sync', async () => {
+        const kid = nextKid();
+        const fetchMock = stubEbayFetch({ knownKids: [kid] });
+
+        const res = await postDeletion(
+            VALID_NOTIFICATION,
+            signatureHeader(VALID_NOTIFICATION, kid),
+        );
         expect(res.status).toBe(200);
         expect(res.body.status).toBe('acknowledged');
         expect(fs.existsSync(TOKEN_FILE)).toBe(false);
+        expect(
+            fetchMock.mock.calls.some(([u]) =>
+                String(u).endsWith(`/public_key/${kid}`),
+            ),
+        ).toBe(true);
+        expect(syncEnabled()).toBe(false);
+    });
 
-        const status = await request(app).get('/api/sync/ebay/status');
-        expect(status.body.syncEnabled).toBe(false);
+    it('accepts a signature over JSON.stringify(body) when the wire JSON is formatted differently', async () => {
+        const kid = nextKid();
+        stubEbayFetch({ knownKids: [kid] });
+        const pretty = JSON.stringify(JSON.parse(VALID_NOTIFICATION), null, 2);
+        const res = await postDeletion(
+            pretty,
+            signatureHeader(VALID_NOTIFICATION, kid),
+        );
+        expect(res.status).toBe(200);
+        expect(fs.existsSync(TOKEN_FILE)).toBe(false);
+    });
+
+    it('rejects a notification with no X-EBAY-SIGNATURE header', async () => {
+        const fetchMock = stubEbayFetch();
+        const res = await postDeletion(VALID_NOTIFICATION);
+        expect(res.status).toBe(412);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expectUntouched();
+    });
+
+    it('rejects a header that is not base64 JSON', async () => {
+        stubEbayFetch();
+        const res = await postDeletion(VALID_NOTIFICATION, 'not-a-signature');
+        expect(res.status).toBe(412);
+        expectUntouched();
+    });
+
+    it('rejects a tampered body signed for different bytes', async () => {
+        const kid = nextKid();
+        stubEbayFetch({ knownKids: [kid] });
+        const header = signatureHeader(VALID_NOTIFICATION, kid);
+        const tampered = VALID_NOTIFICATION.replace('abc123', 'victim-999');
+
+        const res = await postDeletion(tampered, header);
+        expect(res.status).toBe(412);
+        expectUntouched();
+    });
+
+    it('rejects a signature whose kid eBay does not recognise', async () => {
+        stubEbayFetch({ knownKids: [] });
+        const res = await postDeletion(
+            VALID_NOTIFICATION,
+            signatureHeader(VALID_NOTIFICATION, nextKid()),
+        );
+        expect(res.status).toBe(412);
+        expectUntouched();
+    });
+
+    it('rejects a signature made with a different key for a known kid', async () => {
+        const kid = nextKid();
+        stubEbayFetch({ knownKids: [kid] });
+        const other = crypto.generateKeyPairSync('ec', {
+            namedCurve: 'prime256v1',
+        });
+        const forged = crypto
+            .sign('sha1', Buffer.from(VALID_NOTIFICATION), other.privateKey)
+            .toString('base64');
+        const res = await postDeletion(
+            VALID_NOTIFICATION,
+            signatureHeader(VALID_NOTIFICATION, kid, { signature: forged }),
+        );
+        expect(res.status).toBe(412);
+        expectUntouched();
+    });
+
+    it('returns 503 (so eBay retries) when the public key cannot be fetched', async () => {
+        stubEbayFetch({ keyStatus: 500 });
+        const res = await postDeletion(
+            VALID_NOTIFICATION,
+            signatureHeader(VALID_NOTIFICATION, nextKid()),
+        );
+        expect(res.status).toBe(503);
+        expectUntouched();
+    });
+
+    it('returns 503 without eBay client credentials to look up the key', async () => {
+        delete process.env.EBAY_CLIENT_ID;
+        const fetchMock = stubEbayFetch();
+        const res = await postDeletion(
+            VALID_NOTIFICATION,
+            signatureHeader(VALID_NOTIFICATION, nextKid()),
+        );
+        expect(res.status).toBe(503);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expectUntouched();
+    });
+
+    it('still rejects a validly signed but malformed notification', async () => {
+        const kid = nextKid();
+        stubEbayFetch({ knownKids: [kid] });
+        const body = JSON.stringify({ not: 'a real eBay payload' });
+        const res = await postDeletion(body, signatureHeader(body, kid));
+        expect(res.status).toBe(400);
+        expect(res.body.error).toMatch(/Malformed/i);
+        expectUntouched();
     });
 });
