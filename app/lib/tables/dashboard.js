@@ -32,10 +32,17 @@ function getBannerAllocSegments() {
     return { segments, total };
 }
 
+// gross = salary; interest = estimated yearly HYSA + CD earnings; total is
+// what the Annual Income banner shows (salary + interest). Side hustle stays
+// a separate YTD sub-line since it's actuals-to-date, not an annual rate.
 function getBannerIncome() {
+    const gross =
+        parseFloat(document.getElementById('tax-gross-income')?.value) || 0;
+    const interest = getEstimatedAnnualInterest().total;
     return {
-        gross:
-            parseFloat(document.getElementById('tax-gross-income')?.value) || 0,
+        gross,
+        interest,
+        total: gross + interest,
         side: getSideGigYTDNet(),
     };
 }
@@ -66,7 +73,18 @@ function renderHeaderBannerMetrics() {
 
     const income = getBannerIncome();
     const grossIncomeEl = document.getElementById('banner-gross-income');
-    if (grossIncomeEl) grossIncomeEl.textContent = formatCurrency(income.gross);
+    if (grossIncomeEl) {
+        grossIncomeEl.textContent = formatCurrency(income.total);
+        grossIncomeEl.title = `Salary ${formatCurrency(income.gross)} + est. interest ${formatCurrency(income.interest)}/yr`;
+    }
+    const interestEl = document.getElementById('banner-interest-income');
+    if (interestEl) {
+        interestEl.textContent =
+            income.interest > 0
+                ? `incl. ${formatCurrency(income.interest)}/yr interest`
+                : '';
+        interestEl.hidden = !(income.interest > 0);
+    }
     const sideIncomeEl = document.getElementById('banner-side-income');
     if (sideIncomeEl)
         sideIncomeEl.textContent =
@@ -114,7 +132,7 @@ function buildCompactBarTooltipHtml() {
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
-    const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.gross)}</span></div><div class="at-row"><span class="at-label">Side income YTD</span><span class="at-val">${formatCurrency(income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
+    const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.total)}</span></div><div class="at-row"><span class="at-label">Interest / yr (est.)</span><span class="at-val">${formatCurrency(income.interest)}</span></div><div class="at-row"><span class="at-label">Side income YTD</span><span class="at-val">${formatCurrency(income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
     return rows + totalRow + flowRows;
 }
 
@@ -669,9 +687,18 @@ function renderDiversificationSuggestions(
 // collapsed state naturally survives data refreshes without extra
 // bookkeeping.
 function initCashFlowToggles() {
+    // Collapsed-to-total only makes sense on phones; on wider screens the
+    // cards start expanded so the line items are visible without a click.
+    const startExpanded = !window.matchMedia('(max-width: 768px)').matches;
     document
         .querySelectorAll('.cf-toggle-btn[data-cf-toggle]')
         .forEach((btn) => {
+            if (startExpanded) {
+                document
+                    .getElementById(btn.dataset.cfToggle)
+                    ?.classList.remove('cf-collapsed');
+                btn.setAttribute('aria-expanded', 'true');
+            }
             btn.addEventListener('click', () => {
                 const list = document.getElementById(btn.dataset.cfToggle);
                 if (!list) return;
@@ -687,10 +714,9 @@ function renderMonthlyCashFlow() {
     const monthlyGross = grossIncome / 12;
     const sideGigMonthly =
         getSideGigYTDNet() / Math.max(new Date().getMonth() + 1, 1);
-    const cdMonthly = state.cds.reduce(
-        (sum, cd) => sum + ((cd.principal || 0) * ((cd.rate || 0) / 100)) / 12,
-        0,
-    );
+    const interest = getEstimatedAnnualInterest();
+    const cdMonthly = interest.cds / 12;
+    const savingsMonthly = interest.savings / 12;
     // Crypto staking/lending income — same pattern as CD interest, but only
     // counted when the account actually has a staking rate set (apy > 0).
     // Accounts with no rate provided contribute $0, exactly as if staking
@@ -704,7 +730,11 @@ function renderMonthlyCashFlow() {
     );
 
     const totalIncome =
-        monthlyGross + sideGigMonthly + cdMonthly + stakingMonthly;
+        monthlyGross +
+        sideGigMonthly +
+        savingsMonthly +
+        cdMonthly +
+        stakingMonthly;
 
     const exp = state.expenses;
     const housing = exp.housing || 0;
@@ -736,6 +766,7 @@ function renderMonthlyCashFlow() {
     };
     set('cf-salary', formatCurrency(monthlyGross));
     set('cf-sidegig', formatCurrency(sideGigMonthly));
+    set('cf-savings-interest', formatCurrency(savingsMonthly));
     set('cf-cd-interest', formatCurrency(cdMonthly));
     set('cf-crypto-staking', formatCurrency(stakingMonthly));
     set('cf-total-income', formatCurrency(totalIncome));

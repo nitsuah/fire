@@ -104,6 +104,7 @@
                 <div class="header-metric">
                     <span class="metric-label">Annual Income</span>
                     <span class="metric-value" id="banner-gross-income">$0</span>
+                    <span class="income-sub-line income-sub-interest" id="banner-interest-income" hidden></span>
                     <span class="income-sub-line" id="banner-side-income">No side income</span>
                 </div>
                 <div class="header-metric">
@@ -228,6 +229,15 @@
                                 </div>
                             </div>
 
+                            <!-- Other Assets: metals, real estate, vehicles and any
+                                 other custom holdings that aren't cash/CDs/equities -->
+                            <div class="card glass-card" id="dash-card-other">
+                                <h2 class="card-title">Other Assets</h2>
+                                <div id="dashboard-other-assets-panel">
+                                    <p class="text-muted text-center" style="padding:12px 0;">No other assets recorded yet.</p>
+                                </div>
+                            </div>
+
                             <!-- Portfolio Insights (Diversification Suggestions) now
                                  lives on the Insights tab. Alerts & Notifications live
                                  in the bell icon next to the FIRE Progress bar in the
@@ -282,6 +292,10 @@
                                 <div class="cf-row">
                                     <span class="cf-label">Side Hustle (YTD avg)</span>
                                     <span class="cf-val text-emerald" id="cf-sidegig">$0</span>
+                                </div>
+                                <div class="cf-row">
+                                    <span class="cf-label">Savings Interest (monthly)</span>
+                                    <span class="cf-val text-emerald" id="cf-savings-interest">$0</span>
                                 </div>
                                 <div class="cf-row">
                                     <span class="cf-label">CD Interest (monthly)</span>

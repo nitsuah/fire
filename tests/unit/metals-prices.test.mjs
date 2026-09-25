@@ -31,8 +31,10 @@ describe('resolveMetalValue', () => {
         vi.stubGlobal('fetch', fetchMock);
 
         const result = await resolveMetalValue('gold', 3);
-        expect(result.usdValue).toBe(7200);
+        // 3oz × $2400 spot × 95% gold payout
+        expect(result.usdValue).toBeCloseTo(6840, 6);
         expect(result.pricePerOz).toBe(2400);
+        expect(result.payoutPct).toBe(0.95);
         expect(result.source).toBe('yahoo-finance');
         expect(fetchMock).toHaveBeenCalledWith(
             expect.stringContaining('GC%3DF'),
@@ -50,7 +52,9 @@ describe('resolveMetalValue', () => {
         vi.stubGlobal('fetch', fetchMock);
 
         const result = await resolveMetalValue('silver', 10);
-        expect(result.usdValue).toBe(300);
+        // 10oz × $30 spot × 88% silver payout
+        expect(result.usdValue).toBeCloseTo(264, 6);
+        expect(result.payoutPct).toBe(0.88);
         expect(fetchMock).toHaveBeenCalledWith(
             expect.stringContaining('SI%3DF'),
             expect.any(Object),
@@ -66,7 +70,7 @@ describe('resolveMetalValue', () => {
         vi.stubGlobal('fetch', fetchMock);
 
         const result = await resolveMetalValue('gold', 2);
-        expect(result.usdValue).toBe(5000);
+        expect(result.usdValue).toBeCloseTo(4750, 6); // 2oz × $2500 × 95%
         expect(result.source).toBe('metals.dev');
         expect(fetchMock).toHaveBeenCalledWith(
             expect.stringContaining('api.metals.dev'),
@@ -90,7 +94,7 @@ describe('resolveMetalValue', () => {
         vi.stubGlobal('fetch', fetchMock);
 
         const result = await resolveMetalValue('gold', 1);
-        expect(result.usdValue).toBe(2200);
+        expect(result.usdValue).toBeCloseTo(2090, 6); // 1oz × $2200 × 95%
         expect(result.source).toBe('yahoo-finance');
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });

@@ -2,7 +2,11 @@
 
 const express = require('express');
 const { pricesCache, refreshYahooCrumb } = require('../lib/yahoo-prices');
-const { fetchPrices, getProvider } = require('../lib/prices-provider');
+const {
+    fetchPrices,
+    fetchYahooChart,
+    getProvider,
+} = require('../lib/prices-provider');
 
 const router = express.Router();
 const CACHE_TTL_MS = 300000; // 5 minutes per symbol
@@ -176,6 +180,26 @@ router.get('/', async (req, res) => {
         } catch (err) {
             console.warn('[Prices] Fetch error:', err.message);
         }
+    }
+
+    // v7 quote API refused us (typically a 401 once Yahoo stops issuing
+    // crumbs) — fall back to the crumb-free per-symbol chart endpoint.
+    try {
+        const chartQuotes = await fetchYahooChart(uniqueSymbols);
+        const now = Date.now();
+        for (const [symbol, q] of Object.entries(chartQuotes)) {
+            pricesCache.data[symbol] = { ...q, fetchedAt: now };
+        }
+        if (Object.keys(chartQuotes).length > 0) {
+            const fresh = pickSymbols(uniqueSymbols);
+            broadcastToSubscribers(fresh);
+            console.log(
+                `[Prices] Updated ${Object.keys(chartQuotes).length} quote(s) via Yahoo chart fallback.`,
+            );
+            return res.json(fresh);
+        }
+    } catch (err) {
+        console.warn('[Prices] Chart fallback failed:', err.message);
     }
 
     const stale = pickSymbols(uniqueSymbols);

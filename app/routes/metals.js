@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { resolveMetalValue } = require('../lib/metals-prices');
+const { resolveMetalValue, METAL_PAYOUT_PCT } = require('../lib/metals-prices');
 
 const router = express.Router();
 
@@ -44,7 +44,13 @@ router.get('/', async (req, res) => {
         if (m !== 'gold' && m !== 'silver') continue;
         try {
             const data = await fetchAndCacheMetal(m);
-            results[m] = data;
+            // `price` is spot; `meltPrice` is what a holding is valued at.
+            const payoutPct = METAL_PAYOUT_PCT[m];
+            results[m] = {
+                ...data,
+                payoutPct,
+                meltPrice: data.price * payoutPct,
+            };
         } catch (err) {
             results[m] = { error: err.message };
         }

@@ -3,6 +3,22 @@
                              unified holdings table renderers
    ========================================================================== */
 
+// Type badge with a per-asset-class colour (see .badge-type variants in
+// components.css); metals get an animated gold/silver sheen.
+function accountTypeBadge(acc) {
+    const byType = {
+        Savings: 'badge-savings',
+        Cash: 'badge-cash',
+        Crypto: 'badge-crypto',
+        Brokerage: '',
+    };
+    const cls =
+        acc.type === 'Metal'
+            ? `badge-metal-${acc.metalType === 'silver' ? 'silver' : 'gold'}`
+            : (byType[acc.type] ?? 'badge-other');
+    return `<span class="badge-type ${cls}">${escHtml(acc.type)}</span>`;
+}
+
 function renderImportedFilesTable() {
     const tbody = document.querySelector('#table-imported-files tbody');
     if (!tbody) return;
@@ -79,7 +95,7 @@ function renderCustomAccountsTable() {
             html += `
                 <tr>
                     <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}${metalLabel ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(metalLabel)}</span>` : ''}</td>
-                    <td><span class="text-muted">${escHtml(acc.type)}</span></td>
+                    <td>${accountTypeBadge(acc)}</td>
                     <td class="text-right text-amber font-bold">${hasYield && (!isCrypto || acc.apy) ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
                     <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
                     <td class="text-right">
@@ -230,7 +246,7 @@ function renderUnifiedHoldingsTable() {
         } else {
             html += `<tr>
                 <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}${metalLabel ? `<br><span class="text-muted" style="font-size:11px;">${escHtml(metalLabel)}</span>` : ''}</td>
-                <td><span class="badge-type">${escHtml(acc.type)}</span></td>
+                <td>${accountTypeBadge(acc)}</td>
                 <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
                 <td class="text-right text-amber">${hasYield && (!isCrypto || acc.apy) ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
                 <td class="text-muted">${isCrypto && acc.identifier ? `<span title="${escHtml(acc.identifier)}">${escHtml(acc.identifier.length > 16 ? acc.identifier.slice(0, 8) + '…' + acc.identifier.slice(-6) : acc.identifier)}</span>` : metalLabel ? escHtml(metalLabel) : '—'}</td>

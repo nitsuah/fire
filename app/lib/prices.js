@@ -44,12 +44,14 @@ async function fetchAndApplyPrices() {
         const prices = await res.json();
 
         let updated = false;
+        const now = new Date().toISOString();
         state.importedPositions.forEach((pos) => {
             const cleanSym = pos.symbol.trim().replace(/\*+$/, '');
             if (prices[cleanSym]) {
                 const newPrice = prices[cleanSym].price;
                 if (newPrice && newPrice > 0) {
                     pos.lastPrice = newPrice;
+                    pos.priceUpdatedAt = now;
                     // Recalculate current value based on quantity × new price
                     if (pos.quantity > 0) {
                         pos.value = pos.quantity * newPrice;
@@ -90,16 +92,22 @@ async function fetchAndApplyMetals() {
 
         let updated = false;
         metalAccounts.forEach((acc) => {
-            const metal = acc.metalType?.toLowerCase();
-            if (metals[metal] && metals[metal].price) {
-                const pricePerOz = metals[metal].price;
-                const weightOz = acc.weightOz || 0;
-                const newValue = pricePerOz * weightOz;
-                if (newValue !== acc.value) {
-                    acc.value = newValue;
-                    acc.valueLastRefreshed = new Date().toISOString();
-                    updated = true;
-                }
+            const quote = metals[acc.metalType?.toLowerCase()];
+            if (!quote?.price || !(acc.weightOz > 0)) return;
+            // Value at what a dealer pays (95% of spot for gold, 88% for
+            // silver — set server-side), not full spot.
+            const payoutPct = quote.payoutPct || 1;
+            const newValue = quote.price * payoutPct * acc.weightOz;
+            if (
+                newValue !== acc.value ||
+                acc.spotPricePerOz !== quote.price ||
+                acc.payoutPct !== payoutPct
+            ) {
+                acc.value = newValue;
+                acc.spotPricePerOz = quote.price;
+                acc.payoutPct = payoutPct;
+                acc.valueLastRefreshed = new Date().toISOString();
+                updated = true;
             }
         });
 

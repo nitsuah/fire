@@ -223,6 +223,8 @@ router.put('/:id', async (req, res) => {
                               : cur.quantity,
                       metalType: undefined,
                       weightOz: undefined,
+                      spotPricePerOz: undefined,
+                      payoutPct: undefined,
                       // A Metal quote's timestamp doesn't describe a Crypto value.
                       ...(cur.type !== 'Crypto'
                           ? { valueLastRefreshed: undefined }
@@ -251,6 +253,8 @@ router.put('/:id', async (req, res) => {
                         valueLastRefreshed: undefined,
                         metalType: undefined,
                         weightOz: undefined,
+                        spotPricePerOz: undefined,
+                        payoutPct: undefined,
                     }),
         };
         if (metalValueStale) {
@@ -397,6 +401,8 @@ router.post('/:id/refresh-metal', async (req, res) => {
             state.customAccounts[idx] = {
                 ...state.customAccounts[idx],
                 value: result.usdValue,
+                spotPricePerOz: result.pricePerOz,
+                payoutPct: result.payoutPct,
                 valueLastRefreshed: new Date().toISOString(),
             };
             updated = state.customAccounts[idx];

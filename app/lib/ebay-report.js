@@ -78,11 +78,14 @@ function parseEbayListingsReport(rows) {
             parseEbayMoney(r[idx.itemSales]) +
                 parseEbayMoney(r[idx.shipPaidByBuyer]),
         );
-        // Selling costs plus the shipping labels you bought — eBay's own
-        // "net sales" column leaves the labels out.
+        // "Total selling costs" already includes the shipping labels you
+        // bought (it's fees + labels − credits, matching eBay's own "Net
+        // sales" column), so labels are only counted on their own when the
+        // report has no selling-costs column.
         const expenses = round2(
-            parseEbayMoney(r[idx.sellingCosts]) +
-                parseEbayMoney(r[idx.labelCost]),
+            idx.sellingCosts >= 0
+                ? parseEbayMoney(r[idx.sellingCosts])
+                : parseEbayMoney(r[idx.labelCost]),
         );
         items.push({
             itemId,
@@ -100,7 +103,9 @@ const entryRange = (e) =>
     e.reportStart && e.reportEnd ? [e.reportStart, e.reportEnd] : null;
 
 // Merge into a ledger without mutating it.
-//  - same item + same report range already imported  -> skipped (duplicate)
+//  - same item + same report range already imported  -> skipped when the
+//    amounts match, otherwise refreshed in place (keeps the tax tag and any
+//    item cost you entered)
 //  - an older imported range for that item lies inside this report's range
 //    (a later, cumulative report) -> replaced by the new row
 //  - otherwise (disjoint / partially overlapping ranges) -> added alongside
@@ -114,10 +119,31 @@ function mergeEbayReport(ledger, report) {
     let added = 0;
     let skipped = 0;
     let replaced = 0;
+    let updated = 0;
     for (const item of report.items) {
         const id = `ebay-csv-${item.itemId}-${start || 'x'}_${end || 'x'}`;
-        if (next.some((e) => e.id === id)) {
-            skipped++;
+        const existingIdx = next.findIndex((e) => e.id === id);
+        if (existingIdx >= 0) {
+            const cur = next[existingIdx];
+            if (
+                cur.revenue === item.revenue &&
+                cur.expenses === item.expenses &&
+                cur.qty === item.qty
+            ) {
+                skipped++;
+                continue;
+            }
+            // Same report re-imported with different amounts (e.g. parsed
+            // by an older, buggier version) — refresh the numbers only.
+            const costBasis = Number(cur.costBasis) || 0;
+            next[existingIdx] = {
+                ...cur,
+                revenue: item.revenue,
+                expenses: item.expenses,
+                net: round2(item.revenue - item.expenses - costBasis),
+                qty: item.qty,
+            };
+            updated++;
             continue;
         }
         if (start && end) {
@@ -143,7 +169,7 @@ function mergeEbayReport(ledger, report) {
         });
         added++;
     }
-    return { ledger: next, added, skipped, replaced };
+    return { ledger: next, added, skipped, replaced, updated };
 }
 
 if (typeof module !== 'undefined' && module.exports) {

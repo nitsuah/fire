@@ -132,6 +132,36 @@ describe('GET /api/prices — mocked Yahoo fetch', () => {
         expect(res.status).toBe(200);
     });
 
+    it('falls back to the crumb-free chart endpoint when v7 quote returns 401', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockImplementation(async (url) => {
+                if (String(url).includes('/v8/finance/chart/CHRT')) {
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            chart: {
+                                result: [
+                                    {
+                                        meta: {
+                                            regularMarketPrice: 110,
+                                            chartPreviousClose: 100,
+                                        },
+                                    },
+                                ],
+                            },
+                        }),
+                    };
+                }
+                return { ok: false, status: 401, headers: { get: () => '' } };
+            }),
+        );
+        const res = await request(app).get('/api/prices?symbols=CHRT');
+        expect(res.status).toBe(200);
+        expect(res.body.CHRT.price).toBe(110);
+        expect(res.body.CHRT.changePercent).toBeCloseTo(10, 6);
+    });
+
     it('handles non-auth failure status', async () => {
         vi.stubGlobal(
             'fetch',

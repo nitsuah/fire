@@ -117,6 +117,7 @@ function refreshAllUI() {
 
     renderDashboardTopPositionsTable();
     renderDashboardLiquidPanel();
+    renderDashboardOtherAssetsPanel();
     renderAssetAllocationChart();
     renderDashboardProjectionsChart();
 
@@ -229,6 +230,22 @@ function getAggregateOtherAssets() {
         }
     });
     return sum;
+}
+
+// Estimated yearly interest: HYSA/cash balance × APY (open-ended, no end
+// date) plus CD principal × rate. See finance-core.js for the tested twin.
+function getEstimatedAnnualInterest() {
+    let savings = 0;
+    state.customAccounts.forEach(acc => {
+        if ((acc.type === 'Cash' || acc.type === 'Savings') && (acc.apy || 0) > 0) {
+            savings += (acc.value || 0) * (acc.apy / 100);
+        }
+    });
+    let cds = 0;
+    state.cds.forEach(cd => {
+        cds += (cd.principal || 0) * ((cd.rate || 0) / 100);
+    });
+    return { savings, cds, total: savings + cds };
 }
 
 function getSideGigYTDNet() {

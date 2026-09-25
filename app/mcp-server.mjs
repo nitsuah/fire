@@ -17,6 +17,7 @@ const require = createRequire(import.meta.url);
 const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
 const { saleAmounts, summarizeSideGigTax } = require('./lib/side-gig-tax.js');
+const { getEstimatedAnnualInterest } = require('./lib/finance-core.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
 
@@ -186,7 +187,8 @@ const TOOLS = [
 
 function computeNetWorthBreakdown(state) {
     let cash = 0,
-        equities = 0;
+        equities = 0,
+        otherAssets = 0;
     for (const pos of state.importedPositions || []) {
         const sym = pos.symbol || '';
         const desc = pos.description || '';
@@ -206,7 +208,9 @@ function computeNetWorthBreakdown(state) {
         } else if (acc.type === 'Brokerage' || acc.type === 'Crypto') {
             equities += acc.value || 0;
         } else {
-            cash += acc.value || 0;
+            // Metals and other valuables — matches the dashboard's
+            // "Other Assets" card rather than inflating cash.
+            otherAssets += acc.value || 0;
         }
     }
     const cds = (state.cds || []).reduce((s, cd) => s + (cd.principal || 0), 0);
@@ -222,8 +226,24 @@ function computeNetWorthBreakdown(state) {
         (s, w) => s + (w.lastUsdValue || 0),
         0,
     );
-    const total = cash + equities + cds + realEstate + vehicles + cryptoWallets;
-    return { total, cash, equities, cds, realEstate, vehicles, cryptoWallets };
+    const total =
+        cash +
+        equities +
+        otherAssets +
+        cds +
+        realEstate +
+        vehicles +
+        cryptoWallets;
+    return {
+        total,
+        cash,
+        equities,
+        otherAssets,
+        cds,
+        realEstate,
+        vehicles,
+        cryptoWallets,
+    };
 }
 
 function handleTool(name, state, toolArgs = {}) {
@@ -281,6 +301,7 @@ function handleTool(name, state, toolArgs = {}) {
                     equities: Math.round(b.equities),
                     cash: Math.round(b.cash),
                     cds: Math.round(b.cds),
+                    otherAssets: Math.round(b.otherAssets),
                     realEstate: Math.round(b.realEstate),
                     vehicles: Math.round(b.vehicles),
                     cryptoWallets: Math.round(b.cryptoWallets),
@@ -295,9 +316,27 @@ function handleTool(name, state, toolArgs = {}) {
                 type: a.type,
                 value: a.value || 0,
                 apy: a.apy || 0,
+                ...(a.type === 'Metal'
+                    ? {
+                          metalType: a.metalType,
+                          weightOz: a.weightOz,
+                          spotPricePerOz: a.spotPricePerOz ?? null,
+                          payoutPct: a.payoutPct ?? null,
+                          valueLastRefreshed: a.valueLastRefreshed ?? null,
+                      }
+                    : {}),
             }));
+            const interest = getEstimatedAnnualInterest(
+                state.customAccounts,
+                state.cds,
+            );
             return {
                 accounts,
+                estimatedAnnualInterest: {
+                    savings: Math.round(interest.savings),
+                    cds: Math.round(interest.cds),
+                    total: Math.round(interest.total),
+                },
                 total: Math.round(accounts.reduce((s, a) => s + a.value, 0)),
                 count: accounts.length,
             };

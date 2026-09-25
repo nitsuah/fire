@@ -18,6 +18,14 @@ const YAHOO_CHART_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
 // spot-forex symbols returned "No data found, symbol may be delisted" as
 // of this writing; GC=F/SI=F are live and this is the standard free-tier
 // substitute other finance tools use when a real spot index is paywalled).
+// What a dealer/refiner actually pays for bullion, as a fraction of spot —
+// the "melt" value a holding would realize if sold today. Gold typically
+// clears close to spot; silver carries a much wider buyback spread.
+const METAL_PAYOUT_PCT = {
+    gold: 0.95,
+    silver: 0.88,
+};
+
 const YAHOO_METAL_SYMBOLS = {
     gold: 'GC=F',
     silver: 'SI=F',
@@ -102,13 +110,16 @@ async function resolveMetalValue(metal, weightOz) {
         result = await fetchFromYahoo(type);
     }
 
+    // Valued at what a dealer would pay (spot × payout), not full spot.
+    const payoutPct = METAL_PAYOUT_PCT[type];
     return {
-        usdValue: result.pricePerOz * weight,
+        usdValue: result.pricePerOz * payoutPct * weight,
         pricePerOz: result.pricePerOz,
+        payoutPct,
         weightOz: weight,
         metal: type,
         source: result.source,
     };
 }
 
-module.exports = { resolveMetalValue };
+module.exports = { resolveMetalValue, METAL_PAYOUT_PCT };

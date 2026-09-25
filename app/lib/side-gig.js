@@ -524,6 +524,8 @@ async function importEbayReportText(text, fileName) {
     const parts = [`${merged.added} added`];
     if (merged.replaced)
         parts.push(`${merged.replaced} updated from a newer report`);
+    if (merged.updated)
+        parts.push(`${merged.updated} re-imported with corrected amounts`);
     if (merged.skipped) parts.push(`${merged.skipped} already imported`);
     alert(`eBay report ${fileName || ''}: ${parts.join(', ')}.`);
     return true;

@@ -90,6 +90,43 @@ async function fetchYahoo(symbols) {
     return results;
 }
 
+// Yahoo's per-symbol v8 chart endpoint needs no cookie/crumb, so it keeps
+// working when the v7 quote API starts answering 401 (the same endpoint
+// metals-prices.js uses for gold/silver). Returns
+// { SYMBOL: { price, changePercent } } for the symbols that resolved.
+async function fetchYahooChart(symbols) {
+    const results = {};
+    const fetchOne = async (symbol) => {
+        try {
+            const res = await fetch(
+                `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+                {
+                    headers: { 'User-Agent': 'Mozilla/5.0' },
+                    signal: AbortSignal.timeout(10000),
+                },
+            );
+            if (!res.ok) return;
+            const data = await res.json();
+            const meta = data?.chart?.result?.[0]?.meta;
+            const price = meta?.regularMarketPrice;
+            if (!Number.isFinite(price)) return;
+            const prev = meta.chartPreviousClose ?? meta.previousClose;
+            results[symbol] = {
+                price,
+                changePercent: prev ? ((price - prev) / prev) * 100 : 0,
+            };
+        } catch {
+            // skip this symbol
+        }
+    };
+    // Small batches keep a large portfolio from firing dozens of requests
+    // at once.
+    for (let i = 0; i < symbols.length; i += 6) {
+        await Promise.all(symbols.slice(i, i + 6).map(fetchOne));
+    }
+    return results;
+}
+
 async function fetchPrices(symbols) {
     if (!symbols || symbols.length === 0) return {};
     const provider = getProvider();
@@ -113,4 +150,4 @@ async function fetchPrices(symbols) {
     return results;
 }
 
-module.exports = { fetchPrices, getProvider };
+module.exports = { fetchPrices, fetchYahooChart, getProvider };
