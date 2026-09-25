@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Kick off background price refresh (every 5 minutes)
     schedulePriceRefresh();
+    scheduleMetalsRefresh();
 });
 
 /* ==========================================================================
