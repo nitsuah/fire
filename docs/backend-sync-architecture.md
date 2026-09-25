@@ -2,7 +2,6 @@
 # Backend Sync Architecture
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
-
 > **Last updated:** 2026-08-12  
 > **See also:** [docs/integrations.md](integrations.md), [docs/prod-plan.md](prod-plan.md), [docs/security-hardening.md](security-hardening.md)
 
@@ -33,6 +32,7 @@ The FIRE Tracker's sync layer connects the local `db.json` store to external fin
 The eBay and Plaid OAuth flows are fully implemented with UI access in the Settings page.
 
 **eBay OAuth (Phase 1)**
+
 - `GET /api/sync/ebay/authorize` — initiates eBay OAuth flow with CSRF state
 - `GET /api/sync/ebay/callback` — exchanges code for tokens, encrypts with `SYNC_MASTER_KEY`, stores in `data/tokens.json`
 - `POST /api/sync/ebay/sync` — pulls completed orders → `sideGigLedger`
@@ -40,6 +40,7 @@ The eBay and Plaid OAuth flows are fully implemented with UI access in the Setti
 - Env vars: `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_ENVIRONMENT`, `SYNC_MASTER_KEY`
 
 **Plaid Link (Phase 2)**
+
 - `POST /api/sync/plaid/create-link-token` — generates Plaid Link token for embedded UI
 - `POST /api/sync/plaid/exchange` — exchanges public_token → encrypted access_token
 - `POST /api/sync/plaid/positions` — syncs investment positions → `importedPositions`
@@ -64,7 +65,7 @@ The webhook receiver is fully implemented and in production use.
 ### Phase 1 Providers (Q1 2027)
 
 | Provider | Purpose | Auth Type | Token Storage |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | eBay Order API | Completed sales → sideGigLedger | OAuth 2.0 + refresh token | `data/tokens.json` (encrypted) |
 | Etherscan | ETH + ERC-20 wallet balances | API key | env var only |
 | BscScan | BNB + BEP-20 wallet balances | API key | env var only |
@@ -80,7 +81,7 @@ The webhook receiver is fully implemented and in production use.
 ### Phase 2 Providers (Q2 2027)
 
 | Provider | Purpose | Auth Type | Token Storage |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Plaid | Fidelity positions + bank balances | OAuth 2.0 via Plaid Link | `data/tokens.json` (encrypted) |
 | Alpha Vantage / Polygon.io | Stock quotes (Yahoo fallback) | API key | env var only |
 
@@ -131,7 +132,7 @@ The webhook receiver is fully implemented and in production use.
 ## Security Properties
 
 | Property | Guarantee |
-|---|---|
+| --- | --- |
 | API keys at rest | Environment variables only — never written to db.json or tokens.json |
 | OAuth tokens at rest | AES-256-GCM encrypted in `data/tokens.json` |
 | OAuth tokens in transit | HTTPS to provider endpoints only |
@@ -184,6 +185,7 @@ The web3 layer uses a declarative chain registry. Adding a new EVM-compatible ch
 ```
 
 **`addressFormat`** controls address validation before storage:
+
 - `evm` — must match `/^0x[0-9a-fA-F]{40}$/`
 - `base58` — must match Solana or Bitcoin address patterns
 
