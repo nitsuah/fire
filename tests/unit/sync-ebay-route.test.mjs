@@ -444,6 +444,18 @@ describe('POST /api/sync/ebay/marketplace-account-deletion', () => {
         expect(syncEnabled()).toBe(false);
     });
 
+    it('accepts a signature over JSON.stringify(body) when the wire JSON is formatted differently', async () => {
+        const kid = nextKid();
+        stubEbayFetch({ knownKids: [kid] });
+        const pretty = JSON.stringify(JSON.parse(VALID_NOTIFICATION), null, 2);
+        const res = await postDeletion(
+            pretty,
+            signatureHeader(VALID_NOTIFICATION, kid),
+        );
+        expect(res.status).toBe(200);
+        expect(fs.existsSync(TOKEN_FILE)).toBe(false);
+    });
+
     it('rejects a notification with no X-EBAY-SIGNATURE header', async () => {
         const fetchMock = stubEbayFetch();
         const res = await postDeletion(VALID_NOTIFICATION);

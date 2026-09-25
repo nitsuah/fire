@@ -184,18 +184,39 @@ const PUBLIC_KEY_TTL_MS = 60 * 60 * 1000;
 const SUPPORTED_SIGNATURE_ALGS = new Set(['ECDSA']);
 const SUPPORTED_DIGESTS = { SHA1: 'sha1', SHA256: 'sha256' };
 
-let appTokenCache = null;
+// Both caches hold {promise, expiresAt} entries stored *before* the request
+// resolves, so concurrent cold-cache notifications share one outbound call.
+// A pending entry never expires; on success its expiresAt is set, on
+// failure it's evicted only if it's still the current entry (a reset or a
+// newer request may have replaced it).
+let appTokenEntry = null;
 const publicKeyCache = new Map();
 
 function resetNotificationKeyCache() {
-    appTokenCache = null;
+    appTokenEntry = null;
     publicKeyCache.clear();
 }
 
-async function getApplicationAccessToken() {
-    if (appTokenCache && appTokenCache.expiresAt > Date.now()) {
-        return appTokenCache.token;
+function getApplicationAccessToken() {
+    if (appTokenEntry && appTokenEntry.expiresAt > Date.now()) {
+        return appTokenEntry.promise;
     }
+    const entry = { promise: null, expiresAt: Infinity };
+    entry.promise = requestApplicationAccessToken().then(
+        ({ token, ttlMs }) => {
+            entry.expiresAt = Date.now() + ttlMs;
+            return token;
+        },
+        (err) => {
+            if (appTokenEntry === entry) appTokenEntry = null;
+            throw err;
+        },
+    );
+    appTokenEntry = entry;
+    return entry.promise;
+}
+
+async function requestApplicationAccessToken() {
     const { clientId, clientSecret } = getEnv();
     const { api } = getBaseUrls();
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
@@ -223,8 +244,7 @@ async function getApplicationAccessToken() {
     const json = await res.json();
     // Refresh a minute early so a token never expires mid-request.
     const ttlMs = Math.max(0, (Number(json.expires_in) || 0) - 60) * 1000;
-    appTokenCache = { token: json.access_token, expiresAt: Date.now() + ttlMs };
-    return json.access_token;
+    return { token: json.access_token, ttlMs };
 }
 
 // eBay returns the PEM on a single line ("-----BEGIN PUBLIC KEY-----MFkw...");
@@ -243,10 +263,31 @@ function parseEbayPublicKey(pem) {
 // Resolves to {key, algorithm, digest}, or null when eBay doesn't know the
 // kid (404). Any other failure throws, so callers can distinguish "forged
 // notification" (4xx) from "we couldn't check right now" (5xx → eBay retries).
-async function fetchNotificationPublicKey(kid) {
+function fetchNotificationPublicKey(kid) {
     const cached = publicKeyCache.get(kid);
-    if (cached && cached.expiresAt > Date.now()) return cached.value;
+    if (cached && cached.expiresAt > Date.now()) return cached.promise;
 
+    const entry = { promise: null, expiresAt: Infinity };
+    const evict = () => {
+        if (publicKeyCache.get(kid) === entry) publicKeyCache.delete(kid);
+    };
+    entry.promise = requestNotificationPublicKey(kid).then(
+        (value) => {
+            // Don't cache unknown kids; only real keys get the TTL.
+            if (value) entry.expiresAt = Date.now() + PUBLIC_KEY_TTL_MS;
+            else evict();
+            return value;
+        },
+        (err) => {
+            evict();
+            throw err;
+        },
+    );
+    publicKeyCache.set(kid, entry);
+    return entry.promise;
+}
+
+async function requestNotificationPublicKey(kid) {
     const token = await getApplicationAccessToken();
     const { api } = getBaseUrls();
     const res = await fetch(
@@ -264,16 +305,11 @@ async function fetchNotificationPublicKey(kid) {
         );
     }
     const json = await res.json();
-    const value = {
+    return {
         key: parseEbayPublicKey(json.key),
         algorithm: String(json.algorithm || '').toUpperCase(),
         digest: String(json.digest || '').toUpperCase(),
     };
-    publicKeyCache.set(kid, {
-        value,
-        expiresAt: Date.now() + PUBLIC_KEY_TTL_MS,
-    });
-    return value;
 }
 
 function decodeSignatureHeader(header) {
@@ -303,10 +339,16 @@ function decodeSignatureHeader(header) {
 }
 
 // Verifies an eBay notification's X-EBAY-SIGNATURE over the exact raw
-// request bytes. Returns {valid: true} or {valid: false, reason}; throws
+// request bytes. eBay's own SDKs verify over JSON.stringify(parsed body)
+// instead, so when `parsedBody` is given and the raw bytes don't verify,
+// its compact re-serialization is tried too (only if it differs). Returns {valid: true} or {valid: false, reason}; throws
 // only when the key couldn't be fetched for reasons other than an unknown
 // kid (network/5xx/auth), which the caller should surface as a 5xx.
-async function verifyNotificationSignature(rawBody, signatureHeader) {
+async function verifyNotificationSignature(
+    rawBody,
+    signatureHeader,
+    parsedBody,
+) {
     if (!Buffer.isBuffer(rawBody) || rawBody.length === 0) {
         return { valid: false, reason: 'missing body' };
     }
@@ -331,16 +373,18 @@ async function verifyNotificationSignature(rawBody, signatureHeader) {
         return { valid: false, reason: 'key/algorithm mismatch' };
     }
 
-    let ok = false;
-    try {
-        ok = crypto.verify(
-            hash,
-            rawBody,
-            publicKey.key,
-            Buffer.from(sig.signature, 'base64'),
-        );
-    } catch {
-        ok = false;
+    const signature = Buffer.from(sig.signature, 'base64');
+    const verifies = (bytes) => {
+        try {
+            return crypto.verify(hash, bytes, publicKey.key, signature);
+        } catch {
+            return false;
+        }
+    };
+    let ok = verifies(rawBody);
+    if (!ok && parsedBody !== undefined) {
+        const canonical = Buffer.from(JSON.stringify(parsedBody));
+        ok = !canonical.equals(rawBody) && verifies(canonical);
     }
     return ok
         ? { valid: true }

@@ -353,6 +353,7 @@ router.post('/ebay/marketplace-account-deletion', async (req, res) => {
         verification = await verifyNotificationSignature(
             req.rawBody,
             req.get('X-EBAY-SIGNATURE'),
+            req.body,
         );
     } catch (err) {
         // Couldn't reach eBay to fetch the key — 5xx so eBay retries later.

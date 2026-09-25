@@ -467,6 +467,111 @@ describe('ebay-connector', () => {
             });
         });
 
+        it('shares one in-flight token + key request across concurrent notifications', async () => {
+            const fetchMock = stubFetch();
+            const results = await Promise.all(
+                [1, 2, 3].map(() =>
+                    ebay.verifyNotificationSignature(body, header()),
+                ),
+            );
+            expect(results.every((r) => r.valid)).toBe(true);
+            expect(fetchMock).toHaveBeenCalledTimes(2);
+        });
+
+        it('does not cache unknown kids or failed key lookups', async () => {
+            const fetchMock = vi.fn(async (url) =>
+                String(url).includes('/oauth2/token')
+                    ? new Response(
+                          JSON.stringify({
+                              access_token: 't',
+                              expires_in: 7200,
+                          }),
+                      )
+                    : new Response('nope', { status: 404 }),
+            );
+            vi.stubGlobal('fetch', fetchMock);
+            for (let i = 0; i < 2; i++) {
+                expect(
+                    await ebay.verifyNotificationSignature(body, header()),
+                ).toEqual({ valid: false, reason: 'unknown key id' });
+            }
+            // 1 token + 2 key lookups: the 404 was not cached.
+            expect(fetchMock).toHaveBeenCalledTimes(3);
+
+            fetchMock.mockImplementation(
+                async () => new Response('down', { status: 500 }),
+            );
+            ebay.resetNotificationKeyCache();
+            await expect(
+                ebay.verifyNotificationSignature(body, header()),
+            ).rejects.toThrow();
+            stubFetch();
+            expect(
+                await ebay.verifyNotificationSignature(body, header()),
+            ).toEqual({ valid: true });
+        });
+
+        it('keeps a request that was in flight during a reset from repopulating the cache', async () => {
+            let releaseToken;
+            const fetchMock = vi.fn((url) =>
+                String(url).includes('/oauth2/token')
+                    ? new Promise((resolve) => {
+                          releaseToken = () =>
+                              resolve(
+                                  new Response(
+                                      JSON.stringify({
+                                          access_token: 'stale',
+                                          expires_in: 7200,
+                                      }),
+                                  ),
+                              );
+                      })
+                    : Promise.resolve(
+                          new Response(
+                              JSON.stringify({
+                                  algorithm: 'ECDSA',
+                                  digest: 'SHA1',
+                                  key: pem,
+                              }),
+                          ),
+                      ),
+            );
+            vi.stubGlobal('fetch', fetchMock);
+            const pending = ebay.verifyNotificationSignature(body, header());
+            await vi.waitFor(() => expect(releaseToken).toBeTypeOf('function'));
+            ebay.resetNotificationKeyCache();
+            releaseToken();
+            await pending;
+
+            const fresh = stubFetch();
+            await ebay.verifyNotificationSignature(body, header());
+            // The stale token/key were not reused: both were fetched again.
+            expect(fresh).toHaveBeenCalledTimes(2);
+        });
+
+        it('falls back to the JSON.stringify form eBay SDKs sign', async () => {
+            stubFetch();
+            const parsed = JSON.parse(body.toString());
+            const pretty = Buffer.from(JSON.stringify(parsed, null, 2));
+            expect(
+                await ebay.verifyNotificationSignature(pretty, header()),
+            ).toEqual({ valid: false, reason: 'signature mismatch' });
+            expect(
+                await ebay.verifyNotificationSignature(
+                    pretty,
+                    header(),
+                    parsed,
+                ),
+            ).toEqual({ valid: true });
+            // The fallback can't make a tampered payload verify.
+            expect(
+                await ebay.verifyNotificationSignature(pretty, header(), {
+                    ...parsed,
+                    extra: true,
+                }),
+            ).toEqual({ valid: false, reason: 'signature mismatch' });
+        });
+
         it('throws when the application token request fails', async () => {
             vi.stubGlobal(
                 'fetch',
