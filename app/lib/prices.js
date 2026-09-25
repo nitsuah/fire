@@ -78,7 +78,9 @@ async function fetchAndApplyPrices() {
 }
 
 async function fetchAndApplyMetals() {
-    const metalAccounts = (state.customAccounts || []).filter((a) => a.type === 'Metal');
+    const metalAccounts = (state.customAccounts || []).filter(
+        (a) => a.type === 'Metal',
+    );
     if (metalAccounts.length === 0) return;
 
     try {
@@ -104,7 +106,9 @@ async function fetchAndApplyMetals() {
         if (updated) {
             await saveState();
             refreshAllUI();
-            console.log('[Metals] Updated metal account values from spot prices.');
+            console.log(
+                '[Metals] Updated metal account values from spot prices.',
+            );
         }
     } catch (err) {
         console.warn('[Metals] Could not fetch spot prices:', err);

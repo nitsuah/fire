@@ -21,7 +21,11 @@ async function fetchAndCacheMetal(metal) {
     try {
         const result = await resolveMetalValue(metal, 1); // Get price per oz
         metalsCache[metal] = { price: result.pricePerOz, fetchedAt: now };
-        return { price: result.pricePerOz, cached: false, source: result.source };
+        return {
+            price: result.pricePerOz,
+            cached: false,
+            source: result.source,
+        };
     } catch (err) {
         console.warn(`[Metals] Failed to fetch ${metal}:`, err.message);
         if (cached.price !== null) {
@@ -77,8 +81,10 @@ router.get('/stream', (req, res) => {
     });
 });
 
-// Background refresh every 5 minutes
-setInterval(async () => {
+// Background refresh every 5 minutes. unref() so this timer alone never
+// keeps the process alive (the HTTP server does that when actually
+// listening; a bare require() of server.js — tests, tooling — must exit).
+const metalsRefreshInterval = setInterval(async () => {
     try {
         const updates = {};
         for (const metal of ['gold', 'silver']) {
@@ -89,11 +95,15 @@ setInterval(async () => {
         }
         if (Object.keys(updates).length > 0) {
             broadcastMetalsUpdate(updates);
-            console.log('[Metals] Broadcast updates:', Object.keys(updates).join(', '));
+            console.log(
+                '[Metals] Broadcast updates:',
+                Object.keys(updates).join(', '),
+            );
         }
     } catch (err) {
         console.warn('[Metals] Background refresh failed:', err.message);
     }
 }, CACHE_TTL_MS);
+metalsRefreshInterval.unref();
 
 module.exports = router;

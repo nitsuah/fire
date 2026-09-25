@@ -73,8 +73,9 @@ var projLineToggles = {
 // Base return rate before scenario offset is applied (null = use projectionSettings)
 var scenarioOffset = 0; // +2 = bull, -2 = bear, 0 = base
 
-// Price refresh timer
+// Price refresh timers (stocks, gold/silver)
 var priceRefreshTimer = null;
+var metalsRefreshTimer = null;
 
 // Initialize App on DOM Load
 document.addEventListener('DOMContentLoaded', async () => {

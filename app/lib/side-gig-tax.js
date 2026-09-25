@@ -16,13 +16,16 @@
 /* global module */
 
 const SIDE_GIG_BASIS_TYPES = {
-    business: "Business / bought to resell",
-    personal: "Personal item",
+    business: 'Business / bought to resell',
+    personal: 'Personal item',
     gift: "Gift (giver's cost)",
-    free: "Free / $0 cost",
+    free: 'Free / $0 cost',
 };
 
-// round2 is defined in ebay-report.js (loads first); reuse it to avoid redeclaration error
+// Own name (not round2): browser scripts share one global scope and
+// ebay-report.js already declares round2, but this file must also stand
+// alone under Node (MCP server, Vitest) where that global doesn't exist.
+const sideGigRound2 = (n) => Math.round(n * 100) / 100;
 
 function isBasisType(t) {
     return Object.prototype.hasOwnProperty.call(SIDE_GIG_BASIS_TYPES, t);
@@ -72,7 +75,7 @@ function applyCostBasis(entry, value) {
     const legacy =
         'legacyCostInExpenses' in next || isLegacyCalculatorRow(next);
     if ('legacyCostInExpenses' in next) {
-        next.expenses = round2(
+        next.expenses = sideGigRound2(
             (firstNumber(next.expenses) ?? 0) + next.legacyCostInExpenses,
         );
         delete next.legacyCostInExpenses;
@@ -85,12 +88,12 @@ function applyCostBasis(entry, value) {
         if (legacy) {
             const expenses = firstNumber(next.expenses) ?? 0;
             const moved = Math.min(basis, expenses);
-            next.expenses = round2(expenses - moved);
+            next.expenses = sideGigRound2(expenses - moved);
             next.legacyCostInExpenses = moved;
         }
     }
     const { revenue, sellingCosts } = saleAmounts(next);
-    next.net = round2(revenue - sellingCosts - (next.costBasis || 0));
+    next.net = sideGigRound2(revenue - sellingCosts - (next.costBasis || 0));
     return next;
 }
 
@@ -110,9 +113,9 @@ function classifySideGigSale(entry) {
     const { revenue, sellingCosts, costBasis } = saleAmounts(entry);
     const out = {
         basisType,
-        revenue: round2(revenue),
-        sellingCosts: round2(sellingCosts),
-        costBasis: costBasis === null ? null : round2(costBasis),
+        revenue: sideGigRound2(revenue),
+        sellingCosts: sideGigRound2(sellingCosts),
+        costBasis: costBasis === null ? null : sideGigRound2(costBasis),
         gain: null,
         taxable: null,
         needsBasis: false,
@@ -129,7 +132,7 @@ function classifySideGigSale(entry) {
         out.needsBasis = true;
         return out;
     }
-    const gain = round2(revenue - sellingCosts - basis);
+    const gain = sideGigRound2(revenue - sellingCosts - basis);
     out.gain = gain;
     out.taxable = basisType === 'business' ? gain : Math.max(0, gain);
     return out;
@@ -180,10 +183,10 @@ function summarizeSideGigTax(ledger, { year } = {}) {
         summary.untagged,
     ]) {
         for (const k of Object.keys(b)) {
-            if (k !== 'count') b[k] = round2(b[k]);
+            if (k !== 'count') b[k] = sideGigRound2(b[k]);
         }
     }
-    summary.estimatedTaxableIncome = round2(
+    summary.estimatedTaxableIncome = sideGigRound2(
         summary.business.net + summary.personalSales.taxableGains,
     );
     return summary;
