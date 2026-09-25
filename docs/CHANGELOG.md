@@ -1,11 +1,28 @@
 # Changelog
 
+> 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · **Changelog** · [Metrics](./METRICS.md) <!-- nav -->
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### 2026-09 — eBay notification signature verification (PR #123)
+
+#### Security
+- **Marketplace Account Deletion notifications are now signature-verified** (CWE-345). `POST /api/sync/ebay/marketplace-account-deletion` checks eBay's `X-EBAY-SIGNATURE` (ECDSA, public key per `kid` fetched from the Notification API and cached) over the raw request body, falling back to `JSON.stringify(body)` as eBay's SDKs do, before purging tokens or disabling sync. Unsigned, tampered or unknown-`kid` notifications get `412`; key-lookup failures or missing `EBAY_CLIENT_ID`/`EBAY_CLIENT_SECRET` get `503` so eBay retries. Previously the endpoint trusted only the secret URL + verification token.
+
+### 2026-09 — Coverage gate + docs reset
+
+#### Fixed
+- Branch coverage restored above the 70% threshold (74.85%, 484 tests via `tests/unit/finance-calcs-branches.test.mjs`) and CI now runs `npm run test:coverage`, so the threshold is actually enforced (#118, #119).
+- Docker `test` image can write coverage output (`chown node:node /app`) (#119).
+
+#### Changed
+- Netlify deploy-status badge in README (#117); generated `coverage_summary.txt` untracked (#121); vitest / coverage-v8 5.0.1, prettier 3.9.8 (#114–#116).
+- Planning docs reset for 2027 (`pmo-ff`): completed roadmap/TASKS items condensed into FEATURES/CHANGELOG, open 2026 Q4 items carried into 2027 Q1, relative doc links fixed, breadcrumb navigation + README docs index added.
 
 ### 2026-09 — Side gig tax tagging
 
@@ -136,7 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial calculations for net worth and basic FIRE progress indicators.
 - Basic data persistence layer (file-based db.json).
 
-## [0.1.0] - YYYY-MM-DD
+## [0.1.0] - 2026-06-03
 
 ### Added
 

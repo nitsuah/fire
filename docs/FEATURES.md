@@ -1,5 +1,7 @@
 # Features
 
+> 🧭 [fire](../README.md) · **Features** · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
+
 `nitsuah/fire` is a lightweight FIRE (Financial Independence, Retire Early) tracker and API server built with Node/Express and vanilla JavaScript, designed for local self-hosted use with full LLM integration via MCP.
 
 ## Core Infrastructure
@@ -121,7 +123,7 @@
 
 ## Testing
 
-- **Vitest Suite** — 472 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
+- **Vitest Suite** — 484 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
 - **Playwright UI Suite** — 50 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
 - **MCP Smoke Test** — `scripts/test-mcp.mjs` exercises the 8 tools in `EXPECTED_TOOLS` end-to-end via the SDK client.
 
