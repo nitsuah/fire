@@ -1,5 +1,7 @@
 # Features
 
+> 🧭 [fire](../README.md) · **Features** · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
+
 `nitsuah/fire` is a lightweight FIRE (Financial Independence, Retire Early) tracker and API server built with Node/Express and vanilla JavaScript, designed for local self-hosted use with full LLM integration via MCP.
 
 ## Core Infrastructure

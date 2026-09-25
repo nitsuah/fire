@@ -1,3 +1,6 @@
+> 🧭 [fire](../../README.md) · [Features](../FEATURES.md) · [Roadmap](../ROADMAP.md) · [Tasks](../TASKS.md) · [Changelog](../CHANGELOG.md) · [Metrics](../METRICS.md) <!-- nav -->
+
+
 > **Archived 2026-09-23**: raw feature-request notes; all items below have
 > since shipped (chart line toggles, position PnL/risk badges, CD yield
 > display, header/income reorg, diversification suggestions — see

@@ -1,3 +1,6 @@
+> 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
+
+
 ?# Backend Sync Architecture
 
 > **Last updated:** 2026-08-12  
