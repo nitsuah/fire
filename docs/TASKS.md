@@ -17,7 +17,7 @@ for shipped capabilities. Its follow-up items are below._
 ## Follow-ups from PR #111 — Sep 2026
 
 - [ ] Manual step: register the public HTTPS notification URL + verification token in the eBay Developer Portal (cannot be verified in CI)
-- [ ] **[2027-Q1]** Verify eBay's `X-EBAY-SIGNATURE` on Marketplace Account Deletion notifications (`app/routes/sync.js`)
+- [ ] **[P1 — do now]** Verify eBay's `X-EBAY-SIGNATURE` on Marketplace Account Deletion notifications (`app/routes/sync.js`)
   - Priority: P1 (security) — deferred from PR #111 review (CodeRabbit, `sync.js` thread).
   - Context: the POST handler currently trusts the secret endpoint URL + verification token. eBay signs notifications: `X-EBAY-SIGNATURE` is base64 JSON `{alg, kid, signature, digest}`; fetch the public key for `kid` from eBay's Notification API, verify the signature over the raw body (needs `rawBody` capture on this route), and reject on mismatch before purging anything. Needs live eBay credentials to test end to end; mock the key fetch in unit tests.
   - Acceptance Criteria: unsigned/invalid notifications return 4xx without touching tokens or state; valid ones behave as today; tests cover valid, tampered-body and unknown-`kid` cases.

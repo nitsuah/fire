@@ -305,7 +305,6 @@ Every doc at the repo root and under `docs/` (the files mirrored into the Obsidi
 - [FIRE Tracker — Privacy Policy & Terms of Use](./docs/privacy-policy.md) — `docs/privacy-policy.md`
 - [PROD Plan — FIRE Tracker Productionization](./docs/prod-plan.md) — `docs/prod-plan.md`
 - [Security Hardening Plan](./docs/security-hardening.md) — `docs/security-hardening.md`
-- [Weekly financial check-in prompt (local)](./docs/weekly-checkin-prompt.md) — `docs/weekly-checkin-prompt.md`
 
 **`docs/archive/`**
 
