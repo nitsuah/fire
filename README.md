@@ -299,11 +299,11 @@ Every tracked doc in this repo, so nothing is orphaned (also used by the Obsidia
 - [METRICS.md](./docs/METRICS.md) — `docs/METRICS.md`
 - [🗺️ FIRE Tracker Roadmap](./docs/ROADMAP.md) — `docs/ROADMAP.md`
 - [Tasks](./docs/TASKS.md) — `docs/TASKS.md`
-- [backend-sync-architecture](./docs/backend-sync-architecture.md) — `docs/backend-sync-architecture.md`
-- [integrations](./docs/integrations.md) — `docs/integrations.md`
+- [Backend Sync Architecture](./docs/backend-sync-architecture.md) — `docs/backend-sync-architecture.md`
+- [Integrations Reference](./docs/integrations.md) — `docs/integrations.md`
 - [FIRE Tracker — Privacy Policy & Terms of Use](./docs/privacy-policy.md) — `docs/privacy-policy.md`
-- [prod-plan](./docs/prod-plan.md) — `docs/prod-plan.md`
-- [Review any breaking changes from major version bumps](./docs/security-hardening.md) — `docs/security-hardening.md`
+- [PROD Plan — FIRE Tracker Productionization](./docs/prod-plan.md) — `docs/prod-plan.md`
+- [Security Hardening Plan](./docs/security-hardening.md) — `docs/security-hardening.md`
 
 **`docs/archive/`**
 
