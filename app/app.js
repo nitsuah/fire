@@ -153,134 +153,66 @@ function refreshAllUI() {
    Aggregate Helpers (global wrappers around state)
    ========================================================================== */
 
+// Thin wrappers binding the shared aggregates (lib/aggregates.js — the same
+// code the server, MCP server and tests use) to the global `state`, so
+// the math lives in exactly one place.
+const fireAgg = window.FireAggregates;
+
 function insuranceToMonthly(ins) {
-    const amt = ins.amt || 0;
-    if (ins.freq === '6month') return amt / 6;
-    if (ins.freq === 'annual') return amt / 12;
-    return amt; // monthly
+    return fireAgg.insuranceToMonthly(ins);
 }
 
 function getInsuranceMonthly() {
-    const ins = state.insurances || {};
-    return insuranceToMonthly(ins.car || {}) + insuranceToMonthly(ins.home || {});
+    return fireAgg.getInsuranceMonthly(state.insurances);
 }
 
 function getMonthlyExpensesBase() {
-    let base = 0;
-    Object.keys(state.expenses).forEach(k => {
-        base += state.expenses[k] || 0;
-    });
-    return base + getInsuranceMonthly();
+    return fireAgg.getMonthlyExpensesBase(state.expenses, state.insurances);
 }
 
 function getAnnualExpensesTotal() {
-    const baseAnnual = getMonthlyExpensesBase() * 12;
-    const taxDrag = baseAnnual * (state.taxRate / 100);
-    return baseAnnual + taxDrag;
+    return fireAgg.getAnnualExpensesTotal(state.expenses, state.insurances, state.taxRate);
 }
 
 function isSettledCash(pos) {
-    const sym = (pos.symbol || '').toUpperCase();
-    const desc = (pos.description || '').toUpperCase();
-    return sym.includes('SPAXX') || sym.includes('FDRXX') || sym.includes('FZSSX') || sym.includes('FZFXX') ||
-        sym === '**' || desc.includes('PENDING ACTIVITY') || desc.includes('MONEY MARKET') || desc.includes('CORE POSITION');
+    return fireAgg.isSettledCash(pos);
 }
 
 function getAggregateCash() {
-    let sum = 0;
-    state.importedPositions.forEach(pos => {
-        if (pos.symbol.includes('SPAXX') || pos.symbol.includes('FDRXX') || pos.description.includes('MONEY MARKET')) {
-            sum += pos.value;
-        }
-    });
-    state.customAccounts.forEach(acc => {
-        if (acc.type === 'Cash' || acc.type === 'Savings') {
-            sum += acc.value;
-        }
-    });
-    return sum;
+    return fireAgg.getAggregateCash(state.importedPositions, state.customAccounts);
 }
 
 function getAggregateCDs() {
-    let sum = 0;
-    state.cds.forEach(cd => {
-        sum += cd.principal || 0;
-    });
-    return sum;
+    return fireAgg.getAggregateCDs(state.cds);
 }
 
 function getAggregateEquities() {
-    let sum = 0;
-    state.importedPositions.forEach(pos => {
-        if (!pos.symbol.includes('SPAXX') && !pos.symbol.includes('FDRXX') && !pos.description.includes('MONEY MARKET')) {
-            sum += pos.value;
-        }
-    });
-    state.customAccounts.forEach(acc => {
-        if (acc.type === 'Brokerage' || acc.type === 'Crypto') {
-            sum += acc.value;
-        }
-    });
-    return sum;
+    return fireAgg.getAggregateEquities(state.importedPositions, state.customAccounts);
 }
 
 function getAggregateOtherAssets() {
-    let sum = 0;
-    state.customAccounts.forEach(acc => {
-        if (acc.type !== 'Cash' && acc.type !== 'Savings' && acc.type !== 'Brokerage' && acc.type !== 'Crypto') {
-            sum += acc.value;
-        }
-    });
-    return sum;
+    return fireAgg.getAggregateOtherAssets(state.customAccounts);
 }
 
-// Estimated yearly interest/yield: HYSA/cash balance × APY (open-ended, no
-// end date), CD principal × rate, and crypto staking balance × APY. See
-// finance-core.js for the tested twin.
+// { savings, cds, staking, total } — HYSA/cash APY, active CDs, crypto staking.
 function getEstimatedAnnualInterest() {
-    let savings = 0;
-    state.customAccounts.forEach(acc => {
-        if ((acc.type === 'Cash' || acc.type === 'Savings') && (acc.apy || 0) > 0) {
-            savings += (acc.value || 0) * (acc.apy / 100);
-        }
-    });
-    // Matured CDs no longer earn their contract rate — see isCdMatured in
-    // finance-core.js.
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    let cds = 0;
-    state.cds.forEach(cd => {
-        const mat = typeof cd.maturity === 'string' && cd.maturity ? new Date(cd.maturity.replace(/-/g, '/')) : null;
-        if (mat && !Number.isNaN(mat.getTime()) && mat < today) return;
-        cds += (cd.principal || 0) * ((cd.rate || 0) / 100);
-    });
-    let staking = 0;
-    state.customAccounts.forEach(acc => {
-        if (acc.type === 'Crypto' && (acc.apy || 0) > 0) {
-            staking += (acc.value || 0) * (acc.apy / 100);
-        }
-    });
-    return { savings, cds, staking, total: savings + cds + staking };
+    return fireAgg.getEstimatedAnnualInterest(state.customAccounts, state.cds);
 }
 
 function getSideGigYTDNet() {
-    let sum = 0;
-    state.sideGigLedger.forEach(sg => {
-        sum += sg.net;
-    });
-    return sum;
+    return fireAgg.getSideGigYTDNet(state.sideGigLedger);
 }
 
 function getAggregateRealEstate() {
-    return (state.realEstate || []).reduce((sum, re) => sum + Math.max(0, (re.marketValue || 0) - (re.mortgageBalance || 0)), 0);
+    return fireAgg.getAggregateRealEstate(state.realEstate);
 }
 
 function getAggregateVehicles() {
-    return (state.vehicles || []).reduce((sum, v) => sum + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)), 0);
+    return fireAgg.getAggregateVehicles(state.vehicles);
 }
 
 function getAggregateNetWorth() {
-    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getAggregateRealEstate() + getAggregateVehicles();
+    return fireAgg.getAggregateNetWorth(state);
 }
 
 /* ==========================================================================

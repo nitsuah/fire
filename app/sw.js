@@ -21,6 +21,7 @@ const SHELL_ASSETS = [
     '/lib/csv-import.js',
     '/lib/finance-calcs.js',
     '/lib/finance-core.js',
+    '/lib/aggregates.js',
     '/lib/finance-parsing.js',
     '/lib/finance-platforms.js',
     '/lib/ebay-connector.js',
