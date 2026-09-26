@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Crypto staking/lending yield counts toward Annual Income** alongside HYSA and CD interest (`getEstimatedAnnualInterest().staking`; MCP `estimatedAnnualInterest.staking`).
 
 #### Added
-- "Live · 3:42 PM" freshness pill on Top Investment Positions (greys out as "Prices as of …" once quotes are over 30 minutes old).
+- "Live · 3:42 PM · Today −$2,855" freshness pill on Top Investment Positions (greys out as "Prices as of …" once quotes are over 30 minutes old), plus each position's daily % move under its last price.
+- Asset Allocation (and the banner bar) split out **Crypto** (blue) and **Precious Metals** (gold) slices with their own drill-downs; Other Assets is now neutral grey.
 
 #### Fixed
 - **Stale tabs re-sync when you come back to them.** A tab left open reloads the data from the server when it becomes visible again (skipped while an edit is in progress), so editing in an old tab no longer posts its hours-old copy over newer changes.

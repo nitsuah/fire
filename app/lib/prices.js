@@ -70,6 +70,8 @@ async function fetchAndApplyPrices() {
                 if (newPrice && newPrice > 0) {
                     pos.lastPrice = newPrice;
                     pos.priceUpdatedAt = now;
+                    const dayPct = prices[cleanSym].changePercent;
+                    if (Number.isFinite(dayPct)) pos.dayChangePercent = dayPct;
                     // Recalculate current value based on quantity × new price
                     if (pos.quantity > 0) {
                         pos.value = pos.quantity * newPrice;
@@ -89,6 +91,7 @@ async function fetchAndApplyPrices() {
                 positions: changed.map((p) => ({
                     id: p.id,
                     lastPrice: p.lastPrice,
+                    dayChangePercent: p.dayChangePercent,
                     priceUpdatedAt: p.priceUpdatedAt,
                 })),
             });

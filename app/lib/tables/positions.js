@@ -31,6 +31,36 @@ narrowPositionsMq.addEventListener('change', () => {
         renderDashboardTopPositionsTable();
 });
 
+// Today's move for one position, shown under its last price. Only for
+// quotes applied today — an old dayChangePercent describes some past day.
+function isQuotedToday(pos) {
+    const t = Date.parse(pos.priceUpdatedAt || '');
+    return (
+        !Number.isNaN(t) &&
+        new Date(t).toDateString() === new Date().toDateString()
+    );
+}
+
+function dayChangeHtml(pos) {
+    const pct = pos.dayChangePercent;
+    if (!Number.isFinite(pct) || !isQuotedToday(pos)) return '';
+    const cls =
+        pct > 0 ? 'text-emerald' : pct < 0 ? 'text-coral' : 'text-muted';
+    return `<span class="pos-day-change ${cls}">${pct > 0 ? '+' : ''}${pct.toFixed(2)}% today</span>`;
+}
+
+// Portfolio $ change today: each position's value minus its value at the
+// previous close (value / (1 + pct)).
+function getPortfolioDayChange() {
+    return state.importedPositions.reduce((sum, p) => {
+        const pct = p.dayChangePercent;
+        if (!Number.isFinite(pct) || pct <= -100 || !isQuotedToday(p))
+            return sum;
+        const v = p.value || 0;
+        return sum + (v - v / (1 + pct / 100));
+    }, 0);
+}
+
 // "Live · 3:42 PM" next to the card title: when the newest quote was
 // applied. Flagged stale when older than 30 minutes (e.g. market closed or
 // the quote API is down), and the date is shown once it's not from today.
@@ -58,7 +88,14 @@ function renderPositionsPriceAsOf() {
     const stale = ageMin > 30;
     el.hidden = false;
     el.classList.toggle('price-asof-stale', stale);
-    el.textContent = stale ? `Prices as of ${label}` : `Live · ${label}`;
+    const day = getPortfolioDayChange();
+    const dayStr =
+        Math.abs(day) >= 0.01
+            ? ` · Today ${day > 0 ? '+' : '−'}${formatCurrency(Math.abs(day))}`
+            : '';
+    el.textContent =
+        (stale ? `Prices as of ${label}` : `Live · ${label}`) + dayStr;
+    el.classList.toggle('price-asof-down', !stale && day < 0);
     el.title = `Market prices last applied ${at.toLocaleString()}`;
 }
 
@@ -210,7 +247,7 @@ function renderDashboardTopPositionsTable() {
                         <td class="font-bold text-purple">${escHtml(sym)} ${riskBadge}</td>
                         <td class="pos-col-desc" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(pos.description || '')}</td>
                         <td class="text-right pos-col-qty">${qtyStr}</td>
-                        <td class="text-right pos-col-price">${formatCurrency(pos.lastPrice || 0)}</td>
+                        <td class="text-right pos-col-price">${formatCurrency(pos.lastPrice || 0)}${dayChangeHtml(pos)}</td>
                         <td class="text-right text-muted pos-col-cost">${costStr}</td>
                         <td class="text-right font-bold" style="${posStyle}">${formatCurrency(pos.value || 0)}</td>
                         <td class="text-right font-bold" style="${posStyle}">${pnlText} ${mktBadge}</td>
@@ -221,7 +258,7 @@ function renderDashboardTopPositionsTable() {
                             <dl class="pos-detail-list">
                                 <div><dt>Description</dt><dd>${escHtml(pos.description || '—')}</dd></div>
                                 <div><dt>Quantity</dt><dd>${qtyStr}</dd></div>
-                                <div><dt>Last Price</dt><dd>${formatCurrency(pos.lastPrice || 0)}</dd></div>
+                                <div><dt>Last Price</dt><dd>${formatCurrency(pos.lastPrice || 0)}${dayChangeHtml(pos)}</dd></div>
                                 <div><dt>Cost Basis</dt><dd>${costStr}</dd></div>
                             </dl>
                         </td>

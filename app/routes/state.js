@@ -83,6 +83,10 @@ function applyPositionQuote(pos, quote) {
     if (!isNewer(quote.priceUpdatedAt, pos.priceUpdatedAt)) return false;
     pos.lastPrice = price;
     pos.priceUpdatedAt = quote.priceUpdatedAt;
+    const dayPct = finiteNum(quote.dayChangePercent);
+    // Daily moves beyond ±100% are data errors (a price can't go negative).
+    if (dayPct !== null && Math.abs(dayPct) < 100)
+        pos.dayChangePercent = dayPct;
     if (pos.quantity > 0) pos.value = pos.quantity * price;
     if (pos.costBasis > 0) {
         pos.pnlDollar = pos.value - pos.costBasis;

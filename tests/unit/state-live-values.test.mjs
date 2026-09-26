@@ -66,6 +66,7 @@ describe('PATCH /api/state/live-values', () => {
                 {
                     id: 'pos-1',
                     lastPrice: 120,
+                    dayChangePercent: 2.5,
                     priceUpdatedAt: T1,
                     value: 999999, // client-computed values are ignored
                     quantity: 999,
@@ -91,6 +92,7 @@ describe('PATCH /api/state/live-values', () => {
         expect(pos.value).toBe(1200);
         expect(pos.pnlDollar).toBe(700);
         expect(pos.pnlPercent).toBe(140);
+        expect(pos.dayChangePercent).toBe(2.5);
         const gold = state.customAccounts.find((a) => a.id === 'gold-1');
         expect(gold.value).toBeCloseTo(7600, 6); // 2oz × 4000 × 95%
         expect(gold.payoutPct).toBe(0.95);
@@ -193,6 +195,22 @@ describe('PATCH /api/state/live-values', () => {
         expect(state.customAccounts.find((a) => a.id === 'cash-1').value).toBe(
             500,
         );
+    });
+
+    it('drops an impossible daily move but still applies the price', async () => {
+        await patch({
+            positions: [
+                {
+                    id: 'pos-1',
+                    lastPrice: 110,
+                    dayChangePercent: 500,
+                    priceUpdatedAt: T1,
+                },
+            ],
+        });
+        const pos = (await getState()).importedPositions[0];
+        expect(pos.lastPrice).toBe(110);
+        expect(pos.dayChangePercent).toBeUndefined();
     });
 
     it('rejects non-array payloads', async () => {

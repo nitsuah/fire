@@ -824,6 +824,13 @@
     border-bottom: none;
     margin-top: var(--space-xs);
     padding-top: var(--space-sm);
+    align-items: center;
+}
+/* Total labels are short phrases — let them wrap in narrow columns rather
+   than truncating to "Est. yea…". */
+.liquid-row.liquid-total-row .liquid-name {
+    white-space: normal;
+    overflow: visible;
 }
 
 /* "Live · 3:42 PM" freshness pill next to Top Investment Positions */
@@ -835,6 +842,15 @@
     border-radius: 999px;
     padding: 2px 8px;
     white-space: nowrap;
+}
+.price-asof.price-asof-down {
+    color: var(--color-danger, #f43f5e);
+    background: rgba(244, 63, 94, 0.12);
+}
+.pos-day-change {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
 }
 .price-asof.price-asof-stale {
     color: var(--text-muted);
