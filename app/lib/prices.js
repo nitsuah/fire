@@ -3,9 +3,10 @@
    Depends on globals: state, priceRefreshTimer, metalsRefreshTimer, refreshAllUI
    ========================================================================== */
 
-// Persist only the price-derived fields of these items. Deliberately not
+// Persist only the new quotes (price + timestamp). Deliberately not
 // saveState(): that posts this tab's whole state, so an older open tab
-// would overwrite newer edits made elsewhere every refresh.
+// would overwrite newer edits made elsewhere every refresh. The server
+// recomputes value/PnL from its stored quantity/cost/weight.
 async function saveLiveValues({ positions = [], metals = [] }) {
     try {
         const res = await fetch('/api/state/live-values', {
@@ -88,9 +89,6 @@ async function fetchAndApplyPrices() {
                 positions: changed.map((p) => ({
                     id: p.id,
                     lastPrice: p.lastPrice,
-                    value: p.value,
-                    pnlDollar: p.pnlDollar,
-                    pnlPercent: p.pnlPercent,
                     priceUpdatedAt: p.priceUpdatedAt,
                 })),
             });
@@ -140,7 +138,6 @@ async function fetchAndApplyMetals() {
             await saveLiveValues({
                 metals: changed.map((a) => ({
                     id: a.id,
-                    value: a.value,
                     spotPricePerOz: a.spotPricePerOz,
                     payoutPct: a.payoutPct,
                     valueLastRefreshed: a.valueLastRefreshed,

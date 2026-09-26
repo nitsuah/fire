@@ -59,34 +59,51 @@ router.post('/', (req, res) => {
 // Narrow write for the background live-price refresh (app/lib/prices.js).
 // It must NOT post the whole client state: an older open tab would then
 // overwrite everything else (ledger edits, new accounts…) with its stale
-// copy every 5 minutes. Only the price-derived fields of the given
-// positions / Metal accounts are updated, matched by id.
-const POSITION_LIVE_FIELDS = [
-    'lastPrice',
-    'value',
-    'pnlDollar',
-    'pnlPercent',
-    'priceUpdatedAt',
-];
-const METAL_LIVE_FIELDS = [
-    'value',
-    'spotPricePerOz',
-    'payoutPct',
-    'valueLastRefreshed',
-];
+// copy every 5 minutes. Clients send only the quote (price + timestamp);
+// value/PnL are recomputed here from the *stored* quantity, cost basis and
+// weight, so a tab holding stale holdings can't write stale math, and an
+// update is ignored unless its timestamp is newer than the stored one, so
+// out-of-order refreshes can't roll prices back.
+const finiteNum = (v) =>
+    typeof v === 'number' && Number.isFinite(v) ? v : null;
+const isoTime = (v) => {
+    const t = typeof v === 'string' ? Date.parse(v) : NaN;
+    return Number.isNaN(t) ? null : t;
+};
+const isNewer = (incoming, stored) => {
+    const inT = isoTime(incoming);
+    if (inT === null) return false;
+    const curT = isoTime(stored);
+    return curT === null || inT > curT;
+};
 
-function pickLiveFields(src, fields) {
-    const out = {};
-    for (const f of fields) {
-        const v = src[f];
-        if (f.endsWith('At') || f === 'valueLastRefreshed') {
-            if (typeof v === 'string' && !Number.isNaN(Date.parse(v)))
-                out[f] = v;
-        } else if (typeof v === 'number' && Number.isFinite(v)) {
-            out[f] = v;
-        }
+function applyPositionQuote(pos, quote) {
+    const price = finiteNum(quote.lastPrice);
+    if (price === null || price <= 0) return false;
+    if (!isNewer(quote.priceUpdatedAt, pos.priceUpdatedAt)) return false;
+    pos.lastPrice = price;
+    pos.priceUpdatedAt = quote.priceUpdatedAt;
+    if (pos.quantity > 0) pos.value = pos.quantity * price;
+    if (pos.costBasis > 0) {
+        pos.pnlDollar = pos.value - pos.costBasis;
+        pos.pnlPercent = (pos.pnlDollar / pos.costBasis) * 100;
     }
-    return out;
+    return true;
+}
+
+function applyMetalQuote(acc, quote) {
+    const spot = finiteNum(quote.spotPricePerOz);
+    const pct = finiteNum(quote.payoutPct);
+    if (spot === null || spot <= 0 || pct === null || pct <= 0 || pct > 1)
+        return false;
+    if (!(acc.weightOz > 0)) return false;
+    if (!isNewer(quote.valueLastRefreshed, acc.valueLastRefreshed))
+        return false;
+    acc.spotPricePerOz = spot;
+    acc.payoutPct = pct;
+    acc.value = spot * pct * acc.weightOz;
+    acc.valueLastRefreshed = quote.valueLastRefreshed;
+    return true;
 }
 
 router.patch('/live-values', async (req, res) => {
@@ -101,18 +118,15 @@ router.patch('/live-values', async (req, res) => {
         const byId = (list) =>
             new Map((list || []).filter((x) => x?.id).map((x) => [x.id, x]));
         const posById = byId(db.importedPositions);
-        for (const p of positions) {
-            const target = p && posById.get(p.id);
-            if (!target) continue;
-            Object.assign(target, pickLiveFields(p, POSITION_LIVE_FIELDS));
-            updated++;
+        for (const q of positions) {
+            const target = q && posById.get(q.id);
+            if (target && applyPositionQuote(target, q)) updated++;
         }
         const accById = byId(db.customAccounts);
-        for (const m of metals) {
-            const target = m && accById.get(m.id);
-            if (!target || target.type !== 'Metal') continue;
-            Object.assign(target, pickLiveFields(m, METAL_LIVE_FIELDS));
-            updated++;
+        for (const q of metals) {
+            const target = q && accById.get(q.id);
+            if (target?.type === 'Metal' && applyMetalQuote(target, q))
+                updated++;
         }
     });
     if (!ok) return res.status(500).json({ error: 'Failed to save.' });
