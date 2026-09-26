@@ -4,3 +4,6 @@ coverage/
 coverage_summary.txt
 .env
 test-results/
+
+# Local Netlify CLI link/state (netlify link, netlify logs)
+.netlify

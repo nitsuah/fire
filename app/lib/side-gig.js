@@ -420,7 +420,9 @@ function initPlaidLink() {
         statusEl.style.color = 'var(--color-warning)';
 
         try {
-            const res = await fetch('/api/sync/plaid/create-link-token');
+            const res = await fetch('/api/sync/plaid/create-link-token', {
+                method: 'POST',
+            });
             const data = await res.json();
 
             if (!data.linkToken) {

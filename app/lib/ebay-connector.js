@@ -108,8 +108,11 @@ async function fetchCompletedOrders(
     { limit = 50, offset = 0 } = {},
 ) {
     const { api } = getBaseUrls();
+    // eBay accepts only {FULFILLED|IN_PROGRESS} or {NOT_STARTED|IN_PROGRESS}
+    // here; a bare {FULFILLED} is rejected with 400 (errorId 30800).
+    // IN_PROGRESS covers paid orders that are partially shipped.
     const params = new URLSearchParams({
-        filter: 'orderfulfillmentstatus:{FULFILLED}',
+        filter: 'orderfulfillmentstatus:{FULFILLED|IN_PROGRESS}',
         limit: String(limit),
         offset: String(offset),
     });
