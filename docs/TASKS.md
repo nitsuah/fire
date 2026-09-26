@@ -16,7 +16,6 @@ for shipped capabilities. Its follow-up items are below._
 
 ## Follow-ups from PR #111 — Sep 2026
 
-- [ ] Manual step: go live with eBay Marketplace Account Deletion on Netlify. Follow the four **Go-live steps** in `docs/integrations.md` (Marketplace Account Deletion section): set the 2 env vars in Netlify → deploy → curl the challenge URL to confirm the hash → register the URL and token under Production keyset → Notifications in the eBay Developer Portal, then Send Test Notification. This can't be verified in CI.
 - [ ] Manual step: turn on eBay connect/sync on Netlify. Set `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_ENVIRONMENT=production`, `EBAY_REDIRECT_URI` (RuName) and `SYNC_MASTER_KEY` in Netlify, and point the RuName's auth-accepted URL at `https://lifefire.netlify.app/api/sync/ebay/callback` (see the Browser-only deploy section of `docs/integrations.md`)
 - [ ] Stop exposing browser helpers as classic-script globals (`app/lib/fetch-utils.js` `fetchJson`, and the rest of `app/lib/**`)
   - Priority: P3 (maintainability) — deferred from PR #111 review (CodeRabbit, `fetch-utils.js` thread).
