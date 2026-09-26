@@ -206,6 +206,22 @@ describe('ebay-connector', () => {
             expect(orders).toEqual(mockOrders);
         });
 
+        it('sends a fulfillment filter eBay accepts', async () => {
+            // eBay only accepts {FULFILLED|IN_PROGRESS} or
+            // {NOT_STARTED|IN_PROGRESS}; a bare {FULFILLED} is a 400
+            // (errorId 30800).
+            const fetchMock = vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ orders: [] }),
+            });
+            vi.stubGlobal('fetch', fetchMock);
+            await ebay.fetchCompletedOrders('access-token');
+            const url = new URL(fetchMock.mock.calls[0][0]);
+            expect(url.searchParams.get('filter')).toBe(
+                'orderfulfillmentstatus:{FULFILLED|IN_PROGRESS}',
+            );
+        });
+
         it('handles 401 error with status attached', async () => {
             vi.stubGlobal(
                 'fetch',
