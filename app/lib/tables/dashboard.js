@@ -506,14 +506,19 @@ const DIVERSIFICATION_TIPS = [
         id: 'savings-rate',
         title: 'Savings Rate Check',
         icon: '🏦',
-        check: ({ grossIncome, annualExpenses }) =>
+        // Uses total income (salary + interest/yield + side hustle), not
+        // salary alone — with little or no salary (between jobs, retired)
+        // salary-only math gave absurd rates like -2,440,000%. Skipped once
+        // FIRE is reached: in drawdown, savings rate is no longer the goal.
+        check: ({ grossIncome, annualExpenses, fireReached }) =>
+            !fireReached &&
             grossIncome > 0 &&
             annualExpenses > 0 &&
             (grossIncome - annualExpenses) / grossIncome < 0.15,
         severity: ({ grossIncome, annualExpenses }) =>
             grossIncome - annualExpenses < 0 ? 'warning' : 'info',
         message: ({ grossIncome, annualExpenses }) =>
-            `Your rough savings rate is ${(((grossIncome - annualExpenses) / grossIncome) * 100).toFixed(0)}% (income vs. expenses incl. tax drag). Rates above ~20% shorten the road to FIRE dramatically.`,
+            `Your rough savings rate is ${(((grossIncome - annualExpenses) / grossIncome) * 100).toFixed(0)}% (all income — salary, interest and side hustle — vs. expenses incl. tax drag). Rates above ~20% shorten the road to FIRE dramatically.`,
         links: [
             {
                 label: 'Savings Rate & FIRE',
@@ -598,6 +603,14 @@ function clearAllDismissedTips() {
     renderDiversificationSuggestions();
 }
 
+// All annual income for savings-rate purposes: salary + estimated
+// interest/yield (banner Annual Income) + side-hustle net annualized from
+// YTD, the same way the cash-flow card averages it.
+function getAnnualIncomeForSavingsRate() {
+    const monthsElapsed = Math.max(new Date().getMonth() + 1, 1);
+    return getBannerIncome().total + (getSideGigYTDNet() / monthsElapsed) * 12;
+}
+
 function renderDiversificationSuggestions(
     totalPortfolioValue = state.importedPositions.reduce(
         (sum, pos) => sum + (pos.value || 0),
@@ -637,7 +650,10 @@ function renderDiversificationSuggestions(
         monthlyExpenses,
         cashMonths:
             monthlyExpenses > 0 ? getAggregateCash() / monthlyExpenses : 0,
-        grossIncome: getBannerIncome().gross,
+        grossIncome: getAnnualIncomeForSavingsRate(),
+        fireReached:
+            (state.projectionSettings?.swr || 0) > 0 &&
+            nw >= annualExpenses / (state.projectionSettings.swr / 100),
         cdsSoon,
         swr: state.projectionSettings?.swr || 0,
         cryptoPct: (cryptoValue / nw) * 100,
