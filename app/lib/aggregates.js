@@ -282,7 +282,29 @@
         };
     }
 
+    // Years until net worth reaches the FIRE number, compounding at the
+    // real (inflation-adjusted) return and adding annualSavings each year.
+    // 0 when already there; null when it never gets there within maxYears
+    // (e.g. no growth and no savings).
+    function yearsToFire({
+        networth,
+        fireNumber,
+        annualSavings = 0,
+        realReturn = 0,
+        maxYears = 100,
+    }) {
+        if (!(fireNumber > 0)) return null;
+        let nw = networth || 0;
+        if (nw >= fireNumber) return 0;
+        for (let y = 1; y <= maxYears; y++) {
+            nw = nw * (1 + realReturn) + annualSavings;
+            if (nw >= fireNumber) return y;
+        }
+        return null;
+    }
+
     const api = {
+        yearsToFire,
         ASSET_CLASSES,
         getAllocationAmounts,
         scoreDiversification,

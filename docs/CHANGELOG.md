@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09 — Hardening, tests, real MCP tools (PR #129)
+
+#### Added
+- **FIRE progress sub-line:** past 100% it shows safe-withdrawal income and how many times it covers spending; before that, estimated years to FIRE.
+- **Daily local backups** of db.json (`data/backups/`, newest 14 kept) and cleanup of stale temp files.
+- **MCP:** `get_diversification_score`, `get_swr_sensitivity` and `simulate_rebalance` now return real results.
+- **Playwright data-integrity suite**, and the UI suite now runs in CI.
+
+#### Changed
+- Net-worth, interest and expense math lives in one shared module (`app/lib/aggregates.js`) used by both the browser and the server.
+- The container's time zone defaults to America/New_York.
+- Removed the MCP stub tools that only returned `not_implemented`.
+
+#### Fixed
+- Switching tabs kept the previous tab's scroll position.
+- The notification icon 404'd.
+
 ### 2026-09 — Income vs. assets cleanup
 
 #### Changed

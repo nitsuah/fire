@@ -919,6 +919,12 @@
 .metal-dot-gold { background: linear-gradient(135deg, #fde68a, #d4a017 60%, #a16207); }
 .metal-dot-silver { background: linear-gradient(135deg, #f8fafc, #cbd5e1 60%, #64748b); }
 
+/* Banner: FIRE progress sub-line (years to FIRE / safe-withdrawal income) */
+.fire-prog-eta {
+    display: block;
+    color: var(--color-success);
+}
+
 /* Banner: estimated interest rolled into Annual Income */
 .income-sub-line.income-sub-interest { color: var(--color-success); }
 

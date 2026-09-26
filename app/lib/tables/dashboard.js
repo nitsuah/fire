@@ -55,6 +55,33 @@ function renderHeaderBannerMetrics() {
     document.getElementById('banner-target').textContent =
         `Target: ${formatCurrency(fireNumber)}`;
 
+    // Past 100% the bar alone says nothing, so show what the portfolio can
+    // pay out; before it, how long until FIRE at current savings/returns.
+    const etaEl = document.getElementById('banner-fire-eta');
+    if (etaEl) {
+        if (fireNumber <= 0) {
+            etaEl.textContent = '';
+        } else if (networth >= fireNumber) {
+            const income = networth * swr;
+            const cover = annualExpenses > 0 ? income / annualExpenses : 0;
+            etaEl.textContent = `Safe withdrawal ${formatCurrency(income)}/yr · ${cover.toFixed(1)}× spend`;
+        } else {
+            const ps = state.projectionSettings || {};
+            const nominal = (Number(ps.expectedReturn) || 0) / 100;
+            const inflation = (Number(ps.inflationRate) || 0) / 100;
+            const years = window.FireAggregates.yearsToFire({
+                networth,
+                fireNumber,
+                annualSavings: Number(ps.annualSavings) || 0,
+                realReturn: (1 + nominal) / (1 + inflation) - 1,
+            });
+            etaEl.textContent =
+                years === null
+                    ? 'Not on track at current savings/returns'
+                    : `~${years} yr${years === 1 ? '' : 's'} to FIRE`;
+        }
+    }
+
     const fireBarEl = document.getElementById('banner-fire-bar');
     if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
 
