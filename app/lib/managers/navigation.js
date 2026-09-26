@@ -80,6 +80,7 @@ function initNavigation() {
     navButtons.forEach((btn) => {
         btn.addEventListener('click', () => {
             const targetTab = btn.getAttribute('data-tab');
+            const switching = !btn.classList.contains('active');
 
             navButtons.forEach((b) => b.classList.remove('active'));
             tabPanes.forEach((pane) => pane.classList.remove('active'));
@@ -90,9 +91,18 @@ function initNavigation() {
 
             if (isMobileViewport()) closeNavDrawer();
 
+            // Tabs share one scroll container, so without this a new tab
+            // opened scrolled to wherever the previous one was left.
+            if (switching) {
+                const scroller = document.querySelector('.scroll-container');
+                if (scroller) scroller.scrollTop = 0;
+            }
+
             if (targetTab === 'dashboard') {
                 renderAssetAllocationChart();
                 renderDashboardProjectionsChart();
+                if (typeof renderNetWorthHistoryChart === 'function')
+                    renderNetWorthHistoryChart();
             } else if (targetTab === 'projections') {
                 calculateAndRenderProjections();
             } else if (targetTab === 'insights') {

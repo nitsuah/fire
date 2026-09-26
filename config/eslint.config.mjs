@@ -25,6 +25,7 @@ export default [
             'app/lib/ebay-connector.js',
             'app/lib/metals-prices.js',
             'app/lib/net-worth-history.js',
+            'app/lib/local-backup.js',
             'app/lib/gdrive-backup.js',
             'app/lib/prices-provider.js',
             'app/lib/vehicle-api.js',

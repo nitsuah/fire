@@ -17,7 +17,16 @@ const require = createRequire(import.meta.url);
 const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
 const { saleAmounts, summarizeSideGigTax } = require('./lib/side-gig-tax.js');
-const { getEstimatedAnnualInterest } = require('./lib/finance-core.js');
+const {
+    getEstimatedAnnualInterest,
+    getAggregateNetWorth,
+    getAnnualExpensesTotal,
+} = require('./lib/finance-core.js');
+const {
+    ASSET_CLASSES,
+    getAllocationAmounts,
+    scoreDiversification,
+} = require('./lib/aggregates.js');
 const { summarizeNetWorthHistory } = require('./lib/net-worth-history.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
@@ -113,65 +122,65 @@ const TOOLS = [
     {
         name: 'simulate_rebalance',
         description:
-            'Scenario modeling: "What if I sold X of AssetA and bought Y of AssetB?"',
+            'What-if: move an amount from one asset class to another (e.g. sell $20k of equities into cds) and see the allocation and diversification score before and after. Read-only — nothing is traded or saved.',
         inputSchema: {
             type: 'object',
             properties: {
-                soldAsset: { type: 'string' },
-                soldAmount: { type: 'number' },
-                boughtAsset: { type: 'string' },
-                boughtAmount: { type: 'number' },
+                soldAsset: {
+                    type: 'string',
+                    enum: [
+                        'cash',
+                        'cds',
+                        'equities',
+                        'crypto',
+                        'metals',
+                        'realEstate',
+                        'vehicles',
+                        'otherAssets',
+                    ],
+                },
+                amount: {
+                    type: 'number',
+                    description:
+                        'Dollars moved (> 0, at most the class balance).',
+                },
+                boughtAsset: {
+                    type: 'string',
+                    enum: [
+                        'cash',
+                        'cds',
+                        'equities',
+                        'crypto',
+                        'metals',
+                        'realEstate',
+                        'vehicles',
+                        'otherAssets',
+                    ],
+                },
             },
-            required: [
-                'soldAsset',
-                'soldAmount',
-                'boughtAsset',
-                'boughtAmount',
-            ],
+            required: ['soldAsset', 'amount', 'boughtAsset'],
         },
     },
     {
-        name: 'get_market_correlation',
-        description: 'Check portfolio sync (e.g., COIN + VOO).',
-        inputSchema: { type: 'object', properties: {} },
-    },
-    {
         name: 'get_swr_sensitivity',
-        description: 'Impact of market dip on 4-year SWR.',
+        description:
+            'Safe-withdrawal-rate stress test: annual withdrawal at the given SWR from current net worth, before and after a market dip, compared with annual expenses (incl. tax drag), plus the same at 3–5% SWR.',
         inputSchema: {
             type: 'object',
             properties: {
-                swr: { type: 'number' },
-                marketDipPercent: { type: 'number' },
+                swr: { type: 'number', description: 'Percent, e.g. 4.' },
+                marketDipPercent: {
+                    type: 'number',
+                    description:
+                        'Drop applied to equities, crypto and metals, e.g. 30.',
+                },
             },
             required: ['swr', 'marketDipPercent'],
         },
     },
     {
-        name: 'set_price_target_alert',
-        description: 'Monitor assets for exit prices.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                symbol: { type: 'string' },
-                targetPrice: { type: 'number' },
-            },
-            required: ['symbol', 'targetPrice'],
-        },
-    },
-    {
-        name: 'auto_reconcile_csv',
-        description: 'Automate matching pending transactions.',
-        inputSchema: { type: 'object', properties: {} },
-    },
-    {
         name: 'get_emergency_runway',
         description: 'If income hits $0, how many months until $0 net worth?',
-        inputSchema: { type: 'object', properties: {} },
-    },
-    {
-        name: 'get_dividend_forecast',
-        description: 'Project portfolio yield.',
         inputSchema: { type: 'object', properties: {} },
     },
     {
@@ -190,7 +199,8 @@ const TOOLS = [
     },
     {
         name: 'get_diversification_score',
-        description: 'Proprietary balance rating.',
+        description:
+            '0–100 diversification score from how net worth is spread across asset classes (cash, CDs, equities, crypto, metals, real estate, vehicles, other), minus a penalty for any single position over 20% of net worth; includes the class weights.',
         inputSchema: { type: 'object', properties: {} },
     },
 ];
@@ -499,31 +509,41 @@ function handleTool(name, state, toolArgs = {}) {
         }
 
         case 'simulate_rebalance': {
-            const { soldAsset, soldAmount, boughtAsset, boughtAmount } =
-                toolArgs;
+            const { soldAsset, amount, boughtAsset } = toolArgs;
             if (
-                !soldAsset ||
-                typeof soldAmount !== 'number' ||
-                !Number.isFinite(soldAmount) ||
-                soldAmount <= 0 ||
-                !boughtAsset ||
-                typeof boughtAmount !== 'number' ||
-                !Number.isFinite(boughtAmount) ||
-                boughtAmount <= 0
+                !ASSET_CLASSES.includes(soldAsset) ||
+                !ASSET_CLASSES.includes(boughtAsset) ||
+                soldAsset === boughtAsset ||
+                typeof amount !== 'number' ||
+                !Number.isFinite(amount) ||
+                amount <= 0
             ) {
                 throw new Error(
-                    'Invalid input: soldAsset, soldAmount, boughtAsset, and boughtAmount (>0) are required.',
+                    `Invalid input: soldAsset and boughtAsset must be different values of ${ASSET_CLASSES.join(', ')}, and amount must be > 0.`,
                 );
             }
+            const before = getAllocationAmounts(state);
+            if (amount > before[soldAsset]) {
+                throw new Error(
+                    `Invalid input: amount exceeds the ${soldAsset} balance (${Math.round(before[soldAsset])}).`,
+                );
+            }
+            const after = {
+                ...before,
+                [soldAsset]: before[soldAsset] - amount,
+                [boughtAsset]: before[boughtAsset] + amount,
+            };
+            const positions = state.importedPositions || [];
+            const b = scoreDiversification(before, positions);
+            const a = scoreDiversification(after, positions);
             return {
                 status: 'simulated',
-                sold: { soldAsset, soldAmount },
-                bought: { boughtAsset, boughtAmount },
+                note: 'Hypothetical only — nothing is traded or saved.',
+                moved: { from: soldAsset, to: boughtAsset, amount },
+                before: { weightsPct: b.weights, score: b.score },
+                after: { weightsPct: a.weights, score: a.score },
+                scoreChange: a.score - b.score,
             };
-        }
-
-        case 'get_market_correlation': {
-            return { status: 'not_implemented' };
         }
 
         case 'get_swr_sensitivity': {
@@ -531,36 +551,54 @@ function handleTool(name, state, toolArgs = {}) {
             if (
                 typeof swr !== 'number' ||
                 swr <= 0 ||
+                swr > 20 ||
                 typeof marketDipPercent !== 'number' ||
-                marketDipPercent < 0
+                marketDipPercent < 0 ||
+                marketDipPercent > 100
             ) {
                 throw new Error(
-                    'Invalid input: swr (>0) and marketDipPercent (>=0) are required.',
+                    'Invalid input: swr (0–20) and marketDipPercent (0–100) are required.',
                 );
             }
-            return { swr, marketDipPercent, status: 'not_implemented' };
-        }
-
-        case 'set_price_target_alert': {
-            const { symbol, targetPrice } = toolArgs;
-            if (
-                !symbol ||
-                typeof targetPrice !== 'number' ||
-                targetPrice <= 0
-            ) {
-                throw new Error(
-                    'Invalid input: symbol and targetPrice (>0) are required.',
-                );
-            }
-            // The MCP server never writes to db.json (read-only by design —
-            // see docs/security-hardening.md). Alert persistence + delivery
-            // isn't implemented; this only validates input and echoes it
-            // back rather than silently claiming success.
-            return { symbol, targetPrice, status: 'not_implemented' };
-        }
-
-        case 'auto_reconcile_csv': {
-            return { status: 'not_implemented' };
+            const amounts = getAllocationAmounts(state);
+            const netWorth = getAggregateNetWorth(state);
+            // The dip hits market-priced assets; cash, CDs, property and
+            // vehicles are held at their stated values.
+            const atRisk = amounts.equities + amounts.crypto + amounts.metals;
+            const afterDip = netWorth - atRisk * (marketDipPercent / 100);
+            const annualExpenses = getAnnualExpensesTotal(
+                state.expenses || {},
+                state.insurances,
+                state.taxRate || 0,
+            );
+            const row = (rate) => {
+                const before = netWorth * (rate / 100);
+                const after = afterDip * (rate / 100);
+                return {
+                    swr: rate,
+                    withdrawalBeforeDip: Math.round(before),
+                    withdrawalAfterDip: Math.round(after),
+                    coversExpensesAfterDip: after >= annualExpenses,
+                };
+            };
+            const main = row(swr);
+            return {
+                swr,
+                marketDipPercent,
+                netWorth: Math.round(netWorth),
+                marketExposed: Math.round(atRisk),
+                netWorthAfterDip: Math.round(afterDip),
+                annualExpenses: Math.round(annualExpenses),
+                ...main,
+                coversExpensesBeforeDip:
+                    main.withdrawalBeforeDip >= annualExpenses,
+                shortfallAfterDip: Math.max(
+                    0,
+                    Math.round(annualExpenses - main.withdrawalAfterDip),
+                ),
+                fireNumberAtSwr: Math.round(annualExpenses / (swr / 100)),
+                comparison: [3, 3.5, 4, 4.5, 5].map(row),
+            };
         }
 
         case 'get_emergency_runway': {
@@ -583,10 +621,6 @@ function handleTool(name, state, toolArgs = {}) {
                 };
             }
             return { runwayMonths: Math.round(b.total / monthlyTotal) };
-        }
-
-        case 'get_dividend_forecast': {
-            return { status: 'not_implemented' };
         }
 
         case 'get_net_worth_trend': {
@@ -617,7 +651,11 @@ function handleTool(name, state, toolArgs = {}) {
         }
 
         case 'get_diversification_score': {
-            return { status: 'not_implemented' };
+            const result = scoreDiversification(
+                getAllocationAmounts(state),
+                state.importedPositions || [],
+            );
+            return result || { score: null, unavailableReason: 'no_assets' };
         }
         case 'get_wallets': {
             const wallets = (state.wallets || []).map((w) => ({

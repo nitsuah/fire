@@ -16,7 +16,10 @@ const { defineConfig, devices } = require('@playwright/test');
 // touches a real data/db.json.
 module.exports = defineConfig({
     testDir: '../tests/e2e-ui',
-    fullyParallel: true,
+    // One worker: every spec shares the single webServer + temp DB, and the
+    // data-integrity spec seeds that DB, so parallel files would race.
+    fullyParallel: false,
+    workers: 1,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 1 : 0,
     reporter: [['list']],

@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 import {
     formatCurrency,
     sanitizeState,
@@ -122,5 +125,27 @@ describe('isCdMatured / matured CDs in interest estimates', () => {
             now,
         );
         expect(r.cds).toBeCloseTo(800, 6);
+    });
+});
+
+describe('yearsToFire', () => {
+    const { yearsToFire } = require('../../app/lib/aggregates.js');
+    it('is 0 once net worth meets the FIRE number', () => {
+        expect(yearsToFire({ networth: 1e6, fireNumber: 5e5 })).toBe(0);
+    });
+    it('compounds returns and adds savings each year', () => {
+        // 100k at 10% + 10k/yr: 120k, 142k, 166.2k → reaches 150k in year 3
+        expect(
+            yearsToFire({
+                networth: 100000,
+                fireNumber: 150000,
+                annualSavings: 10000,
+                realReturn: 0.1,
+            }),
+        ).toBe(3);
+    });
+    it('is null when it never gets there, or with no FIRE number', () => {
+        expect(yearsToFire({ networth: 1000, fireNumber: 5000 })).toBeNull();
+        expect(yearsToFire({ networth: 1000, fireNumber: 0 })).toBeNull();
     });
 });

@@ -12,6 +12,7 @@ const {
     mutateState,
 } = require('./lib/db');
 const { recordNetWorthSnapshot } = require('./lib/net-worth-history');
+const { runDailyBackup } = require('./lib/local-backup');
 const { findAvailablePort } = require('./lib/server-utils');
 const { refreshYahooCrumb } = require('./lib/yahoo-prices');
 
@@ -249,6 +250,31 @@ function scheduleNetWorthSnapshots() {
     setInterval(record, 60 * 60 * 1000).unref();
 }
 
+// Daily rotated local copy of db.json (data/backups/, newest 14 kept).
+// Checked hourly; only the first run of each day writes a copy.
+function scheduleLocalBackups() {
+    const run = () => {
+        try {
+            const r = runDailyBackup({ dbFile: DB_FILE });
+            if (r.created) console.log(`[Backup] Saved ${r.created}`);
+            if (r.pruned.length)
+                console.log(`[Backup] Pruned ${r.pruned.join(', ')}`);
+            if (r.tmpErrors.length)
+                console.warn(
+                    `[Backup] Could not remove stale temp files: ${r.tmpErrors.join(', ')}`,
+                );
+            if (r.tmpRemoved.length)
+                console.log(
+                    `[Backup] Removed stale temp files: ${r.tmpRemoved.join(', ')}`,
+                );
+        } catch (err) {
+            console.warn('[Backup] Local backup failed:', err.message);
+        }
+    };
+    run();
+    setInterval(run, 60 * 60 * 1000).unref();
+}
+
 module.exports = app;
 
 if (require.main === module) {
@@ -264,6 +290,9 @@ if (require.main === module) {
                     `🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`,
                 );
                 refreshYahooCrumb().catch(() => {});
+                // Backup first, so the day's copy is the untouched
+                // start-of-day state.
+                scheduleLocalBackups();
                 scheduleNetWorthSnapshots();
             });
             server.on('error', (err) => {

@@ -24,6 +24,11 @@ services:
     env_file:
       - path: ../.env
         required: false
+    # Daily net-worth snapshots, CD maturity checks and "today" logic use the
+    # server's local date. Without TZ the container runs on UTC and flips to
+    # tomorrow's date at 8pm Eastern. Override TZ in .env if you're elsewhere.
+    environment:
+      TZ: ${TZ:-America/New_York}
 
   # TLS-terminating reverse proxy so localhost gets real HTTPS instead of
   # plain HTTP. See docs/security-hardening.md (H-02) and config/Caddyfile.

@@ -16,6 +16,9 @@ export default defineConfig({
         'app/lib/finance-core.js',
         'app/lib/finance-parsing.js',
         'app/lib/finance-platforms.js',
+        'app/lib/aggregates.js',
+        'app/lib/net-worth-history.js',
+        'app/lib/local-backup.js',
       ],
       exclude: [
         'app/app.js',
