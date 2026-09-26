@@ -25,14 +25,15 @@ function dayKey(d) {
     return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
-// Returns { created: path|null, pruned: [names], tmpRemoved: [names] }.
+// Returns { created: path|null, pruned: [names], tmpRemoved: [names],
+//           tmpErrors: ['name: CODE'] }.
 function runDailyBackup({
     dbFile,
     backupDir = path.join(path.dirname(dbFile), 'backups'),
     now = new Date(),
     keep = KEEP_DAYS,
 } = {}) {
-    const result = { created: null, pruned: [], tmpRemoved: [] };
+    const result = { created: null, pruned: [], tmpRemoved: [], tmpErrors: [] };
     if (!dbFile || !fs.existsSync(dbFile)) return result;
 
     fs.mkdirSync(backupDir, { recursive: true });
@@ -70,8 +71,14 @@ function runDailyBackup({
                     fs.unlinkSync(full);
                     result.tmpRemoved.push(name);
                 }
-            } catch {
-                // raced with another writer — skip
+            } catch (err) {
+                // Already gone (raced with another writer) is fine; anything
+                // else (e.g. EACCES) would silently repeat every hour, so
+                // report it.
+                if (err.code !== 'ENOENT')
+                    result.tmpErrors.push(
+                        `${name}: ${err.code || err.message}`,
+                    );
             }
         }
     }

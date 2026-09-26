@@ -259,6 +259,10 @@ function scheduleLocalBackups() {
             if (r.created) console.log(`[Backup] Saved ${r.created}`);
             if (r.pruned.length)
                 console.log(`[Backup] Pruned ${r.pruned.join(', ')}`);
+            if (r.tmpErrors.length)
+                console.warn(
+                    `[Backup] Could not remove stale temp files: ${r.tmpErrors.join(', ')}`,
+                );
             if (r.tmpRemoved.length)
                 console.log(
                     `[Backup] Removed stale temp files: ${r.tmpRemoved.join(', ')}`,

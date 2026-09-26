@@ -77,3 +77,30 @@ describe('runDailyBackup', () => {
         expect(r.created).toBeNull();
     });
 });
+
+describe('runDailyBackup temp-file cleanup errors', () => {
+    it('ignores ENOENT but reports other errors such as EACCES', async () => {
+        const { vi } = await import('vitest');
+        const stale = path.join(dir, 'db.json.tmp.1.eacces');
+        const gone = path.join(dir, 'db.json.tmp.2.enoent');
+        for (const f of [stale, gone]) fs.writeFileSync(f, 'x');
+        const old = new Date(2026, 7, 14);
+        fs.utimesSync(stale, old, old);
+        fs.utimesSync(gone, old, old);
+        const real = fs.unlinkSync;
+        const spy = vi.spyOn(fs, 'unlinkSync').mockImplementation((p) => {
+            if (String(p).endsWith('eacces'))
+                throw Object.assign(new Error('denied'), { code: 'EACCES' });
+            if (String(p).endsWith('enoent'))
+                throw Object.assign(new Error('gone'), { code: 'ENOENT' });
+            return real(p);
+        });
+        try {
+            const r = runDailyBackup({ dbFile, now: new Date() });
+            expect(r.tmpErrors).toEqual(['db.json.tmp.1.eacces: EACCES']);
+            expect(r.tmpRemoved).toEqual([]);
+        } finally {
+            spy.mockRestore();
+        }
+    });
+});
