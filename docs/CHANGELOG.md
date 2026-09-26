@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Changed
 - The deletion and sync logic lives in `app/lib/ebay-handlers.js`, which both Express and the Functions use.
 
+#### Fixed (PR #132)
+- eBay Sync Now returned 502 in production. The Order API rejects the filter `orderfulfillmentstatus:{FULFILLED}`, so sync now uses `{FULFILLED|IN_PROGRESS}`.
+- Plaid Link called `create-link-token` with GET, but the route only accepts POST.
+
 ### 2026-09 — Hardening, tests, real MCP tools (PR #129)
 
 #### Added
