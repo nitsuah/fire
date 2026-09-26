@@ -11,6 +11,7 @@ const SHELL_ASSETS = [
     '/',
     '/index.html',
     '/manifest.json',
+    '/icon.svg',
     '/app.js',
     '/lib/html-utils.js',
     '/lib/state.js',
@@ -120,8 +121,8 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(data.title || 'FIRE Tracker', {
             body: data.body || '',
-            icon: data.icon || '/favicon.ico',
-            badge: '/favicon.ico',
+            icon: data.icon || '/icon.svg',
+            badge: '/icon.svg',
             tag: data.tag || 'fire-alert',
             data: data.url ? { url: data.url } : {},
         }),

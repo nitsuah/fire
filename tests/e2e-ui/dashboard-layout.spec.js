@@ -321,7 +321,7 @@ test.describe('Financial Overview — unified add form', () => {
 });
 
 test.describe('Financial Overview — cash flow row', () => {
-    test('desktop: Income Sources and Monthly Expenses stack under Net Cash Flow, collapsed by default', async ({
+    test('desktop: Income Sources and Monthly Expenses stack under Net Cash Flow, expanded by default', async ({
         page,
     }) => {
         await page.locator('#btn-tab-financial').click();
@@ -339,13 +339,15 @@ test.describe('Financial Overview — cash flow row', () => {
         expect(netBox.y).toBeLessThan(incomeBox.y);
         expect(incomeBox.y).toBeLessThan(expensesBox.y);
         expect(Math.abs(netBox.x - incomeBox.x)).toBeLessThan(5);
-        await expect(page.locator('#cashflow-income-list')).toHaveClass(
+        // Desktop shows the line items (collapsing to totals is phone-only;
+        // collapsed-by-default made the cards look empty on desktop).
+        await expect(page.locator('#cashflow-income-list')).not.toHaveClass(
             /cf-collapsed/,
         );
-        await expect(page.locator('#cashflow-expenses-list')).toHaveClass(
+        await expect(page.locator('#cashflow-expenses-list')).not.toHaveClass(
             /cf-collapsed/,
         );
-        await expect(page.locator('#cf-salary')).toBeHidden();
+        await expect(page.locator('#cf-salary')).toBeVisible();
     });
 
     test('desktop: holdings section uses the full content width', async ({
@@ -361,6 +363,9 @@ test.describe('Financial Overview — cash flow row', () => {
         page,
     }) => {
         await page.setViewportSize({ width: 390, height: 844 });
+        // The collapsed default is decided at load for the viewport the page
+        // opens in (a phone), so load again at phone width.
+        await page.reload();
         // Nav items are behind the hamburger drawer at this width.
         await page.locator('#sidebar-collapse-btn').click();
         await page.locator('#btn-tab-financial').click();
@@ -411,6 +416,13 @@ test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)',
         await page.locator('#btn-tab-dashboard').click();
         const canvas = page.locator('#chart-asset-allocation');
         await expect(canvas).toBeVisible();
+        // Switching tabs redraws the doughnut with an animation; a hit point
+        // taken mid-animation can miss the finished ring. Wait it out.
+        await page.waitForFunction(
+            () =>
+                window.assetAllocationChart &&
+                !window.Chart.animator.running(window.assetAllocationChart),
+        );
 
         // Chart.js's own hit-testing tells us exactly where a slice is,
         // rather than guessing a fraction of the canvas box — the ring's

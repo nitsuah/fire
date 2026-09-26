@@ -379,7 +379,7 @@ async function requestNotificationPermission() {
     if (perm === 'granted') {
         new Notification('FIRE Tracker', {
             body: 'Notifications enabled! You\'ll receive alerts for FIRE milestones and CD maturities.',
-            icon: '/favicon.ico'
+            icon: '/icon.svg'
         });
     }
 }

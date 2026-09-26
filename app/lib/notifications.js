@@ -113,8 +113,8 @@ function _sendNotification(title, body, tag) {
                 reg.showNotification(title, {
                     body,
                     tag,
-                    icon: '/favicon.ico',
-                    badge: '/favicon.ico',
+                    icon: '/icon.svg',
+                    badge: '/icon.svg',
                 });
             })
             .catch(() => {});

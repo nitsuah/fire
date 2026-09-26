@@ -35,3 +35,19 @@ jobs:
     
     - name: Build
       run: npm run build
+  e2e-ui:
+    # Real-browser coverage for browser-only code (live prices, stale-tab
+    # conflict handling, dashboard renderers). This suite wasn't run in CI
+    # before, and three of its tests went stale unnoticed.
+    runs-on: ubuntu-latest
+    container:
+      # Keep in step with @playwright/test in package.json.
+      image: mcr.microsoft.com/playwright:v1.63.0-jammy
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install dependencies
+      run: npm ci --no-audit --no-fund
+
+    - name: Run Playwright UI tests
+      run: npm run test:e2e-ui
