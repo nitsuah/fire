@@ -1,7 +1,10 @@
 /* FIRE Tracker — Service Worker
    Caches shell assets for offline load. API calls always go to network.
+   Shell assets are network-first: the cache is only an offline fallback.
+   (Cache-first under a fixed CACHE_NAME kept serving old JS after every
+   deploy, so fixes never reached browsers that had the worker installed.)
 */
-const CACHE_NAME = 'fire-tracker-v2';
+const CACHE_NAME = 'fire-tracker-v3';
 
 // Assets that make up the app shell
 const SHELL_ASSETS = [
@@ -26,6 +29,7 @@ const SHELL_ASSETS = [
     '/lib/charts/cd-ladder.js',
     '/lib/charts/projections.js',
     '/lib/charts/allocation.js',
+    '/lib/charts/net-worth-history.js',
     '/lib/tables/dashboard.js',
     '/lib/tables/vehicles.js',
     '/lib/tables/real-estate.js',
@@ -85,11 +89,26 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Cache-first for shell assets; fall back to network
+    // Network-first for shell assets, refreshing the offline copy; fall
+    // back to the cache only when the network is unavailable.
+    if (event.request.method !== 'GET') return;
     event.respondWith(
-        caches
-            .match(event.request)
-            .then((cached) => cached || fetch(event.request)),
+        fetch(event.request)
+            .then((res) => {
+                if (res.ok) {
+                    const copy = res.clone();
+                    caches
+                        .open(CACHE_NAME)
+                        .then((cache) => cache.put(event.request, copy))
+                        .catch(() => {});
+                }
+                return res;
+            })
+            .catch(() =>
+                caches
+                    .match(event.request)
+                    .then((cached) => cached || Response.error()),
+            ),
     );
 });
 

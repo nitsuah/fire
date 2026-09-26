@@ -37,18 +37,60 @@ function renderSideGigTaxSummary() {
     el.innerHTML = `${parts.join(' · ')}<br><span class="text-muted">${escHtml(s.note)}</span>`;
 }
 
+// Totals strip above the ledger: where the money went, and how many item
+// costs are still missing (without them profit — and tax — is overstated).
+function renderSideGigTotals() {
+    const el = document.getElementById('sidegig-totals');
+    if (!el) return;
+    const t = summarizeSideGigLedger(state.sideGigLedger);
+    if (!t.count) {
+        el.innerHTML = '';
+        return;
+    }
+    const stat = (label, value, cls = '') =>
+        `<div class="sg-total"><span class="sg-total-label">${label}</span><span class="sg-total-value ${cls}">${value}</span></div>`;
+    el.innerHTML =
+        stat('Sales', formatCurrency(t.revenue)) +
+        stat(
+            'Fees &amp; shipping',
+            `−${formatCurrency(t.sellingCosts)}`,
+            'text-coral',
+        ) +
+        stat(
+            `Item costs <span class="text-muted">(${t.costsEntered}/${t.count} entered)</span>`,
+            `−${formatCurrency(t.itemCosts)}`,
+            'text-coral',
+        ) +
+        stat('Net profit', formatCurrency(t.net), 'text-emerald') +
+        (t.missingCost
+            ? `<div class="sg-total sg-total-warn">${t.missingCost} sale${t.missingCost === 1 ? '' : 's'} still need an item cost — profit is overstated until they're filled in.</div>`
+            : '');
+}
+
 function renderSideGigLedgerTable() {
     const tbody = document.querySelector('#table-sidegig-history tbody');
     if (!tbody) return;
     renderSideGigTaxSummary();
+    renderSideGigTotals();
 
     if (state.sideGigLedger.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No manual side hustle income logged yet. Use the eBay calculator or add below.</td></tr>`;
         return;
     }
 
+    const missingOnly = document.getElementById(
+        'sg-filter-missing-cost',
+    )?.checked;
+    const rows = missingOnly
+        ? state.sideGigLedger.filter(needsItemCost)
+        : state.sideGigLedger;
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">Every sale has an item cost. 🎉</td></tr>`;
+        return;
+    }
+
     let html = '';
-    state.sideGigLedger.forEach((sg) => {
+    rows.forEach((sg) => {
         html += `
             <tr>
                 <td class="font-bold">${escHtml(sg.desc || sg.description || '')}</td>

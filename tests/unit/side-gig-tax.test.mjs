@@ -9,6 +9,9 @@ import {
     classifySideGigSale,
     summarizeSideGigTax,
     entryYear,
+    needsItemCost,
+    summarizeSideGigLedger,
+    tagUntaggedSales,
 } from '../../app/lib/side-gig-tax.js';
 
 // mcp-server.mjs requires app/lib/db.js, which reads FIRE_DB_FILE at load.
@@ -302,5 +305,58 @@ describe('MCP side gig tools', () => {
         const y = handleTool('get_side_gig_tax_summary', state, { year: 2026 });
         expect(y.estimatedTaxableIncome).toBe(42);
         expect(y.untagged.count).toBe(0);
+    });
+});
+
+describe('ledger totals and bulk tagging', () => {
+    const ledger = [
+        { id: 'a', revenue: 100, expenses: 20, net: 80 },
+        {
+            id: 'b',
+            revenue: 50,
+            expenses: 10,
+            costBasis: 15,
+            net: 25,
+            basisType: 'business',
+        },
+        { id: 'c', revenue: 30, expenses: 5, net: 25, basisType: 'free' },
+        {
+            id: 'd',
+            revenue: 40,
+            expenses: 8,
+            costBasis: '',
+            net: 32,
+            basisType: 'personal',
+        },
+    ];
+
+    it('flags sales missing an item cost (free items never need one)', () => {
+        expect(ledger.map(needsItemCost)).toEqual([true, false, false, true]);
+    });
+
+    it('totals sales, fees, entered item costs and net', () => {
+        expect(summarizeSideGigLedger(ledger)).toEqual({
+            count: 4,
+            revenue: 220,
+            sellingCosts: 43,
+            itemCosts: 15,
+            costsEntered: 1,
+            net: 162,
+            untagged: 1,
+            missingCost: 2,
+        });
+        expect(summarizeSideGigLedger(undefined).count).toBe(0);
+    });
+
+    it('tags only untagged sales and leaves the original ledger alone', () => {
+        const { ledger: next, tagged } = tagUntaggedSales(ledger, 'business');
+        expect(tagged).toBe(1);
+        expect(next[0].basisType).toBe('business');
+        expect(next[3].basisType).toBe('personal');
+        expect(ledger[0].basisType).toBeUndefined();
+    });
+
+    it('ignores an unknown tag', () => {
+        expect(tagUntaggedSales(ledger, 'nope').tagged).toBe(0);
     });
 });

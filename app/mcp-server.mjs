@@ -18,6 +18,7 @@ const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
 const { saleAmounts, summarizeSideGigTax } = require('./lib/side-gig-tax.js');
 const { getEstimatedAnnualInterest } = require('./lib/finance-core.js');
+const { summarizeNetWorthHistory } = require('./lib/net-worth-history.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
 
@@ -175,8 +176,17 @@ const TOOLS = [
     },
     {
         name: 'get_net_worth_trend',
-        description: 'Time-series projection.',
-        inputSchema: { type: 'object', properties: {} },
+        description:
+            'Actual net worth over time from daily snapshots: latest value, change over 7/30/365 days and since tracking began, plus the daily points (optionally limited to the last N days).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                days: {
+                    type: 'number',
+                    description: 'Only return the last N daily points.',
+                },
+            },
+        },
     },
     {
         name: 'get_diversification_score',
@@ -580,7 +590,30 @@ function handleTool(name, state, toolArgs = {}) {
         }
 
         case 'get_net_worth_trend': {
-            return { status: 'not_implemented' };
+            const s = summarizeNetWorthHistory(state.netWorthHistory);
+            if (!s.latest) {
+                return {
+                    points: [],
+                    unavailableReason: 'no_snapshots_yet',
+                };
+            }
+            const days =
+                Number.isInteger(toolArgs.days) && toolArgs.days > 0
+                    ? toolArgs.days
+                    : null;
+            const points = (days ? s.points.slice(-days) : s.points).map(
+                (p) => ({ date: p.date, total: Math.round(p.total) }),
+            );
+            return {
+                latest: {
+                    date: s.latest.date,
+                    total: Math.round(s.latest.total),
+                },
+                changes: s.changes,
+                trackingSince: s.points[0].date,
+                count: s.points.length,
+                points,
+            };
         }
 
         case 'get_diversification_score': {

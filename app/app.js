@@ -120,6 +120,7 @@ function refreshAllUI() {
     renderDashboardLiquidPanel();
     renderDashboardOtherAssetsPanel();
     renderAssetAllocationChart();
+    renderNetWorthHistoryChart();
     renderDashboardProjectionsChart();
 
     renderImportedFilesTable();
@@ -386,6 +387,8 @@ function saveNotificationSettings() {
         fireMilestones: document.getElementById('setting-fire-milestones')?.checked || false,
         rebalanceAlerts: document.getElementById('setting-rebalance-alerts')?.checked || false,
         taxHarvestAlerts: document.getElementById('setting-tax-harvest-alerts')?.checked || false,
+        priceMoveAlerts: document.getElementById('setting-price-move-alerts')?.checked || false,
+        priceMoveThreshold: Math.max(0.5, parseFloat(document.getElementById('setting-price-move-threshold')?.value) || 5),
     };
     state.notificationSettings = settings;
     saveState();
@@ -406,6 +409,10 @@ function loadNotificationSettings() {
     document.getElementById('setting-fire-milestones').checked = settings.fireMilestones;
     document.getElementById('setting-rebalance-alerts').checked = settings.rebalanceAlerts;
     document.getElementById('setting-tax-harvest-alerts').checked = settings.taxHarvestAlerts;
+    const moveToggle = document.getElementById('setting-price-move-alerts');
+    if (moveToggle) moveToggle.checked = settings.priceMoveAlerts !== false;
+    const moveThreshold = document.getElementById('setting-price-move-threshold');
+    if (moveThreshold) moveThreshold.value = settings.priceMoveThreshold || 5;
     updateNotificationStatusDisplay();
 }
 

@@ -857,6 +857,49 @@
     background: rgba(148, 163, 184, 0.12);
 }
 
+/* Side Gig Ledger totals + toolbar */
+.sg-totals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-lg);
+    margin-bottom: var(--space-sm);
+}
+.sg-total {
+    display: flex;
+    flex-direction: column;
+}
+.sg-total-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+.sg-total-value {
+    font-weight: 700;
+    font-family: var(--font-heading);
+}
+.sg-total.sg-total-warn {
+    flex-basis: 100%;
+    font-size: var(--text-xs);
+    color: var(--color-warning);
+}
+.sg-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm) var(--space-lg);
+    margin-bottom: var(--space-sm);
+    font-size: var(--text-sm);
+}
+.sg-toolbar-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nw-history-stats {
+    font-size: var(--text-sm);
+    margin: -4px 0 var(--space-sm);
+}
+
 /* Dashboard Other Assets: one column per section, as many as fit */
 .other-assets-grid {
     display: grid;

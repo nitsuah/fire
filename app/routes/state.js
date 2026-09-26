@@ -46,9 +46,12 @@ router.post('/', (req, res) => {
     // landed since, this copy is stale — refuse rather than overwrite newer
     // data with it. Saves without baseRevision (backup tools, older
     // clients) keep the previous last-write-wins behaviour.
-    // stateRevision is server-owned: drop whatever the client echoed back.
+    // Server-owned fields: drop whatever the client echoed back. (A tab's
+    // copy of netWorthHistory would be missing snapshots recorded since it
+    // loaded.)
     const { baseRevision, ...body } = req.body;
     delete body.stateRevision;
+    delete body.netWorthHistory;
     if (baseRevision !== undefined && baseRevision !== currentRevision) {
         return res.status(409).json({
             error: 'State changed since this copy was loaded; reload and retry.',

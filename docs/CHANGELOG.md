@@ -16,10 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Crypto staking/lending yield counts toward Annual Income** alongside HYSA and CD interest (`getEstimatedAnnualInterest().staking`; MCP `estimatedAnnualInterest.staking`).
 
 #### Added
+- **Net Worth History**: the server records a daily net-worth snapshot (`netWorthHistory`, updated hourly for the current day). There's a dashboard chart with 1M/3M/1Y/All ranges and change stats, and MCP `get_net_worth_trend` is now implemented (latest, 7/30/365-day and since-start changes, optional `days` limit).
+- **Price-move alerts**: holdings that move at least N% in a day (default 5%, configurable in Settings) raise a bell alert and push once per symbol per day.
+- **Side Gig Ledger tools**: totals strip (sales, fees & shipping, item costs entered, net profit, missing-cost warning), "Tag all untagged as…", an "Only items missing a cost" filter, and Enter-to-next-row cost entry.
 - "Live · 3:42 PM · Today −$2,855" freshness pill on Top Investment Positions (greys out as "Prices as of …" once quotes are over 30 minutes old), plus each position's daily % move under its last price.
 - Asset Allocation (and the banner bar) split out **Crypto** (blue) and **Precious Metals** (gold) slices with their own drill-downs; Other Assets is now neutral grey.
 
 #### Fixed
+- **The service worker served stale code forever.** Shell assets were cache-first under a fixed cache name, so browsers with the worker installed kept running old JS after every deploy. They are now network-first, with the cache as an offline fallback (cache v3).
+- **Full saves from an out-of-date tab are refused** (`stateRevision` / `baseRevision` → 409) instead of overwriting newer data; the tab re-syncs and asks you to redo the change.
 - **Stale tabs re-sync when you come back to them.** A tab left open reloads the data from the server when it becomes visible again (skipped while an edit is in progress), so editing in an old tab no longer posts its hours-old copy over newer changes.
 - Matured CDs no longer count toward estimated interest (dashboard, Annual Income, cash flow, MCP).
 - MCP `get_net_worth` floors underwater real estate / vehicle equity at $0, matching the dashboard.

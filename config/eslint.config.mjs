@@ -24,6 +24,7 @@ export default [
             'app/lib/web3-prices.js',
             'app/lib/ebay-connector.js',
             'app/lib/metals-prices.js',
+            'app/lib/net-worth-history.js',
             'app/lib/gdrive-backup.js',
             'app/lib/prices-provider.js',
             'app/lib/vehicle-api.js',

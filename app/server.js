@@ -9,7 +9,9 @@ const {
     DB_FILE,
     initDatabase,
     rotateMasterKey,
+    mutateState,
 } = require('./lib/db');
+const { recordNetWorthSnapshot } = require('./lib/net-worth-history');
 const { findAvailablePort } = require('./lib/server-utils');
 const { refreshYahooCrumb } = require('./lib/yahoo-prices');
 
@@ -232,6 +234,21 @@ app.use((err, req, res, _next) => {
     res.status(500).json({ error: 'Internal server error.' });
 });
 
+// Record today's net-worth snapshot now and hourly (today's entry is
+// updated in place), so the dashboard/MCP have real history to chart.
+// Only started when the server actually listens — never on a bare
+// require() (tests, tooling).
+function scheduleNetWorthSnapshots() {
+    const record = () =>
+        mutateState((db) => {
+            recordNetWorthSnapshot(db);
+        }).catch((err) =>
+            console.warn('[NetWorth] Snapshot failed:', err.message),
+        );
+    record();
+    setInterval(record, 60 * 60 * 1000).unref();
+}
+
 module.exports = app;
 
 if (require.main === module) {
@@ -247,6 +264,7 @@ if (require.main === module) {
                     `🔥 FIRE Tracker Server running at http://0.0.0.0:${port}`,
                 );
                 refreshYahooCrumb().catch(() => {});
+                scheduleNetWorthSnapshots();
             });
             server.on('error', (err) => {
                 console.error('[Server] Listen error:', err);
