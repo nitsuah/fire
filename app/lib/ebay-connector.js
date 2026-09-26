@@ -129,6 +129,13 @@ async function fetchCompletedOrders(
     return res.json();
 }
 
+// True only for ledger rows created by the Order API sync (id is exactly
+// `ebay-<orderId>`), not uploaded sales-report rows (`ebay-csv-...`, no
+// orderId) or manually logged sales.
+function isApiSyncedEbayEntry(entry) {
+    return Boolean(entry?.orderId) && entry.id === `ebay-${entry.orderId}`;
+}
+
 function ordersToLedgerEntries(orders) {
     const entries = [];
     const toAmount = (raw) => {
@@ -407,4 +414,5 @@ module.exports = {
     computeMarketplaceDeletionChallengeResponse,
     verifyNotificationSignature,
     resetNotificationKeyCache,
+    isApiSyncedEbayEntry,
 };

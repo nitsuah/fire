@@ -54,7 +54,7 @@ SYNC_MASTER_KEY=      # 64 hex chars — required to encrypt stored OAuth tokens
 - ✅ Status check endpoint: `GET /api/sync/ebay/status` (returns connected state, last sync, environment)
 - ✅ Settings page UI with connection status display
 - ⏳ Requires `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `SYNC_MASTER_KEY` environment variables to function
-- ✅ Revoked access: if a token refresh fails with `invalid_grant` (the user disconnected the app or closed/deleted their eBay account), sync returns `401 {"code":"ebay_revoked"}`. The stored tokens and the ledger rows synced from eBay (`id` starting with `ebay-`) are then deleted: on the server in self-hosted mode, and in `localStorage` in browser-only mode. The user gets an alert. Manually logged sales and uploaded CSV reports are kept.
+- ✅ Revoked access: if a token refresh fails with `invalid_grant` (the user disconnected the app or closed/deleted their eBay account), sync returns `401 {"code":"ebay_revoked"}`. The stored tokens and the ledger rows the Order API sync created (`id` exactly `ebay-<orderId>`; uploaded report rows are `ebay-csv-…` and are kept) are then deleted: on the server in self-hosted mode, and in `localStorage` in browser-only mode. The user gets an alert. Manually logged sales and uploaded CSV reports are kept.
 
 ### Browser-only deploy (Netlify Functions)
 
@@ -66,7 +66,7 @@ The Functions and the Express routes share one implementation (`app/lib/ebay-han
 | Public path | Function | Notes |
 |---|---|---|
 | `GET /api/sync/ebay/authorize` | `ebay-authorize` | Redirects to eBay; CSRF `state` in a 10-min HttpOnly cookie |
-| `GET /api/sync/ebay/callback` | `ebay-callback` | Exchanges the code, returns the tokens **encrypted with `SYNC_MASTER_KEY`** to the SPA in the URL fragment (`/#ebay-connected=…`) |
+| `GET /api/sync/ebay/callback` | `ebay-callback` | Exchanges the code, returns the tokens **encrypted with `SYNC_MASTER_KEY`** to the SPA in the URL fragment (`/#ebay-connected=…`). The SPA accepts it only if this tab started the connect (a `sessionStorage` marker set on the Connect click) |
 | `POST /api/sync/ebay/sync` | `ebay-sync` | Body `{tokens: <blob>}`; returns ledger `entries` (+ a new blob if refreshed). The SPA merges them into `localStorage` |
 | `GET/POST /api/sync/ebay/marketplace-account-deletion` | `ebay-marketplace-account-deletion` | See below |
 

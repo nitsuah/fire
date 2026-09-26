@@ -14,6 +14,7 @@ const {
     buildAuthorizationUrl,
     exchangeCodeForTokens,
     refreshAccessToken,
+    isApiSyncedEbayEntry,
 } = require('../lib/ebay-connector');
 const {
     handleDeletionChallenge,
@@ -246,9 +247,9 @@ router.post('/ebay/sync', async (req, res) => {
             }
         } catch (err) {
             if (err.code !== 'ebay_revoked') throw err;
-            // Dead grant: drop the stored tokens and the eBay-synced
-            // ledger rows (ids `ebay-<orderId>`) so no eBay user data
-            // outlives the authorization.
+            // Dead grant: drop the stored tokens and the API-synced
+            // ledger rows so no eBay user data outlives the authorization.
+            // Uploaded report rows and manual entries are the user's own.
             try {
                 fs.unlinkSync(getTokenFile('ebay'));
             } catch {
@@ -256,7 +257,7 @@ router.post('/ebay/sync', async (req, res) => {
             }
             await mutateState((state) => {
                 state.sideGigLedger = (state.sideGigLedger || []).filter(
-                    (e) => !String(e.id).startsWith('ebay-'),
+                    (e) => !isApiSyncedEbayEntry(e),
                 );
             });
             return res.status(401).json({ error: err.message, code: err.code });

@@ -57,6 +57,7 @@ function initSideGigManager() {
     const ebayOauthBtn = document.getElementById('btn-ebay-oauth');
     if (ebayOauthBtn) {
         ebayOauthBtn.addEventListener('click', () => {
+            markEbayConnectPending();
             window.location.assign('/api/sync/ebay/authorize');
         });
     }
@@ -117,6 +118,34 @@ function initSideGigManager() {
 // derived locally.
 const EBAY_TOKEN_KEY = 'fire_tracker_ebay_token';
 const EBAY_LAST_SYNC_KEY = 'fire_tracker_ebay_last_sync';
+const EBAY_CONNECT_PENDING_KEY = 'fire_tracker_ebay_connect_pending';
+
+// Mirrors isApiSyncedEbayEntry in app/lib/ebay-connector.js: only rows the
+// Order API sync created (id exactly `ebay-<orderId>`).
+function isApiSyncedEbayEntry(entry) {
+    return Boolean(entry?.orderId) && entry.id === `ebay-${entry.orderId}`;
+}
+
+// The OAuth `state` cookie protects eBay → callback; this marker protects
+// callback → SPA, so a crafted /#ebay-connected=<attacker blob> link can't
+// silently connect someone else's eBay account in this browser.
+function markEbayConnectPending() {
+    try {
+        sessionStorage.setItem(EBAY_CONNECT_PENDING_KEY, '1');
+    } catch {
+        /* storage unavailable — the callback will be ignored */
+    }
+}
+
+function takeEbayConnectPending() {
+    try {
+        const pending = sessionStorage.getItem(EBAY_CONNECT_PENDING_KEY);
+        sessionStorage.removeItem(EBAY_CONNECT_PENDING_KEY);
+        return pending === '1';
+    } catch {
+        return false;
+    }
+}
 
 function isBrowserOnlyMode() {
     return typeof syncedRevision === 'undefined' || syncedRevision === null;
@@ -163,6 +192,10 @@ function consumeEbayOauthFragment() {
         '',
         window.location.pathname + window.location.search,
     );
+    if (!takeEbayConnectPending()) {
+        console.warn('[eBay] Ignored an OAuth result this tab did not start.');
+        return;
+    }
     if (match[1] === 'connected') {
         writeEbayLocal(EBAY_TOKEN_KEY, decodeURIComponent(match[2]));
         alert('eBay connected. Use Settings → eBay Order Sync → Sync Now.');
@@ -173,9 +206,8 @@ function consumeEbayOauthFragment() {
 
 // eBay revoked the grant (user disconnected the app or closed/deleted
 // their eBay account): drop the token and, for a revocation, the rows
-// synced from eBay (ids `ebay-<orderId>`), then tell the user. Manually
-// logged sales and uploaded CSV reports are the user's own records and
-// are kept.
+// the Order API sync created, then tell the user. Manually logged sales
+// and uploaded CSV reports are the user's own records and are kept.
 async function handleEbayConnectionLost(code, message) {
     writeEbayLocal(EBAY_TOKEN_KEY, null);
     writeEbayLocal(EBAY_LAST_SYNC_KEY, null);
@@ -184,7 +216,7 @@ async function handleEbayConnectionLost(code, message) {
         if (isBrowserOnlyMode()) {
             const before = state.sideGigLedger.length;
             state.sideGigLedger = state.sideGigLedger.filter(
-                (e) => !String(e.id).startsWith('ebay-'),
+                (e) => !isApiSyncedEbayEntry(e),
             );
             removed = before - state.sideGigLedger.length;
             await saveState();
@@ -206,7 +238,10 @@ async function checkEbayConnection() {
     try {
         const data = await fetchEbayStatus();
         if (data.connected) {
-            statusEl.textContent = `Status: Connected (Last sync: ${new Date(data.lastSync).toLocaleDateString()})`;
+            const lastSync = data.lastSync
+                ? new Date(data.lastSync).toLocaleDateString()
+                : 'never';
+            statusEl.textContent = `Status: Connected (Last sync: ${lastSync})`;
             statusEl.style.color = 'var(--color-success)';
         } else {
             statusEl.textContent = 'Status: Disconnected';
@@ -307,7 +342,7 @@ async function runEbaySyncNow() {
 
 async function syncEbayViaServer() {
     const res = await fetch('/api/sync/ebay/sync', { method: 'POST' });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (res.status === 401 && data.code) {
         await handleEbayConnectionLost(data.code, data.error);
         return null;
