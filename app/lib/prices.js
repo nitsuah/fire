@@ -1,7 +1,25 @@
 /* ==========================================================================
    prices.js — Real-Time Stock Price Engine (+ Gold/Silver)
-   Depends on globals: state, priceRefreshTimer, metalsRefreshTimer, saveState, refreshAllUI
+   Depends on globals: state, priceRefreshTimer, metalsRefreshTimer, refreshAllUI
    ========================================================================== */
+
+// Persist only the new quotes (price + timestamp). Deliberately not
+// saveState(): that posts this tab's whole state, so an older open tab
+// would overwrite newer edits made elsewhere every refresh. The server
+// recomputes value/PnL from its stored quantity/cost/weight.
+async function saveLiveValues({ positions = [], metals = [] }) {
+    try {
+        const res = await fetch('/api/state/live-values', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ positions, metals }),
+        });
+        if (!res.ok)
+            console.warn('[Prices] live-values save failed', res.status);
+    } catch (err) {
+        console.warn('[Prices] Could not save live values:', err);
+    }
+}
 
 function schedulePriceRefresh() {
     fetchAndApplyPrices();
@@ -43,7 +61,7 @@ async function fetchAndApplyPrices() {
         if (!res.ok) return;
         const prices = await res.json();
 
-        let updated = false;
+        const changed = [];
         const now = new Date().toISOString();
         state.importedPositions.forEach((pos) => {
             const cleanSym = pos.symbol.trim().replace(/\*+$/, '');
@@ -52,6 +70,11 @@ async function fetchAndApplyPrices() {
                 if (newPrice && newPrice > 0) {
                     pos.lastPrice = newPrice;
                     pos.priceUpdatedAt = now;
+                    // Keep the daily move tied to this quote: clear the old
+                    // one if this response didn't carry one.
+                    const dayPct = prices[cleanSym].changePercent;
+                    if (Number.isFinite(dayPct)) pos.dayChangePercent = dayPct;
+                    else delete pos.dayChangePercent;
                     // Recalculate current value based on quantity × new price
                     if (pos.quantity > 0) {
                         pos.value = pos.quantity * newPrice;
@@ -61,14 +84,20 @@ async function fetchAndApplyPrices() {
                         pos.pnlDollar = pos.value - pos.costBasis;
                         pos.pnlPercent = (pos.pnlDollar / pos.costBasis) * 100;
                     }
-                    updated = true;
+                    changed.push(pos);
                 }
             }
         });
 
-        if (updated) {
-            // Silently save & re-render without full alert spam
-            await saveState();
+        if (changed.length) {
+            await saveLiveValues({
+                positions: changed.map((p) => ({
+                    id: p.id,
+                    lastPrice: p.lastPrice,
+                    dayChangePercent: p.dayChangePercent,
+                    priceUpdatedAt: p.priceUpdatedAt,
+                })),
+            });
             refreshAllUI();
             console.log(
                 `[Prices] Updated ${symbols.length} symbols from Yahoo Finance.`,
@@ -90,7 +119,7 @@ async function fetchAndApplyMetals() {
         if (!res.ok) return;
         const metals = await res.json();
 
-        let updated = false;
+        const changed = [];
         metalAccounts.forEach((acc) => {
             const quote = metals[acc.metalType?.toLowerCase()];
             if (!quote?.price || !(acc.weightOz > 0)) return;
@@ -107,12 +136,19 @@ async function fetchAndApplyMetals() {
                 acc.spotPricePerOz = quote.price;
                 acc.payoutPct = payoutPct;
                 acc.valueLastRefreshed = new Date().toISOString();
-                updated = true;
+                changed.push(acc);
             }
         });
 
-        if (updated) {
-            await saveState();
+        if (changed.length) {
+            await saveLiveValues({
+                metals: changed.map((a) => ({
+                    id: a.id,
+                    spotPricePerOz: a.spotPricePerOz,
+                    payoutPct: a.payoutPct,
+                    valueLastRefreshed: a.valueLastRefreshed,
+                })),
+            });
             refreshAllUI();
             console.log(
                 '[Metals] Updated metal account values from spot prices.',

@@ -78,6 +78,16 @@ describe('buildProjectionData — account type branches', () => {
         expect(data.networth).toBe(50000);
     });
 
+    it('leaves side hustle income out of net worth (it is income, not an asset)', () => {
+        const state = {
+            ...BASE,
+            customAccounts: [{ type: 'Cash', value: 10000 }],
+            sideGigLedger: [{ net: 1200 }],
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.networth).toBe(10000);
+    });
+
     it('counts Crypto accounts as equities', () => {
         const state = {
             ...BASE,

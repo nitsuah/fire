@@ -76,7 +76,7 @@ function renderDashboardLiquidPanel() {
                 </div>
                 <div class="liquid-val">
                     ${formatCurrency(principal)}
-                    <span class="cd-yield-badge">+${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></span>
+                    ${isMatured ? '' : `<span class="cd-yield-badge">+${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></span>`}
                 </div>
             </div>`;
         });
@@ -86,11 +86,13 @@ function renderDashboardLiquidPanel() {
         panel.innerHTML = `<p class="text-muted text-center" style="padding:12px 0;">No cash accounts or CDs recorded yet.</p>`;
         return;
     }
+    // Cash & CD interest only — crypto staking isn't listed in this panel.
     const interest = getEstimatedAnnualInterest();
-    if (interest.total > 0) {
+    const cashInterest = interest.savings + interest.cds;
+    if (cashInterest > 0) {
         html += `<div class="liquid-row liquid-total-row">
             <div class="liquid-name">Est. yearly interest</div>
-            <div class="liquid-val"><span class="cd-yield-badge">+${formatCurrency(interest.total)}<span class="cd-yield-unit">/yr</span></span></div>
+            <div class="liquid-val"><span class="cd-yield-badge">+${formatCurrency(cashInterest)}<span class="cd-yield-unit">/yr</span></span></div>
         </div>`;
     }
     panel.innerHTML = html;

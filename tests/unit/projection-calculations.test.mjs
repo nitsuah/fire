@@ -361,8 +361,10 @@ describe('buildProjectionData — retirement withdrawal & cash-first drawdown', 
 
     it('clamps the initial cash fraction when a non-cash balance is negative', () => {
         const state = makeRetirementState({
-            customAccounts: [{ type: 'Cash', value: 50000 }],
-            sideGigLedger: [{ net: -20000 }],
+            customAccounts: [
+                { type: 'Cash', value: 50000 },
+                { type: 'Brokerage', value: -20000 },
+            ],
         });
         const data = buildProjectionData(state, 0);
         expect(data.nwData.every((v) => Number.isFinite(v))).toBe(true);

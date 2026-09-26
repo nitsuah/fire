@@ -476,8 +476,48 @@ window.updateSideGigTax = async function (id, field, value) {
 
 // Delegated so ledger ids never end up inside inline JS handlers.
 function initSideGigLedgerActions() {
+    document
+        .getElementById('btn-sg-bulk-tag')
+        ?.addEventListener('click', async () => {
+            const basis = document.getElementById('sg-bulk-basis')?.value;
+            const { ledger, tagged } = tagUntaggedSales(
+                state.sideGigLedger,
+                basis,
+            );
+            if (!tagged) {
+                alert('Every sale already has a tax tag.');
+                return;
+            }
+            state.sideGigLedger = ledger;
+            await saveState();
+            refreshAllUI();
+        });
+    document
+        .getElementById('sg-filter-missing-cost')
+        ?.addEventListener('change', () => renderSideGigLedgerTable());
+
     const table = document.getElementById('table-sidegig-history');
     if (!table) return;
+    // Fast cost entry: Enter saves this item's cost and jumps to the next
+    // row's cost box (the change handler below does the saving).
+    table.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        const input = e.target.closest('.sg-cost-input');
+        if (!input) return;
+        e.preventDefault();
+        const inputs = [...table.querySelectorAll('.sg-cost-input')];
+        const nextId = inputs[inputs.indexOf(input) + 1]?.dataset.sgId;
+        input.blur(); // fires change → save → re-render
+        if (nextId) {
+            setTimeout(() => {
+                const next = [...table.querySelectorAll('.sg-cost-input')].find(
+                    (el) => el.dataset.sgId === nextId,
+                );
+                next?.focus();
+                next?.select();
+            }, 150);
+        }
+    });
     table.addEventListener('change', (e) => {
         const el = e.target.closest('[data-sg-field]');
         if (el) updateSideGigTax(el.dataset.sgId, el.dataset.sgField, el.value);

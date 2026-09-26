@@ -192,9 +192,63 @@ function summarizeSideGigTax(ledger, { year } = {}) {
     return summary;
 }
 
+// An entry still missing the item cost that decides its profit: anything
+// except a "free" ($0 basis) item with no costBasis entered.
+function needsItemCost(entry) {
+    return entry.basisType !== 'free' && saleAmounts(entry).costBasis === null;
+}
+
+// Ledger-wide totals for the Side Hustle summary strip. net is the sum of
+// each entry's stored net (revenue − fees/shipping − item cost if entered).
+function summarizeSideGigLedger(ledger) {
+    const out = {
+        count: 0,
+        revenue: 0,
+        sellingCosts: 0,
+        itemCosts: 0,
+        costsEntered: 0,
+        net: 0,
+        untagged: 0,
+        missingCost: 0,
+    };
+    for (const entry of ledger || []) {
+        const { revenue, sellingCosts, costBasis } = saleAmounts(entry);
+        out.count++;
+        out.revenue += revenue;
+        out.sellingCosts += sellingCosts;
+        if (costBasis !== null) {
+            out.itemCosts += costBasis;
+            out.costsEntered++;
+        }
+        out.net += Number(entry.net) || 0;
+        if (!isBasisType(entry.basisType)) out.untagged++;
+        if (needsItemCost(entry)) out.missingCost++;
+    }
+    for (const k of ['revenue', 'sellingCosts', 'itemCosts', 'net'])
+        out[k] = sideGigRound2(out[k]);
+    return out;
+}
+
+// Returns { ledger, tagged }: a copy with every untagged entry set to
+// basisType (entries that already have a tag are left alone).
+function tagUntaggedSales(ledger, basisType) {
+    if (!isBasisType(basisType))
+        return { ledger: [...(ledger || [])], tagged: 0 };
+    let tagged = 0;
+    const next = (ledger || []).map((entry) => {
+        if (isBasisType(entry.basisType)) return entry;
+        tagged++;
+        return { ...entry, basisType };
+    });
+    return { ledger: next, tagged };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         SIDE_GIG_BASIS_TYPES,
+        needsItemCost,
+        summarizeSideGigLedger,
+        tagUntaggedSales,
         saleAmounts,
         localIsoDate,
         applyCostBasis,
@@ -213,4 +267,7 @@ if (typeof window !== 'undefined') {
     window.classifySideGigSale = classifySideGigSale;
     window.summarizeSideGigTax = summarizeSideGigTax;
     window.entryYear = entryYear;
+    window.needsItemCost = needsItemCost;
+    window.summarizeSideGigLedger = summarizeSideGigLedger;
+    window.tagUntaggedSales = tagUntaggedSales;
 }

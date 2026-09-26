@@ -217,6 +217,73 @@ window.checkAndNotify = function (s, sendPush) {
         }
     }
 
+    // Big daily price moves on holdings (quoted today). One alert per symbol
+    // per day, so dismissing today's doesn't hide a big move tomorrow.
+    if (globalEnabled && prefs.priceMoveAlerts !== false) {
+        const threshold =
+            Number(prefs.priceMoveThreshold) > 0
+                ? Number(prefs.priceMoveThreshold)
+                : 5;
+        const day = now.toISOString().slice(0, 10);
+        const seen = new Set();
+        // Unlike the other alerts these push as they happen (each price
+        // refresh re-runs this), not only on "Check Now" — deduped per
+        // symbol per day, so a move notifies once.
+        const pushMoves =
+            sendPush ||
+            (typeof Notification !== 'undefined' &&
+                Notification.permission === 'granted');
+        // Which moves already notified today (one key, reset daily).
+        let pushed = { day, tags: [] };
+        try {
+            const saved = JSON.parse(
+                localStorage.getItem('fire_move_alerts_pushed') || 'null',
+            );
+            if (saved && saved.day === day && Array.isArray(saved.tags))
+                pushed = saved;
+        } catch {
+            /* storage unavailable — may re-notify, never crashes */
+        }
+        (s.importedPositions || []).forEach((p) => {
+            const pct = p.dayChangePercent;
+            const sym = (p.symbol || '').replace(/\*+$/, '');
+            if (
+                !sym ||
+                seen.has(sym) ||
+                !Number.isFinite(pct) ||
+                Math.abs(pct) < threshold ||
+                (typeof isQuotedToday === 'function' && !isQuotedToday(p))
+            )
+                return;
+            seen.add(sym);
+            const tag = `move-${sym}-${day}`;
+            const msg = `${sym} is ${pct > 0 ? 'up' : 'down'} ${Math.abs(pct).toFixed(1)}% today (now ${formatCurrency(Number(p.lastPrice) || 0)}).`;
+            alerts.push({
+                type: 'move',
+                label: `Price move ${pct > 0 ? '▲' : '▼'}`,
+                msg,
+                urgent: Math.abs(pct) >= threshold * 2,
+                tag,
+            });
+            if (pushMoves && !pushed.tags.includes(tag)) {
+                _sendNotification(
+                    `${sym} ${pct > 0 ? '+' : ''}${pct.toFixed(1)}% today`,
+                    msg,
+                    tag,
+                );
+                pushed.tags.push(tag);
+                try {
+                    localStorage.setItem(
+                        'fire_move_alerts_pushed',
+                        JSON.stringify(pushed),
+                    );
+                } catch {
+                    /* ignore */
+                }
+            }
+        });
+    }
+
     // Individually dismissible — dismissed alerts stay hidden (and excluded
     // from the badge count) until the underlying condition changes and
     // regenerates a different tag (e.g. a new FIRE milestone %).

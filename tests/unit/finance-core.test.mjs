@@ -17,6 +17,7 @@ import {
     getAggregateEquities,
     getAggregateOtherAssets,
     getEstimatedAnnualInterest,
+    isCdMatured,
     getSideGigYTDNet,
     getAggregateRealEstate,
     getAggregateVehicles,
@@ -80,7 +81,7 @@ describe('finance-core', () => {
 });
 
 describe('getEstimatedAnnualInterest', () => {
-    it('sums HYSA/cash APY and CD interest, ignoring other account types', () => {
+    it('sums HYSA/cash APY, CD interest and crypto staking, ignoring other types', () => {
         const r = getEstimatedAnnualInterest(
             [
                 { type: 'Savings', value: 10000, apy: 4 },
@@ -92,10 +93,34 @@ describe('getEstimatedAnnualInterest', () => {
         );
         expect(r.savings).toBeCloseTo(400, 6);
         expect(r.cds).toBeCloseTo(1000, 6);
-        expect(r.total).toBeCloseTo(1400, 6);
+        expect(r.staking).toBeCloseTo(350, 6); // crypto 5000 × 7%
+        expect(r.total).toBeCloseTo(1750, 6);
     });
 
     it('handles missing inputs', () => {
         expect(getEstimatedAnnualInterest(undefined, undefined).total).toBe(0);
+    });
+});
+
+describe('isCdMatured / matured CDs in interest estimates', () => {
+    const now = new Date(2026, 8, 25); // Sep 25 2026, local
+    it('treats a CD as matured only after its maturity date', () => {
+        expect(isCdMatured({ maturity: '2026-09-24' }, now)).toBe(true);
+        expect(isCdMatured({ maturity: '2026-09-25' }, now)).toBe(false);
+        expect(isCdMatured({ maturity: '2027-02-20' }, now)).toBe(false);
+        expect(isCdMatured({ maturity: '' }, now)).toBe(false);
+        expect(isCdMatured({ maturity: 'garbage' }, now)).toBe(false);
+    });
+
+    it('leaves matured CDs out of the interest estimate', () => {
+        const r = getEstimatedAnnualInterest(
+            [],
+            [
+                { principal: 10000, rate: 5, maturity: '2026-01-01' },
+                { principal: 20000, rate: 4, maturity: '2027-02-20' },
+            ],
+            now,
+        );
+        expect(r.cds).toBeCloseTo(800, 6);
     });
 });

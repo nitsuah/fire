@@ -4,22 +4,8 @@
    ========================================================================== */
 
 function getBannerAllocSegments() {
-    const parts = [
-        { amt: getAggregateCash(), color: '#10b981', label: 'Cash' },
-        { amt: getAggregateCDs(), color: '#f59e0b', label: 'CDs' },
-        { amt: getAggregateEquities(), color: '#8b5cf6', label: 'Equities' },
-        {
-            amt: getAggregateRealEstate(),
-            color: '#06b6d4',
-            label: 'Real Estate',
-        },
-        { amt: getAggregateVehicles(), color: '#f97316', label: 'Vehicles' },
-        {
-            amt: getAggregateOtherAssets() + getSideGigYTDNet(),
-            color: '#3b82f6',
-            label: 'Other',
-        },
-    ];
+    // Same buckets and colours as the Asset Allocation doughnut.
+    const parts = getAllocationBuckets();
     const total = parts.reduce((sum, p) => sum + p.amt, 0);
     // Percentages are relative to the positive amounts actually drawn, so a
     // negative component can't push the visible segments past 100%.
@@ -32,9 +18,10 @@ function getBannerAllocSegments() {
     return { segments, total };
 }
 
-// gross = salary; interest = estimated yearly HYSA + CD earnings; total is
-// what the Annual Income banner shows (salary + interest). Side hustle stays
-// a separate YTD sub-line since it's actuals-to-date, not an annual rate.
+// gross = salary; interest = estimated yearly HYSA + CD interest + crypto
+// staking yield; total is what the Annual Income banner shows. Side hustle
+// stays a separate YTD sub-line since it's actuals-to-date, not an annual
+// rate. None of these count toward net worth — they're income, not assets.
 function getBannerIncome() {
     const gross =
         parseFloat(document.getElementById('tax-gross-income')?.value) || 0;
@@ -81,7 +68,7 @@ function renderHeaderBannerMetrics() {
     if (interestEl) {
         interestEl.textContent =
             income.interest > 0
-                ? `incl. ${formatCurrency(income.interest)}/yr interest`
+                ? `incl. ${formatCurrency(income.interest)}/yr interest & yield`
                 : '';
         interestEl.hidden = !(income.interest > 0);
     }
@@ -132,7 +119,7 @@ function buildCompactBarTooltipHtml() {
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
-    const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.total)}</span></div><div class="at-row"><span class="at-label">Interest / yr (est.)</span><span class="at-val">${formatCurrency(income.interest)}</span></div><div class="at-row"><span class="at-label">Side income YTD</span><span class="at-val">${formatCurrency(income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
+    const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.total)}</span></div><div class="at-row"><span class="at-label">Interest &amp; yield / yr (est.)</span><span class="at-val">${formatCurrency(income.interest)}</span></div><div class="at-row"><span class="at-label">Side income YTD</span><span class="at-val">${formatCurrency(income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
     return rows + totalRow + flowRows;
 }
 
@@ -721,13 +708,7 @@ function renderMonthlyCashFlow() {
     // counted when the account actually has a staking rate set (apy > 0).
     // Accounts with no rate provided contribute $0, exactly as if staking
     // weren't a modeled income source for them.
-    const stakingMonthly = (state.customAccounts || []).reduce(
-        (sum, acc) =>
-            acc.type === 'Crypto' && (acc.apy || 0) > 0
-                ? sum + ((acc.value || 0) * (acc.apy / 100)) / 12
-                : sum,
-        0,
-    );
+    const stakingMonthly = interest.staking / 12;
 
     const totalIncome =
         monthlyGross +

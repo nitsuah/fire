@@ -3,23 +3,24 @@
    Depends on globals: state, saveState, refreshAllUI
    ========================================================================== */
 
-function initExpenseManager() {
-    const inputs = document.querySelectorAll('.expense-input');
-    const taxSlider = document.getElementById('tax-rate');
-    const taxDisplay = document.getElementById('tax-rate-display');
-    const grossIncomeInput = document.getElementById('tax-gross-income');
-    const filingStateSelect = document.getElementById('tax-filing-state');
-
-    inputs.forEach((input) => {
+// Copy expense / tax / insurance values from state into their form inputs.
+// Called on init and again after a tab re-syncs from the server (state.js),
+// since several totals (e.g. gross income) are read back from these inputs.
+function syncExpenseInputsFromState() {
+    document.querySelectorAll('.expense-input').forEach((input) => {
         const id = input.id.replace('exp-', '');
         if (state.expenses[id] !== undefined) {
             input.value = state.expenses[id];
         }
     });
 
-    if (state.taxRate !== undefined) {
+    const taxSlider = document.getElementById('tax-rate');
+    const taxDisplay = document.getElementById('tax-rate-display');
+    const grossIncomeInput = document.getElementById('tax-gross-income');
+    const filingStateSelect = document.getElementById('tax-filing-state');
+    if (state.taxRate !== undefined && taxSlider) {
         taxSlider.value = state.taxRate;
-        taxDisplay.textContent = `${state.taxRate}%`;
+        if (taxDisplay) taxDisplay.textContent = `${state.taxRate}%`;
     }
     if (state.taxGrossIncome !== undefined && grossIncomeInput) {
         grossIncomeInput.value = state.taxGrossIncome;
@@ -27,6 +28,26 @@ function initExpenseManager() {
     if (state.taxFilingState !== undefined && filingStateSelect) {
         filingStateSelect.value = state.taxFilingState;
     }
+
+    const ins = state.insurances || {};
+    const setVal = (id, v) => {
+        const el = document.getElementById(id);
+        if (el && v !== undefined) el.value = v;
+    };
+    setVal('ins-car-amt', ins.car?.amt);
+    setVal('ins-car-freq', ins.car?.freq);
+    setVal('ins-home-amt', ins.home?.amt);
+    setVal('ins-home-freq', ins.home?.freq);
+}
+
+function initExpenseManager() {
+    const inputs = document.querySelectorAll('.expense-input');
+    const taxSlider = document.getElementById('tax-rate');
+    const taxDisplay = document.getElementById('tax-rate-display');
+    const grossIncomeInput = document.getElementById('tax-gross-income');
+    const filingStateSelect = document.getElementById('tax-filing-state');
+
+    syncExpenseInputsFromState();
 
     inputs.forEach((input) => {
         input.addEventListener('input', async () => {
@@ -42,11 +63,6 @@ function initExpenseManager() {
     const insCarFreq = document.getElementById('ins-car-freq');
     const insHomeAmt = document.getElementById('ins-home-amt');
     const insHomeFreq = document.getElementById('ins-home-freq');
-
-    if (insCarAmt) insCarAmt.value = state.insurances.car.amt;
-    if (insCarFreq) insCarFreq.value = state.insurances.car.freq;
-    if (insHomeAmt) insHomeAmt.value = state.insurances.home.amt;
-    if (insHomeFreq) insHomeFreq.value = state.insurances.home.freq;
 
     async function saveInsurance() {
         state.insurances.car.amt = parseFloat(insCarAmt?.value) || 0;

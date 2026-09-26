@@ -129,15 +129,6 @@ function _getBlendedNominalReturn(state, equityReturnPct, excludeCash = false) {
         totalValue += val;
     });
 
-    const gigBalance = (state.sideGigLedger || []).reduce(
-        (s, sg) => s + (sg.net || 0),
-        0,
-    );
-    if (gigBalance > 0) {
-        weightedIncome += gigBalance * (equityReturnPct / 100);
-        totalValue += gigBalance;
-    }
-
     return totalValue > 0
         ? (weightedIncome / totalValue) * 100
         : equityReturnPct;
@@ -220,11 +211,9 @@ function _getAggregateNetWorth(state) {
         (s, v) => s + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)),
         0,
     );
-    const gig = (state.sideGigLedger || []).reduce(
-        (s, sg) => s + (sg.net || 0),
-        0,
-    );
-    return cash + equities + other + cds + re + veh + gig;
+    // Side hustle income is income, not an asset: once paid out it already
+    // sits in a cash/bank balance, so adding it here would double count.
+    return cash + equities + other + cds + re + veh;
 }
 
 // One retirement year's withdrawal: draws `expense` from `cash` first (cash

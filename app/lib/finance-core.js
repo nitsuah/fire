@@ -238,10 +238,22 @@ function getAggregateOtherAssets(customAccounts) {
     }, 0);
 }
 
-// Estimated yearly interest from interest-bearing cash: HYSA/cash accounts
-// with an APY (open-ended, so simply balance × APY) plus CDs (principal ×
-// rate). Returns { savings, cds, total } in dollars per year.
-function getEstimatedAnnualInterest(customAccounts, cds) {
+// A CD past its maturity date no longer earns its contract rate (the
+// money typically sits at a much lower rate until it's rolled over).
+// Date-only strings are parsed as local time, matching the dashboard.
+function isCdMatured(cd, now = new Date()) {
+    if (!cd || typeof cd.maturity !== 'string' || !cd.maturity) return false;
+    const mat = new Date(cd.maturity.replace(/-/g, '/'));
+    if (Number.isNaN(mat.getTime())) return false;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return mat < today;
+}
+
+// Estimated yearly interest/yield: HYSA/cash accounts with an APY
+// (open-ended, so simply balance × APY), active (unmatured) CDs (principal
+// × rate) and crypto staking/lending (balance × APY). Returns
+// { savings, cds, staking, total } in dollars per year.
+function getEstimatedAnnualInterest(customAccounts, cds, now = new Date()) {
     const savings = (customAccounts || []).reduce(
         (sum, acc) =>
             (acc.type === 'Savings' || acc.type === 'Cash') &&
@@ -251,10 +263,25 @@ function getEstimatedAnnualInterest(customAccounts, cds) {
         0,
     );
     const cdInterest = (cds || []).reduce(
-        (sum, cd) => sum + (cd.principal || 0) * ((cd.rate || 0) / 100),
+        (sum, cd) =>
+            isCdMatured(cd, now)
+                ? sum
+                : sum + (cd.principal || 0) * ((cd.rate || 0) / 100),
         0,
     );
-    return { savings, cds: cdInterest, total: savings + cdInterest };
+    const staking = (customAccounts || []).reduce(
+        (sum, acc) =>
+            acc.type === 'Crypto' && (acc.apy || 0) > 0
+                ? sum + (acc.value || 0) * (acc.apy / 100)
+                : sum,
+        0,
+    );
+    return {
+        savings,
+        cds: cdInterest,
+        staking,
+        total: savings + cdInterest + staking,
+    };
 }
 
 function getSideGigYTDNet(sideGigLedger) {
@@ -285,8 +312,7 @@ function getAggregateNetWorth(state) {
         getAggregateEquities(state.importedPositions, state.customAccounts) +
         getAggregateOtherAssets(state.customAccounts) +
         getAggregateRealEstate(state.realEstate) +
-        getAggregateVehicles(state.vehicles) +
-        getSideGigYTDNet(state.sideGigLedger)
+        getAggregateVehicles(state.vehicles)
     );
 }
 
@@ -390,6 +416,7 @@ module.exports = {
     getAggregateEquities,
     getAggregateOtherAssets,
     getEstimatedAnnualInterest,
+    isCdMatured,
     getSideGigYTDNet,
     getAggregateRealEstate,
     getAggregateVehicles,

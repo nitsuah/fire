@@ -333,6 +333,10 @@
         order: 5;
         grid-column: 1 / -1;
     }
+    #dash-card-nw-history {
+        order: 6;
+        grid-column: 1 / -1;
+    }
     #dash-card-growth.growth-size-wide {
         grid-column: 1 / -1;
     }

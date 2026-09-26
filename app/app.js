@@ -96,6 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCompactBarPlacement();
     initHustleAccelerators();
     initGrowthSizeControls();
+    initStaleTabResync();
 
     // Initial Render
     refreshAllUI();
@@ -119,6 +120,7 @@ function refreshAllUI() {
     renderDashboardLiquidPanel();
     renderDashboardOtherAssetsPanel();
     renderAssetAllocationChart();
+    renderNetWorthHistoryChart();
     renderDashboardProjectionsChart();
 
     renderImportedFilesTable();
@@ -232,8 +234,9 @@ function getAggregateOtherAssets() {
     return sum;
 }
 
-// Estimated yearly interest: HYSA/cash balance × APY (open-ended, no end
-// date) plus CD principal × rate. See finance-core.js for the tested twin.
+// Estimated yearly interest/yield: HYSA/cash balance × APY (open-ended, no
+// end date), CD principal × rate, and crypto staking balance × APY. See
+// finance-core.js for the tested twin.
 function getEstimatedAnnualInterest() {
     let savings = 0;
     state.customAccounts.forEach(acc => {
@@ -241,11 +244,23 @@ function getEstimatedAnnualInterest() {
             savings += (acc.value || 0) * (acc.apy / 100);
         }
     });
+    // Matured CDs no longer earn their contract rate — see isCdMatured in
+    // finance-core.js.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     let cds = 0;
     state.cds.forEach(cd => {
+        const mat = typeof cd.maturity === 'string' && cd.maturity ? new Date(cd.maturity.replace(/-/g, '/')) : null;
+        if (mat && !Number.isNaN(mat.getTime()) && mat < today) return;
         cds += (cd.principal || 0) * ((cd.rate || 0) / 100);
     });
-    return { savings, cds, total: savings + cds };
+    let staking = 0;
+    state.customAccounts.forEach(acc => {
+        if (acc.type === 'Crypto' && (acc.apy || 0) > 0) {
+            staking += (acc.value || 0) * (acc.apy / 100);
+        }
+    });
+    return { savings, cds, staking, total: savings + cds + staking };
 }
 
 function getSideGigYTDNet() {
@@ -265,7 +280,7 @@ function getAggregateVehicles() {
 }
 
 function getAggregateNetWorth() {
-    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getAggregateRealEstate() + getAggregateVehicles() + getSideGigYTDNet();
+    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getAggregateRealEstate() + getAggregateVehicles();
 }
 
 /* ==========================================================================
@@ -372,6 +387,8 @@ function saveNotificationSettings() {
         fireMilestones: document.getElementById('setting-fire-milestones')?.checked || false,
         rebalanceAlerts: document.getElementById('setting-rebalance-alerts')?.checked || false,
         taxHarvestAlerts: document.getElementById('setting-tax-harvest-alerts')?.checked || false,
+        priceMoveAlerts: document.getElementById('setting-price-move-alerts')?.checked || false,
+        priceMoveThreshold: Math.max(0.5, parseFloat(document.getElementById('setting-price-move-threshold')?.value) || 5),
     };
     state.notificationSettings = settings;
     saveState();
@@ -392,6 +409,10 @@ function loadNotificationSettings() {
     document.getElementById('setting-fire-milestones').checked = settings.fireMilestones;
     document.getElementById('setting-rebalance-alerts').checked = settings.rebalanceAlerts;
     document.getElementById('setting-tax-harvest-alerts').checked = settings.taxHarvestAlerts;
+    const moveToggle = document.getElementById('setting-price-move-alerts');
+    if (moveToggle) moveToggle.checked = settings.priceMoveAlerts !== false;
+    const moveThreshold = document.getElementById('setting-price-move-threshold');
+    if (moveThreshold) moveThreshold.value = settings.priceMoveThreshold || 5;
     updateNotificationStatusDisplay();
 }
 
