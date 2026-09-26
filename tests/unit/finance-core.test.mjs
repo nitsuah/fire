@@ -17,6 +17,7 @@ import {
     getAggregateEquities,
     getAggregateOtherAssets,
     getEstimatedAnnualInterest,
+    isCdMatured,
     getSideGigYTDNet,
     getAggregateRealEstate,
     getAggregateVehicles,
@@ -98,5 +99,28 @@ describe('getEstimatedAnnualInterest', () => {
 
     it('handles missing inputs', () => {
         expect(getEstimatedAnnualInterest(undefined, undefined).total).toBe(0);
+    });
+});
+
+describe('isCdMatured / matured CDs in interest estimates', () => {
+    const now = new Date(2026, 8, 25); // Sep 25 2026, local
+    it('treats a CD as matured only after its maturity date', () => {
+        expect(isCdMatured({ maturity: '2026-09-24' }, now)).toBe(true);
+        expect(isCdMatured({ maturity: '2026-09-25' }, now)).toBe(false);
+        expect(isCdMatured({ maturity: '2027-02-20' }, now)).toBe(false);
+        expect(isCdMatured({ maturity: '' }, now)).toBe(false);
+        expect(isCdMatured({ maturity: 'garbage' }, now)).toBe(false);
+    });
+
+    it('leaves matured CDs out of the interest estimate', () => {
+        const r = getEstimatedAnnualInterest(
+            [],
+            [
+                { principal: 10000, rate: 5, maturity: '2026-01-01' },
+                { principal: 20000, rate: 4, maturity: '2027-02-20' },
+            ],
+            now,
+        );
+        expect(r.cds).toBeCloseTo(800, 6);
     });
 });

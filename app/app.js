@@ -96,6 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCompactBarPlacement();
     initHustleAccelerators();
     initGrowthSizeControls();
+    initStaleTabResync();
 
     // Initial Render
     refreshAllUI();
@@ -242,8 +243,14 @@ function getEstimatedAnnualInterest() {
             savings += (acc.value || 0) * (acc.apy / 100);
         }
     });
+    // Matured CDs no longer earn their contract rate — see isCdMatured in
+    // finance-core.js.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     let cds = 0;
     state.cds.forEach(cd => {
+        const mat = typeof cd.maturity === 'string' && cd.maturity ? new Date(cd.maturity.replace(/-/g, '/')) : null;
+        if (mat && !Number.isNaN(mat.getTime()) && mat < today) return;
         cds += (cd.principal || 0) * ((cd.rate || 0) / 100);
     });
     let staking = 0;

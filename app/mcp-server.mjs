@@ -214,12 +214,16 @@ function computeNetWorthBreakdown(state) {
         }
     }
     const cds = (state.cds || []).reduce((s, cd) => s + (cd.principal || 0), 0);
+    // Equity floored at $0 per property/vehicle, matching the dashboard
+    // (getAggregateRealEstate / getAggregateVehicles): an underwater loan
+    // shouldn't silently offset other assets in one total but not the other.
     const realEstate = (state.realEstate || []).reduce(
-        (s, r) => s + ((r.marketValue || 0) - (r.mortgageBalance || 0)),
+        (s, r) =>
+            s + Math.max(0, (r.marketValue || 0) - (r.mortgageBalance || 0)),
         0,
     );
     const vehicles = (state.vehicles || []).reduce(
-        (s, v) => s + ((v.currentValue || 0) - (v.loanBalance || 0)),
+        (s, v) => s + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)),
         0,
     );
     const cryptoWallets = (state.wallets || []).reduce(

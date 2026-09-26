@@ -826,6 +826,21 @@
     padding-top: var(--space-sm);
 }
 
+/* "Live · 3:42 PM" freshness pill next to Top Investment Positions */
+.price-asof {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-success);
+    background: var(--color-success-bg);
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+.price-asof.price-asof-stale {
+    color: var(--text-muted);
+    background: rgba(148, 163, 184, 0.12);
+}
+
 /* Dashboard Other Assets: one column per section, as many as fit */
 .other-assets-grid {
     display: grid;

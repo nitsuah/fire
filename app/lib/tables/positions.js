@@ -31,7 +31,39 @@ narrowPositionsMq.addEventListener('change', () => {
         renderDashboardTopPositionsTable();
 });
 
+// "Live · 3:42 PM" next to the card title: when the newest quote was
+// applied. Flagged stale when older than 30 minutes (e.g. market closed or
+// the quote API is down), and the date is shown once it's not from today.
+function renderPositionsPriceAsOf() {
+    const el = document.getElementById('positions-price-asof');
+    if (!el) return;
+    const latest = state.importedPositions.reduce((max, p) => {
+        const t = Date.parse(p.priceUpdatedAt || '');
+        return Number.isNaN(t) ? max : Math.max(max, t);
+    }, 0);
+    if (!latest) {
+        el.hidden = true;
+        return;
+    }
+    const at = new Date(latest);
+    const ageMin = (Date.now() - latest) / 60000;
+    const sameDay = at.toDateString() === new Date().toDateString();
+    const when = at.toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+    const label = sameDay
+        ? when
+        : `${at.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${when}`;
+    const stale = ageMin > 30;
+    el.hidden = false;
+    el.classList.toggle('price-asof-stale', stale);
+    el.textContent = stale ? `Prices as of ${label}` : `Live · ${label}`;
+    el.title = `Market prices last applied ${at.toLocaleString()}`;
+}
+
 function renderDashboardTopPositionsTable() {
+    renderPositionsPriceAsOf();
     const totalCols = narrowPositionsMq.matches ? 4 : 8;
     const groupSpan = narrowPositionsMq.matches ? 1 : 4;
     const tbody = document.querySelector('#table-dashboard-positions tbody');

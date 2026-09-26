@@ -76,7 +76,7 @@ function renderDashboardLiquidPanel() {
                 </div>
                 <div class="liquid-val">
                     ${formatCurrency(principal)}
-                    <span class="cd-yield-badge">+${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></span>
+                    ${isMatured ? '' : `<span class="cd-yield-badge">+${formatCurrency(annualYield)}<span class="cd-yield-unit">/yr</span></span>`}
                 </div>
             </div>`;
         });

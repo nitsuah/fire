@@ -96,6 +96,50 @@ async function loadStateFromServer() {
     loadStateFromStorage();
 }
 
+// A tab left open keeps its own in-memory copy of the data, and any edit
+// made there calls saveState(), which posts that whole (possibly hours-old)
+// copy over newer changes made in another tab or via the API/MCP. So when
+// the tab becomes visible again, re-sync from the server first — unless an
+// edit is in progress, which we'd otherwise throw away.
+function isEditInProgress() {
+    if (
+        editingAccounts.length ||
+        editingCDs.length ||
+        editingRealEstate.length ||
+        editingVehicles.length
+    )
+        return true;
+    const el = document.activeElement;
+    return !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+}
+
+async function resyncStateFromServer() {
+    if (isEditInProgress()) return false;
+    try {
+        const res = await fetch('/api/state', { cache: 'no-store' });
+        if (!res.ok) return false;
+        const data = await res.json();
+        if (!data || typeof data !== 'object' || !Object.keys(data).length)
+            return false;
+        // Re-check: the user may have started editing while we fetched.
+        if (isEditInProgress()) return false;
+        state = sanitizeState({ ...state, ...data });
+        if (typeof syncExpenseInputsFromState === 'function')
+            syncExpenseInputsFromState();
+        refreshAllUI();
+        return true;
+    } catch (e) {
+        console.warn('Could not re-sync state from the server.', e);
+        return false;
+    }
+}
+
+function initStaleTabResync() {
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') resyncStateFromServer();
+    });
+}
+
 function loadStateFromStorage() {
     const savedState = localStorage.getItem('fire_tracker_state');
     if (savedState) {
