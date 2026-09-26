@@ -72,6 +72,14 @@ function sanitizeState(data) {
     return data;
 }
 
+// Revision of the server state this tab's copy was loaded at (see the
+// optimistic-concurrency check in app/routes/state.js). Kept outside
+// `state` so importing a JSON backup can't carry a stale one in. null =
+// never synced (server unreachable) → saves fall back to last-write-wins.
+let syncedRevision = null;
+const revisionOf = (data) =>
+    Number.isInteger(data?.stateRevision) ? data.stateRevision : 0;
+
 async function loadStateFromServer() {
     try {
         const res = await fetch('/api/state');
@@ -83,6 +91,7 @@ async function loadStateFromServer() {
                 Object.keys(data).length > 0
             ) {
                 state = sanitizeState({ ...state, ...data });
+                syncedRevision = revisionOf(data);
                 console.log('State loaded successfully from backend DB.');
                 return;
             }
@@ -113,8 +122,15 @@ function isEditInProgress() {
     return !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
 }
 
-async function resyncStateFromServer() {
-    if (isEditInProgress()) return false;
+// Set when a visibility re-sync had to wait for an edit; retried as soon
+// as the edit ends (see initStaleTabResync).
+let resyncPending = false;
+
+async function resyncStateFromServer({ force = false } = {}) {
+    if (!force && isEditInProgress()) {
+        resyncPending = true;
+        return false;
+    }
     try {
         const res = await fetch('/api/state', { cache: 'no-store' });
         if (!res.ok) return false;
@@ -122,8 +138,13 @@ async function resyncStateFromServer() {
         if (!data || typeof data !== 'object' || !Object.keys(data).length)
             return false;
         // Re-check: the user may have started editing while we fetched.
-        if (isEditInProgress()) return false;
+        if (!force && isEditInProgress()) {
+            resyncPending = true;
+            return false;
+        }
         state = sanitizeState({ ...state, ...data });
+        syncedRevision = revisionOf(data);
+        resyncPending = false;
         if (typeof syncExpenseInputsFromState === 'function')
             syncExpenseInputsFromState();
         refreshAllUI();
@@ -138,6 +159,21 @@ function initStaleTabResync() {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') resyncStateFromServer();
     });
+    // A deferred re-sync runs once the edit that blocked it ends: focus
+    // leaving a field, or a click (Save / Cancel on an inline edit). Short
+    // delay so the edit's own handlers (and any save) run first. Even if a
+    // save beats it, the server's revision check rejects a stale copy.
+    const retry = () =>
+        setTimeout(() => {
+            if (
+                resyncPending &&
+                document.visibilityState === 'visible' &&
+                !isEditInProgress()
+            )
+                resyncStateFromServer();
+        }, 300);
+    document.addEventListener('focusout', retry);
+    document.addEventListener('click', retry);
 }
 
 function loadStateFromStorage() {
@@ -157,18 +193,48 @@ function loadStateFromStorage() {
     }
 }
 
-async function saveState() {
+// Saves run one at a time: each needs the revision returned by the one
+// before it (inputs save on every keystroke, so two could otherwise race
+// with the same base revision and the second would be refused).
+let saveQueue = Promise.resolve();
+
+function saveState() {
+    const run = saveQueue.then(postState, postState);
+    saveQueue = run.catch(() => {});
+    return run;
+}
+
+async function postState() {
     localStorage.setItem('fire_tracker_state', JSON.stringify(state));
 
     try {
+        const body =
+            syncedRevision === null
+                ? state
+                : { ...state, baseRevision: syncedRevision };
         const res = await fetch('/api/state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(state),
+            body: JSON.stringify(body),
         });
+        if (res.status === 409) {
+            // Another tab saved newer data after this copy was loaded.
+            // Don't overwrite it: pull the latest and ask the user to redo
+            // the change on top of it.
+            await resyncStateFromServer({ force: true });
+            alert(
+                'This tab was out of date — newer changes were saved elsewhere. ' +
+                    'It has been refreshed with the latest data; please redo your last change.',
+            );
+            return;
+        }
         if (!res.ok) {
             console.error('Server API returned status', res.status);
+            return;
         }
+        const data = await res.json().catch(() => null);
+        if (Number.isInteger(data?.stateRevision))
+            syncedRevision = data.stateRevision;
     } catch (e) {
         console.warn('Could not save state to Express backend server.', e);
     }

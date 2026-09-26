@@ -38,19 +38,41 @@ router.post('/', (req, res) => {
             .json({ error: 'projectionSettings must be an object.' });
     }
     const current = readState();
+    const currentRevision = Number.isInteger(current.stateRevision)
+        ? current.stateRevision
+        : 0;
+    // Optimistic concurrency for full-state saves: a client says which
+    // revision its copy was loaded at (baseRevision). If another full save
+    // landed since, this copy is stale — refuse rather than overwrite newer
+    // data with it. Saves without baseRevision (backup tools, older
+    // clients) keep the previous last-write-wins behaviour.
+    // stateRevision is server-owned: drop whatever the client echoed back.
+    const { baseRevision, ...body } = req.body;
+    delete body.stateRevision;
+    if (baseRevision !== undefined && baseRevision !== currentRevision) {
+        return res.status(409).json({
+            error: 'State changed since this copy was loaded; reload and retry.',
+            stateRevision: currentRevision,
+        });
+    }
     const merged = {
         ...defaultState(),
         ...current,
-        ...req.body,
-        expenses: { ...current.expenses, ...(req.body.expenses || {}) },
+        ...body,
+        stateRevision: currentRevision + 1,
+        expenses: { ...current.expenses, ...(body.expenses || {}) },
         projectionSettings: {
             ...current.projectionSettings,
-            ...(req.body.projectionSettings || {}),
+            ...(body.projectionSettings || {}),
         },
     };
     const success = writeState(merged);
     if (success) {
-        res.json({ message: 'State successfully updated.', state: merged });
+        res.json({
+            message: 'State successfully updated.',
+            stateRevision: merged.stateRevision,
+            state: merged,
+        });
     } else {
         res.status(500).json({ error: 'Failed to write database state.' });
     }
@@ -70,9 +92,13 @@ const isoTime = (v) => {
     const t = typeof v === 'string' ? Date.parse(v) : NaN;
     return Number.isNaN(t) ? null : t;
 };
+// A quote timestamp comes from the browser's clock. One far in the future
+// (skewed clock, bad client) would otherwise become the stored "newest" and
+// block every correct refresh until real time caught up.
+const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const isNewer = (incoming, stored) => {
     const inT = isoTime(incoming);
-    if (inT === null) return false;
+    if (inT === null || inT > Date.now() + MAX_CLOCK_SKEW_MS) return false;
     const curT = isoTime(stored);
     return curT === null || inT > curT;
 };
@@ -82,11 +108,13 @@ function applyPositionQuote(pos, quote) {
     if (price === null || price <= 0) return false;
     if (!isNewer(quote.priceUpdatedAt, pos.priceUpdatedAt)) return false;
     pos.lastPrice = price;
-    pos.priceUpdatedAt = quote.priceUpdatedAt;
+    pos.priceUpdatedAt = new Date(isoTime(quote.priceUpdatedAt)).toISOString();
+    // The daily move must describe this same quote: keep it only when this
+    // update carries a sane one (|x| < 100%), otherwise clear the old one.
     const dayPct = finiteNum(quote.dayChangePercent);
-    // Daily moves beyond ±100% are data errors (a price can't go negative).
     if (dayPct !== null && Math.abs(dayPct) < 100)
         pos.dayChangePercent = dayPct;
+    else delete pos.dayChangePercent;
     if (pos.quantity > 0) pos.value = pos.quantity * price;
     if (pos.costBasis > 0) {
         pos.pnlDollar = pos.value - pos.costBasis;
@@ -106,7 +134,9 @@ function applyMetalQuote(acc, quote) {
     acc.spotPricePerOz = spot;
     acc.payoutPct = pct;
     acc.value = spot * pct * acc.weightOz;
-    acc.valueLastRefreshed = quote.valueLastRefreshed;
+    acc.valueLastRefreshed = new Date(
+        isoTime(quote.valueLastRefreshed),
+    ).toISOString();
     return true;
 }
 

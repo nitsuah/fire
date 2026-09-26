@@ -70,8 +70,11 @@ async function fetchAndApplyPrices() {
                 if (newPrice && newPrice > 0) {
                     pos.lastPrice = newPrice;
                     pos.priceUpdatedAt = now;
+                    // Keep the daily move tied to this quote: clear the old
+                    // one if this response didn't carry one.
                     const dayPct = prices[cleanSym].changePercent;
                     if (Number.isFinite(dayPct)) pos.dayChangePercent = dayPct;
+                    else delete pos.dayChangePercent;
                     // Recalculate current value based on quantity × new price
                     if (pos.quantity > 0) {
                         pos.value = pos.quantity * newPrice;

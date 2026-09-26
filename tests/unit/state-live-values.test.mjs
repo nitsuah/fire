@@ -213,6 +213,72 @@ describe('PATCH /api/state/live-values', () => {
         expect(pos.dayChangePercent).toBeUndefined();
     });
 
+    it('clears a previous daily move when the new quote has none', async () => {
+        await patch({
+            positions: [
+                {
+                    id: 'pos-1',
+                    lastPrice: 110,
+                    dayChangePercent: 1.5,
+                    priceUpdatedAt: T1,
+                },
+            ],
+        });
+        await patch({
+            positions: [{ id: 'pos-1', lastPrice: 111, priceUpdatedAt: T2 }],
+        });
+        const pos = (await getState()).importedPositions[0];
+        expect(pos.lastPrice).toBe(111);
+        expect(pos.dayChangePercent).toBeUndefined();
+    });
+
+    it('rejects far-future timestamps so a skewed clock cannot freeze prices', async () => {
+        const future = await patch({
+            positions: [
+                {
+                    id: 'pos-1',
+                    lastPrice: 500,
+                    priceUpdatedAt: '2099-01-01T00:00:00.000Z',
+                },
+            ],
+            metals: [
+                {
+                    id: 'gold-1',
+                    spotPricePerOz: 9999,
+                    payoutPct: 0.95,
+                    valueLastRefreshed: '2099-01-01T00:00:00.000Z',
+                },
+            ],
+        });
+        expect(future.body.updated).toBe(0);
+        // A correct refresh still applies afterwards.
+        const now = await patch({
+            positions: [
+                {
+                    id: 'pos-1',
+                    lastPrice: 120,
+                    priceUpdatedAt: new Date().toISOString(),
+                },
+            ],
+        });
+        expect(now.body.updated).toBe(1);
+        expect((await getState()).importedPositions[0].lastPrice).toBe(120);
+    });
+
+    it('stores timestamps normalized to ISO', async () => {
+        await patch({
+            positions: [
+                {
+                    id: 'pos-1',
+                    lastPrice: 120,
+                    priceUpdatedAt: 'Sep 25 2026 23:00 UTC',
+                },
+            ],
+        });
+        const pos = (await getState()).importedPositions[0];
+        expect(pos.priceUpdatedAt).toBe('2026-09-25T23:00:00.000Z');
+    });
+
     it('rejects non-array payloads', async () => {
         const res = await patch({ positions: 'x' });
         expect(res.status).toBe(400);
