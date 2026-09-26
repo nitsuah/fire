@@ -62,6 +62,9 @@ lifefire.netlify.app has no Express server, so `netlify.toml` rewrites the eBay
 routes to Netlify Functions in `netlify/functions/`. The public paths stay the same.
 The Functions and the Express routes share one implementation (`app/lib/ebay-handlers.js`,
 `app/lib/ebay-connector.js`).
+The Functions use the modern Netlify signature (`export default (req: Request) => Response`,
+`.mjs`), not the Lambda-compatible `exports.handler` format. The Lambda-compatible
+format caps a site's env vars at 4KB, and lifefire exceeds that.
 
 | Public path | Function | Notes |
 |---|---|---|

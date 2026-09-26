@@ -1,5 +1,3 @@
-'use strict';
-
 // eBay OAuth callback for the browser-only deploy
 // (GET /api/sync/ebay/callback, the "auth accepted" URL on the RuName).
 // Exchanges the code, encrypts the tokens with SYNC_MASTER_KEY and hands
@@ -7,16 +5,16 @@
 // server or in Referer). The browser stores that blob but cannot read it;
 // only ebay-sync can decrypt it. Nothing is stored server-side.
 
-const crypto = require('crypto');
-const { exchangeCodeForTokens } = require('../../app/lib/ebay-connector');
-const { encrypt } = require('../../app/lib/crypto-utils');
-const {
+import crypto from 'crypto';
+import ebayConnector from '../../app/lib/ebay-connector.js';
+import cryptoUtils from '../../app/lib/crypto-utils.js';
+import {
     redirect,
     methodNotAllowed,
     missingEnv,
     cookie,
-} = require('../lib/http');
-const { OAUTH_ENV } = require('./ebay-authorize');
+    OAUTH_ENV,
+} from '../lib/http.mjs';
 
 const CLEAR_STATE_COOKIE =
     'ebay_oauth_state=; Path=/api/sync/ebay; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
@@ -30,8 +28,8 @@ function statesMatch(a, b) {
     return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
 
-exports.handler = async (event) => {
-    if (event.httpMethod !== 'GET') return methodNotAllowed('GET');
+export default async function handler(req) {
+    if (req.method !== 'GET') return methodNotAllowed('GET');
     const missing = missingEnv(OAUTH_ENV);
     if (missing.length) {
         console.error(
@@ -39,20 +37,21 @@ exports.handler = async (event) => {
         );
         return back('ebay-error=not_configured');
     }
-    const { code, state } = event.queryStringParameters || {};
-    if (!statesMatch(state, cookie(event, 'ebay_oauth_state'))) {
+    const params = new URL(req.url).searchParams;
+    const code = params.get('code');
+    if (!statesMatch(params.get('state'), cookie(req, 'ebay_oauth_state'))) {
         return back('ebay-error=invalid_state');
     }
     if (!code) return back('ebay-error=access_denied');
     try {
-        const tokens = await exchangeCodeForTokens(
+        const tokens = await ebayConnector.exchangeCodeForTokens(
             code,
             process.env.EBAY_REDIRECT_URI,
         );
-        const blob = encrypt(JSON.stringify(tokens));
+        const blob = cryptoUtils.encrypt(JSON.stringify(tokens));
         return back(`ebay-connected=${encodeURIComponent(blob)}`);
     } catch (err) {
         console.error('[eBay] Token exchange failed:', err.message);
         return back('ebay-error=exchange_failed');
     }
-};
+}

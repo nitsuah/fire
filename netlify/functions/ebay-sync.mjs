@@ -1,5 +1,3 @@
-'use strict';
-
 // Order sync for the browser-only deploy (POST /api/sync/ebay/sync).
 // Body: {tokens: <blob from ebay-callback>}. Decrypts, pulls completed
 // orders (refreshing the access token when needed) and returns ledger
@@ -7,13 +5,12 @@
 // re-encrypted blob when the tokens were refreshed. A revoked grant or an
 // unreadable blob returns 401 with a `code` telling the client to drop it.
 
-const { encrypt, decrypt } = require('../../app/lib/crypto-utils');
-const { syncOrders } = require('../../app/lib/ebay-handlers');
-const { json, methodNotAllowed, missingEnv } = require('../lib/http');
-const { OAUTH_ENV } = require('./ebay-authorize');
+import cryptoUtils from '../../app/lib/crypto-utils.js';
+import ebayHandlers from '../../app/lib/ebay-handlers.js';
+import { json, methodNotAllowed, missingEnv, OAUTH_ENV } from '../lib/http.mjs';
 
-exports.handler = async (event) => {
-    if (event.httpMethod !== 'POST') return methodNotAllowed('POST');
+export default async function handler(req) {
+    if (req.method !== 'POST') return methodNotAllowed('POST');
     const missing = missingEnv(OAUTH_ENV);
     if (missing.length) {
         console.error(
@@ -25,8 +22,8 @@ exports.handler = async (event) => {
     }
     let tokens;
     try {
-        const { tokens: blob } = JSON.parse(event.body || '{}');
-        tokens = JSON.parse(decrypt(String(blob)));
+        const { tokens: blob } = JSON.parse((await req.text()) || '{}');
+        tokens = JSON.parse(cryptoUtils.decrypt(String(blob)));
     } catch {
         return json(401, {
             error: 'Stored eBay connection is unreadable. Reconnect eBay.',
@@ -34,14 +31,14 @@ exports.handler = async (event) => {
         });
     }
     try {
-        const result = await syncOrders(tokens);
+        const result = await ebayHandlers.syncOrders(tokens);
         return json(200, {
             status: 'success',
             entries: result.entries,
             fetched: result.entries.length,
             syncedAt: new Date().toISOString(),
             ...(result.refreshed
-                ? { tokens: encrypt(JSON.stringify(result.tokens)) }
+                ? { tokens: cryptoUtils.encrypt(JSON.stringify(result.tokens)) }
                 : {}),
         });
     } catch (err) {
@@ -51,4 +48,4 @@ exports.handler = async (event) => {
         console.error('[eBay] Sync failed:', err.message);
         return json(502, { error: 'eBay sync failed. Try again later.' });
     }
-};
+}

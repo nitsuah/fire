@@ -1,21 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import crypto from 'crypto';
-import { createRequire } from 'module';
+import deletion from '../../netlify/functions/ebay-marketplace-account-deletion.mjs';
+import authorize from '../../netlify/functions/ebay-authorize.mjs';
+import callback from '../../netlify/functions/ebay-callback.mjs';
+import sync from '../../netlify/functions/ebay-sync.mjs';
+import cryptoUtils from '../../app/lib/crypto-utils.js';
+import ebayConnector from '../../app/lib/ebay-connector.js';
 
 // Netlify Functions serving the eBay routes on the browser-only deploy
-// (netlify/functions/ebay-*). Handlers are called directly with v1 events.
-const require = createRequire(import.meta.url);
-const deletion = require('../../netlify/functions/ebay-marketplace-account-deletion.js');
-const authorize = require('../../netlify/functions/ebay-authorize.js');
-const callback = require('../../netlify/functions/ebay-callback.js');
-const sync = require('../../netlify/functions/ebay-sync.js');
-const { encrypt, decrypt } = require('../../app/lib/crypto-utils.js');
-const {
-    resetNotificationKeyCache,
-} = require('../../app/lib/ebay-connector.js');
-
-const ENDPOINT =
-    'https://lifefire.netlify.app/api/sync/ebay/marketplace-account-deletion';
+// (netlify/functions/ebay-*.mjs, Request → Response). Handlers are called
+// directly with Web Request objects.
+const { encrypt, decrypt } = cryptoUtils;
+const BASE = 'https://lifefire.netlify.app/api/sync/ebay';
+const ENDPOINT = `${BASE}/marketplace-account-deletion`;
 const TOKEN = 'b'.repeat(64);
 const ENV = {
     EBAY_VERIFICATION_TOKEN: TOKEN,
@@ -33,7 +30,7 @@ beforeEach(() => {
         saved[k] = process.env[k];
         process.env[k] = v;
     }
-    resetNotificationKeyCache?.();
+    ebayConnector.resetNotificationKeyCache();
 });
 
 afterEach(() => {
@@ -53,31 +50,29 @@ const notification = {
     },
 };
 
-function post(body, headers = {}) {
-    return { httpMethod: 'POST', headers, body: JSON.stringify(body) };
-}
+const get = (url, headers = {}) => new Request(url, { headers });
+const post = (url, body, headers = {}) =>
+    new Request(url, {
+        method: 'POST',
+        headers,
+        body: typeof body === 'string' ? body : JSON.stringify(body),
+    });
 
 describe('ebay-marketplace-account-deletion function', () => {
     it('answers the challenge with sha256(code + token + endpoint)', async () => {
-        const res = await deletion.handler({
-            httpMethod: 'GET',
-            queryStringParameters: { challenge_code: 'abc123' },
-        });
-        expect(res.statusCode).toBe(200);
-        expect(res.headers['Content-Type']).toBe('application/json');
+        const res = await deletion(get(`${ENDPOINT}?challenge_code=abc123`));
+        expect(res.status).toBe(200);
+        expect(res.headers.get('Content-Type')).toBe('application/json');
         const expected = crypto
             .createHash('sha256')
             .update('abc123' + TOKEN + ENDPOINT)
             .digest('hex');
-        expect(JSON.parse(res.body)).toEqual({ challengeResponse: expected });
+        expect(await res.json()).toEqual({ challengeResponse: expected });
     });
 
     it('rejects a missing challenge_code with 400', async () => {
-        const res = await deletion.handler({
-            httpMethod: 'GET',
-            queryStringParameters: {},
-        });
-        expect(res.statusCode).toBe(400);
+        const res = await deletion(get(ENDPOINT));
+        expect(res.status).toBe(400);
     });
 
     it.each(['EBAY_VERIFICATION_TOKEN', 'EBAY_NOTIFICATION_ENDPOINT_URL'])(
@@ -86,30 +81,29 @@ describe('ebay-marketplace-account-deletion function', () => {
             delete process.env[name];
             const err = vi.spyOn(console, 'error').mockImplementation(() => {});
             const hash = vi.spyOn(crypto, 'createHash');
-            const res = await deletion.handler({
-                httpMethod: 'GET',
-                queryStringParameters: { challenge_code: 'abc123' },
-            });
-            expect(res.statusCode).toBe(500);
-            expect(JSON.parse(res.body).challengeResponse).toBeUndefined();
+            const res = await deletion(
+                get(`${ENDPOINT}?challenge_code=abc123`),
+            );
+            expect(res.status).toBe(500);
+            expect((await res.json()).challengeResponse).toBeUndefined();
             expect(hash).not.toHaveBeenCalled();
             expect(err.mock.calls.flat().join(' ')).toContain(name);
         },
     );
 
     it('rejects other methods with 405', async () => {
-        const res = await deletion.handler({ httpMethod: 'PUT' });
-        expect(res.statusCode).toBe(405);
-        expect(res.headers.Allow).toBe('GET, POST');
+        const res = await deletion(new Request(ENDPOINT, { method: 'PUT' }));
+        expect(res.status).toBe(405);
+        expect(res.headers.get('Allow')).toBe('GET, POST');
     });
 
     it('acks a deletion notification without logging PII (no app credentials)', async () => {
         delete process.env.EBAY_CLIENT_ID;
         delete process.env.EBAY_CLIENT_SECRET;
         const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-        const res = await deletion.handler(post(notification));
-        expect(res.statusCode).toBe(200);
-        expect(JSON.parse(res.body)).toEqual({ status: 'acknowledged' });
+        const res = await deletion(post(ENDPOINT, notification));
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ status: 'acknowledged' });
         const logged = log.mock.calls.flat().join(' ');
         expect(logged).toContain('notif-123');
         expect(logged).not.toMatch(/secret-user|secret-id/);
@@ -117,50 +111,49 @@ describe('ebay-marketplace-account-deletion function', () => {
 
     it('rejects a notification with a missing signature when credentials exist', async () => {
         vi.spyOn(console, 'warn').mockImplementation(() => {});
-        const res = await deletion.handler(post(notification));
-        expect(res.statusCode).toBe(412);
+        const res = await deletion(post(ENDPOINT, notification));
+        expect(res.status).toBe(412);
     });
 
     it('rejects malformed JSON and wrong topics with 400', async () => {
         delete process.env.EBAY_CLIENT_ID;
-        const bad = await deletion.handler({ httpMethod: 'POST', body: '{' });
-        expect(bad.statusCode).toBe(400);
-        const wrong = await deletion.handler(
-            post({ metadata: { topic: 'OTHER' }, notification: {} }),
+        const bad = await deletion(post(ENDPOINT, '{'));
+        expect(bad.status).toBe(400);
+        const wrong = await deletion(
+            post(ENDPOINT, { metadata: { topic: 'OTHER' }, notification: {} }),
         );
-        expect(wrong.statusCode).toBe(400);
+        expect(wrong.status).toBe(400);
     });
 });
 
 describe('ebay-authorize / ebay-callback functions', () => {
     it('redirects to eBay with a state cookie', async () => {
-        const res = await authorize.handler({ httpMethod: 'GET' });
-        expect(res.statusCode).toBe(302);
-        const location = new URL(res.headers.Location);
+        const res = await authorize(get(`${BASE}/authorize`));
+        expect(res.status).toBe(302);
+        const location = new URL(res.headers.get('Location'));
         const state = location.searchParams.get('state');
         expect(location.searchParams.get('redirect_uri')).toBe(
             'Test_RuName-test',
         );
-        expect(res.headers['Set-Cookie']).toContain(
-            `ebay_oauth_state=${state};`,
-        );
-        expect(res.headers['Set-Cookie']).toMatch(/HttpOnly; Secure/);
+        const setCookie = res.headers.get('Set-Cookie');
+        expect(setCookie).toContain(`ebay_oauth_state=${state};`);
+        expect(setCookie).toMatch(/HttpOnly; Secure/);
     });
 
     it('returns 503 when OAuth env is missing', async () => {
         delete process.env.EBAY_REDIRECT_URI;
         vi.spyOn(console, 'error').mockImplementation(() => {});
-        const res = await authorize.handler({ httpMethod: 'GET' });
-        expect(res.statusCode).toBe(503);
+        const res = await authorize(get(`${BASE}/authorize`));
+        expect(res.status).toBe(503);
     });
 
     it('rejects a callback whose state does not match the cookie', async () => {
-        const res = await callback.handler({
-            httpMethod: 'GET',
-            queryStringParameters: { code: 'c', state: 'aaaa' },
-            headers: { cookie: 'ebay_oauth_state=bbbb' },
-        });
-        expect(res.headers.Location).toBe('/#ebay-error=invalid_state');
+        const res = await callback(
+            get(`${BASE}/callback?code=c&state=aaaa`, {
+                cookie: 'ebay_oauth_state=bbbb',
+            }),
+        );
+        expect(res.headers.get('Location')).toBe('/#ebay-error=invalid_state');
     });
 
     it('exchanges the code and returns an encrypted blob in the fragment', async () => {
@@ -169,17 +162,19 @@ describe('ebay-authorize / ebay-callback functions', () => {
             'fetch',
             vi.fn(async () => new Response(JSON.stringify(tokens))),
         );
-        const res = await callback.handler({
-            httpMethod: 'GET',
-            queryStringParameters: { code: 'c', state: 'abcd' },
-            headers: { Cookie: 'other=1; ebay_oauth_state=abcd' },
-        });
-        const match = res.headers.Location.match(/^\/#ebay-connected=(.+)$/);
+        const res = await callback(
+            get(`${BASE}/callback?code=c&state=abcd`, {
+                cookie: 'other=1; ebay_oauth_state=abcd',
+            }),
+        );
+        const match = res.headers
+            .get('Location')
+            .match(/^\/#ebay-connected=(.+)$/);
         expect(match).not.toBeNull();
         const blob = decodeURIComponent(match[1]);
         expect(blob).not.toContain('rt');
         expect(JSON.parse(decrypt(blob))).toEqual(tokens);
-        expect(res.headers['Set-Cookie']).toContain('Max-Age=0');
+        expect(res.headers.get('Set-Cookie')).toContain('Max-Age=0');
     });
 });
 
@@ -205,9 +200,9 @@ describe('ebay-sync function', () => {
                     ),
             ),
         );
-        const res = await sync.handler(post({ tokens: blob() }));
-        expect(res.statusCode).toBe(200);
-        const data = JSON.parse(res.body);
+        const res = await sync(post(`${BASE}/sync`, { tokens: blob() }));
+        expect(res.status).toBe(200);
+        const data = await res.json();
         expect(data.entries[0].id).toBe('ebay-O1');
         expect(data.tokens).toBeUndefined();
     });
@@ -221,19 +216,19 @@ describe('ebay-sync function', () => {
                     : new Response('unauthorized', { status: 401 }),
             ),
         );
-        const res = await sync.handler(post({ tokens: blob() }));
-        expect(res.statusCode).toBe(401);
-        expect(JSON.parse(res.body).code).toBe('ebay_revoked');
+        const res = await sync(post(`${BASE}/sync`, { tokens: blob() }));
+        expect(res.status).toBe(401);
+        expect((await res.json()).code).toBe('ebay_revoked');
     });
 
     it('returns 401 ebay_token_invalid for an unreadable blob', async () => {
-        const res = await sync.handler(post({ tokens: 'garbage' }));
-        expect(res.statusCode).toBe(401);
-        expect(JSON.parse(res.body).code).toBe('ebay_token_invalid');
+        const res = await sync(post(`${BASE}/sync`, { tokens: 'garbage' }));
+        expect(res.status).toBe(401);
+        expect((await res.json()).code).toBe('ebay_token_invalid');
     });
 
     it('rejects GET with 405', async () => {
-        const res = await sync.handler({ httpMethod: 'GET' });
-        expect(res.statusCode).toBe(405);
+        const res = await sync(get(`${BASE}/sync`));
+        expect(res.status).toBe(405);
     });
 });

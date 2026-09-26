@@ -1,5 +1,3 @@
-'use strict';
-
 // eBay Marketplace Account Deletion endpoint for the browser-only Netlify
 // deploy. Public URL (via the netlify.toml rewrite):
 //   /api/sync/ebay/marketplace-account-deletion
@@ -8,25 +6,18 @@
 // encrypted token blob in their own browser), so a notification is
 // validated and acknowledged with nothing to purge.
 
-const {
-    handleDeletionChallenge,
-    handleDeletionNotification,
-} = require('../../app/lib/ebay-handlers');
-const {
-    json,
-    methodNotAllowed,
-    missingEnv,
-    rawBody,
-    header,
-} = require('../lib/http');
+import ebayHandlers from '../../app/lib/ebay-handlers.js';
+import { json, methodNotAllowed, missingEnv } from '../lib/http.mjs';
+
+const { handleDeletionChallenge, handleDeletionNotification } = ebayHandlers;
 
 const REQUIRED_ENV = [
     'EBAY_VERIFICATION_TOKEN',
     'EBAY_NOTIFICATION_ENDPOINT_URL',
 ];
 
-exports.handler = async (event) => {
-    if (event.httpMethod !== 'GET' && event.httpMethod !== 'POST') {
+export default async function handler(req) {
+    if (req.method !== 'GET' && req.method !== 'POST') {
         return methodNotAllowed('GET, POST');
     }
     const missing = missingEnv(REQUIRED_ENV);
@@ -36,15 +27,18 @@ exports.handler = async (event) => {
         );
         return json(500, { error: 'Endpoint not configured.' });
     }
-    if (event.httpMethod === 'GET') {
+    if (req.method === 'GET') {
         const { status, body } = handleDeletionChallenge({
-            challengeCode: event.queryStringParameters?.challenge_code,
+            challengeCode:
+                new URL(req.url).searchParams.get('challenge_code') ||
+                undefined,
             verificationToken: process.env.EBAY_VERIFICATION_TOKEN,
             endpoint: process.env.EBAY_NOTIFICATION_ENDPOINT_URL,
         });
         return json(status, body);
     }
-    const raw = rawBody(event);
+    // Exact raw bytes: eBay's signature is over the body as sent.
+    const raw = Buffer.from(await req.arrayBuffer());
     let parsed;
     try {
         parsed = JSON.parse(raw.toString('utf8'));
@@ -53,9 +47,9 @@ exports.handler = async (event) => {
     }
     const { status, body } = await handleDeletionNotification({
         rawBody: raw,
-        signatureHeader: header(event, 'x-ebay-signature'),
+        signatureHeader: req.headers.get('x-ebay-signature') || undefined,
         body: parsed,
         allowUnsigned: true,
     });
     return json(status, body);
-};
+}
