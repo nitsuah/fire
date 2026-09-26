@@ -583,3 +583,20 @@ describe('ebay-connector', () => {
         });
     });
 });
+
+describe('isApiSyncedEbayEntry', () => {
+    it('matches only rows created by the Order API sync', () => {
+        const [synced] = ebay.ordersToLedgerEntries({
+            orders: [{ orderId: '12-345' }],
+        });
+        expect(ebay.isApiSyncedEbayEntry(synced)).toBe(true);
+        // Uploaded sales-report rows and manual entries are the user's own.
+        expect(
+            ebay.isApiSyncedEbayEntry({ id: 'ebay-csv-111-2026-01-01_x' }),
+        ).toBe(false);
+        expect(
+            ebay.isApiSyncedEbayEntry({ id: '1727000000', category: 'eBay' }),
+        ).toBe(false);
+        expect(ebay.isApiSyncedEbayEntry(null)).toBe(false);
+    });
+});

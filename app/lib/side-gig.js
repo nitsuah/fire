@@ -57,11 +57,13 @@ function initSideGigManager() {
     const ebayOauthBtn = document.getElementById('btn-ebay-oauth');
     if (ebayOauthBtn) {
         ebayOauthBtn.addEventListener('click', () => {
+            markEbayConnectPending();
             window.location.assign('/api/sync/ebay/authorize');
         });
     }
 
-    // Check eBay connection status on load
+    // Finish a browser-only OAuth round-trip, then check status
+    consumeEbayOauthFragment();
     checkEbayConnection();
 
     // Check Plaid connection status on load
@@ -107,14 +109,139 @@ function initSideGigManager() {
     calculateEbayProfit();
 }
 
+// ─── Browser-only (Netlify) eBay mode ────────────────────────────────────────
+// With no Express backend (state never synced from /api/state), eBay
+// connect/sync run through Netlify Functions (netlify/functions/ebay-*).
+// The browser keeps only an opaque token blob, AES-GCM-encrypted server-side
+// with SYNC_MASTER_KEY, under its own localStorage key (so JSON backups of
+// fire_tracker_state never carry it). Status and the sync toggle are
+// derived locally.
+const EBAY_TOKEN_KEY = 'fire_tracker_ebay_token';
+const EBAY_LAST_SYNC_KEY = 'fire_tracker_ebay_last_sync';
+const EBAY_CONNECT_PENDING_KEY = 'fire_tracker_ebay_connect_pending';
+
+// Mirrors isApiSyncedEbayEntry in app/lib/ebay-connector.js: only rows the
+// Order API sync created (id exactly `ebay-<orderId>`).
+function isApiSyncedEbayEntry(entry) {
+    return Boolean(entry?.orderId) && entry.id === `ebay-${entry.orderId}`;
+}
+
+// The OAuth `state` cookie protects eBay → callback; this marker protects
+// callback → SPA, so a crafted /#ebay-connected=<attacker blob> link can't
+// silently connect someone else's eBay account in this browser.
+function markEbayConnectPending() {
+    try {
+        sessionStorage.setItem(EBAY_CONNECT_PENDING_KEY, '1');
+    } catch {
+        /* storage unavailable — the callback will be ignored */
+    }
+}
+
+function takeEbayConnectPending() {
+    try {
+        const pending = sessionStorage.getItem(EBAY_CONNECT_PENDING_KEY);
+        sessionStorage.removeItem(EBAY_CONNECT_PENDING_KEY);
+        return pending === '1';
+    } catch {
+        return false;
+    }
+}
+
+function isBrowserOnlyMode() {
+    return typeof syncedRevision === 'undefined' || syncedRevision === null;
+}
+
+function readEbayLocal(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function writeEbayLocal(key, value) {
+    try {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+    } catch {
+        /* storage unavailable — nothing to persist */
+    }
+}
+
+function localEbayStatus() {
+    return {
+        connected: Boolean(readEbayLocal(EBAY_TOKEN_KEY)),
+        lastSync: readEbayLocal(EBAY_LAST_SYNC_KEY),
+        syncEnabled: state.ebaySyncEnabled !== false,
+    };
+}
+
+async function fetchEbayStatus() {
+    if (isBrowserOnlyMode()) return localEbayStatus();
+    const res = await fetch('/api/sync/ebay/status');
+    return res.json();
+}
+
+// ebay-callback returns to /#ebay-connected=<blob> or /#ebay-error=<code>.
+function consumeEbayOauthFragment() {
+    const hash = window.location.hash || '';
+    const match = hash.match(/^#ebay-(connected|error)=(.*)$/);
+    if (!match) return;
+    history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search,
+    );
+    if (!takeEbayConnectPending()) {
+        console.warn('[eBay] Ignored an OAuth result this tab did not start.');
+        return;
+    }
+    if (match[1] === 'connected') {
+        writeEbayLocal(EBAY_TOKEN_KEY, decodeURIComponent(match[2]));
+        alert('eBay connected. Use Settings → eBay Order Sync → Sync Now.');
+    } else {
+        alert(`eBay connection failed (${match[2]}). Please try again.`);
+    }
+}
+
+// eBay revoked the grant (user disconnected the app or closed/deleted
+// their eBay account): drop the token and, for a revocation, the rows
+// the Order API sync created, then tell the user. Manually logged sales
+// and uploaded CSV reports are the user's own records and are kept.
+async function handleEbayConnectionLost(code, message) {
+    writeEbayLocal(EBAY_TOKEN_KEY, null);
+    writeEbayLocal(EBAY_LAST_SYNC_KEY, null);
+    let removed = 0;
+    if (code === 'ebay_revoked') {
+        if (isBrowserOnlyMode()) {
+            const before = state.sideGigLedger.length;
+            state.sideGigLedger = state.sideGigLedger.filter(
+                (e) => !isApiSyncedEbayEntry(e),
+            );
+            removed = before - state.sideGigLedger.length;
+            await saveState();
+        } else if (typeof resyncStateFromServer === 'function') {
+            // The server already purged its tokens and synced rows.
+            await resyncStateFromServer({ force: true });
+        }
+        if (typeof refreshAllUI === 'function') refreshAllUI();
+    }
+    alert(
+        `${message}${removed ? ` Removed ${removed} eBay-synced sale${removed === 1 ? '' : 's'} from this browser.` : ''}`,
+    );
+    checkEbayConnection();
+}
+
 async function checkEbayConnection() {
     const statusEl = document.getElementById('ebay-sync-status');
     if (!statusEl) return;
     try {
-        const res = await fetch('/api/sync/ebay/status');
-        const data = await res.json();
+        const data = await fetchEbayStatus();
         if (data.connected) {
-            statusEl.textContent = `Status: Connected (Last sync: ${new Date(data.lastSync).toLocaleDateString()})`;
+            const lastSync = data.lastSync
+                ? new Date(data.lastSync).toLocaleDateString()
+                : 'never';
+            statusEl.textContent = `Status: Connected (Last sync: ${lastSync})`;
             statusEl.style.color = 'var(--color-success)';
         } else {
             statusEl.textContent = 'Status: Disconnected';
@@ -135,8 +262,7 @@ async function loadEbaySettingsPanel() {
     const syncBtn = document.getElementById('btn-ebay-sync-now');
     if (!toggle || !statusEl) return;
     try {
-        const res = await fetch('/api/sync/ebay/status');
-        const data = await res.json();
+        const data = await fetchEbayStatus();
         toggle.checked = data.syncEnabled !== false;
         const lastSyncText = data.lastSync
             ? new Date(data.lastSync).toLocaleString()
@@ -160,6 +286,12 @@ async function toggleEbaySyncSetting() {
     const toggle = document.getElementById('setting-ebay-sync-enabled');
     if (!toggle) return;
     const enabled = toggle.checked;
+    if (isBrowserOnlyMode()) {
+        state.ebaySyncEnabled = enabled;
+        await saveState();
+        loadEbaySettingsPanel();
+        return;
+    }
     try {
         const res = await fetch('/api/sync/ebay/toggle', {
             method: 'POST',
@@ -188,9 +320,10 @@ async function runEbaySyncNow() {
     const original = btn.textContent;
     btn.textContent = 'Syncing…';
     try {
-        const res = await fetch('/api/sync/ebay/sync', { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Sync failed');
+        const data = isBrowserOnlyMode()
+            ? await syncEbayViaFunction()
+            : await syncEbayViaServer();
+        if (!data) return;
         if (statusEl) {
             statusEl.textContent = `Synced ${data.added} new order${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
             statusEl.style.color = 'var(--color-success)';
@@ -205,6 +338,47 @@ async function runEbaySyncNow() {
         btn.textContent = original;
         loadEbaySettingsPanel();
     }
+}
+
+async function syncEbayViaServer() {
+    const res = await fetch('/api/sync/ebay/sync', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && data.code) {
+        await handleEbayConnectionLost(data.code, data.error);
+        return null;
+    }
+    if (!res.ok) throw new Error(data.error || 'Sync failed');
+    return data;
+}
+
+async function syncEbayViaFunction() {
+    if (state.ebaySyncEnabled === false) {
+        throw new Error('eBay sync is disabled. Enable it above first.');
+    }
+    const blob = readEbayLocal(EBAY_TOKEN_KEY);
+    if (!blob) throw new Error('eBay is not connected.');
+    const res = await fetch('/api/sync/ebay/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens: blob }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && data.code) {
+        await handleEbayConnectionLost(data.code, data.error);
+        return null;
+    }
+    if (!res.ok) throw new Error(data.error || 'Sync failed');
+    if (data.tokens) writeEbayLocal(EBAY_TOKEN_KEY, data.tokens);
+    let added = 0;
+    for (const entry of data.entries || []) {
+        if (!state.sideGigLedger.some((e) => e.id === entry.id)) {
+            state.sideGigLedger.push(entry);
+            added++;
+        }
+    }
+    await saveState();
+    writeEbayLocal(EBAY_LAST_SYNC_KEY, data.syncedAt);
+    return { ...data, added };
 }
 
 async function checkPlaidConnection() {

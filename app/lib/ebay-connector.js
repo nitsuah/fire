@@ -93,7 +93,12 @@ async function refreshAccessToken(storedRefreshToken) {
     });
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(`eBay token refresh failed (${res.status}): ${text}`);
+        const err = new Error(
+            `eBay token refresh failed (${res.status}): ${text}`,
+        );
+        err.status = res.status;
+        err.body = text;
+        throw err;
     }
     return res.json();
 }
@@ -122,6 +127,13 @@ async function fetchCompletedOrders(
         throw err;
     }
     return res.json();
+}
+
+// True only for ledger rows created by the Order API sync (id is exactly
+// `ebay-<orderId>`), not uploaded sales-report rows (`ebay-csv-...`, no
+// orderId) or manually logged sales.
+function isApiSyncedEbayEntry(entry) {
+    return Boolean(entry?.orderId) && entry.id === `ebay-${entry.orderId}`;
 }
 
 function ordersToLedgerEntries(orders) {
@@ -402,4 +414,5 @@ module.exports = {
     computeMarketplaceDeletionChallengeResponse,
     verifyNotificationSignature,
     resetNotificationKeyCache,
+    isApiSyncedEbayEntry,
 };
