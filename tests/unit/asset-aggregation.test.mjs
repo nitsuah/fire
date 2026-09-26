@@ -226,8 +226,9 @@ describe('getAggregateNetWorth', () => {
             sideGigLedger: [{ net: 500 }],
         };
         const nw = getAggregateNetWorth(state);
-        // equities: 10000, cash: 5000, CDs: 8000, RE equity: 100000, vehicles: 10000, side: 500
-        expect(nw).toBe(133500);
+        // equities: 10000, cash: 5000, CDs: 8000, RE equity: 100000, vehicles: 10000.
+        // Side hustle income is income, not an asset, so it's excluded.
+        expect(nw).toBe(133000);
     });
 
     it('returns 0 when state has no assets', () => {

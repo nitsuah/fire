@@ -232,8 +232,9 @@ function getAggregateOtherAssets() {
     return sum;
 }
 
-// Estimated yearly interest: HYSA/cash balance × APY (open-ended, no end
-// date) plus CD principal × rate. See finance-core.js for the tested twin.
+// Estimated yearly interest/yield: HYSA/cash balance × APY (open-ended, no
+// end date), CD principal × rate, and crypto staking balance × APY. See
+// finance-core.js for the tested twin.
 function getEstimatedAnnualInterest() {
     let savings = 0;
     state.customAccounts.forEach(acc => {
@@ -245,7 +246,13 @@ function getEstimatedAnnualInterest() {
     state.cds.forEach(cd => {
         cds += (cd.principal || 0) * ((cd.rate || 0) / 100);
     });
-    return { savings, cds, total: savings + cds };
+    let staking = 0;
+    state.customAccounts.forEach(acc => {
+        if (acc.type === 'Crypto' && (acc.apy || 0) > 0) {
+            staking += (acc.value || 0) * (acc.apy / 100);
+        }
+    });
+    return { savings, cds, staking, total: savings + cds + staking };
 }
 
 function getSideGigYTDNet() {
@@ -265,7 +272,7 @@ function getAggregateVehicles() {
 }
 
 function getAggregateNetWorth() {
-    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getAggregateRealEstate() + getAggregateVehicles() + getSideGigYTDNet();
+    return getAggregateCash() + getAggregateCDs() + getAggregateEquities() + getAggregateOtherAssets() + getAggregateRealEstate() + getAggregateVehicles();
 }
 
 /* ==========================================================================

@@ -80,7 +80,7 @@ describe('finance-core', () => {
 });
 
 describe('getEstimatedAnnualInterest', () => {
-    it('sums HYSA/cash APY and CD interest, ignoring other account types', () => {
+    it('sums HYSA/cash APY, CD interest and crypto staking, ignoring other types', () => {
         const r = getEstimatedAnnualInterest(
             [
                 { type: 'Savings', value: 10000, apy: 4 },
@@ -92,7 +92,8 @@ describe('getEstimatedAnnualInterest', () => {
         );
         expect(r.savings).toBeCloseTo(400, 6);
         expect(r.cds).toBeCloseTo(1000, 6);
-        expect(r.total).toBeCloseTo(1400, 6);
+        expect(r.staking).toBeCloseTo(350, 6); // crypto 5000 × 7%
+        expect(r.total).toBeCloseTo(1750, 6);
     });
 
     it('handles missing inputs', () => {

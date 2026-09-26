@@ -126,14 +126,6 @@ function getOtherDetailItems() {
             items.push({ name: acc.name, sub, value: acc.value || 0 });
         }
     });
-    const sideGig = getSideGigYTDNet();
-    if (sideGig > 0) {
-        items.push({
-            name: 'Side Hustle Income',
-            sub: 'YTD net',
-            value: sideGig,
-        });
-    }
     return items.filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
 }
 
@@ -293,7 +285,7 @@ function renderAssetAllocationChart() {
     const equities = getAggregateEquities();
     const re = getAggregateRealEstate();
     const veh = getAggregateVehicles();
-    const other = getAggregateOtherAssets() + getSideGigYTDNet();
+    const other = getAggregateOtherAssets();
     const total = cash + cds + equities + re + veh + other;
 
     if (total === 0) {

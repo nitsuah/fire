@@ -335,6 +335,7 @@ function handleTool(name, state, toolArgs = {}) {
                 estimatedAnnualInterest: {
                     savings: Math.round(interest.savings),
                     cds: Math.round(interest.cds),
+                    staking: Math.round(interest.staking),
                     total: Math.round(interest.total),
                 },
                 total: Math.round(accounts.reduce((s, a) => s + a.value, 0)),

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09 — Income vs. assets cleanup
+
+#### Changed
+- **Side hustle income is no longer counted in net worth** (dashboard banner, allocation chart, projections, `getAggregateNetWorth`). It's income: once paid out it already sits in a cash balance, so adding the ledger too double counted it. It stays on the income side (Annual Income sub-line, cash flow).
+- **Crypto staking/lending yield counts toward Annual Income** alongside HYSA and CD interest (`getEstimatedAnnualInterest().staking`; MCP `estimatedAnnualInterest.staking`).
+
+#### Fixed
+- **Open tabs overwrote newer data every 5 minutes.** The background price refresh called `saveState()`, posting the tab's entire state, so an older tab silently reverted edits made elsewhere (e.g. a corrected eBay import). It now writes only price-derived fields via `PATCH /api/state/live-values`.
+
 ### 2026-09 — Live market values, Other Assets, interest roll-up (PR #126)
 
 #### Added
