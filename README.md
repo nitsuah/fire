@@ -89,9 +89,9 @@ basic local use — the one exception is `FIRE_API_KEY` (or its explicit
 | `SESSION_SECRET` | Secret for signing session cookies (random string; server exits in production if unset) |
 | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | eBay Developer app credentials for Order API sync |
 | `EBAY_ENVIRONMENT` | `sandbox` (default) or `production` |
-| `EBAY_REDIRECT_URI` | OAuth callback URI. Default is derived from the incoming request (host + protocol, honouring the reverse proxy); set explicitly for any real deployment |
+| `EBAY_REDIRECT_URI` | OAuth `redirect_uri` sent to eBay. For a real eBay app this is your RuName. The default is derived from the incoming request (host + protocol, honouring the reverse proxy). **Required on Netlify** |
 | `EBAY_VERIFICATION_TOKEN` | 32–80 char token you also register in the eBay Developer Portal for Marketplace Account Deletion notifications |
-| `EBAY_NOTIFICATION_ENDPOINT_URL` | Public HTTPS URL of `/api/sync/ebay/marketplace-account-deletion` exactly as registered with eBay (used in the challenge hash) |
+| `EBAY_NOTIFICATION_ENDPOINT_URL` | Public HTTPS URL of `/api/sync/ebay/marketplace-account-deletion` exactly as registered with eBay (used in the challenge hash). On Netlify: `https://lifefire.netlify.app/api/sync/ebay/marketplace-account-deletion`. The eBay variables also apply to the Netlify Functions deploy; see [docs/integrations.md](docs/integrations.md#browser-only-deploy-netlify-functions) |
 | `METALS_API_KEY` | Optional metals.dev key for gold/silver spot; without it the free Yahoo futures fallback (`GC=F` / `SI=F`) is used |
 | `ETHERSCAN_API_KEY` | Ethereum / ERC-20 balance fetching |
 | `BSCSCAN_API_KEY` / `POLYGONSCAN_API_KEY` / `ARBISCAN_API_KEY` / `BASESCAN_API_KEY` | EVM chain balance fetching |

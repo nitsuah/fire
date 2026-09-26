@@ -23,6 +23,8 @@ export default [
             'app/lib/finance-platforms.js',
             'app/lib/web3-prices.js',
             'app/lib/ebay-connector.js',
+            'app/lib/ebay-handlers.js',
+            'netlify/**/*.js',
             'app/lib/metals-prices.js',
             'app/lib/net-worth-history.js',
             'app/lib/local-backup.js',

@@ -14,11 +14,12 @@ const {
     buildAuthorizationUrl,
     exchangeCodeForTokens,
     refreshAccessToken,
-    fetchCompletedOrders,
-    ordersToLedgerEntries,
-    computeMarketplaceDeletionChallengeResponse,
-    verifyNotificationSignature,
 } = require('../lib/ebay-connector');
+const {
+    handleDeletionChallenge,
+    handleDeletionNotification,
+    syncOrders,
+} = require('../lib/ebay-handlers');
 
 const router = express.Router();
 const SUPPORTED_WEBHOOK_TYPES = [
@@ -235,23 +236,31 @@ router.post('/ebay/sync', async (req, res) => {
         });
 
     try {
-        let ordersData;
+        let entries;
         try {
-            ordersData = await fetchCompletedOrders(tokens.access_token);
-        } catch (err) {
-            if (err.status === 401 || err.status === 403) {
-                const refreshed = await refreshAccessToken(
-                    tokens.refresh_token,
-                );
-                tokens = { ...tokens, ...refreshed };
+            const result = await syncOrders(tokens);
+            entries = result.entries;
+            if (result.refreshed) {
+                tokens = result.tokens;
                 saveTokens('ebay', tokens);
-                ordersData = await fetchCompletedOrders(tokens.access_token);
-            } else {
-                throw err;
             }
+        } catch (err) {
+            if (err.code !== 'ebay_revoked') throw err;
+            // Dead grant: drop the stored tokens and the eBay-synced
+            // ledger rows (ids `ebay-<orderId>`) so no eBay user data
+            // outlives the authorization.
+            try {
+                fs.unlinkSync(getTokenFile('ebay'));
+            } catch {
+                /* already gone */
+            }
+            await mutateState((state) => {
+                state.sideGigLedger = (state.sideGigLedger || []).filter(
+                    (e) => !String(e.id).startsWith('ebay-'),
+                );
+            });
+            return res.status(401).json({ error: err.message, code: err.code });
         }
-
-        const entries = ordersToLedgerEntries(ordersData);
         let added = 0;
         const ok = await mutateState((state) => {
             if (!state.sideGigLedger) state.sideGigLedger = [];
@@ -321,82 +330,34 @@ function marketplaceDeletionEndpointUrl(req) {
 }
 
 router.get('/ebay/marketplace-account-deletion', (req, res) => {
-    const challengeCode = req.query.challenge_code;
-    if (!challengeCode || typeof challengeCode !== 'string') {
-        return res.status(400).json({ error: 'Missing challenge_code.' });
-    }
-    const verificationToken = process.env.EBAY_VERIFICATION_TOKEN;
-    if (!verificationToken) {
-        return res.status(503).json({
-            error: 'EBAY_VERIFICATION_TOKEN is not configured.',
-        });
-    }
-    const endpoint = marketplaceDeletionEndpointUrl(req);
-    const challengeResponse = computeMarketplaceDeletionChallengeResponse(
-        challengeCode,
-        verificationToken,
-        endpoint,
-    );
-    res.status(200).json({ challengeResponse });
+    const { status, body } = handleDeletionChallenge({
+        challengeCode: req.query.challenge_code,
+        verificationToken: process.env.EBAY_VERIFICATION_TOKEN,
+        endpoint: marketplaceDeletionEndpointUrl(req),
+        missingConfigStatus: 503,
+    });
+    res.status(status).json(body);
 });
 
 router.post('/ebay/marketplace-account-deletion', async (req, res) => {
-    // Signature check first: nothing below may run for an unsigned/forged
-    // notification. The public key lookup needs app credentials.
-    if (!eBayConfigured()) {
-        return res.status(503).json({
-            error: 'eBay not configured. Set EBAY_CLIENT_ID and EBAY_CLIENT_SECRET.',
-        });
-    }
-    let verification;
-    try {
-        verification = await verifyNotificationSignature(
-            req.rawBody,
-            req.get('X-EBAY-SIGNATURE'),
-            req.body,
-        );
-    } catch (err) {
-        // Couldn't reach eBay to fetch the key — 5xx so eBay retries later.
-        console.error('[eBay] Notification signature check failed:', err);
-        return res
-            .status(503)
-            .json({ error: 'Signature verification unavailable.' });
-    }
-    if (!verification.valid) {
-        console.warn(
-            `[eBay] Rejected account deletion notification: ${verification.reason}.`,
-        );
-        return res.status(412).json({ error: 'Invalid eBay signature.' });
-    }
-    const topic = req.body?.metadata?.topic;
-    const notification = req.body?.notification;
-    if (topic !== 'MARKETPLACE_ACCOUNT_DELETION' || !notification) {
-        return res
-            .status(400)
-            .json({ error: 'Malformed account deletion notification.' });
-    }
-    console.log(
-        `[eBay] Marketplace account deletion received (notificationId=${notification.notificationId || 'unknown'}). Purging locally stored eBay tokens and disabling sync.`,
-    );
     // Only acknowledge once cleanup is complete, so eBay retries otherwise.
-    try {
-        fs.unlinkSync(getTokenFile('ebay'));
-    } catch (err) {
-        if (err.code !== 'ENOENT') {
-            console.error(
-                '[eBay] Failed to purge stored tokens on account deletion:',
-                err,
-            );
-            return res.status(500).json({ error: 'Token purge failed.' });
-        }
-    }
-    const stateOk = await mutateState((state) => {
-        state.ebaySyncEnabled = false;
+    const { status, body } = await handleDeletionNotification({
+        rawBody: req.rawBody,
+        signatureHeader: req.get('X-EBAY-SIGNATURE'),
+        body: req.body,
+        purge: async () => {
+            try {
+                fs.unlinkSync(getTokenFile('ebay'));
+            } catch (err) {
+                if (err.code !== 'ENOENT') throw err;
+            }
+            const stateOk = await mutateState((state) => {
+                state.ebaySyncEnabled = false;
+            });
+            if (!stateOk) throw new Error('State update failed.');
+        },
     });
-    if (!stateOk) {
-        return res.status(500).json({ error: 'State update failed.' });
-    }
-    res.status(200).json({ status: 'acknowledged' });
+    res.status(status).json(body);
 });
 
 router.get('/plaid/status', (req, res) => {

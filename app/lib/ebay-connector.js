@@ -93,7 +93,12 @@ async function refreshAccessToken(storedRefreshToken) {
     });
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(`eBay token refresh failed (${res.status}): ${text}`);
+        const err = new Error(
+            `eBay token refresh failed (${res.status}): ${text}`,
+        );
+        err.status = res.status;
+        err.body = text;
+        throw err;
     }
     return res.json();
 }

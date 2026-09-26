@@ -1,2 +1,34 @@
 [build]
   publish = "app"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# The browser-only deploy serves the eBay routes from Netlify Functions at the
+# same public paths the Express server uses (status 200 = rewrite, query
+# string preserved; force = win over any static file). /status and /toggle
+# stay client-side in this mode (see app/lib/side-gig.js).
+[[redirects]]
+  from = "/api/sync/ebay/marketplace-account-deletion"
+  to = "/.netlify/functions/ebay-marketplace-account-deletion"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/sync/ebay/authorize"
+  to = "/.netlify/functions/ebay-authorize"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/sync/ebay/callback"
+  to = "/.netlify/functions/ebay-callback"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/sync/ebay/sync"
+  to = "/.netlify/functions/ebay-sync"
+  status = 200
+  force = true
