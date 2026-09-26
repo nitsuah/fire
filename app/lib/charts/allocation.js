@@ -1,6 +1,6 @@
 /* ==========================================================================
    charts/allocation.js — Asset allocation drill-down doughnut chart
-   Two levels: an overview (Cash / CDs / Equities / Real Estate / Vehicles /
+   Two levels: an overview (Cash / CDs / Equities / Crypto / Metals / Real Estate / Vehicles /
    Other), and per-category detail (the individual accounts/positions/CDs
    behind that slice) — e.g. Cash -> SPAXX / a savings account, CDs -> each
    bank's CD. Replaces the standalone Quick Stats card: each overview
@@ -12,10 +12,43 @@ const ALLOC_SLICE_MAP = {
     Cash: { color: '#10b981', label: 'Cash / SPAXX' },
     CDs: { color: '#f59e0b', label: 'CDs & Fixed' },
     Equities: { color: '#8b5cf6', label: 'Equities' },
+    Crypto: { color: '#3b82f6', label: 'Crypto' },
+    Metals: { color: '#d4af37', label: 'Precious Metals' },
     RealEstate: { color: '#06b6d4', label: 'Real Estate' },
     Vehicles: { color: '#f97316', label: 'Vehicles' },
-    Other: { color: '#3b82f6', label: 'Other Assets' },
+    Other: { color: '#94a3b8', label: 'Other Assets' },
 };
+
+const sumAccounts = (type) =>
+    state.customAccounts.reduce(
+        (s, a) => (a.type === type ? s + (a.value || 0) : s),
+        0,
+    );
+
+// Net-worth buckets shown by the allocation doughnut and the banner bar.
+// Crypto and precious metals get their own slices (carved out of the
+// equities / other-assets aggregates, which still include them for the
+// diversification tips), so they read as distinct asset classes.
+function getAllocationBuckets() {
+    const crypto = sumAccounts('Crypto');
+    const metals = sumAccounts('Metal');
+    const amounts = {
+        Cash: getAggregateCash(),
+        CDs: getAggregateCDs(),
+        Equities: getAggregateEquities() - crypto,
+        Crypto: crypto,
+        Metals: metals,
+        RealEstate: getAggregateRealEstate(),
+        Vehicles: getAggregateVehicles(),
+        Other: getAggregateOtherAssets() - metals,
+    };
+    return Object.entries(ALLOC_SLICE_MAP).map(([key, meta]) => ({
+        key,
+        label: meta.label,
+        color: meta.color,
+        amt: amounts[key] || 0,
+    }));
+}
 
 // Per-category breakdown into individual contributing items, reusing the
 // exact same categorization rules as the getAggregate*() sums (app.js) so
@@ -75,7 +108,7 @@ function getEquitiesDetailItems() {
         }
     });
     state.customAccounts.forEach((acc) => {
-        if (acc.type === 'Brokerage' || acc.type === 'Crypto') {
+        if (acc.type === 'Brokerage') {
             items.push({
                 name: acc.name,
                 sub: acc.type,
@@ -84,6 +117,26 @@ function getEquitiesDetailItems() {
         }
     });
     return items.filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
+}
+
+const accountItems = (type, sub) =>
+    state.customAccounts
+        .filter((a) => a.type === type && (a.value || 0) > 0)
+        .map((a) => ({ name: a.name, sub: sub(a), value: a.value || 0 }))
+        .sort((a, b) => b.value - a.value);
+
+function getCryptoDetailItems() {
+    return accountItems('Crypto', (a) =>
+        a.apy > 0 ? `Crypto · ${Number(a.apy).toFixed(2)}% APY` : 'Crypto',
+    );
+}
+
+function getMetalsDetailItems() {
+    return accountItems('Metal', (a) =>
+        a.metalType
+            ? `${a.metalType === 'gold' ? 'Gold' : 'Silver'} · ${a.weightOz}oz`
+            : 'Metal',
+    );
 }
 
 function getRealEstateDetailItems() {
@@ -117,13 +170,14 @@ function getOtherDetailItems() {
             acc.type !== 'Cash' &&
             acc.type !== 'Savings' &&
             acc.type !== 'Brokerage' &&
-            acc.type !== 'Crypto'
+            acc.type !== 'Crypto' &&
+            acc.type !== 'Metal'
         ) {
-            const sub =
-                acc.type === 'Metal' && acc.metalType
-                    ? `${acc.metalType === 'gold' ? 'Gold' : 'Silver'} · ${acc.weightOz}oz`
-                    : acc.type;
-            items.push({ name: acc.name, sub, value: acc.value || 0 });
+            items.push({
+                name: acc.name,
+                sub: acc.type,
+                value: acc.value || 0,
+            });
         }
     });
     return items.filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
@@ -133,6 +187,8 @@ const ALLOC_DETAIL_FNS = {
     Cash: getCashDetailItems,
     CDs: getCDsDetailItems,
     Equities: getEquitiesDetailItems,
+    Crypto: getCryptoDetailItems,
+    Metals: getMetalsDetailItems,
     RealEstate: getRealEstateDetailItems,
     Vehicles: getVehiclesDetailItems,
     Other: getOtherDetailItems,
@@ -280,13 +336,8 @@ function renderAssetAllocationChart() {
     updateAllocBreadcrumb(null);
     renderAllocDetailList([], null);
 
-    const cash = getAggregateCash();
-    const cds = getAggregateCDs();
-    const equities = getAggregateEquities();
-    const re = getAggregateRealEstate();
-    const veh = getAggregateVehicles();
-    const other = getAggregateOtherAssets();
-    const total = cash + cds + equities + re + veh + other;
+    const buckets = getAllocationBuckets();
+    const total = buckets.reduce((s, b) => s + b.amt, 0);
 
     if (total === 0) {
         return;
@@ -295,14 +346,9 @@ function renderAssetAllocationChart() {
     const pct = (v) =>
         total > 0 ? `${((v / total) * 100).toFixed(1)}%` : '0%';
 
-    const slices = [
-        { key: 'Cash', val: cash, label: 'Cash / SPAXX', color: '#10b981' },
-        { key: 'CDs', val: cds, label: 'CDs & Fixed', color: '#f59e0b' },
-        { key: 'Equities', val: equities, label: 'Equities', color: '#8b5cf6' },
-        { key: 'RealEstate', val: re, label: 'Real Estate', color: '#06b6d4' },
-        { key: 'Vehicles', val: veh, label: 'Vehicles', color: '#f97316' },
-        { key: 'Other', val: other, label: 'Other Assets', color: '#3b82f6' },
-    ].filter((s) => s.val > 0);
+    const slices = buckets
+        .filter((b) => b.amt > 0)
+        .map((b) => ({ ...b, val: b.amt }));
 
     const categoryKeys = slices.map((s) => s.key);
 

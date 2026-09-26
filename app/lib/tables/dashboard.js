@@ -4,22 +4,8 @@
    ========================================================================== */
 
 function getBannerAllocSegments() {
-    const parts = [
-        { amt: getAggregateCash(), color: '#10b981', label: 'Cash' },
-        { amt: getAggregateCDs(), color: '#f59e0b', label: 'CDs' },
-        { amt: getAggregateEquities(), color: '#8b5cf6', label: 'Equities' },
-        {
-            amt: getAggregateRealEstate(),
-            color: '#06b6d4',
-            label: 'Real Estate',
-        },
-        { amt: getAggregateVehicles(), color: '#f97316', label: 'Vehicles' },
-        {
-            amt: getAggregateOtherAssets(),
-            color: '#3b82f6',
-            label: 'Other',
-        },
-    ];
+    // Same buckets and colours as the Asset Allocation doughnut.
+    const parts = getAllocationBuckets();
     const total = parts.reduce((sum, p) => sum + p.amt, 0);
     // Percentages are relative to the positive amounts actually drawn, so a
     // negative component can't push the visible segments past 100%.
