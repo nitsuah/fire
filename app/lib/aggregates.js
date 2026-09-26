@@ -197,7 +197,95 @@
         );
     }
 
+    // Net worth split into asset classes, with crypto and precious metals
+    // carved out of the equities / other-assets aggregates. Sums to
+    // getAggregateNetWorth. Used by the allocation chart and MCP tools.
+    const ASSET_CLASSES = [
+        'cash',
+        'cds',
+        'equities',
+        'crypto',
+        'metals',
+        'realEstate',
+        'vehicles',
+        'otherAssets',
+    ];
+
+    function getAllocationAmounts(state) {
+        const s = state || {};
+        const sumType = (type) =>
+            (s.customAccounts || []).reduce(
+                (sum, a) => (a.type === type ? sum + (a.value || 0) : sum),
+                0,
+            );
+        const crypto = sumType('Crypto');
+        const metals = sumType('Metal');
+        return {
+            cash: getAggregateCash(s.importedPositions, s.customAccounts),
+            cds: getAggregateCDs(s.cds),
+            equities:
+                getAggregateEquities(s.importedPositions, s.customAccounts) -
+                crypto,
+            crypto,
+            metals,
+            realEstate: getAggregateRealEstate(s.realEstate),
+            vehicles: getAggregateVehicles(s.vehicles),
+            otherAssets: getAggregateOtherAssets(s.customAccounts) - metals,
+        };
+    }
+
+    // 0–100 diversification score from asset-class weights (normalized
+    // Herfindahl index: 100 = spread evenly across all classes, 0 = all in
+    // one), minus a penalty for any single position over 20% of net worth.
+    function scoreDiversification(amounts, positions) {
+        const positive = ASSET_CLASSES.map((k) => Math.max(0, amounts[k] || 0));
+        const total = positive.reduce((a, b) => a + b, 0);
+        if (total <= 0) return null;
+        const weights = positive.map((v) => v / total);
+        const hhi = weights.reduce((s, w) => s + w * w, 0);
+        const n = ASSET_CLASSES.length;
+        const spread = (1 - hhi) / (1 - 1 / n);
+        let top = null;
+        for (const p of positions || []) {
+            const sym = String(p.symbol || '');
+            const desc = String(p.description || '');
+            if (/SPAXX|FDRXX/.test(sym) || /MONEY MARKET/.test(desc)) continue;
+            const share = (p.value || 0) / total;
+            if (!top || share > top.share) top = { symbol: sym, share };
+        }
+        const penalty = top && top.share > 0.2 ? (top.share - 0.2) * 100 : 0;
+        const score = Math.max(
+            0,
+            Math.min(100, Math.round(spread * 100 - penalty)),
+        );
+        return {
+            score,
+            rating:
+                score >= 70
+                    ? 'well diversified'
+                    : score >= 45
+                      ? 'moderately diversified'
+                      : 'concentrated',
+            weights: Object.fromEntries(
+                ASSET_CLASSES.map((k, i) => [
+                    k,
+                    Math.round(weights[i] * 1000) / 10,
+                ]),
+            ),
+            largestPosition: top
+                ? {
+                      symbol: top.symbol,
+                      pctOfNetWorth: Math.round(top.share * 1000) / 10,
+                  }
+                : null,
+            concentrationPenalty: Math.round(penalty * 10) / 10,
+        };
+    }
+
     const api = {
+        ASSET_CLASSES,
+        getAllocationAmounts,
+        scoreDiversification,
         insuranceToMonthly,
         getInsuranceMonthly,
         getMonthlyExpensesBase,

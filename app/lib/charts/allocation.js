@@ -19,28 +19,22 @@ const ALLOC_SLICE_MAP = {
     Other: { color: '#94a3b8', label: 'Other Assets' },
 };
 
-const sumAccounts = (type) =>
-    state.customAccounts.reduce(
-        (s, a) => (a.type === type ? s + (a.value || 0) : s),
-        0,
-    );
-
 // Net-worth buckets shown by the allocation doughnut and the banner bar.
 // Crypto and precious metals get their own slices (carved out of the
 // equities / other-assets aggregates, which still include them for the
 // diversification tips), so they read as distinct asset classes.
 function getAllocationBuckets() {
-    const crypto = sumAccounts('Crypto');
-    const metals = sumAccounts('Metal');
+    // Amounts come from the shared aggregates (also used by MCP tools).
+    const a = window.FireAggregates.getAllocationAmounts(state);
     const amounts = {
-        Cash: getAggregateCash(),
-        CDs: getAggregateCDs(),
-        Equities: getAggregateEquities() - crypto,
-        Crypto: crypto,
-        Metals: metals,
-        RealEstate: getAggregateRealEstate(),
-        Vehicles: getAggregateVehicles(),
-        Other: getAggregateOtherAssets() - metals,
+        Cash: a.cash,
+        CDs: a.cds,
+        Equities: a.equities,
+        Crypto: a.crypto,
+        Metals: a.metals,
+        RealEstate: a.realEstate,
+        Vehicles: a.vehicles,
+        Other: a.otherAssets,
     };
     return Object.entries(ALLOC_SLICE_MAP).map(([key, meta]) => ({
         key,
