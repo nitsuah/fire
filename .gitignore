@@ -7,3 +7,6 @@ test-results/
 
 # Local Netlify CLI link/state (netlify link, netlify logs)
 .netlify
+
+# Promo render output (frames, crops, videos)
+promo/out/

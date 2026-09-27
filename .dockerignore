@@ -5,3 +5,5 @@ data/
 *.csv
 .git
 .gitignore
+promo/out
+brag-output

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=block" rel="stylesheet">
+<!-- The app's own design tokens -->
+<link rel="stylesheet" href="file:///repo/app/lib/css/base.css">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg-app); }
+  body { font-family: var(--font-body); color: var(--text-main); }
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--bg-app); }
+  .bg { position: absolute; inset: -200px; }
+  .grid { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse at 50% 45%, #000 20%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 20%, transparent 75%); }
+  .glow { position: absolute; border-radius: 50%; filter: blur(120px); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .abs { position: absolute; }
+  .h { font-family: var(--font-heading); font-weight: 700; letter-spacing: -1.5px; }
+  .brandname { background: linear-gradient(135deg, #ff7e5f, #feb47b, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .caret { display: inline-block; width: 6px; height: .9em; background: var(--color-primary); vertical-align: -0.08em; margin-left: 8px; border-radius: 2px; }
+  .card { background: rgba(15, 19, 30, .92); border: 1px solid var(--card-border); border-radius: 20px; box-shadow: 0 30px 80px rgba(0,0,0,.55); }
+  img { display: block; }
+  .row { position: absolute; left: 0; transform-origin: 50% 50%; }
+  .row img { }
+  .chip { display: inline-block; padding: 14px 26px; border-radius: 999px; border: 1px solid rgba(139,92,246,.45); background: rgba(139,92,246,.12); font-size: 30px; font-weight: 600; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .term { font-size: 30px; line-height: 1.6; }
+  .k { color: #a78bfa; } .n { color: var(--color-warning); } .g { color: var(--color-success); } .d { color: var(--text-dimmed); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="bg" id="bg">
+    <div class="glow" id="g1" style="width:900px;height:900px;background:rgba(139,92,246,.22)"></div>
+    <div class="glow" id="g2" style="width:700px;height:700px;background:rgba(16,185,129,.12)"></div>
+    <div class="glow" id="g3" style="width:600px;height:600px;background:rgba(255,126,95,.10)"></div>
+  </div>
+  <div class="grid"></div>
+
+  <!-- 1 HOOK -->
+  <div class="scene" id="s1">
+    <div class="abs h" id="q" style="left:0;right:0;top:300px;text-align:center;font-size:112px;"><span id="qtext"></span><span class="caret" id="qcaret"></span></div>
+    <div class="abs h" id="ans" style="left:0;right:0;top:470px;text-align:center;font-size:230px;font-weight:800;color:var(--color-success);letter-spacing:-6px;font-variant-numeric:tabular-nums;">Age <span id="ageNum">30</span></div>
+  </div>
+
+  <!-- 2 REVEAL -->
+  <div class="scene" id="s2">
+    <div class="abs" style="left:0;top:0;width:1920px;height:1080px;perspective:2200px;">
+      <div class="abs" id="dashWrap" style="left:780px;top:170px;width:1280px;height:720px;transform-origin:0% 50%;border-radius:18px;overflow:hidden;box-shadow:0 50px 120px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08);">
+        <img src="crops/dash.png" style="width:1280px;height:720px;">
+      </div>
+    </div>
+    <div class="abs" style="left:110px;top:300px;width:720px;">
+      <div id="brand" class="h" style="font-size:64px;display:flex;align-items:center;gap:18px;"><span style="-webkit-text-fill-color:initial">🔥</span><span class="brandname">FIRE Tracker</span></div>
+      <div id="t1" class="h" style="font-size:62px;margin-top:40px;line-height:1.1;">Your whole net worth.</div>
+      <div id="t2" class="h" style="font-size:62px;line-height:1.1;margin-top:10px;">One dashboard.</div>
+      <div id="t3" class="h" style="font-size:62px;line-height:1.1;margin-top:10px;color:var(--color-primary-hover);">Your machine.</div>
+    </div>
+  </div>
+
+  <!-- 3 EVERYTHING -->
+  <div class="scene" id="s3">
+    <div class="abs h" id="h3" style="left:210px;top:110px;font-size:84px;">Everything counts.</div>
+    <div class="abs" id="rows" style="left:210px;top:250px;width:1500px;height:760px;"></div>
+    <div class="abs h" id="malibuTag" style="font-size:44px;color:var(--color-warning);font-weight:600;">yes, even the Malibu.</div>
+  </div>
+
+  <!-- 4 STRESS TEST -->
+  <div class="scene" id="s4">
+    <div class="abs h" id="h4" style="left:0;right:0;top:64px;text-align:center;font-size:76px;">Stress-test your retire date.</div>
+    <div class="abs" id="chartWrap" style="left:260px;top:195px;width:1400px;height:811px;border-radius:22px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.6);">
+      <img id="cBase" src="crops/proj-base.png" class="abs" style="left:0;top:0;width:1400px;">
+      <img id="cBear" src="crops/proj-bear.png" class="abs" style="left:0;top:0;width:1400px;opacity:0">
+      <img id="cBull" src="crops/proj-bull.png" class="abs" style="left:0;top:0;width:1400px;opacity:0">
+      <div id="ripple" class="abs" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--color-warning);opacity:0"></div>
+    </div>
+    <svg id="cursor" class="abs" width="44" height="54" viewBox="0 0 22 27" style="filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))"><path d="M2 2 L2 21 L7 16.5 L10.5 24.5 L13.5 23 L10 15.5 L17 15.5 Z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- 5 ASK CLAUDE -->
+  <div class="scene" id="s5">
+    <div class="abs h" id="h5" style="left:0;right:0;top:90px;text-align:center;font-size:80px;">Ask Claude about your money.</div>
+    <div class="abs" id="h5b" style="left:0;right:0;top:200px;text-align:center;font-size:38px;color:var(--text-muted);font-weight:500;">16 read-only MCP tools, built in.</div>
+    <div class="abs card mono term" id="term" style="left:360px;top:320px;width:1200px;padding:44px 56px 48px;box-sizing:border-box;">
+      <div><span class="k">&gt;</span> <span id="prompt"></span><span class="caret" id="pcaret" style="width:14px;height:1em"></span></div>
+      <div id="tool" style="margin-top:22px;"><span class="g">⏺</span> fire · <span class="k">fire_status_summary</span> <span class="d">(MCP)</span></div>
+      <div id="json" style="margin-top:8px;padding-left:38px;"></div>
+    </div>
+  </div>
+
+  <!-- 6 OUTRO -->
+  <div class="scene" id="s6">
+    <div class="abs" style="left:0;right:0;top:250px;text-align:center;">
+      <div id="oLogo" class="h" style="font-size:150px;display:inline-flex;align-items:center;gap:30px;letter-spacing:-4px;"><span id="oFire" style="-webkit-text-fill-color:initial;display:inline-block">🔥</span><span class="brandname">FIRE Tracker</span></div>
+      <div id="oTag" class="h" style="font-size:60px;margin-top:30px;color:var(--text-main);">Your money. Your machine.</div>
+      <div id="oChips" style="margin-top:60px;display:flex;justify-content:center;gap:24px;">
+        <span class="chip mono">github.com/nitsuah/fire</span>
+        <span class="chip mono" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.1)"><span class="g">$</span> docker compose up</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const eInOut = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eBack = (x) => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+
+// Timing + hook numbers live in spot.json (shared with synth.py); render.js injects it.
+const SPOT = window.SPOT;
+const SCENES = SPOT.scenes;
+window.DURATION = SPOT.duration;
+window.FPS = SPOT.fps;
+const HOOK = SPOT.hook;
+
+// Rows for scene 3: real Holdings rows + the real vehicle row
+const ROWS = ['hrow-1', 'hrow-3', 'hrow-4', 'hrow-5', 'hrow-6', 'vrow-1'];
+const rowEls = ROWS.map((name) => {
+  const d = document.createElement('div'); d.className = 'row card';
+  d.style.cssText += 'border-radius:14px;overflow:hidden;width:1500px;';
+  const img = document.createElement('img'); img.src = `crops/${name}.png`; d.appendChild(img);
+  d.dataset.crop = name.startsWith('v') ? 1000 : 1100; // CSS px of the row to show
+  $('rows').appendChild(d); return d;
+});
+
+const Q = 'When can I retire?';
+const P = 'how close am I to FIRE?';
+// Real fire_status_summary output captured from the MCP server (capture.js).
+const MCP = window.PROMO.mcpStatus;
+const JSON_LINES = ['fireNumber', 'currentNetWorth', 'progressPercent', 'yearsToFire', 'coastFireReached']
+  .map((k) => [`"${k}"`, String(MCP[k]), k === 'progressPercent' ? 'g' : 'n']);
+$('json').innerHTML = '<div class="d">{</div>' + JSON_LINES.map(([k, v, c], i) => `<div class="jl" style="padding-left:34px"><span class="k">${k}</span>: <span class="${c}">${v}</span>${i < JSON_LINES.length - 1 ? ',' : ''}</div>`).join('') + '<div class="d jl">}</div>';
+const jl = [...document.querySelectorAll('#json > div')];
+
+let boxes = null;
+
+// Color scale for the hook: success → warning → danger (app tokens).
+const SCALE = ['#10b981', '#f59e0b', '#f43f5e'];
+const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+function mixScale(p) {
+  const [a, b, x] = p < 0.5 ? [SCALE[0], SCALE[1], p * 2] : [SCALE[1], SCALE[2], (p - 0.5) * 2];
+  const [ra, ga, ba] = hex(a), [rb, gb, bb] = hex(b);
+  return `rgb(${Math.round(lerp(ra, rb, x))},${Math.round(lerp(ga, gb, x))},${Math.round(lerp(ba, bb, x))})`;
+}
+
+function sceneAlpha(t, a, b, first, last) {
+  const fin = first ? 1 : eOut(seg(t, a, a + 0.35));
+  const fout = last ? 1 : 1 - seg(t, b - 0.3, b);
+  return t < a || t >= b + (last ? 1 : 0) ? 0 : fin * fout;
+}
+
+window.render = function (t) {
+  // background drift
+  $('g1').style.transform = `translate(${760 + Math.sin(t * .25) * 180}px, ${120 + Math.cos(t * .2) * 90}px)`;
+  $('g2').style.transform = `translate(${200 + Math.cos(t * .18) * 140}px, ${600 + Math.sin(t * .22) * 80}px)`;
+  $('g3').style.transform = `translate(${1500 + Math.sin(t * .15) * 120}px, ${700 + Math.cos(t * .3) * 60}px)`;
+
+  SCENES.forEach(([id, a, b], i) => {
+    const al = sceneAlpha(t, a, b, i === 0, i === SCENES.length - 1);
+    const el = $(id); el.style.opacity = al; el.style.visibility = al > 0 ? 'visible' : 'hidden';
+  });
+
+  // 1 HOOK
+  {
+    const n = Math.floor(clamp((t - 0.15) / 0.05, 0, Q.length));
+    $('qtext').textContent = Q.slice(0, n);
+    const typing = n < Q.length;
+    $('qcaret').style.opacity = typing || Math.floor(t * 2.4) % 2 === 0 ? 1 : 0;
+    if (t > 1.3) $('qcaret').style.opacity = 0;
+    const up = eInOut(seg(t, 1.15, 1.5));
+    $('q').style.transform = `translateY(${-110 * up}px) scale(${1 - .25 * up})`;
+    $('q').style.color = `rgba(243,244,246,${1 - .35 * up})`;
+    // The age races up from HOOK.from while sliding green → amber → coral,
+    // then gives up and lands on "??".
+    const a = seg(t, HOOK.countStart - 0.05, HOOK.countStart + 0.25);
+    const p = seg(t, HOOK.countStart, HOOK.countEnd);
+    const done = t >= HOOK.countEnd;
+    $('ageNum').textContent = done ? '??' : String(Math.round(HOOK.from + (HOOK.to - HOOK.from) * Math.pow(p, 2.2)));
+    $('ans').style.color = done ? SCALE[2] : mixScale(p);
+    $('ans').style.opacity = clamp(a * 2);
+    const shake = done ? 0 : Math.pow(p, 1.5);
+    const punch = done ? 1 + 0.14 * (1 - eOut(seg(t, HOOK.countEnd, HOOK.countEnd + 0.3))) : 1;
+    const wob = done ? 4 * Math.sin((t - HOOK.countEnd) * 28) * Math.exp(-(t - HOOK.countEnd) * 7) : 0;
+    $('ans').style.transform = `translate(${Math.sin(t * 97) * 7 * shake}px, ${-60 + Math.cos(t * 83) * 4 * shake}px) scale(${lerp(.6, 1, eBack(a)) * punch}) rotate(${wob + Math.sin(t * 61) * 1.2 * shake}deg)`;
+  }
+
+  // 2 REVEAL
+  {
+    const e = eOut(seg(t, 3.0, 4.1));
+    const drift = seg(t, 4.1, 7);
+    const ry = lerp(-38, -14, e) + 4 * drift;
+    const tx = lerp(420, 0, e) - 20 * drift;
+    $('dashWrap').style.transform = `translateX(${tx}px) rotateY(${ry}deg) scale(${lerp(.9, 1, e)})`;
+    $('dashWrap').style.opacity = clamp(e * 1.6);
+    [['brand', 3.2], ['t1', 3.45], ['t2', 3.7], ['t3', 3.95]].forEach(([id, st]) => {
+      const x = eOut(seg(t, st, st + 0.4));
+      $(id).style.opacity = x; $(id).style.transform = `translateY(${(1 - x) * 28}px)`;
+    });
+  }
+
+  // 3 EVERYTHING
+  {
+    const h = eOut(seg(t, 7.1, 7.5));
+    $('h3').style.opacity = h; $('h3').style.transform = `translateY(${(1 - h) * 24}px)`;
+    let y = 0;
+    rowEls.forEach((el, i) => {
+      const img = el.querySelector('img');
+      const cssW = img.naturalWidth / 2, k = 1500 / +el.dataset.crop;
+      img.style.width = (cssW * k) + 'px'; img.style.maxWidth = 'none';
+      const hgt = (img.naturalHeight / 2) * k; el.style.height = hgt + 'px';
+      const last = i === rowEls.length - 1;
+      if (last) y += 26;
+      const st = last ? 9.0 : 7.45 + i * 0.28;
+      const x = eOut(seg(t, st, st + 0.38));
+      const pop = last ? eBack(seg(t, st, st + 0.45)) : x;
+      el.style.top = y + 'px';
+      el.style.opacity = x;
+      el.style.transform = `translateY(${(1 - x) * 36}px) scale(${last ? lerp(.94, 1, pop) : 1})`;
+      el.style.boxShadow = last ? `0 0 0 ${2 * x}px rgba(245,158,11,${.8 * x}), 0 20px 60px rgba(245,158,11,${.18 * x})` : '0 12px 30px rgba(0,0,0,.4)';
+      if (last) {
+        const tg = eOut(seg(t, 9.3, 9.65));
+        $('malibuTag').style.left = '210px';
+        $('malibuTag').style.top = (250 + y + hgt + 30) + 'px';
+        $('malibuTag').style.opacity = tg;
+        $('malibuTag').style.transform = `translateY(${(1 - tg) * 16}px) rotate(${-2 * tg}deg)`;
+      }
+      y += hgt + 10;
+    });
+    const push = eInOut(seg(t, 7, 11));
+    $('rows').style.transform = `scale(${1 + .03 * push})`;
+  }
+
+  // 4 STRESS TEST
+  if (boxes) {
+    const h = eOut(seg(t, 11.1, 11.5));
+    $('h4').style.opacity = h; $('h4').style.transform = `translateY(${(1 - h) * 24}px)`;
+    const k = 1400 / boxes.box.width;
+    const btn = (b) => ({ x: 260 + (b.x + b.width / 2 - boxes.box.x) * k, y: 195 + (b.y + b.height / 2 - boxes.box.y) * k });
+    const bear = btn(boxes.btns.bear), bull = btn(boxes.btns.bull);
+    const start = { x: 1250, y: 900 };
+    let p;
+    if (t < 12.1) p = { x: lerp(start.x, bear.x, eInOut(seg(t, 11.35, 12.1))), y: lerp(start.y, bear.y, eInOut(seg(t, 11.35, 12.1))) };
+    else p = { x: lerp(bear.x, bull.x, eInOut(seg(t, 13.1, 13.6))), y: lerp(bear.y, bull.y, eInOut(seg(t, 13.1, 13.6))) };
+    const press = (tc) => { const d = t - tc; return d > 0 && d < .16 ? .82 : 1; };
+    $('cursor').style.left = (p.x - 4) + 'px'; $('cursor').style.top = (p.y - 4) + 'px';
+    $('cursor').style.transform = `scale(${press(12.15) * press(13.65)})`;
+    $('cursor').style.transformOrigin = '4px 4px';
+    $('cursor').style.opacity = clamp(seg(t, 11.3, 11.5)) * (1 - seg(t, 14.6, 14.8));
+    const bearA = t >= 12.2 ? 1 : 0, bullA = t >= 13.7 ? 1 : 0;
+    $('cBear').style.opacity = bearA * (1 - bullA);
+    $('cBull').style.opacity = bullA;
+    // click ripple (card-local coords)
+    const rp = (tc, pt) => { const d = (t - tc) / .5; return d >= 0 && d <= 1 ? { d, pt } : null; };
+    const r = rp(13.65, bull) || rp(12.15, bear);
+    const rip = $('ripple');
+    if (r) {
+      const s = lerp(.3, 1.6, eOut(r.d));
+      rip.style.opacity = (1 - r.d) * .9;
+      rip.style.left = (r.pt.x - 260 - 40) + 'px'; rip.style.top = (r.pt.y - 195 - 40) + 'px';
+      rip.style.transform = `scale(${s})`;
+      rip.style.borderColor = r.pt === bear ? '#f59e0b' : '#10b981';
+    } else rip.style.opacity = 0;
+    const cw = eOut(seg(t, 11, 11.6)), push = eInOut(seg(t, 11, 15));
+    $('chartWrap').style.transform = `translateY(${(1 - cw) * 40}px) scale(${lerp(.97, 1.02, push)})`;
+  }
+
+  // 5 ASK CLAUDE
+  {
+    [['h5', 15.1], ['h5b', 15.3]].forEach(([id, st]) => {
+      const x = eOut(seg(t, st, st + 0.4));
+      $(id).style.opacity = x; $(id).style.transform = `translateY(${(1 - x) * 24}px)`;
+    });
+    const tm = eOut(seg(t, 15.15, 15.55));
+    $('term').style.opacity = tm; $('term').style.transform = `translateY(${(1 - tm) * 40}px)`;
+    const n = Math.floor(clamp((t - 15.5) / 0.03, 0, P.length));
+    $('prompt').textContent = P.slice(0, n);
+    $('pcaret').style.opacity = t < 16.3 && (n < P.length || Math.floor(t * 2.4) % 2 === 0) ? 1 : 0;
+    const tl = eOut(seg(t, 16.35, 16.6));
+    $('tool').style.opacity = tl; $('tool').style.transform = `translateX(${(1 - tl) * -16}px)`;
+    jl.forEach((el, i) => { const x = eOut(seg(t, 16.6 + i * 0.09, 16.85 + i * 0.09)); el.style.opacity = x; el.style.transform = `translateY(${(1 - x) * 10}px)`; });
+  }
+
+  // 6 OUTRO
+  {
+    const l = eBack(seg(t, 18.55, 19.1));
+    $('oLogo').style.opacity = clamp(seg(t, 18.55, 18.8));
+    $('oLogo').style.transform = `scale(${lerp(.85, 1, l)})`;
+    $('oFire').style.transform = `scale(${1 + .04 * Math.sin(t * 7)}) rotate(${2 * Math.sin(t * 5)}deg)`;
+    const tg = eOut(seg(t, 18.9, 19.3));
+    $('oTag').style.opacity = tg; $('oTag').style.transform = `translateY(${(1 - tg) * 20}px)`;
+    const c = eOut(seg(t, 19.25, 19.7));
+    $('oChips').style.opacity = c; $('oChips').style.transform = `translateY(${(1 - c) * 20}px)`;
+  }
+};
+
+window.ready = (async () => {
+  await document.fonts.ready;
+  await Promise.all(['700 40px Outfit', '800 40px Outfit', '500 40px Inter', '400 30px "JetBrains Mono"'].map((f) => document.fonts.load(f)));
+  await Promise.all([...document.images].map((im) => im.decode().catch(() => {})));
+  boxes = window.PROMO.boxes;
+  render(0);
+  return true;
+})();
+</script>
+</body>
+</html>

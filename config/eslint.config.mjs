@@ -135,6 +135,17 @@ export default [
         },
     },
 
+    // Promo video pipeline (Node, with page.evaluate() callbacks in-browser)
+    {
+        files: ['promo/**/*.{js,mjs}'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.browser,
+            },
+        },
+    },
+
     // Prettier integration
     {
         plugins: {
@@ -155,6 +166,8 @@ export default [
             '.next/',
             'out/',
             '.claude/',
+            'promo/out/',
+            'brag-output/',
             'app/app.js',
         ],
     },
