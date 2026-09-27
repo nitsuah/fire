@@ -21,8 +21,9 @@ All numbers come from the **demo portfolio** in `promo/demo-seed.js`, seeded int
 | 3 Everything | 7.0–11.0 | "Everything counts." Real Holdings rows stack in one by one: savings, Roth IRA, vitalik.eth, 2 oz Gold Eagles, CD. The last row is the **2014 Chevy Malibu**, with the note "yes, even the Malibu." |
 | 4 Stress-test | 11.0–15.0 | The real Retirement Growth Path chart. The cursor clicks 🐻 Bear (−2%) and the curve bends, then clicks 🐂 Bull (+2%). Headline: "Stress-test your retire date." |
 | 5 Ask Claude | 15.0–18.5 | A terminal panel: "how close am I to FIRE?" is typed, then the `fire_status_summary` tool call and its real JSON output. Headline: "16 read-only MCP tools." |
-| 6 Outro | 18.5–22.0 | 🔥 FIRE Tracker · "Your money. Your machine." · `github.com/nitsuah/fire` · `docker compose up` |
+| 6 Outro | 18.5–22.0 | 🔥 FIRE Tracker · "Your money. Your machine." · chips `github.com/nitsuah/fire` and `docker compose up fire` · then "TRY IT LIVE" with **lifefire.netlify.app** large underneath (soft E5/A5 chime) |
 
 ## Revisions
 - **v1:** the hook answered "Age 44." with the subline "12 years away."
 - **v2:** the hook counts up from 30 and changes color along a scale, ending on "Age ??". The rest is unchanged.
+- **v3:** the outro chip reads `docker compose up fire` (thanks to the new root `compose.yaml`), and the live site URL is added large at the bottom.

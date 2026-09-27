@@ -18,6 +18,7 @@
   .scene { position: absolute; inset: 0; opacity: 0; }
   .abs { position: absolute; }
   .h { font-family: var(--font-heading); font-weight: 700; letter-spacing: -1.5px; }
+  .urlgrad { background: linear-gradient(90deg, #10b981, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .brandname { background: linear-gradient(135deg, #ff7e5f, #feb47b, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .caret { display: inline-block; width: 6px; height: .9em; background: var(--color-primary); vertical-align: -0.08em; margin-left: 8px; border-radius: 2px; }
   .card { background: rgba(15, 19, 30, .92); border: 1px solid var(--card-border); border-radius: 20px; box-shadow: 0 30px 80px rgba(0,0,0,.55); }
@@ -92,12 +93,16 @@
 
   <!-- 6 OUTRO -->
   <div class="scene" id="s6">
-    <div class="abs" style="left:0;right:0;top:250px;text-align:center;">
+    <div class="abs" style="left:0;right:0;top:150px;text-align:center;">
       <div id="oLogo" class="h" style="font-size:150px;display:inline-flex;align-items:center;gap:30px;letter-spacing:-4px;"><span id="oFire" style="-webkit-text-fill-color:initial;display:inline-block">🔥</span><span class="brandname">FIRE Tracker</span></div>
-      <div id="oTag" class="h" style="font-size:60px;margin-top:30px;color:var(--text-main);">Your money. Your machine.</div>
-      <div id="oChips" style="margin-top:60px;display:flex;justify-content:center;gap:24px;">
+      <div id="oTag" class="h" style="font-size:60px;margin-top:22px;color:var(--text-main);">Your money. Your machine.</div>
+      <div id="oChips" style="margin-top:44px;display:flex;justify-content:center;gap:24px;">
         <span class="chip mono">github.com/nitsuah/fire</span>
-        <span class="chip mono" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.1)"><span class="g">$</span> docker compose up</span>
+        <span class="chip mono" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.1)"><span class="g">$</span> docker compose up fire</span>
+      </div>
+      <div id="oUrl" style="margin-top:78px;">
+        <div style="font-size:26px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted);">Try it live</div>
+        <div class="h" style="font-size:92px;font-weight:800;letter-spacing:-2.5px;margin-top:6px;line-height:1.05;"><span class="urlgrad">lifefire.netlify.app</span></div>
       </div>
     </div>
   </div>
@@ -296,6 +301,8 @@ window.render = function (t) {
     $('oTag').style.opacity = tg; $('oTag').style.transform = `translateY(${(1 - tg) * 20}px)`;
     const c = eOut(seg(t, 19.25, 19.7));
     $('oChips').style.opacity = c; $('oChips').style.transform = `translateY(${(1 - c) * 20}px)`;
+    const u = eOut(seg(t, 19.55, 20.05));
+    $('oUrl').style.opacity = u; $('oUrl').style.transform = `translateY(${(1 - u) * 26}px) scale(${lerp(.96, 1, u)})`;
   }
 };
 

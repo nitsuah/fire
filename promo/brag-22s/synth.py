@@ -180,6 +180,9 @@ def chord_hit(notes, bass_midi, decay=2.4):
     return s * np.minimum(1, t_ / 0.004)
 place(sfx, chord_hit([53, 59, 64], 41), ce, db(-17))  # "??" : F + B + E, left hanging
 place(sfx, impact(45), 18.55, db(-16)) # logo
+# URL lands: a soft two-note chime (E5 + A5)
+place(sfx, pluck(hz(76), 0.6, 2), 19.55, db(-23))
+place(sfx, pluck(hz(81), 0.8, 2), 19.62, db(-23))
 
 # Row pops: A minor pentatonic, ascending
 for i, m in enumerate([69, 72, 74, 76, 79]):

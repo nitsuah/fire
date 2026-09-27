@@ -8,7 +8,7 @@ Capture assets live in `promo/out/capture/crops/` after a run. Anything marked *
 |---|---|---|---|---|---|
 | 1 | Retire-date question → answer | "When can I retire?" | Count-up age hook → dashboard reveal | README · Projections | brag-22s |
 | 2 | Net worth dashboard | "Your whole net worth. One dashboard." | `dash.png` swinging in on a 3D tilt | README · Net Worth Dashboard | brag-22s |
-| 3 | Self-hosted, one JSON file | "Your machine." / "Your money. Your machine." | Tagline + `docker compose up` chip | README intro | brag-22s |
+| 3 | Self-hosted, one JSON file | "Your machine." / "Your money. Your machine." | Tagline + `docker compose up fire` chip; `lifefire.netlify.app` big in the outro | README intro | brag-22s |
 | 4 | Every asset type counts (savings, Roth, ENS wallet, gold, CDs, car) | "Everything counts." / "yes, even the Malibu." | `hrow-*.png` + `vrow-1.png` stacking in | README · Net Worth, Precious metals, Crypto | brag-22s |
 | 5 | Bear/bull scenario bands | "Stress-test your retire date." | `proj-base/bear/bull.png` with cursor clicks | FEATURES · Bull/Bear Scenario Bands | brag-22s |
 | 6 | MCP server, 16 read-only tools | "Ask Claude about your money." | Terminal + real `mcp-status.json` | README · MCP Server | brag-22s |
@@ -34,7 +34,7 @@ Capture assets live in `promo/out/capture/crops/` after a run. Anything marked *
 | 26 | Security defaults (API key, loopback, Caddy HTTPS, CSP/SRI, rate limits) | "Locked down by default." | Text/stat card | README · Security headers, HTTPS | site |
 | 27 | Read-only to real accounts | "Never moves a cent." | Stat "0 transactions ever initiated" | README intro | site |
 | 28 | PWA + mobile layout | "Pocket-sized." | *(needs capture)* 390px viewport | README · Responsive shell | |
-| 29 | Browser-only live demo | "Try it without installing anything." | lifefire.netlify.app | netlify.toml, README | site |
+| 29 | Browser-only live demo | "Try it live." | `lifefire.netlify.app` (outro, large) | netlify.toml, README | brag-22s, site |
 | 30 | REST API | "Everything's an endpoint." | Text / curl snippet | README · REST API | |
 
 ## Spots
