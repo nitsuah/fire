@@ -125,6 +125,16 @@ export default [
         },
     },
 
+    // GitHub Pages landing page (site/)
+    {
+        files: ['site/**/*.js'],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+            },
+        },
+    },
+
     // Prettier integration
     {
         plugins: {
