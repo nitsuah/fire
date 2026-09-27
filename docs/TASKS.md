@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · **Tasks** · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-09-26
+updated: 2026-09-27
 
 ---
 
@@ -14,9 +14,10 @@ for shipped capabilities. Its follow-up items are below._
 
 ---
 
-## Follow-ups from PR #111 — Sep 2026
+## Todo
 
-- [ ] Manual step: turn on eBay connect/sync on Netlify. Set `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_ENVIRONMENT=production`, `EBAY_REDIRECT_URI` (RuName) and `SYNC_MASTER_KEY` in Netlify, and point the RuName's auth-accepted URL at `https://lifefire.netlify.app/api/sync/ebay/callback` (see the Browser-only deploy section of `docs/integrations.md`)
+### Follow-ups from PR #111 — Sep 2026
+
 - [ ] Serve Plaid on the Netlify deploy (lifefire.netlify.app)
   - Priority: P1. Plaid Link, positions, accounts and transactions (`/api/sync/plaid/*`) only exist in Express, so on the static Netlify deploy every call returns 404, even though the Plaid env vars are set there.
   - Approach: follow eBay's pattern from PR #130: v2 Netlify Functions plus `netlify.toml` rewrites, with logic shared with Express via a transport-agnostic module. Plaid access tokens go back to the browser encrypted with `SYNC_MASTER_KEY` instead of being stored server-side, and status and the toggle are computed client-side in browser-only mode.
@@ -29,7 +30,7 @@ for shipped capabilities. Its follow-up items are below._
 
 ---
 
-## PROD Phase 1 — Real-Time Data Connectors ✅ (open items in ROADMAP.md 2027 Q1)
+### PROD Phase 1 — Real-Time Data Connectors ✅ (open items in ROADMAP.md 2027 Q1)
 
 - [ ] Model real eBay fee brackets in `calculateEbayFeesTotal` (`app/lib/side-gig.js`), not just a flat rate + order fee.
   - Priority: P2
@@ -39,7 +40,7 @@ for shipped capabilities. Its follow-up items are below._
 
 ---
 
-## PROD Phase 2 — Financial Institution Integration ✅ (see ROADMAP.md 2027 Q2)
+### PROD Phase 2 — Financial Institution Integration ✅ (see ROADMAP.md 2027 Q2)
 
 Plaid transaction sync implementation detail (cursor handling, category
 resolution, partial-failure edge cases) moved to `CHANGELOG.md`. Known gaps:
@@ -50,10 +51,12 @@ Plaid sync is active (only the underlying status the gate reads is covered).
 
 ### Real-Time Price Improvements
 - [ ] Write tests for `app/lib/prices-provider.js` (Alpha Vantage + Polygon paths)
+  - Priority: P2
+  - Type: Tech debt
 
 ---
 
-## PROD Phase 3 — Security Hardening ✅ (see ROADMAP.md 2027 Q3; remaining item below)
+### PROD Phase 3 — Security Hardening ✅ (see ROADMAP.md 2027 Q3; remaining item below)
 
 See [security-hardening.md](./security-hardening.md) for full remediation detail.
 
@@ -76,24 +79,35 @@ See [security-hardening.md](./security-hardening.md) for full remediation detail
       proxy but not proof. OAuth CSRF replay and `tokens.json` encryption-after-callback
       both need a real (or fully mocked) OAuth provider round-trip, which exists only
       partially in the current test suite.
+  - Priority: P2
+  - Type: Security
   - Not attempted as part of this pass — flagging for a follow-up task.
 
 _Coverage: branch coverage is back above the 70% threshold (74.85%, 484 tests, #119) and CI now enforces it via `npm run test:coverage`; see `docs/METRICS.md`._
 
 ---
 
-## PROD Phase 4 — Feature Parity (2027 Q4)
+### PROD Phase 4 — Feature Parity (2027 Q4)
 
 - [~] Portfolio rebalancing suggestions — v1 tool on the Insights tab (targets vs. current); suggestion polish pending
 - [~] Tax-loss harvesting alert — v1 table on the Insights tab; threshold config/notifications pending
 - [ ] Income vs. expense 12-month rolling trend view
+  - Priority: P2
+  - Type: Feature
 - [ ] PWA: `manifest.json` + service worker for installable offline mode
+  - Priority: P2
+  - Type: Feature
 - [~] CD maturity and FIRE milestone notification system — in-app alerts bell + browser-notification settings shipped; push/outbound delivery pending
 - [ ] Optional multi-user mode (separate encrypted db.json per user, HTTP Basic auth gate)
+  - Priority: P3
+  - Type: Feature
 
 ---
 
-## Completed ✅
+## Done
+
+- [x] Manual step: turn on eBay connect/sync on Netlify. Set `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_ENVIRONMENT=production`, `EBAY_REDIRECT_URI` (RuName) and `SYNC_MASTER_KEY` in Netlify, and point the RuName's auth-accepted URL at `https://lifefire.netlify.app/api/sync/ebay/callback` (see the Browser-only deploy section of `docs/integrations.md`)
+  - Done 2026-09-27: env vars set on Netlify; connect/sync verified working in production.
 
 _Fully condensed into `docs/FEATURES.md` (shipped capabilities), `docs/ROADMAP.md`
 (milestones), and `docs/CHANGELOG.md` (change-by-change history) — see those
