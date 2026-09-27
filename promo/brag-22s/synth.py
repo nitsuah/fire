@@ -1,4 +1,4 @@
-# Music + SFX for the FIRE Tracker 22s spot. 120 BPM, A minor.
+# Music + SFX for the fire 22s spot. 120 BPM, A minor.
 # Usage: python3 synth.py <spot.json> <out.wav>
 # Scene cuts sit on the bar (2s); hook timings come from spot.json so the
 # counter ticks stay locked to the on-screen count-up.

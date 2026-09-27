@@ -11,7 +11,7 @@
 
 ## Threat Model
 
-The FIRE Tracker is a locally self-hosted personal finance dashboard. It is **not designed for public internet exposure**. Its threat model is:
+fire is a locally self-hosted personal finance dashboard. It is **not designed for public internet exposure**. Its threat model is:
 
 - **Primary:** Unauthorized local access — shared machine, physical access, or local network exposure via misconfigured Docker port binding
 - **Secondary:** Injected content — malicious CSV files, webhook payloads, or JSONata expressions crafted to extract data or crash the server

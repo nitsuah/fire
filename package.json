@@ -1,7 +1,7 @@
 {
   "name": "fire-tracker",
   "version": "1.1.0",
-  "description": "Lightweight FIRE Tracker & API Server",
+  "description": "Lightweight fire tracker & API server",
   "main": "app/server.js",
   "scripts": {
     "start": "node app/server.js",

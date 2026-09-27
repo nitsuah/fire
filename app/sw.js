@@ -1,4 +1,4 @@
-/* FIRE Tracker — Service Worker
+/* fire — Service Worker
    Caches shell assets for offline load. API calls always go to network.
    Shell assets are network-first: the cache is only an offline fallback.
    (Cache-first under a fixed CACHE_NAME kept serving old JS after every
@@ -119,7 +119,7 @@ self.addEventListener('push', (event) => {
     if (!event.data) return;
     const data = event.data.json();
     event.waitUntil(
-        self.registration.showNotification(data.title || 'FIRE Tracker', {
+        self.registration.showNotification(data.title || 'fire', {
             body: data.body || '',
             icon: data.icon || '/icon.svg',
             badge: '/icon.svg',

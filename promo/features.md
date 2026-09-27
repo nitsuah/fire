@@ -1,6 +1,6 @@
 # Promo feature ledger
 
-Everything a promo can claim about FIRE Tracker, the line we use for it, and how to show it on screen. Every row is backed by the README or `docs/FEATURES.md`, so check there before adding a claim. When a spot uses a feature, add the spot's name to **Used in**. Longer spots can then pull from the unused rows without re-researching.
+Everything a promo can claim about fire, the line we use for it, and how to show it on screen. Every row is backed by the README or `docs/FEATURES.md`, so check there before adding a claim. When a spot uses a feature, add the spot's name to **Used in**. Longer spots can then pull from the unused rows without re-researching.
 
 Capture assets live in `promo/out/capture/crops/` after a run. Anything marked *(needs capture)* needs a new step in `promo/capture.js`.
 

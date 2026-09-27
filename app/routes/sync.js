@@ -428,7 +428,7 @@ router.post('/plaid/create-link-token', async (req, res) => {
     try {
         const body = {
             user: { client_user_id: 'fire-tracker-user' },
-            client_name: 'FIRE Tracker',
+            client_name: 'fire',
             products: ['investments'],
             country_codes: ['US'],
             language: 'en',

@@ -1,5 +1,5 @@
 
-# PROD Plan — FIRE Tracker Productionization
+# PROD Plan — fire Productionization
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 >
@@ -11,7 +11,7 @@
 
 ## Purpose
 
-This document phases the FIRE Tracker from its current offline-first, CSV-import-driven state toward a production-grade personal finance platform on par with Fidelity NetBenefits and Rocket Money — while preserving the local-first, privacy-first, self-hosted architecture.
+This document phases fire from its current offline-first, CSV-import-driven state toward a production-grade personal finance platform on par with Fidelity NetBenefits and Rocket Money — while preserving the local-first, privacy-first, self-hosted architecture.
 
 The system remains **read-only** with respect to financial accounts. It will never initiate transactions, move money, or store unencrypted credentials. All sensitive data stays encrypted on the user's own machine. External connections are minimal and opt-in (BYOK).
 

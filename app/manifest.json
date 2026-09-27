@@ -1,6 +1,6 @@
 {
-  "name": "FIRE Tracker",
-  "short_name": "FIRE",
+  "name": "fire",
+  "short_name": "fire",
   "description": "Personal Financial Independence & Retire Early tracker",
   "start_url": "/",
   "display": "standalone",
