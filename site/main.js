@@ -12,25 +12,36 @@
         play.dataset.state = paused ? 'paused' : 'playing';
         play.setAttribute('aria-label', paused ? 'Play video' : 'Pause video');
     };
-    if (reduceMotion) vid.pause();
-    vid.addEventListener('play', syncPlay);
-    vid.addEventListener('pause', syncPlay);
-    syncPlay();
-
-    play.addEventListener('click', () =>
-        vid.paused ? vid.play() : vid.pause(),
-    );
-    mute.addEventListener('click', () => {
-        vid.muted = !vid.muted;
-        if (!vid.muted) {
-            vid.currentTime = 0;
-            vid.play();
-        }
+    const syncMute = () => {
         mute.setAttribute('aria-pressed', String(!vid.muted));
         mute.setAttribute(
             'aria-label',
             vid.muted ? 'Unmute video' : 'Mute video',
         );
+    };
+    // play() rejects when the browser blocks playback; keep the controls
+    // truthful instead of leaving an unhandled rejection.
+    const tryPlay = () =>
+        vid.play().catch(() => {
+            vid.muted = true;
+            syncMute();
+            syncPlay();
+        });
+
+    vid.addEventListener('play', syncPlay);
+    vid.addEventListener('pause', syncPlay);
+    // No autoplay attribute: start only once we know motion is welcome.
+    if (!reduceMotion) tryPlay();
+    syncPlay();
+
+    play.addEventListener('click', () =>
+        vid.paused ? tryPlay() : vid.pause(),
+    );
+    mute.addEventListener('click', () => {
+        vid.muted = !vid.muted;
+        if (!vid.muted) vid.currentTime = 0;
+        syncMute();
+        if (!vid.muted) tryPlay();
     });
 
     // Real chart captures for each scenario; preload so the swap is instant.
@@ -62,9 +73,17 @@
                 await navigator.clipboard.writeText(btn.dataset.copy);
                 btn.textContent = 'Copied';
             } catch {
-                btn.textContent = 'Press Ctrl+C';
+                // Clipboard blocked (permissions / insecure context): select
+                // the commands so a manual copy grabs exactly the right text.
+                const code = btn.parentElement.querySelector('code');
+                const range = document.createRange();
+                range.selectNodeContents(code);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                btn.textContent = 'Selected: press Ctrl+C';
             }
-            setTimeout(() => (btn.textContent = 'Copy'), 1600);
+            setTimeout(() => (btn.textContent = 'Copy'), 2400);
         });
     });
 })();

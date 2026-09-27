@@ -44,9 +44,9 @@
     </div>
 
     <figure class="hero-video">
-      <video id="hero-vid" src="assets/fire-tracker.mp4" poster="assets/poster.jpg" muted loop playsinline autoplay preload="metadata" aria-label="22-second FIRE Tracker launch video"></video>
+      <video id="hero-vid" src="assets/fire-tracker.mp4" poster="assets/poster.jpg" muted loop playsinline preload="metadata" aria-label="22-second FIRE Tracker launch video"></video>
       <div class="hero-controls">
-        <button id="hero-play" class="vid-btn" type="button" aria-label="Pause video" data-state="playing">
+        <button id="hero-play" class="vid-btn" type="button" aria-label="Play video" data-state="paused">
           <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
           <svg class="i-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
         </button>
@@ -170,9 +170,11 @@
     <pre class="install"><button class="copy" type="button" data-copy="git clone https://github.com/nitsuah/fire.git
 cd fire
 cp .env.example .env
+# edit .env: set FIRE_API_KEY (or FIRE_AUTH_DISABLED=true for local-only use)
 docker compose up -d">Copy</button><code><span class="prompt">$</span> git clone https://github.com/nitsuah/fire.git
 <span class="prompt">$</span> cd fire
 <span class="prompt">$</span> cp .env.example .env
+<span class="t-d"># edit .env: set FIRE_API_KEY (or FIRE_AUTH_DISABLED=true for local-only use)</span>
 <span class="prompt">$</span> docker compose up -d</code></pre>
     <div class="hero-ctas center">
       <a class="btn btn-primary" href="https://github.com/nitsuah/fire" target="_blank" rel="noopener">View on GitHub</a>
