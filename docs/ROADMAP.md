@@ -1,4 +1,4 @@
-# 🗺️ FIRE Tracker Roadmap
+# 🗺️ fire Roadmap
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · **Roadmap** · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 

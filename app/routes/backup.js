@@ -89,7 +89,7 @@ h2{color:#10b981;margin-top:0}p{color:#94a3b8}button{background:#6366f1;color:#f
 </head>
 <body><div class="card">
 <h2>✓ Google Drive connected</h2>
-<p>Your FIRE tracker can now back up encrypted snapshots to your personal Google Drive folder <strong>fire-tracker-backups</strong>.</p>
+<p>fire can now back up encrypted snapshots to your personal Google Drive folder <strong>fire-tracker-backups</strong>.</p>
 <button onclick="window.close()">Close this tab</button>
 </div></body></html>`);
     } catch (err) {

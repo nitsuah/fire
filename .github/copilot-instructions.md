@@ -5,7 +5,7 @@ This file provides custom instructions to GitHub Copilot when working in this re
 ## Project Context
 
 **Project Name:** fire  
-**Description:** Lightweight FIRE Tracker & API Server for tracking financial independence, retire early goals.  
+**Description:** Lightweight fire tracker & API server for tracking financial independence, retire early goals.  
 **Tech Stack:** JavaScript (Node.js), Database (e.g., SQLite, PostgreSQL for data persistence), Express.js (for API server).
 
 ## Code Style & Conventions

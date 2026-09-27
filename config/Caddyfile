@@ -1,4 +1,4 @@
-# TLS-terminating reverse proxy for the FIRE Tracker, for real HTTPS on
+# TLS-terminating reverse proxy for fire, for real HTTPS on
 # localhost instead of plain HTTP (docs/security-hardening.md, H-02).
 #
 # `tls internal` issues a certificate from Caddy's local CA. Browsers will

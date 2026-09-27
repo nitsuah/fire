@@ -1,4 +1,4 @@
-# 🔥 FIRE Tracker
+# 🔥 fire
 
 > 🧭 **fire** · [Features](./docs/FEATURES.md) · [Roadmap](./docs/ROADMAP.md) · [Tasks](./docs/TASKS.md) · [Changelog](./docs/CHANGELOG.md) · [Metrics](./docs/METRICS.md) <!-- nav -->
 
@@ -303,12 +303,12 @@ Every doc at the repo root (other than this README) and under `docs/` (the files
 - [Changelog](./docs/CHANGELOG.md) — `docs/CHANGELOG.md`
 - [Features](./docs/FEATURES.md) — `docs/FEATURES.md`
 - [METRICS.md](./docs/METRICS.md) — `docs/METRICS.md`
-- [🗺️ FIRE Tracker Roadmap](./docs/ROADMAP.md) — `docs/ROADMAP.md`
+- [🗺️ fire Roadmap](./docs/ROADMAP.md) — `docs/ROADMAP.md`
 - [Tasks](./docs/TASKS.md) — `docs/TASKS.md`
 - [Backend Sync Architecture](./docs/backend-sync-architecture.md) — `docs/backend-sync-architecture.md`
 - [Integrations Reference](./docs/integrations.md) — `docs/integrations.md`
-- [FIRE Tracker — Privacy Policy & Terms of Use](./docs/privacy-policy.md) — `docs/privacy-policy.md`
-- [PROD Plan — FIRE Tracker Productionization](./docs/prod-plan.md) — `docs/prod-plan.md`
+- [fire — Privacy Policy & Terms of Use](./docs/privacy-policy.md) — `docs/privacy-policy.md`
+- [PROD Plan — fire Productionization](./docs/prod-plan.md) — `docs/prod-plan.md`
 - [Security Hardening Plan](./docs/security-hardening.md) — `docs/security-hardening.md`
 - [Weekly financial check-in prompt (local)](./docs/weekly-checkin-prompt.md) — `docs/weekly-checkin-prompt.md`
 

@@ -10,7 +10,7 @@
 
 ## Overview
 
-The FIRE Tracker's sync layer connects the local `db.json` store to external financial data providers. All connections are:
+fire's sync layer connects the local `db.json` store to external financial data providers. All connections are:
 
 - **Opt-in** — nothing syncs unless the user provides credentials
 - **BYOK** — users supply their own API keys; no intermediary service holds credentials

@@ -377,7 +377,7 @@ async function requestNotificationPermission() {
     const perm = await Notification.requestPermission();
     updateNotificationStatusDisplay();
     if (perm === 'granted') {
-        new Notification('FIRE Tracker', {
+        new Notification('fire', {
             body: 'Notifications enabled! You\'ll receive alerts for FIRE milestones and CD maturities.',
             icon: '/icon.svg'
         });
