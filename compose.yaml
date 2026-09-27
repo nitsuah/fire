@@ -1,0 +1,7 @@
+# Lets `docker compose up` work from the repo root and names the project
+# "fire" (instead of "config", inferred from the folder), so containers are
+# fire-fire-1 / fire-caddy-1 without passing -p. The stack itself lives in
+# config/docker-compose.yml; `-f config/docker-compose.yml` still works.
+name: fire
+include:
+  - config/docker-compose.yml

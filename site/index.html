@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FIRE Tracker — know your retire date</title>
+<meta name="description" content="A self-hosted Financial Independence, Retire Early tracker. Net worth, retirement projections and insights in one dashboard, a read-only MCP server for Claude, and your data stays on your machine." />
+<meta name="theme-color" content="#080b11" />
+<meta property="og:title" content="FIRE Tracker — know your retire date" />
+<meta property="og:description" content="Self-hosted net worth + retirement projections. Everything counts, even the 2014 Malibu. Your money, your machine." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://nitsuah.github.io/fire/assets/poster.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="hero">
+  <div class="topbar">
+    <a class="mark" href="#top" aria-label="FIRE Tracker home"><span class="mark-fire" aria-hidden="true">🔥</span><span class="brandname">FIRE Tracker</span></a>
+    <nav aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#mcp">MCP</a>
+      <a href="#install">Install</a>
+      <a class="nav-gh" href="https://github.com/nitsuah/fire" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+
+  <div class="hero-main" id="top">
+    <div class="hero-body">
+      <p class="eyebrow">Financial Independence, Retire Early</p>
+      <h1 class="hero-headline">When can I retire?<br /><span class="emph">Now you'll know.</span></h1>
+      <p class="hero-sub">A <strong>self-hosted</strong> FIRE tracker. Your whole net worth, retirement projections and portfolio insights in one dashboard, plus a read-only MCP server so Claude can answer questions about it. Your data stays in one JSON file <strong>on your machine</strong>.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="#install">Run it locally</a>
+        <a class="btn btn-ghost" href="https://lifefire.netlify.app/" target="_blank" rel="noopener">Try the live demo <span aria-hidden="true">↗</span></a>
+      </div>
+      <p class="hero-note">The demo runs entirely in your browser and saves to localStorage.</p>
+    </div>
+
+    <figure class="hero-video">
+      <video id="hero-vid" src="assets/fire-tracker.mp4" poster="assets/poster.jpg" muted loop playsinline preload="metadata" aria-label="22-second FIRE Tracker launch video"></video>
+      <div class="hero-controls">
+        <button id="hero-play" class="vid-btn" type="button" aria-label="Play video" data-state="paused">
+          <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+          <svg class="i-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button id="hero-mute" class="vid-btn vid-mute" type="button" aria-label="Unmute video" aria-pressed="false">
+          <svg class="i-muted" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.59 3l2.7-2.7-1.41-1.42L15.17 10.6 12.46 7.88l-1.41 1.41 2.71 2.71-2.71 2.71 1.41 1.41 2.71-2.7 2.71 2.7 1.41-1.41-2.7-2.7z"/></svg>
+          <svg class="i-sound" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm10.5 3a4.5 4.5 0 00-2.5-4.03v8.05A4.5 4.5 0 0013.5 12zm-2.5-9v2.06A7 7 0 0117 12a7 7 0 01-6 6.92V21A9 9 0 0019 12 9 9 0 0011 3z"/></svg>
+          <span class="vid-mute-label">Tap for sound</span>
+        </button>
+      </div>
+    </figure>
+  </div>
+
+  <ul class="stats" aria-label="At a glance">
+    <li><span class="stat-num">1</span><span class="stat-label">JSON file holds all your data</span></li>
+    <li><span class="stat-num">16</span><span class="stat-label">read-only MCP tools for Claude</span></li>
+    <li><span class="stat-num">AES-256</span><span class="stat-label">optional encryption at rest</span></li>
+    <li><span class="stat-num">0</span><span class="stat-label">transactions ever initiated</span></li>
+  </ul>
+</header>
+
+<main id="main">
+  <section class="feature" id="features" aria-labelledby="f1">
+    <div class="feature-copy">
+      <p class="kicker">One dashboard</p>
+      <h2 id="f1">Your whole net worth, <span class="emph">live.</span></h2>
+      <p>Net worth, income, spend rate and FIRE progress sit at the top of every tab. The dashboard puts your retirement growth path, a drill-down asset allocation and your cash and fixed income side by side, with live prices pushed over SSE.</p>
+    </div>
+    <div class="shot shot-wide"><img src="assets/dashboard.jpg" width="1920" height="1080" alt="FIRE Tracker dashboard showing net worth, retirement growth path, asset allocation, and cash and fixed income" loading="lazy" /></div>
+  </section>
+
+  <section class="feature feature-flip" aria-labelledby="f2">
+    <div class="feature-copy">
+      <p class="kicker">Everything counts</p>
+      <h2 id="f2">Yes, even the <span class="emph emph-amber">Malibu.</span></h2>
+      <p>Savings, brokerage, Roth, CDs with maturity dates, gold and silver by the troy ounce at live spot, ENS names and 0x wallets across eight chains, real estate, and the car. Negative equity counts too.</p>
+      <ul class="ticks">
+        <li>Fidelity, Chase, Capital One and eBay CSV import, parsed locally</li>
+        <li>Plaid sync for positions and transactions</li>
+        <li>NHTSA VIN decode for vehicles</li>
+      </ul>
+    </div>
+    <div class="shot-stack">
+      <div class="shot"><img src="assets/holdings-card.webp" alt="Holdings table listing a high-yield savings account, checking, a Roth IRA, vitalik.eth, Gold Eagles and three CDs" loading="lazy" /></div>
+      <div class="shot shot-accent"><img src="assets/veh-card.webp" alt="Vehicles table with a paid-off 2014 Chevy Malibu" loading="lazy" /></div>
+    </div>
+  </section>
+
+  <section class="feature" aria-labelledby="f3">
+    <div class="feature-copy">
+      <p class="kicker">Projections</p>
+      <h2 id="f3">Stress-test your <span class="emph">retire date.</span></h2>
+      <p>The projection engine grows your portfolio until retirement, then draws it down cash-first. Try bear and bull scenarios, switch between Conservative, Standard, Aggressive and Early Retiree presets, and see when the money would run out.</p>
+      <div class="scenario-toggle" role="group" aria-label="Apply scenario">
+        <button type="button" data-scn="bear">🐻 Bear (−2%)</button>
+        <button type="button" data-scn="base" aria-pressed="true">Base rate</button>
+        <button type="button" data-scn="bull">🐂 Bull (+2%)</button>
+      </div>
+    </div>
+    <div class="shot shot-wide chart-shot">
+      <img id="scn-img" src="assets/proj-base.webp" alt="Retirement growth path chart, base-rate scenario" loading="lazy" />
+    </div>
+  </section>
+
+  <section class="grid3" aria-label="More features">
+    <article class="tile">
+      <div class="tile-shot"><img src="assets/scenarios.webp" alt="Scenario comparison table showing FIRE age under savings, bear market and inflation scenarios" loading="lazy" /></div>
+      <h3>Scenario comparison</h3>
+      <p>See how a raise, a bear market or an inflation spike moves your FIRE age, side by side.</p>
+    </article>
+    <article class="tile">
+      <div class="tile-shot"><img src="assets/insights.webp" alt="Portfolio insights cards: equity concentration, single-stock risk and CD maturing soon, next to a rebalancing tool" loading="lazy" /></div>
+      <h3>Insights &amp; rebalancing</h3>
+      <p>Concentration risk, emergency fund runway, CDs maturing soon, tax-loss harvesting alerts and a target-allocation rebalancer.</p>
+    </article>
+    <article class="tile">
+      <div class="tile-shot"><img src="assets/sidegig.webp" alt="Side Hustle Hub with an eBay platform fee calculator" loading="lazy" /></div>
+      <h3>Side Hustle Hub</h3>
+      <p>eBay, Etsy and Facebook fee calculators, a sales ledger with eBay OAuth sync, and income that stays out of net worth.</p>
+    </article>
+  </section>
+
+  <section class="mcp" id="mcp" aria-labelledby="mcp-title">
+    <div class="mcp-copy">
+      <p class="kicker">Built for Claude</p>
+      <h2 id="mcp-title">Ask Claude about <span class="emph">your money.</span></h2>
+      <p>An MCP server ships in the box, and <code>.mcp.json</code> connects it automatically when you open the repo in Claude Code. It exposes 16 tools, all read-only: a test fails the build if a write tool ever appears.</p>
+      <ul class="tools" aria-label="MCP tools">
+        <li>fire_status_summary</li><li>get_net_worth</li><li>get_net_worth_trend</li><li>get_accounts</li>
+        <li>get_portfolio</li><li>get_cds</li><li>get_expenses</li><li>get_projection_settings</li>
+        <li>get_side_gig_income</li><li>get_side_gig_tax_summary</li><li>get_wallets</li><li>get_concentration_risk</li>
+        <li>get_diversification_score</li><li>get_swr_sensitivity</li><li>simulate_rebalance</li><li>get_emergency_runway</li>
+      </ul>
+    </div>
+    <div class="term" aria-label="Example Claude Code session">
+      <div class="term-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+      <pre><code><span class="t-k">&gt;</span> how close am I to FIRE?
+
+<span class="t-g">⏺</span> fire · <span class="t-k">fire_status_summary</span> <span class="t-d">(MCP)</span>
+  {
+    <span class="t-k">"fireNumber"</span>: <span class="t-n">1116000</span>,
+    <span class="t-k">"currentNetWorth"</span>: <span class="t-n">288278</span>,
+    <span class="t-k">"progressPercent"</span>: <span class="t-g">25.8</span>,
+    <span class="t-k">"yearsToFire"</span>: <span class="t-n">13</span>,
+    <span class="t-k">"coastFireReached"</span>: <span class="t-n">false</span>
+  }</code></pre>
+    </div>
+  </section>
+
+  <section class="privacy" aria-labelledby="priv-title">
+    <h2 id="priv-title">Your money. <span class="emph">Your machine.</span></h2>
+    <div class="priv-grid">
+      <div><h3>Local by default</h3><p>Everything lives in <code>data/db.json</code>, written atomically. It is read-only toward your real accounts and never initiates a transaction.</p></div>
+      <div><h3>Encrypted at rest</h3><p>Set <code>SYNC_MASTER_KEY</code> for AES-256-GCM encryption of the database, plus optional encrypted Google Drive backups.</p></div>
+      <div><h3>Locked down</h3><p>API-key auth is on by default. The app port binds to loopback only, and Caddy serves HTTPS. CSP headers, SRI-pinned scripts and rate limits are applied to every response.</p></div>
+    </div>
+  </section>
+
+  <section class="install-sec" id="install" aria-labelledby="install-title">
+    <h2 id="install-title">Up in a minute.</h2>
+    <p class="install-lead">Requires <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">Docker Desktop</a>. Set <code>FIRE_API_KEY</code> in <code>.env</code> (or <code>FIRE_AUTH_DISABLED=true</code> for local-only use), then open <code>http://localhost:3001</code>.</p>
+    <pre class="install"><button class="copy" type="button" data-copy="git clone https://github.com/nitsuah/fire.git
+cd fire
+cp .env.example .env
+# edit .env: set FIRE_API_KEY (or FIRE_AUTH_DISABLED=true for local-only use)
+docker compose up -d">Copy</button><code><span class="prompt">$</span> git clone https://github.com/nitsuah/fire.git
+<span class="prompt">$</span> cd fire
+<span class="prompt">$</span> cp .env.example .env
+<span class="t-d"># edit .env: set FIRE_API_KEY (or FIRE_AUTH_DISABLED=true for local-only use)</span>
+<span class="prompt">$</span> docker compose up -d</code></pre>
+    <div class="hero-ctas center">
+      <a class="btn btn-primary" href="https://github.com/nitsuah/fire" target="_blank" rel="noopener">View on GitHub</a>
+      <a class="btn btn-ghost" href="https://lifefire.netlify.app/" target="_blank" rel="noopener">Live demo <span aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span><span aria-hidden="true">🔥</span> FIRE Tracker · MIT licensed · made by <a href="https://github.com/nitsuah" target="_blank" rel="noopener">@nitsuah</a></span>
+  <span class="foot-note">Screenshots show a demo portfolio. Not financial advice.</span>
+</footer>
+
+<script src="main.js" defer></script>
+</body>
+</html>

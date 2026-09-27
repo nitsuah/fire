@@ -55,8 +55,13 @@ server refuses to start with neither set.
 
 ```bash
 # Start
-docker compose -f config/docker-compose.yml up -d
+docker compose up -d
 ```
+
+The root `compose.yaml` names the project `fire` and includes
+`config/docker-compose.yml`, so this runs from the repo root. `docker compose up fire`
+starts just the app, and the longer `docker compose -f config/docker-compose.yml …`
+form still works.
 
 Open **http://localhost:3001** (plain HTTP) or **https://localhost** (via the
 bundled Caddy reverse proxy — see [HTTPS via Caddy](#https-via-caddy) below)
@@ -64,11 +69,11 @@ in your browser.
 
 ```bash
 # Stop
-docker compose -f config/docker-compose.yml down
+docker compose down
 
 # Rebuild after dependency changes
-docker compose -f config/docker-compose.yml build
-docker compose -f config/docker-compose.yml up -d --force-recreate
+docker compose build
+docker compose up -d --force-recreate
 ```
 
 ---
@@ -112,7 +117,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ## HTTPS via Caddy
 
-`docker compose -f config/docker-compose.yml up -d` also starts a
+`docker compose up -d` also starts a
 [Caddy](https://caddyserver.com/) reverse proxy (`config/Caddyfile`) that
 terminates TLS for `https://localhost`. Plain HTTP on `http://localhost:3001`
 still works for same-machine use (OAuth redirect callbacks are configured
@@ -126,7 +131,7 @@ warn until you trust it once. `caddy trust` only updates the trust store
 *inside the caddy container* — it does not touch your host or browser.
 Instead, copy the CA cert out and import it yourself:
 ```bash
-docker compose -f config/docker-compose.yml cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-local-ca.crt
+docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./caddy-local-ca.crt
 ```
 then import `caddy-local-ca.crt` via your OS/browser's certificate manager
 (see [Caddy's docs](https://caddyserver.com/docs/running) for OS-specific
@@ -161,7 +166,7 @@ Connect Claude Code to your live financial data. The project ships a `.mcp.json`
 
 Smoke-test locally:
 ```bash
-docker compose -f config/docker-compose.yml exec fire node scripts/test-mcp.mjs
+docker compose exec fire node scripts/test-mcp.mjs
 ```
 
 ---
@@ -241,13 +246,13 @@ fire/
 
 ```bash
 # Run tests inside Docker
-docker compose -f config/docker-compose.yml exec fire npm test
+docker compose exec fire npm test
 
 # Run tests with coverage
-docker compose -f config/docker-compose.yml exec fire npm run test:coverage
+docker compose exec fire npm run test:coverage
 
 # Lint
-docker compose -f config/docker-compose.yml exec fire npm run lint
+docker compose exec fire npm run lint
 
 # Real-browser UI tests (Playwright, in Docker)
 docker build -f config/Dockerfile.playwright -t fire-playwright-e2e .
