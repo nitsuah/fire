@@ -3,16 +3,16 @@ import { handler } from '../../netlify/functions/fire-api.mjs';
 
 describe('hosted fire API', () => {
     it('returns JSON for unsupported hosted endpoints', async () => {
-        const result = await handler({
-            path: '/api/does-not-exist',
-            httpMethod: 'GET',
-            rawUrl: 'https://lifefire.netlify.app/api/does-not-exist',
-        });
+        const result = await handler(
+            new Request(
+                'https://lifefire.netlify.app/api/does-not-exist',
+            ),
+        );
 
-        expect(result.statusCode).toBe(404);
-        expect(result.headers['Content-Type']).toContain('application/json');
+        expect(result.status).toBe(404);
+        expect(result.headers.get('Content-Type')).toContain('application/json');
 
-        const body = JSON.parse(result.body);
+        const body = await result.json();
         expect(body.error).toContain(
             'not available in the hosted browser deployment',
         );
@@ -20,14 +20,14 @@ describe('hosted fire API', () => {
     });
 
     it('returns a JSON Plaid status in hosted mode', async () => {
-        const result = await handler({
-            path: '/api/sync/plaid/status',
-            httpMethod: 'GET',
-            rawUrl: 'https://lifefire.netlify.app/api/sync/plaid/status',
-        });
+        const result = await handler(
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/status',
+            ),
+        );
 
-        expect(result.statusCode).toBe(200);
-        const body = JSON.parse(result.body);
+        expect(result.status).toBe(200);
+        const body = await result.json();
         expect(body).toMatchObject({
             connected: false,
             hosted: true,
