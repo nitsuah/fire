@@ -60,7 +60,8 @@ describe('hosted Plaid Netlify function', () => {
             ),
         );
 
-        const { default: handler } = await import('../../netlify/functions/plaid.mjs');
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
         const response = await handler(
             new Request(
                 'https://lifefire.netlify.app/api/sync/plaid/exchange',
@@ -90,7 +91,8 @@ describe('hosted Plaid Netlify function', () => {
             ),
         );
 
-        const { default: handler } = await import('../../netlify/functions/plaid.mjs');
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
         const response = await handler(
             new Request(
                 'https://lifefire.netlify.app/api/sync/plaid/create-link-token',
