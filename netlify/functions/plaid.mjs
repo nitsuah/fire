@@ -56,7 +56,9 @@ function seal(payload) {
 
 function unseal(value) {
     try {
-        const [version, ivText, tagText, dataText] = String(value || '').split('.');
+        const [version, ivText, tagText, dataText] = String(value || '').split(
+            '.',
+        );
         if (
             Number(version) !== PLAID_TOKEN_VERSION ||
             !ivText ||
@@ -152,7 +154,8 @@ async function createLinkToken() {
 
 async function exchange(req) {
     const body = await req.json().catch(() => ({}));
-    if (!body.public_token) return json(400, { error: 'public_token is required.' });
+    if (!body.public_token)
+        return json(400, { error: 'public_token is required.' });
     const data = await plaidPost('/item/public_token/exchange', {
         public_token: body.public_token,
     });
