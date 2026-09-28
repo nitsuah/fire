@@ -503,7 +503,10 @@ async function checkPlaidConnection() {
     if (!statusEl) return;
     try {
         const { res, data } = await plaidRequest('/api/sync/plaid/status');
-        if (!res.ok) throw new Error(data.error || 'Unable to check Plaid status.');
+        if (!res.ok)
+            throw new Error(
+                data.error || 'Unable to check Plaid status.',
+            );
         if (data.connected) {
             statusEl.textContent = `Status: Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''})`;
             statusEl.style.color = 'var(--color-success)';
@@ -593,7 +596,8 @@ function initPlaidLink() {
                         );
                         if (!positionsResult.res.ok)
                             throw new Error(
-                                positionsResult.data.error || 'Position sync failed',
+                                positionsResult.data.error ||
+                                    'Position sync failed',
                             );
                         if (isHostedPlaid()) {
                             applyHostedPlaidPositions(
@@ -676,7 +680,10 @@ async function togglePlaidSyncSetting() {
                 method: 'POST',
                 body: { enabled },
             });
-            if (!res.ok) throw new Error(data.error || 'Failed to update Plaid sync setting.');
+            if (!res.ok)
+                throw new Error(
+                    data.error || 'Failed to update Plaid sync setting.',
+                );
         }
     } catch (err) {
         alert(err.message);
@@ -694,9 +701,10 @@ async function runPlaidTransactionsSyncNow() {
     const original = btn.textContent;
     btn.textContent = 'Syncing…';
     try {
-        const { res, data } = await plaidRequest('/api/sync/plaid/transactions', {
-            method: 'POST',
-        });
+        const { res, data } = await plaidRequest(
+            '/api/sync/plaid/transactions',
+            { method: 'POST' },
+        );
         if (!res.ok) throw new Error(data.error || 'Sync failed');
         if (isHostedPlaid()) {
             if (data.plaidToken) setHostedPlaidToken(data.plaidToken);
