@@ -59,7 +59,9 @@ try {
     const { tools } = await client.listTools();
     const toolNames = tools.map((t) => t.name);
     if (tools.length !== EXPECTED_TOOLS.length) {
-        throw new Error(`Expected ${EXPECTED_TOOLS.length} MCP tools, got ${tools.length}`);
+        throw new Error(
+            `Expected ${EXPECTED_TOOLS.length} MCP tools, got ${tools.length}`,
+        );
     }
     const missing = EXPECTED_TOOLS.filter((n) => !toolNames.includes(n));
     if (missing.length) throw new Error(`Missing tools: ${missing.join(', ')}`);
