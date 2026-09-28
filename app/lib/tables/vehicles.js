@@ -152,7 +152,12 @@ function positionEstimateOverlay(btn) {
 function estimateVehicleDepreciationInBrowser(vehicle) {
     const purchasePrice = Number(vehicle.purchasePrice);
     const parsedYear = parseInt(vehicle.year);
-    if (!Number.isFinite(purchasePrice) || purchasePrice <= 0 || !parsedYear) return null;
+    if (
+        !Number.isFinite(purchasePrice) ||
+        purchasePrice <= 0 ||
+        !parsedYear
+    )
+        return null;
     const age = Math.max(0, new Date().getFullYear() - parsedYear);
     let retention = 1;
     for (let y = 0; y < age; y++) {
@@ -164,12 +169,21 @@ function estimateVehicleDepreciationInBrowser(vehicle) {
     }
     const expectedMiles = age * 12000;
     const excessMiles = (Number(vehicle.mileage) || 0) - expectedMiles;
-    const mileageAdj = Math.max(-0.15, Math.min(0.15, (-excessMiles / 10000) * 0.01));
+    const mileageAdj = Math.max(
+        -0.15,
+        Math.min(0.15, (-excessMiles / 10000) * 0.01),
+    );
     const conditionAdj =
-        vehicle.condition === 'Excellent' ? 0.05 :
-        vehicle.condition === 'Fair' ? -0.05 :
-        vehicle.condition === 'Poor' ? -0.15 : 0;
-    const value = Math.round(purchasePrice * retention * (1 + mileageAdj + conditionAdj));
+        vehicle.condition === 'Excellent'
+            ? 0.05
+            : vehicle.condition === 'Fair'
+              ? -0.05
+              : vehicle.condition === 'Poor'
+                ? -0.15
+                : 0;
+    const value = Math.round(
+        purchasePrice * retention * (1 + mileageAdj + conditionAdj),
+    );
     return {
         estimated: true,
         value,
@@ -199,7 +213,9 @@ window.fetchVehicleEstimate = async function (id) {
         if (typeof syncedRevision === 'undefined' || syncedRevision === null) {
             const depreciation = estimateVehicleDepreciationInBrowser(vehicle);
             if (!depreciation && !vehicle.vin) {
-                throw new Error('Vehicle needs a purchase price or VIN to estimate value.');
+                throw new Error(
+                    'Vehicle needs a purchase price or VIN to estimate value.',
+                );
             }
             data = {
                 depreciation,
