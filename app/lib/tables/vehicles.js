@@ -152,11 +152,7 @@ function positionEstimateOverlay(btn) {
 function estimateVehicleDepreciationInBrowser(vehicle) {
     const purchasePrice = Number(vehicle.purchasePrice);
     const parsedYear = parseInt(vehicle.year);
-    if (
-        !Number.isFinite(purchasePrice) ||
-        purchasePrice <= 0 ||
-        !parsedYear
-    )
+    if (!Number.isFinite(purchasePrice) || purchasePrice <= 0 || !parsedYear)
         return null;
     const age = Math.max(0, new Date().getFullYear() - parsedYear);
     let retention = 1;
@@ -210,10 +206,7 @@ window.fetchVehicleEstimate = async function (id) {
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) throw new Error('Vehicle not found.');
         let data;
-        if (
-            typeof syncedRevision === 'undefined' ||
-            syncedRevision === null
-        ) {
+        if (typeof syncedRevision === 'undefined' || syncedRevision === null) {
             const depreciation = estimateVehicleDepreciationInBrowser(vehicle);
             if (!depreciation && !vehicle.vin) {
                 throw new Error(
