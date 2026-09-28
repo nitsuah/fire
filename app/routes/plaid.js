@@ -30,6 +30,7 @@ function loadTokens(provider) {
 }
 
 function saveTokens(provider, tokens) {
+    // eslint-disable-next-line no-unused-vars
     const { _tokenLastUpdated, ...payload } = tokens;
     const tokenData = {
         lastUpdated: new Date().toISOString(),
