@@ -23,6 +23,11 @@
 
 ---
 
+## Live links
+
+- **Project site:** https://nitsuah.github.io/fire/
+- **Browser demo:** https://lifefire.netlify.app/
+
 ## Features
 
 - **Net Worth Dashboard** — real-time tracking of accounts, CDs, real estate, vehicles, precious metals, and investments; on wide screens Retirement Growth Path, an interactive drill-down Asset Allocation chart, and Cash & Fixed Income share the top row (the growth chart has a full-width expander)
@@ -115,8 +120,9 @@ basic local use — the one exception is `FIRE_API_KEY` (or its explicit
 | `ETHERSCAN_API_KEY` | Ethereum / ERC-20 balance fetching |
 | `BSCSCAN_API_KEY` / `POLYGONSCAN_API_KEY` / `ARBISCAN_API_KEY` / `BASESCAN_API_KEY` | EVM chain balance fetching |
 | `COINGECKO_API_KEY` | Optional; raises CoinGecko rate limit for crypto price lookups |
-| `GDRIVE_SERVICE_ACCOUNT_JSON` | Path to GCP service account JSON for encrypted Drive backup |
-| `GDRIVE_BACKUP_FOLDER_ID` | Optional Drive folder ID (auto-created if blank) |
+| `GDRIVE_CLIENT_ID` / `GDRIVE_CLIENT_SECRET` | Google OAuth 2.0 Web application credentials for Drive backup |
+| `GDRIVE_REDIRECT_URI` | Optional OAuth callback override; defaults to `/api/backup/drive/callback` on the local server |
+| `GDRIVE_BACKUP_FOLDER_ID` | Optional Drive folder ID; otherwise `fire-tracker-backups` is created/located automatically |
 | `VEHICLE_VALUE_API_KEY` / `VEHICLE_VALUE_PROVIDER` | Paid vehicle value provider (dataone, marketcheck) |
 | `PLAID_CLIENT_ID` / `PLAID_SECRET` | Plaid credentials for brokerage/bank sync |
 | `PLAID_ENV` | `sandbox` (default) or `production` |
@@ -246,7 +252,7 @@ fire/
 │   ├── playwright.config.js    # real-browser UI regression suite (tests/e2e-ui)
 │   └── eslint.config.mjs
 ├── scripts/
-│   └── test-mcp.mjs            # MCP smoke test (the 8 original tools in EXPECTED_TOOLS)
+│   └── test-mcp.mjs            # MCP smoke test (all 16 read-only tools)
 ├── data/                       # db.json lives here (git-ignored)
 ├── docs/                       # Architecture notes
 ├── .env.example                # Environment variable reference
@@ -283,7 +289,7 @@ The system is being productionized toward real-time, API-driven data in four pha
 |---|---|---|
 | eBay Order API (auto-import sales) | Phase 1 | Live (BYOK) |
 | Web3 wallet tracking (ETH, BTC, SOL, + EVM chains) | Phase 1 | Live (BYOK keys per chain) |
-| Google Drive encrypted backup | Phase 1 | Live (requires `GDRIVE_SERVICE_ACCOUNT_JSON`) |
+| Google Drive encrypted backup | Phase 1 | Implemented self-hosted via Google OAuth; live round-trip verification pending |
 | Vehicle value API (NHTSA VIN free; paid providers via `VEHICLE_VALUE_PROVIDER`) | Phase 1 | Live |
 | Fidelity / Plaid positions + balance sync | Phase 2 | Live (BYOK; sandbox ready) |
 | Stable stock quote API (Alpha Vantage / Polygon.io) | Phase 2 | Live (fallback: Yahoo Finance) |
