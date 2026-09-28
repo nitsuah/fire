@@ -5,9 +5,12 @@ const {
     resolveMetalValue,
     METAL_PAYOUT_PCT,
 } = require('../../app/lib/metals-prices.js');
-const { isEnsName, resolveEnsAddress } = require('../../app/lib/ens-resolver.js');
-const { aggregateEvmWalletValue } = require('../../app/lib/ens-wallet-lookup.js');
-const { loadChains, refreshWalletBalance } = require('../../app/lib/web3-prices.js');
+const { isEnsName, resolveEnsAddress } =
+    require('../../app/lib/ens-resolver.js');
+const { aggregateEvmWalletValue } =
+    require('../../app/lib/ens-wallet-lookup.js');
+const { loadChains, refreshWalletBalance } =
+    require('../../app/lib/web3-prices.js');
 
 function json(statusCode, body) {
     return new Response(JSON.stringify(body), {
