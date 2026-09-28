@@ -274,7 +274,7 @@ window.refreshCryptoAccount = async function (id) {
         if (idx !== -1) {
             state.customAccounts[idx] = {
                 ...state.customAccounts[idx],
-                ...accountFields,
+                ...data,
             };
         }
         refreshAllUI();
