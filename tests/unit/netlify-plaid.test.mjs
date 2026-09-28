@@ -1,4 +1,11 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import {
+    describe,
+    expect,
+    it,
+    vi,
+    beforeEach,
+    afterEach,
+} from 'vitest';
 
 const MASTER_KEY = '22'.repeat(32);
 
@@ -30,13 +37,14 @@ describe('hosted Plaid Netlify function', () => {
             ),
         );
 
-        const { default: handler } = await import(
-            '../../netlify/functions/plaid.mjs'
-        );
+        const { default: handler } = await import('../../netlify/functions/plaid.mjs');
         const response = await handler(
-            new Request('https://lifefire.netlify.app/api/sync/plaid/create-link-token', {
-                method: 'POST',
-            }),
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/create-link-token',
+                {
+                    method: 'POST',
+                },
+            ),
         );
 
         expect(response.status).toBe(200);
@@ -47,7 +55,9 @@ describe('hosted Plaid Netlify function', () => {
         );
     });
 
-    it('exchanges a public token and returns an opaque encrypted browser token', async () => {
+    it(
+        'exchanges a public token and returns an opaque encrypted browser token',
+        async () => {
         vi.stubGlobal(
             'fetch',
             vi.fn().mockResolvedValue(
@@ -64,9 +74,7 @@ describe('hosted Plaid Netlify function', () => {
             ),
         );
 
-        const { default: handler } = await import(
-            '../../netlify/functions/plaid.mjs'
-        );
+        const { default: handler } = await import('../../netlify/functions/plaid.mjs');
         const response = await handler(
             new Request('https://lifefire.netlify.app/api/sync/plaid/exchange', {
                 method: 'POST',
@@ -75,12 +83,13 @@ describe('hosted Plaid Netlify function', () => {
             }),
         );
 
-        expect(response.status).toBe(200);
-        const body = await response.json();
-        expect(body.status).toBe('success');
-        expect(body.plaidToken).toMatch(/^1\./);
-        expect(body.plaidToken).not.toContain('access-secret');
-    });
+            expect(response.status).toBe(200);
+            const body = await response.json();
+            expect(body.status).toBe('success');
+            expect(body.plaidToken).toMatch(/^1\./);
+            expect(body.plaidToken).not.toContain('access-secret');
+        },
+    );
 
     it('returns structured JSON when Plaid responds with non-JSON', async () => {
         vi.stubGlobal(
@@ -97,13 +106,18 @@ describe('hosted Plaid Netlify function', () => {
             '../../netlify/functions/plaid.mjs'
         );
         const response = await handler(
-            new Request('https://lifefire.netlify.app/api/sync/plaid/create-link-token', {
-                method: 'POST',
-            }),
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/create-link-token',
+                {
+                    method: 'POST',
+                },
+            ),
         );
 
         expect(response.status).toBe(502);
-        expect(response.headers.get('content-type')).toContain('application/json');
+        expect(response.headers.get('content-type')).toContain(
+            'application/json',
+        );
         expect((await response.json()).error).toContain(
             'Plaid returned a non-JSON response',
         );
