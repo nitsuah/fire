@@ -1,8 +1,5 @@
 import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const { parsePlaidTransactions } = require('../../app/lib/finance-parsing.js');
+import { parsePlaidTransactions } from '../../app/lib/finance-parsing.js';
 
 const PLAID_TOKEN_VERSION = 1;
 
