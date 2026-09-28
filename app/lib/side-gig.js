@@ -457,7 +457,9 @@ async function plaidRequest(path, options = {}) {
     const contentType = res.headers.get('content-type') || '';
     const data = contentType.includes('application/json')
         ? await res.json()
-        : { error: `Server returned a non-JSON response (HTTP ${res.status}).` };
+        : {
+            error: `Server returned a non-JSON response (HTTP ${res.status}).`,
+        };
     return { res, data };
 }
 
@@ -485,7 +487,11 @@ function applyHostedPlaidTransactions(data) {
         (txn) => !removedIds.has(txn.id),
     );
     for (const txn of parsedAdded) {
-        if (!state.spendingTransactions.some((existing) => existing.id === txn.id)) {
+        if (
+            !state.spendingTransactions.some(
+                (existing) => existing.id === txn.id,
+            )
+        ) {
             state.spendingTransactions.push(txn);
         }
     }
@@ -504,9 +510,7 @@ async function checkPlaidConnection() {
     try {
         const { res, data } = await plaidRequest('/api/sync/plaid/status');
         if (!res.ok)
-            throw new Error(
-                data.error || 'Unable to check Plaid status.',
-            );
+            throw new Error(data.error || 'Unable to check Plaid status.');
         if (data.connected) {
             statusEl.textContent = `Status: Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''})`;
             statusEl.style.color = 'var(--color-success)';
@@ -565,7 +569,10 @@ function initPlaidLink() {
                                 },
                             });
 
-                        if (!exchangeRes.ok || exchangeData.status !== 'success') {
+                        if (
+                            !exchangeRes.ok ||
+                            exchangeData.status !== 'success'
+                        ) {
                             throw new Error(
                                 exchangeData.error || 'Token exchange failed',
                             );
@@ -581,7 +588,8 @@ function initPlaidLink() {
                         );
                         if (!accountsResult.res.ok)
                             throw new Error(
-                                accountsResult.data.error || 'Account sync failed',
+                                accountsResult.data.error ||
+                                    'Account sync failed',
                             );
                         if (isHostedPlaid()) {
                             applyHostedPlaidAccounts(
@@ -642,7 +650,8 @@ async function loadPlaidSettingsPanel() {
     if (!toggle || !statusEl) return;
     try {
         const { res, data } = await plaidRequest('/api/sync/plaid/status');
-        if (!res.ok) throw new Error(data.error || 'Unable to check Plaid status.');
+        if (!res.ok)
+            throw new Error(data.error || 'Unable to check Plaid status.');
         const syncEnabled = isHostedPlaid()
             ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
             : data.syncEnabled !== false;
