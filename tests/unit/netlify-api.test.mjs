@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { handler } from '../../netlify/functions/fire-api.mjs';
+import handler from '../../netlify/functions/fire-api.mjs';
 
 describe('hosted fire API', () => {
     it('returns JSON for unsupported hosted endpoints', async () => {
