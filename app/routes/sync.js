@@ -1,11 +1,8 @@
 'use strict';
 
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const jsonata = require('jsonata');
 const { DATA_DIR, readState, mutateState } = require('../lib/db');
-const { encrypt, decrypt } = require('../lib/crypto-utils');
 const { integrateWebhookData } = require('../lib/webhook-integration');
 const router = express.Router();
 const ebayRouter = require('./ebay');
@@ -82,55 +79,6 @@ function validateWebhookPayload(type, data) {
         }
     }
     return null;
-}
-
-function getTokenFile(provider) {
-    return path.join(DATA_DIR, `tokens-${provider}.json`);
-}
-
-function loadTokens(provider) {
-    const file = getTokenFile(provider);
-    if (!fs.existsSync(file)) return null;
-    try {
-        const { data: encrypted, lastUpdated } = JSON.parse(
-            fs.readFileSync(file, 'utf8'),
-        );
-        const tokens = JSON.parse(decrypt(encrypted));
-        tokens._tokenLastUpdated = lastUpdated;
-        return tokens;
-    } catch (err) {
-        console.error(`[Sync] Unable to read ${provider} tokens:`, err.message);
-        return null;
-    }
-}
-
-function saveTokens(provider, tokens) {
-    // eslint-disable-next-line no-unused-vars
-    const { _tokenLastUpdated, ...payload } = tokens;
-    const tokenData = {
-        lastUpdated: new Date().toISOString(),
-        data: encrypt(JSON.stringify(payload)),
-    };
-    const file = getTokenFile(provider);
-    const tmp = `${file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(tokenData), { mode: 0o600 });
-    fs.renameSync(tmp, file);
-}
-
-// ─── eBay OAuth ──────────────────────────────────────────────────────────────
-
-// Prefer an explicit EBAY_REDIRECT_URI (required behind any proxy Express
-// can't correctly introspect); otherwise derive scheme+host from the
-// incoming request itself rather than hardcoding http://localhost — when
-// reached through the Caddy HTTPS front door (config/Caddyfile, which sets
-// X-Forwarded-Proto on reverse_proxy) with `trust proxy` enabled (see
-// server.js), req.protocol correctly reports "https" instead of bypassing
-// TLS by hardcoding the app's own plain-HTTP loopback port.
-function defaultEbayRedirectUri(req) {
-    return (
-        process.env.EBAY_REDIRECT_URI ||
-        `${req.protocol}://${req.get('host')}/api/sync/ebay/callback`
-    );
 }
 
 router.post('/templates', async (req, res) => {
