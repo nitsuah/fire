@@ -227,7 +227,10 @@ window.fetchVehicleEstimate = async function (id) {
             const result = await fetchJson(
                 `/api/vehicles/${encodeURIComponent(id)}/estimate`,
             );
-            if (!result.ok) throw new Error(result.data.error || 'Estimate failed');
+            if (!result.ok)
+                throw new Error(
+                    result.data.error || 'Estimate failed',
+                );
             data = result.data;
         }
 
