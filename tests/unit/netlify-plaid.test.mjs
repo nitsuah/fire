@@ -1,4 +1,11 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import {
+    describe,
+    expect,
+    it,
+    vi,
+    beforeEach,
+    afterEach,
+} from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -146,7 +153,6 @@ describe('hosted Plaid Netlify function', () => {
         );
     });
 });
-
 
 describe('Netlify routing', () => {
     it('preserves the Plaid route splat when rewriting to the function', () => {
