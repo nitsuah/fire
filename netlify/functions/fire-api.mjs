@@ -7,14 +7,13 @@ import { aggregateEvmWalletValue } from '../../app/lib/ens-wallet-lookup.js';
 import { loadChains, refreshWalletBalance } from '../../app/lib/web3-prices.js';
 
 function json(statusCode, body) {
-    return {
-        statusCode,
+    return new Response(JSON.stringify(body), {
+        status: statusCode,
         headers: {
-            'Content-Type': 'application/json; charset=utf-8',
+            'Content-Type': 'application/json',
             'Cache-Control': 'no-store',
         },
-        body: JSON.stringify(body),
-    };
+    });
 }
 
 function routePath(raw) {
