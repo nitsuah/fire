@@ -149,6 +149,40 @@ function positionEstimateOverlay(btn) {
     }
 }
 
+function estimateVehicleDepreciationInBrowser(vehicle) {
+    const purchasePrice = Number(vehicle.purchasePrice);
+    const parsedYear = parseInt(vehicle.year);
+    if (!Number.isFinite(purchasePrice) || purchasePrice <= 0 || !parsedYear) return null;
+    const age = Math.max(0, new Date().getFullYear() - parsedYear);
+    let retention = 1;
+    for (let y = 0; y < age; y++) {
+        if (y === 0) retention *= 0.8;
+        else if (y === 1) retention *= 0.85;
+        else if (y < 5) retention *= 0.88;
+        else if (y < 10) retention *= 0.92;
+        else retention *= 0.95;
+    }
+    const expectedMiles = age * 12000;
+    const excessMiles = (Number(vehicle.mileage) || 0) - expectedMiles;
+    const mileageAdj = Math.max(-0.15, Math.min(0.15, (-excessMiles / 10000) * 0.01));
+    const conditionAdj =
+        vehicle.condition === 'Excellent' ? 0.05 :
+        vehicle.condition === 'Fair' ? -0.05 :
+        vehicle.condition === 'Poor' ? -0.15 : 0;
+    const value = Math.round(purchasePrice * retention * (1 + mileageAdj + conditionAdj));
+    return {
+        estimated: true,
+        value,
+        low: Math.round(value * 0.88),
+        high: Math.round(value * 1.12),
+        retentionPct: Math.round(retention * 100),
+        age,
+        source: 'depreciation-model',
+        citation: 'Edmunds / iSeeCars average depreciation schedule',
+        note: `Standard depreciation for a ${age}-year-old vehicle from ${purchasePrice.toLocaleString()} purchase price. Adjusted for mileage.`,
+    };
+}
+
 window.fetchVehicleEstimate = async function (id) {
     const btn = document.getElementById(`veh-est-btn-${id}`);
     if (!btn) return;
@@ -159,11 +193,30 @@ window.fetchVehicleEstimate = async function (id) {
     overlay.style.display = 'none';
 
     try {
-        const res = await fetch(
-            `/api/vehicles/${encodeURIComponent(id)}/estimate`,
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Estimate failed');
+        const vehicle = state.vehicles.find((v) => v.id === id);
+        if (!vehicle) throw new Error('Vehicle not found.');
+        let data;
+        if (typeof syncedRevision === 'undefined' || syncedRevision === null) {
+            const depreciation = estimateVehicleDepreciationInBrowser(vehicle);
+            if (!depreciation && !vehicle.vin) {
+                throw new Error('Vehicle needs a purchase price or VIN to estimate value.');
+            }
+            data = {
+                depreciation,
+                market: null,
+                suggestedValue: depreciation?.value || vehicle.currentValue || 0,
+                range: depreciation
+                    ? { low: depreciation.low, high: depreciation.high }
+                    : null,
+                vinInfo: null,
+            };
+        } else {
+            const result = await fetchJson(
+                `/api/vehicles/${encodeURIComponent(id)}/estimate`,
+            );
+            if (!result.ok) throw new Error(result.data.error || 'Estimate failed');
+            data = result.data;
+        }
 
         const rows = [];
 
@@ -230,7 +283,20 @@ window.fetchVehicleEstimate = async function (id) {
 
 window.acceptVehicleEstimate = async function (id, value, source) {
     try {
-        const res = await fetch(
+        const idx = state.vehicles.findIndex((v) => v.id === id);
+        if (idx === -1) throw new Error('Vehicle not found.');
+        if (typeof syncedRevision === 'undefined' || syncedRevision === null) {
+            state.vehicles[idx] = {
+                ...state.vehicles[idx],
+                currentValue: Number(value),
+                valueLastRefreshed: new Date().toISOString(),
+                valueSource: source || 'estimate',
+            };
+            await saveState();
+            refreshAllUI();
+            return;
+        }
+        const result = await fetchJson(
             `/api/vehicles/${encodeURIComponent(id)}/accept-estimate`,
             {
                 method: 'POST',
@@ -238,15 +304,11 @@ window.acceptVehicleEstimate = async function (id, value, source) {
                 body: JSON.stringify({ value, source }),
             },
         );
-        if (!res.ok) {
-            const d = await res.json();
-            alert(d.error || 'Failed to update value');
+        if (!result.ok) {
+            alert(result.data.error || 'Failed to update value');
             return;
         }
-        const updated = await res.json();
-        const idx = state.vehicles.findIndex((v) => v.id === id);
-        if (idx !== -1)
-            state.vehicles[idx] = { ...state.vehicles[idx], ...updated };
+        state.vehicles[idx] = { ...state.vehicles[idx], ...result.data };
         refreshAllUI();
     } catch (err) {
         alert(err.message);
