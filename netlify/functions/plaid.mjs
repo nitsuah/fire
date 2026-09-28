@@ -34,7 +34,8 @@ function plaidHeaders() {
 
 function encryptionKey() {
     const master = process.env.SYNC_MASTER_KEY;
-    if (!master) throw new Error('SYNC_MASTER_KEY is required for hosted Plaid.');
+    if (!master)
+        throw new Error('SYNC_MASTER_KEY is required for hosted Plaid.');
     return crypto.createHash('sha256').update(master).digest();
 }
 
@@ -102,7 +103,9 @@ async function plaidPost(path, body) {
         data = JSON.parse(text);
     } catch {
         throw Object.assign(
-            new Error(`Plaid returned a non-JSON response (HTTP ${res.status}).`),
+            new Error(
+                `Plaid returned a non-JSON response (HTTP ${res.status}).`,
+            ),
             { status: 502 },
         );
     }
@@ -346,9 +349,13 @@ async function transactions(token) {
 
 export default async function handler(req) {
     try {
-        if (!plaidConfigured()) return json(503, { error: 'Plaid not configured.' });
+        if (!plaidConfigured())
+            return json(503, { error: 'Plaid not configured.' });
         const url = new URL(req.url);
-        const path = url.pathname.replace('/.netlify/functions/plaid', '').replace(/^\/api/, '') || '/';
+        const path =
+            url.pathname
+                .replace('/.netlify/functions/plaid', '')
+                .replace(/^\/api/, '') || '/';
         const method = req.method || 'GET';
 
         if (path === '/sync/plaid/create-link-token' && method === 'POST') {
