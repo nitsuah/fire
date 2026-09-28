@@ -451,7 +451,7 @@ VEHICLE_VALUE_PROVIDER=dataone
 | Fidelity CSV (manual) | ✅ Live | None |
 | Chase / CapOne CSV (manual) | ✅ Live | None |
 | eBay fee calculator (manual) | ✅ Live | None |
-| eBay Order API | ✅ Live | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_REFRESH_TOKEN` |
+| eBay Order API | ✅ Live | `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `SYNC_MASTER_KEY` |
 | Etherscan (ETH wallets) | ❌ Phase 1 | `ETHERSCAN_API_KEY` |
 | BscScan (BNB wallets) | ❌ Phase 1 | `BSCSCAN_API_KEY` |
 | Polygonscan (MATIC wallets) | ❌ Phase 1 | `POLYGONSCAN_API_KEY` |
