@@ -519,9 +519,10 @@ async function checkPlaidConnection() {
             statusEl.style.color = 'var(--text-muted)';
         }
         if (typeof setFidelityImportDisabled === 'function') {
-            setFidelityImportDisabled(
-                data.connected && data.syncEnabled !== false,
-            );
+            const syncEnabled = isHostedPlaid()
+                ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
+                : data.syncEnabled !== false;
+            setFidelityImportDisabled(data.connected && syncEnabled);
         }
     } catch (err) {
         statusEl.textContent = `Status: Error - ${err.message}`;
