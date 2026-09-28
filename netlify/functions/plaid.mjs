@@ -1,5 +1,8 @@
 import crypto from 'node:crypto';
-import { parsePlaidTransactions } from '../../app/lib/finance-parsing.js';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { parsePlaidTransactions } = require('../../app/lib/finance-parsing.js');
 
 const PLAID_TOKEN_VERSION = 1;
 
@@ -114,9 +117,10 @@ async function plaidPost(path, body) {
             new Error(
                 data.error_message ||
                     data.display_message ||
+                    data.error_code ||
                     `Plaid request failed (HTTP ${res.status}).`,
             ),
-            { status: 502 },
+            { status: 502, plaid: data },
         );
     }
     return data;
@@ -437,6 +441,8 @@ export default async function handler(req) {
         console.error('[Netlify Plaid] request failed:', err);
         return json(err.status || 500, {
             error: err.message || 'Hosted Plaid request failed.',
+            ...(err.plaid?.error_code ? { code: err.plaid.error_code } : {}),
+            ...(err.plaid?.request_id ? { requestId: err.plaid.request_id } : {}),
         });
     }
 }
