@@ -14,7 +14,7 @@
 **fire is a local-first FIRE tracker for people who want one place to see the whole picture without handing their financial database to a hosted dashboard.**
 
 - **Your data, your machine** — the primary datastore is local `db.json`, with optional AES-256-GCM encryption at rest.
-- **Read-only integrations** — eBay, Plaid, blockchain providers, market-data providers, Drive backup, and vehicle lookup are used for tracking/sync; fire does not initiate financial transactions.
+- **Read-only integrations** — eBay, Plaid, blockchain providers, market-data providers, and vehicle lookup are used for tracking/sync; fire does not initiate financial transactions. **Drive backup** writes encrypted backups to Google Drive.
 - **Everything counts** — investments, cash, CDs, real estate, vehicles, precious metals, crypto wallets, income, expenses, and side-hustle sales live in one net-worth model.
 - **Ask your LLM** — the built-in MCP server exposes read-only financial tools for Claude/other MCP clients without giving the model trading or write access to external accounts.
 - **Built for investigation, not just a number** — projections, scenario stress tests, diversification signals, tax-loss alerts, rebalancing what-ifs, CD maturities, emergency runway, and side-gig tax tagging turn raw balances into context.
