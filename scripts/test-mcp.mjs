@@ -67,16 +67,43 @@ try {
     console.log(toolNames.map((n) => `  • ${n}`).join('\n'), '\n');
 
     // 2. Call each tool and validate response
+    const netWorthResult = await client.callTool({
+        name: 'get_net_worth',
+        arguments: {},
+    });
+    const netWorth = assertOk(netWorthResult, 'get_net_worth');
+    const allocationMap = {
+        equities: netWorth?.breakdown?.equities,
+        cash: netWorth?.breakdown?.cash,
+        cds: netWorth?.breakdown?.cds,
+        realEstate: netWorth?.breakdown?.realEstate,
+        vehicles: netWorth?.breakdown?.vehicles,
+        otherAssets: netWorth?.breakdown?.otherAssets,
+        crypto: netWorth?.breakdown?.cryptoWallets,
+    };
+    const soldAsset = Object.entries(allocationMap).find(
+        ([, value]) => Number(value) > 0,
+    )?.[0];
     const argumentsByTool = {
         get_swr_sensitivity: { swr: 4, marketDipPercent: 10 },
-        simulate_rebalance: {
-            soldAsset: 'equities',
-            amount: 1,
-            boughtAsset: 'cash',
-        },
+        ...(soldAsset
+            ? {
+                  simulate_rebalance: {
+                      soldAsset,
+                      amount: Math.min(1, allocationMap[soldAsset]),
+                      boughtAsset: soldAsset === 'cash' ? 'equities' : 'cash',
+                  },
+              }
+            : {}),
     };
 
     for (const name of EXPECTED_TOOLS) {
+        if (name === 'simulate_rebalance' && !soldAsset) {
+            console.log(
+                '── simulate_rebalance ── skipped: no non-zero asset balance in test state',
+            );
+            continue;
+        }
         const result = await client.callTool({
             name,
             arguments: argumentsByTool[name] || {},
