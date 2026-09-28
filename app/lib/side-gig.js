@@ -223,10 +223,16 @@ async function consumeEbayOauthFragment() {
             await runEbaySyncNow({ silent: true });
             showSideGigToast('eBay connected and sales synced.');
         } catch (err) {
-            showSideGigToast(`eBay connected, but the first sync failed: ${err.message}`, 'error');
+            showSideGigToast(
+                `eBay connected, but the first sync failed: ${err.message}`,
+                'error',
+            );
         }
     } else {
-        showSideGigToast(`eBay connection failed (${match[2]}). Please try again.`, 'error');
+        showSideGigToast(
+            `eBay connection failed (${match[2]}). Please try again.`,
+            'error',
+        );
     }
 }
 
@@ -351,19 +357,26 @@ async function runEbaySyncNow({ silent = false } = {}) {
         const data = isBrowserOnlyMode()
             ? await syncEbayViaFunction()
             : await syncEbayViaServer();
-        if (!data) throw new Error('eBay connection is no longer valid. Reconnect eBay and try again.');
+        if (!data)
+            throw new Error(
+                'eBay connection is no longer valid. Reconnect eBay and try again.',
+            );
         if (statusEl) {
             statusEl.textContent = `Status: Connected · Synced ${data.added} new order${data.added === 1 ? '' : 's'} of ${data.fetched} fetched`;
             statusEl.style.color = 'var(--color-success)';
         }
-        if (!silent) showSideGigToast(`eBay sync complete — ${data.added} new order${data.added === 1 ? '' : 's'}.`);
+        if (!silent)
+            showSideGigToast(
+                `eBay sync complete — ${data.added} new order${data.added === 1 ? '' : 's'}.`,
+            );
         if (typeof refreshAllUI === 'function') refreshAllUI();
     } catch (err) {
         if (statusEl) {
             statusEl.textContent = `Sync failed: ${err.message}`;
             statusEl.style.color = 'var(--color-danger)';
         }
-        if (!silent) showSideGigToast(`eBay sync failed: ${err.message}`, 'error');
+        if (!silent)
+            showSideGigToast(`eBay sync failed: ${err.message}`, 'error');
     } finally {
         btn.textContent = original;
         loadEbaySettingsPanel();
