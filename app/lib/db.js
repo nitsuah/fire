@@ -85,7 +85,9 @@ function initDatabase() {
         fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     if (!fs.existsSync(DB_FILE)) {
-        fs.writeFileSync(DB_FILE, JSON.stringify(defaultState(), null, 2));
+        const json = JSON.stringify(defaultState(), null, 2);
+        const content = MASTER_KEY ? encryptState(json) : json;
+        fs.writeFileSync(DB_FILE, content);
     }
 }
 

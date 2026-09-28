@@ -6,6 +6,86 @@ updated: 2026-09-27
 
 ---
 
+## Priority product/reliability pass — Sep 27, 2026
+
+These items came from the current browser/production pass. **P0** items are correctness, data-integrity, security, or broken-primary-workflow issues; **P1** items are high-value UX/integration work that should follow immediately.
+
+### P0 — Data integrity & broken primary workflows
+
+- [ ] **Fix gold/silver spot-price API 400/non-JSON failures**
+  - Priority: P0. The UI currently surfaces errors such as `Server returned a non-JSON response (HTTP 400)`.
+  - Scope: trace the browser → route → provider request, return structured JSON errors on every failure path, validate metal/weight inputs before provider calls, and preserve the existing metals.dev → Yahoo fallback.
+  - Acceptance Criteria: refresh works for gold and silver with and without `METALS_API_KEY`; provider HTML/plain-text failures never reach `response.json()`; unit + route tests cover malformed provider responses and fallback behavior.
+
+- [ ] **Fix wallet/ENS refresh and return aggregate cross-chain USD value**
+  - Priority: P0. ENS/name or wallet-ID refresh can currently surface `Unexpected token 'B', "Bad reques"... is not valid JSON`.
+  - Scope: make every wallet/crypto refresh endpoint return JSON on errors; resolve ENS to an address before chain fan-out; refresh all supported chains for the resolved address; aggregate successful chain values into a single USD total while retaining per-chain detail/warnings.
+  - Acceptance Criteria: an ENS name such as `nitsuah.eth` (or any valid ENS) resolves once, all supported EVM chains are evaluated, the account displays one aggregate USD value plus per-chain balances, partial chain failures do not invalidate successful chains, and browser tests assert JSON error handling.
+
+- [ ] **Google Drive backup round-trip verification before rollout**
+  - Priority: P0. Backup is financial data and must not be considered production-safe until encryption, upload, download, and decryption have been proven end-to-end.
+  - Scope: browser-first Google login/connect flow; link the Drive account before exposing backup actions; encrypt locally/server-side with the existing AES-256-GCM design; add an explicit test fixture that uploads an encrypted backup, downloads it, decrypts it, and byte/structure-compares the restored payload.
+  - Acceptance Criteria: Google OAuth connect works from the browser; Drive only receives ciphertext; a fresh restore succeeds against a real or deterministic mocked Drive round trip; corrupted/wrong-key backups fail cleanly; UI cannot report a successful backup until the round-trip verification succeeds.
+  - Rollout gate: do not change the README/marketing copy to imply backup safety beyond the tested guarantees until this passes.
+
+### P1 — Integration & workflow improvements
+
+- [ ] **CoinTracker MCP integration for wallet discovery/investigation**
+  - Priority: P1.
+  - Goal: reduce manual wallet tracking and avoid unnecessary direct API calls by using CoinTracker's MCP integration where users already have wallet/activity data available.
+  - Scope: define a provider boundary rather than coupling wallet UI directly to CoinTracker; use CoinTracker for discovery/investigation/history where appropriate, retain fire's normalized wallet/account model and aggregate USD value, and fall back to existing direct chain providers when CoinTracker is unavailable or incomplete.
+  - Acceptance Criteria: provider capabilities and data ownership are documented; duplicate calls are avoided; users can see provider/source and last-refresh state; no private keys or signing capability are ever requested; existing direct-chain tracking remains functional.
+
+- [ ] **Move eBay connector into the Side Hustle Hub**
+  - Priority: P1.
+  - Scope: replace the Settings-first connector workflow with a compact eBay integration card in the Side Hustle Hub showing connection state, last sync, sync action, and disconnect/reconnect controls.
+  - Acceptance Criteria: the connector is discoverable from the ledger workflow without visiting Settings; existing OAuth/security behavior is preserved; Settings can retain a lightweight link/status entry rather than being the primary control surface.
+
+- [ ] **Make eBay connection completion a toast + automatic sync**
+  - Priority: P1.
+  - Current behavior: browser callback shows `eBay connected. Use Settings → eBay Order Sync → Sync Now.`
+  - Scope: replace the alert with the site's toast system; immediately start a sync after a successful connection; show progress/success/failure without requiring navigation to Settings.
+  - Acceptance Criteria: successful OAuth returns to the Side Hustle Hub, a non-blocking toast appears, sync starts automatically, and the ledger refreshes when complete. Failure leaves the connector connected and gives an actionable retry state.
+
+- [ ] **Normalize Side Gig Ledger form controls to the site theme**
+  - Priority: P1.
+  - Scope: style `Tag all`, tax-tag selects, and item-cost inputs using the existing CSS tokens/components rather than browser/default white controls.
+  - Acceptance Criteria: controls match dark/glass theme in desktop and mobile, retain accessible focus/contrast states, and have Playwright coverage at the Side Hustle Hub viewport sizes.
+
+### P1 — GitHub README / promo parity
+
+- [ ] **README feature-parity and product-story refresh**
+  - Priority: P1.
+  - Add/verify the user-facing story for: Side Gig tax tagging + cost basis, automatic eBay order sync, encrypted Google Drive backup, vehicle valuation, local-first/privacy model, browser demo, MCP/LLM workflow, diversification/rebalancing/harvesting insights, notifications/alerts, and CSV/Plaid ingestion.
+  - Remove or qualify claims that depend on rollout-gated work (especially Google Drive).
+  - Add a compact architecture/privacy diagram or equivalent visual explanation and a clearer “Try it / Run it / Ask Claude” path.
+  - Acceptance Criteria: every prominent README feature is either demonstrably shipped or explicitly labeled planned; no stale environment/setup instructions remain; links to the live demo, docs, security model, and integration setup are easy to find.
+
+- [ ] **Promo ledger audit**
+  - Priority: P1.
+  - `promo/features.md` currently has several shipped capabilities marked as capture-needed and several important current capabilities absent from the primary promo story.
+  - Add capture targets for tax tagging, automatic eBay sync, Google OAuth backup/linking, wallet aggregate value, vehicle valuation, notification/alert UX, and the Side Hustle Hub connector.
+  - Reconcile chain count/source-of-truth claims across README, FEATURES, promo, and `config/chains.json`.
+  - Acceptance Criteria: promo claims map one-to-one to README/FEATURES capabilities and no promo asset claims behavior that the product does not currently provide.
+
+- [ ] **Feature-discovery pass for the GitHub landing page**
+  - Priority: P1.
+  - Add a short “What makes fire different” section emphasizing local-first storage, encrypted-at-rest option, read-only external integrations, MCP/LLM access, and the breadth of tracked asset types.
+  - Surface screenshots/demo links and the production/security posture above the long architecture details.
+  - Keep README scannable: move implementation-heavy material below the product story rather than deleting technical documentation.
+
+### Follow-up architecture / tests
+
+- [ ] **Add provider-contract tests for all price/balance integrations**
+  - Priority: P1. A common failure mode is a provider returning HTML/plain text while the browser assumes JSON.
+  - Acceptance Criteria: shared fetch helper tests assert content-type/body diagnostics; route tests assert JSON error envelopes; provider adapters never leak raw HTML into user-facing errors.
+
+- [ ] **Add sync-health state to the Side Hustle Hub**
+  - Priority: P1. Pair the eBay move with the roadmap's broader connector-health direction: connected/disconnected, last attempt, last success, and actionable failure.
+  - Acceptance Criteria: eBay exposes last sync state in the hub; architecture can later extend the same component to Plaid, wallets, and Drive.
+
+---
+
 ## In Progress
 
 _None — PR #111 (Product/UI + reliability pass) merged 2026-09-19; see
