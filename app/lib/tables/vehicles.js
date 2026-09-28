@@ -228,9 +228,7 @@ window.fetchVehicleEstimate = async function (id) {
                 `/api/vehicles/${encodeURIComponent(id)}/estimate`,
             );
             if (!result.ok)
-                throw new Error(
-                    result.data.error || 'Estimate failed',
-                );
+                throw new Error(result.data.error || 'Estimate failed');
             data = result.data;
         }
 
