@@ -36,7 +36,7 @@
 # Plaid has a browser-local encrypted token flow on the static deploy.
 [[redirects]]
   from = "/api/sync/plaid/*"
-  to = "/.netlify/functions/plaid"
+  to = "/.netlify/functions/plaid/:splat"
   status = 200
   force = true
 
