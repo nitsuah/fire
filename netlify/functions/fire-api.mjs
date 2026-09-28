@@ -73,8 +73,10 @@ async function handleEns(name) {
             chains,
         });
     } catch (err) {
-        if (err?.code === 'NOT_FOUND') return json(404, { error: err.message });
-        if (err?.code === 'INVALID_NAME') return json(400, { error: err.message });
+        if (err?.code === 'NOT_FOUND')
+            return json(404, { error: err.message });
+        if (err?.code === 'INVALID_NAME')
+            return json(400, { error: err.message });
         console.error('[Netlify API] ENS lookup failed:', err);
         return json(502, {
             error: 'ENS lookup failed. Please try again shortly.',
@@ -112,8 +114,7 @@ export async function handler(event) {
         // Never let a missing hosted API route fall through to Netlify's HTML
         // 404 page. Browser callers use JSON parsing and must receive JSON.
         return json(404, {
-            error:
-                'This API endpoint is not available in the hosted browser deployment.',
+            error: 'This API endpoint is not available in the hosted browser deployment.',
             path: `/api${path.startsWith('/') ? path : `/${path}`}`,
         });
     } catch (err) {
