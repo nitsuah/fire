@@ -210,7 +210,10 @@ window.fetchVehicleEstimate = async function (id) {
         const vehicle = state.vehicles.find((v) => v.id === id);
         if (!vehicle) throw new Error('Vehicle not found.');
         let data;
-        if (typeof syncedRevision === 'undefined' || syncedRevision === null) {
+        if (
+            typeof syncedRevision === 'undefined' ||
+            syncedRevision === null
+        ) {
             const depreciation = estimateVehicleDepreciationInBrowser(vehicle);
             if (!depreciation && !vehicle.vin) {
                 throw new Error(
@@ -220,7 +223,8 @@ window.fetchVehicleEstimate = async function (id) {
             data = {
                 depreciation,
                 market: null,
-                suggestedValue: depreciation?.value || vehicle.currentValue || 0,
+                suggestedValue:
+                    depreciation?.value || vehicle.currentValue || 0,
                 range: depreciation
                     ? { low: depreciation.low, high: depreciation.high }
                     : null,
