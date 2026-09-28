@@ -1077,7 +1077,7 @@
                                 <button type="button" class="primary-btn mt-3 w-full" id="btn-save-ebay-sale">Log Sale to Side Income History</button>
                             </div>
                             
-                            <p class="text-muted mt-4" style="font-size:11px;">Connect your eBay account in Settings → eBay Order Sync.</p>
+                            <p class="text-muted mt-4" style="font-size:11px;">Connect your eBay account from the eBay Sales Sync card in the Side Hustle Hub.</p>
                             </div><!-- /calc-panel-ebay -->
 
                             <!-- Etsy Panel -->
@@ -1155,6 +1155,32 @@
                             <h2 class="card-title">Side Hustle Accelerators</h2>
                             <p class="card-subtitle">Ideas with guides and videos to get moving. They rotate on their own — dismiss the ones that aren't for you.</p>
                             <div id="hustle-accelerator" class="hustle-accelerator mt-3"></div>
+                        </div>
+
+                        <!-- eBay Connector -->
+                        <div class="card glass-card span-3 sidegig-ebay-card">
+                            <div class="card-title-row">
+                                <div>
+                                    <h2 class="card-title">eBay Sales Sync</h2>
+                                    <p class="card-subtitle">Connect eBay once and pull completed orders straight into this ledger.</p>
+                                </div>
+                                <span class="badge-type badge-cd sidegig-ebay-badge">Seller API</span>
+                            </div>
+                            <div class="sidegig-ebay-row">
+                                <div>
+                                    <div id="ebay-sync-status" class="sidegig-ebay-status">Status: Disconnected</div>
+                                    <p class="text-muted sidegig-ebay-help">Your eBay connection is kept separate from your financial database. Orders are deduplicated before import.</p>
+                                </div>
+                                <div class="sidegig-ebay-actions">
+                                    <button type="button" class="action-btn" id="btn-ebay-oauth">Connect eBay</button>
+                                    <button type="button" class="backup-btn" id="btn-sidegig-ebay-sync">↻ Sync Now</button>
+                                </div>
+                            </div>
+                            <label class="checkbox-label sidegig-ebay-toggle">
+                                <input type="checkbox" id="setting-ebay-sync-enabled" onchange="toggleEbaySyncSetting()" checked>
+                                <span class="checkmark"></span>
+                                Enable automatic eBay order sync
+                            </label>
                         </div>
 
                         <!-- Side Gig Ledger -->
@@ -1476,34 +1502,6 @@
                             </div>
                             <button class="action-btn mt-3" onclick="requestNotificationPermission()">Request Permission</button>
                             <p id="notification-permission-status" class="text-muted mt-2" style="font-size:12px;">Checking permission...</p>
-                        </div>
-
-                        <!-- eBay Sync -->
-                        <div class="card glass-card">
-                            <h2 class="card-title">eBay Order Sync</h2>
-                            <p class="card-subtitle">Connect your eBay seller account, then automatically pull completed orders into your Side Income ledger.</p>
-                                <!-- eBay Connector -->
-                                <div class="api-connector-panel mt-3">
-                                    <div class="connector-header">
-                                        <h3 style="font-size:13px; margin-bottom:8px;">🔌 eBay Seller API</h3>
-                                        <span class="badge-type badge-cd" style="font-size:9px; padding:2px 6px;">Sandbox</span>
-                                    </div>
-                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Sync completed orders to your Side Income ledger automatically.</p>
-                                    <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-ebay-oauth">
-                                        <span>Sync Profile with eBay API</span>
-                                    </button>
-                                    <div id="ebay-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Disconnected</div>
-                                </div>
-
-                            <div class="form-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="setting-ebay-sync-enabled" onchange="toggleEbaySyncSetting()">
-                                    <span class="checkmark"></span>
-                                    Enable eBay order sync
-                                </label>
-                            </div>
-                            <button class="backup-btn mt-2" id="btn-ebay-sync-now" onclick="runEbaySyncNow()">🔄 Sync Now</button>
-                            <p id="settings-ebay-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
                         </div>
 
                         <!-- Plaid Transaction Sync -->

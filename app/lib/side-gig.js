@@ -3,6 +3,25 @@
    Depends on globals: state, saveState, refreshAllUI, formatCurrency
    ========================================================================== */
 
+function showSideGigToast(message, type = 'success') {
+    let toast = document.getElementById('sidegig-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'sidegig-toast';
+        toast.className = 'app-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.dataset.type = type;
+    toast.classList.add('is-visible');
+    clearTimeout(showSideGigToast.timer);
+    showSideGigToast.timer = setTimeout(() => {
+        toast.classList.remove('is-visible');
+    }, 4500);
+}
+
 function initSideGigManager() {
     const priceInput = document.getElementById('ebay-price');
     const costInput = document.getElementById('ebay-cost');
@@ -183,7 +202,7 @@ async function fetchEbayStatus() {
 }
 
 // ebay-callback returns to /#ebay-connected=<blob> or /#ebay-error=<code>.
-function consumeEbayOauthFragment() {
+async function consumeEbayOauthFragment() {
     const hash = window.location.hash || '';
     const match = hash.match(/^#ebay-(connected|error)=(.*)$/);
     if (!match) return;
@@ -198,9 +217,22 @@ function consumeEbayOauthFragment() {
     }
     if (match[1] === 'connected') {
         writeEbayLocal(EBAY_TOKEN_KEY, decodeURIComponent(match[2]));
-        alert('eBay connected. Use Settings → eBay Order Sync → Sync Now.');
+        showSideGigToast('eBay connected — syncing your sales…');
+        await checkEbayConnection();
+        try {
+            await runEbaySyncNow({ silent: true });
+            showSideGigToast('eBay connected and sales synced.');
+        } catch (err) {
+            showSideGigToast(
+                `eBay connected, but the first sync failed: ${err.message}`,
+                'error',
+            );
+        }
     } else {
-        alert(`eBay connection failed (${match[2]}). Please try again.`);
+        showSideGigToast(
+            `eBay connection failed (${match[2]}). Please try again.`,
+            'error',
+        );
     }
 }
 
@@ -312,9 +344,11 @@ async function toggleEbaySyncSetting() {
     loadEbaySettingsPanel();
 }
 
-async function runEbaySyncNow() {
-    const btn = document.getElementById('btn-ebay-sync-now');
-    const statusEl = document.getElementById('settings-ebay-status');
+async function runEbaySyncNow({ silent = false } = {}) {
+    const btn =
+        document.getElementById('btn-sidegig-ebay-sync') ||
+        document.getElementById('btn-ebay-sync-now');
+    const statusEl = document.getElementById('ebay-sync-status');
     if (!btn) return;
     btn.disabled = true;
     const original = btn.textContent;
@@ -323,17 +357,26 @@ async function runEbaySyncNow() {
         const data = isBrowserOnlyMode()
             ? await syncEbayViaFunction()
             : await syncEbayViaServer();
-        if (!data) return;
+        if (!data)
+            throw new Error(
+                'eBay connection is no longer valid. Reconnect eBay and try again.',
+            );
         if (statusEl) {
-            statusEl.textContent = `Synced ${data.added} new order${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
+            statusEl.textContent = `Status: Connected · Synced ${data.added} new order${data.added === 1 ? '' : 's'} of ${data.fetched} fetched`;
             statusEl.style.color = 'var(--color-success)';
         }
+        if (!silent)
+            showSideGigToast(
+                `eBay sync complete — ${data.added} new order${data.added === 1 ? '' : 's'}.`,
+            );
         if (typeof refreshAllUI === 'function') refreshAllUI();
     } catch (err) {
         if (statusEl) {
             statusEl.textContent = `Sync failed: ${err.message}`;
             statusEl.style.color = 'var(--color-danger)';
         }
+        if (!silent)
+            showSideGigToast(`eBay sync failed: ${err.message}`, 'error');
     } finally {
         btn.textContent = original;
         loadEbaySettingsPanel();

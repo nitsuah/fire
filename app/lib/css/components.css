@@ -1483,3 +1483,123 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+
+/* Side Hustle Hub — connector and ledger controls */
+.sidegig-ebay-card {
+    border-color: rgba(139, 92, 246, 0.28);
+}
+.sidegig-ebay-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    padding: var(--space-md);
+    background: rgba(15, 23, 42, 0.38);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+}
+.sidegig-ebay-status {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--color-success);
+}
+.sidegig-ebay-help {
+    margin: 4px 0 0;
+    font-size: 11px;
+    max-width: 620px;
+}
+.sidegig-ebay-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+}
+.sidegig-ebay-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+}
+.sidegig-ebay-toggle {
+    margin-top: var(--space-sm);
+}
+.sg-toolbar select,
+.sg-basis-select,
+.sg-cost-input {
+    width: 100%;
+    min-height: 34px;
+    background-color: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    outline: none;
+    transition: var(--transition-fast);
+}
+.sg-toolbar select {
+    width: auto;
+    min-width: 210px;
+    padding: 6px 30px 6px 9px;
+}
+.sg-basis-select {
+    min-width: 150px;
+    padding: 5px 28px 5px 8px;
+}
+.sg-cost-input {
+    width: 120px;
+    padding: 5px 8px;
+    text-align: right;
+}
+.sg-toolbar select:focus,
+.sg-basis-select:focus,
+.sg-cost-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+.app-toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 10000;
+    max-width: min(420px, calc(100vw - 40px));
+    padding: 11px 15px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    background: rgba(15, 23, 42, 0.96);
+    color: var(--text-main);
+    box-shadow: var(--shadow-lg, 0 12px 30px rgba(0, 0, 0, 0.25));
+    font-size: var(--text-sm);
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+.app-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.app-toast[data-type="error"] {
+    border-color: rgba(248, 113, 113, 0.55);
+}
+@media (max-width: 700px) {
+    .sidegig-ebay-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .sidegig-ebay-actions {
+        width: 100%;
+    }
+    .sidegig-ebay-actions > button {
+        flex: 1;
+    }
+    .sg-toolbar select {
+        min-width: 0;
+        width: 100%;
+    }
+    .sg-basis-select {
+        min-width: 120px;
+    }
+    .sg-cost-input {
+        width: 100px;
+    }
+}

@@ -274,7 +274,7 @@ window.refreshCryptoAccount = async function (id) {
         if (idx !== -1) {
             state.customAccounts[idx] = {
                 ...state.customAccounts[idx],
-                ...accountFields,
+                ...data,
             };
         }
         refreshAllUI();
@@ -295,16 +295,50 @@ window.refreshMetalAccount = async function (id) {
         b.textContent = 'Refreshing…';
     });
     try {
-        const { ok, data } = await fetchJson(
-            `/api/accounts/${encodeURIComponent(id)}/refresh-metal`,
-            { method: 'POST' },
-        );
-        if (!ok) {
-            alert(data.error || 'Refresh failed');
-            return;
+        let data;
+        if (typeof syncedRevision === 'undefined' || syncedRevision === null) {
+            const account = state.customAccounts.find((a) => a.id === id);
+            if (
+                !account?.metalType ||
+                !Number.isFinite(Number(account.weightOz))
+            ) {
+                throw new Error(
+                    'Metal account is missing its metal type or weight.',
+                );
+            }
+            const { ok, data: metalData } = await fetchJson(
+                `/api/metals?metal=${encodeURIComponent(account.metalType)}`,
+            );
+            if (!ok) {
+                throw new Error(
+                    metalData.error || 'Metal price lookup failed.',
+                );
+            }
+            const quote = metalData[account.metalType];
+            if (!quote || !Number.isFinite(Number(quote.pricePerOz))) {
+                throw new Error(quote?.error || 'No metal price was returned.');
+            }
+            data = {
+                ...account,
+                value:
+                    Number(account.weightOz) *
+                    Number(quote.pricePerOz) *
+                    Number(quote.payoutPct || 1),
+                valueLastRefreshed: new Date().toISOString(),
+                valueSource: quote.source || 'metals',
+            };
+        } else {
+            const result = await fetchJson(
+                `/api/accounts/${encodeURIComponent(id)}/refresh-metal`,
+                { method: 'POST' },
+            );
+            if (!result.ok) {
+                alert(result.data.error || 'Refresh failed');
+                return;
+            }
+            const { metalResult: _mr, ...accountFields } = result.data;
+            data = accountFields;
         }
-
-        const { metalResult: _mr, ...accountFields } = data;
         const idx = state.customAccounts.findIndex((a) => a.id === id);
         if (idx !== -1) {
             state.customAccounts[idx] = {
