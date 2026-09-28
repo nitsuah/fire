@@ -458,8 +458,8 @@ async function plaidRequest(path, options = {}) {
     const data = contentType.includes('application/json')
         ? await res.json()
         : {
-            error: `Server returned a non-JSON response (HTTP ${res.status}).`,
-        };
+              error: `Server returned a non-JSON response (HTTP ${res.status}).`,
+          };
     return { res, data };
 }
 
