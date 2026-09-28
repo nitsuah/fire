@@ -24,18 +24,19 @@ Capture assets live in `promo/out/capture/crops/` after a run. Anything marked *
 | 16 | eBay OAuth order sync | "Sales import themselves." | *(needs capture)* Settings → eBay | README · eBay Order Sync | |
 | 17 | CSV imports (Fidelity, Chase, Capital One, eBay) | "Drop in the CSV. Parsed locally." | *(needs capture)* unified add form | README · CSV Imports | site |
 | 18 | Plaid sync | "Or connect it and forget it." | *(needs capture)* Settings connectors | README · Plaid integration | site |
-| 19 | Web3 wallets, 8 chains | "ENS name in, balance out." | `hrow-4.png` (vitalik.eth); *(needs capture)* wallet form | README · Crypto, Web3 wallet tracking | |
+| 19 | Web3 wallets, 8 registered chains | "ENS name in, balance out." | `hrow-4.png` (vitalik.eth); *(needs capture)* wallet form | README · Crypto, Web3 wallet tracking | |
 | 20 | Gold/silver at live spot | "Gold by the ounce, at today's spot." | `hrow-5.png` (Gold Eagles · 2oz) | README · Precious metals | |
 | 21 | Vehicle VIN decode | "Paste a VIN, get the car." | *(needs capture)* vehicle form | README · Vehicle VIN decode | |
 | 22 | Expenses + auto-categorization | "Where the money actually goes." | `tab-expenses.png` | README · CSV Imports (Expenses) | |
 | 23 | Live prices over SSE | "Prices update while you watch." | "Live · Today +$…" badge on `dash.png` | README · Yahoo Finance prices | site |
 | 24 | AES-256-GCM encryption at rest | "Encrypted at rest." | Text/stat card | README · SYNC_MASTER_KEY | site |
-| 25 | Encrypted Google Drive backup | "Backed up, still encrypted." | Text | README · Google Drive encrypted backup | site |
+| 25 | Encrypted Google Drive backup | "Backed up, still encrypted." | Text | README · Google Drive encrypted backup | *(needs live round-trip verification)* |
 | 26 | Security defaults (API key, loopback, Caddy HTTPS, CSP/SRI, rate limits) | "Locked down by default." | Text/stat card | README · Security headers, HTTPS | site |
 | 27 | Read-only to real accounts | "Never moves a cent." | Stat "0 transactions ever initiated" | README intro | site |
-| 28 | PWA + mobile layout | "Pocket-sized." | *(needs capture)* 390px viewport | README · Responsive shell | |
+| 28 | Responsive mobile layout | "Pocket-sized." | *(needs capture)* 390px viewport | README · Responsive shell | |
 | 29 | Browser-only live demo | "Try it live." | `lifefire.netlify.app` (outro, large) | netlify.toml, README | brag-22s, site |
 | 30 | REST API | "Everything's an endpoint." | Text / curl snippet | README · REST API | |
+| 31 | PWA packaging | "Install fire." | *(future capture)* install prompt / offline shell | docs/FEATURES.md · Planned | |
 
 ## Spots
 

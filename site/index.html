@@ -35,7 +35,7 @@
     <div class="hero-body">
       <p class="eyebrow">Financial Independence, Retire Early</p>
       <h1 class="hero-headline">When can I retire?<br /><span class="emph">Now you'll know.</span></h1>
-      <p class="hero-sub"><strong>fire</strong> is a <strong>self-hosted</strong> retirement tracker. Your whole net worth, retirement projections and portfolio insights in one dashboard, plus a read-only MCP server so Claude can answer questions about it. Your data stays in one JSON file <strong>on your machine</strong>.</p>
+      <p class="hero-sub"><strong>fire</strong> is a <strong>self-hosted</strong> retirement tracker. Your whole net worth, retirement projections, portfolio insights and side-hustle tracking in one dashboard, plus a 16-tool read-only MCP server so Claude can answer questions about it. Your data stays in one JSON file <strong>on your machine</strong>.</p>
       <div class="hero-ctas">
         <a class="btn btn-primary" href="#install">Run it locally</a>
         <a class="btn btn-ghost" href="https://lifefire.netlify.app/" target="_blank" rel="noopener">Try the live demo <span aria-hidden="true">↗</span></a>
@@ -81,11 +81,12 @@
     <div class="feature-copy">
       <p class="kicker">Everything counts</p>
       <h2 id="f2">Yes, even the <span class="emph emph-amber">Malibu.</span></h2>
-      <p>Savings, brokerage, Roth, CDs with maturity dates, gold and silver by the troy ounce at live spot, ENS names and 0x wallets across eight chains, real estate, and the car. Negative equity counts too.</p>
+      <p>Savings, brokerage, Roth, CDs with maturity dates, gold and silver by the troy ounce at live spot, ENS names and 0x wallets across eight registered chains, real estate, and the car. Negative equity counts too.</p>
       <ul class="ticks">
         <li>Fidelity, Chase, Capital One and eBay CSV import, parsed locally</li>
-        <li>Plaid sync for positions and transactions</li>
+        <li>Plaid sync for positions and transactions on self-hosted deployments</li>
         <li>NHTSA VIN decode for vehicles</li>
+        <li>eBay OAuth order sync and side-gig tax tracking</li>
       </ul>
     </div>
     <div class="shot-stack">
@@ -132,7 +133,7 @@
     <div class="mcp-copy">
       <p class="kicker">Built for Claude</p>
       <h2 id="mcp-title">Ask Claude about <span class="emph">your money.</span></h2>
-      <p>An MCP server ships in the box, and <code>.mcp.json</code> connects it automatically when you open the repo in Claude Code. It exposes 16 tools, all read-only: a test fails the build if a write tool ever appears.</p>
+      <p>An MCP server ships in the box, and <code>.mcp.json</code> connects it automatically when you open the repo in Claude Code. It exposes 16 tools, all read-only: the smoke test now checks the full registered tool set, while the unit suite also guards against writes.</p>
       <ul class="tools" aria-label="MCP tools">
         <li>fire_status_summary</li><li>get_net_worth</li><li>get_net_worth_trend</li><li>get_accounts</li>
         <li>get_portfolio</li><li>get_cds</li><li>get_expenses</li><li>get_projection_settings</li>
@@ -159,7 +160,7 @@
     <h2 id="priv-title">Your money. <span class="emph">Your machine.</span></h2>
     <div class="priv-grid">
       <div><h3>Local by default</h3><p>Everything lives in <code>data/db.json</code>, written atomically. It is read-only toward your real accounts and never initiates a transaction.</p></div>
-      <div><h3>Encrypted at rest</h3><p>Set <code>SYNC_MASTER_KEY</code> for AES-256-GCM encryption of the database, plus optional encrypted Google Drive backups.</p></div>
+      <div><h3>Encrypted at rest</h3><p>Set <code>SYNC_MASTER_KEY</code> for AES-256-GCM encryption of the database, plus optional encrypted Google Drive backups. Drive uses Google OAuth on the self-hosted server; the upload/download/decrypt round-trip remains a rollout gate.</p></div>
       <div><h3>Locked down</h3><p>API-key auth is on by default. The app port binds to loopback only, and Caddy serves HTTPS. CSP headers, SRI-pinned scripts and rate limits are applied to every response.</p></div>
     </div>
   </section>
@@ -185,7 +186,7 @@ docker compose up -d">Copy</button><code><span class="prompt">$</span> git clone
 
 <footer class="foot">
   <span><span aria-hidden="true">🔥</span> fire · MIT licensed · made by <a href="https://github.com/nitsuah" target="_blank" rel="noopener">@nitsuah</a></span>
-  <span class="foot-note">Screenshots show a demo portfolio. Not financial advice.</span>
+  <span class="foot-note">Screenshots show a demo portfolio. Plaid is currently self-hosted; the Netlify browser deployment exposes eBay Functions today, with Plaid Functions still planned. Not financial advice.</span>
 </footer>
 
 <script src="main.js" defer></script>
