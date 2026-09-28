@@ -35,3 +35,8 @@ async function fetchJson(url, options) {
     }
     return { ok: res.ok, status: res.status, data };
 }
+
+// Allow unit tests to import this classic browser script without changing browser behavior.
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { fetchJson };
+}
