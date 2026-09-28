@@ -1,4 +1,7 @@
-import { resolveMetalValue, METAL_PAYOUT_PCT } from '../../app/lib/metals-prices.js';
+import {
+    resolveMetalValue,
+    METAL_PAYOUT_PCT,
+} from '../../app/lib/metals-prices.js';
 import { isEnsName, resolveEnsAddress } from '../../app/lib/ens-resolver.js';
 import { aggregateEvmWalletValue } from '../../app/lib/ens-wallet-lookup.js';
 import { loadChains, refreshWalletBalance } from '../../app/lib/web3-prices.js';
@@ -109,7 +112,8 @@ export async function handler(event) {
         // Never let a missing hosted API route fall through to Netlify's HTML
         // 404 page. Browser callers use JSON parsing and must receive JSON.
         return json(404, {
-            error: 'This API endpoint is not available in the hosted browser deployment.',
+            error:
+                'This API endpoint is not available in the hosted browser deployment.',
             path: `/api${path.startsWith('/') ? path : `/${path}`}`,
         });
     } catch (err) {
