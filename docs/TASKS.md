@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · **Tasks** · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-09-27
+updated: 2026-09-28
 
 ---
 
@@ -12,15 +12,11 @@ These items came from the current browser/production pass. **P0** items are corr
 
 ### P0 — Data integrity & broken primary workflows
 
-- [ ] **Fix gold/silver spot-price API 400/non-JSON failures**
-  - Priority: P0. The UI currently surfaces errors such as `Server returned a non-JSON response (HTTP 400)`.
-  - Scope: trace the browser → route → provider request, return structured JSON errors on every failure path, validate metal/weight inputs before provider calls, and preserve the existing metals.dev → Yahoo fallback.
-  - Acceptance Criteria: refresh works for gold and silver with and without `METALS_API_KEY`; provider HTML/plain-text failures never reach `response.json()`; unit + route tests cover malformed provider responses and fallback behavior.
+- [x] **Fix gold/silver spot-price API 400/non-JSON failures**
+  - Completed in PR #138: hosted Netlify routing reaches the metals handler; Yahoo fallback uses browser-like headers plus query1/query2 fallback; non-JSON upstream failures become structured JSON errors.
 
-- [ ] **Fix wallet/ENS refresh and return aggregate cross-chain USD value**
-  - Priority: P0. ENS/name or wallet-ID refresh can currently surface `Unexpected token 'B', "Bad reques"... is not valid JSON`.
-  - Scope: make every wallet/crypto refresh endpoint return JSON on errors; resolve ENS to an address before chain fan-out; refresh all supported chains for the resolved address; aggregate successful chain values into a single USD total while retaining per-chain detail/warnings.
-  - Acceptance Criteria: an ENS name such as `nitsuah.eth` (or any valid ENS) resolves once, all supported EVM chains are evaluated, the account displays one aggregate USD value plus per-chain balances, partial chain failures do not invalidate successful chains, and browser tests assert JSON error handling.
+- [x] **Fix wallet/ENS refresh and return aggregate cross-chain USD value**
+  - Completed in PR #138: hosted ENS resolution fans out across supported EVM chains, aggregates successful USD values, and returns JSON-safe errors while preserving partial results.
 
 - [ ] **Google Drive backup round-trip verification before rollout**
   - Priority: P0. Backup is financial data and must not be considered production-safe until encryption, upload, download, and decryption have been proven end-to-end.
@@ -30,16 +26,25 @@ These items came from the current browser/production pass. **P0** items are corr
 
 ### P1 — Integration & workflow improvements
 
+- [ ] **Serve Plaid on the Netlify deploy (lifefire.netlify.app)**
+  - Priority: P1. Hosted browser deployment must support the same Plaid Link → exchange → accounts → positions → transactions workflow as Express; a JSON-safe 404/status stub is not sufficient.
+  - Scope: split Plaid from app/routes/sync.js, extract transport-agnostic Plaid operations, expose the required Netlify Functions/rewrites, preserve encrypted browser/local-first token handling, and keep Express behavior unchanged.
+  - Acceptance Criteria: Link, public-token exchange, account/position refresh, and transaction sync all work on lifefire.netlify.app; each hosted function has unit coverage; browser smoke coverage exercises the hosted routes; no /api/sync/plaid/* request can fall through to an HTML Netlify 404.
+
+- [ ] **Split app/routes/sync.js (942 LOC): separate eBay and Plaid routes, extract the transactions handler (F-20260916-05)**
+  - Priority: P1. The route grew with the eBay/Plaid work and should be decomposed before another integration lands.
+  - Scope: separate eBay and Plaid route modules, extract the Plaid transactions handler, keep webhook/template routes isolated, and move shared provider logic into transport-agnostic modules where practical.
+  - Findings ledger: F-20260916-05 · BV 5 · TC 3 · RR 5 · size 3.
+  - Acceptance Criteria: existing Express route paths and response contracts remain unchanged; Plaid and eBay tests pass; transaction pagination/cursor semantics remain unchanged; hosted Netlify Plaid functions can reuse the extracted Plaid operations without importing the Express router.
+
 - [ ] **CoinTracker MCP integration for wallet discovery/investigation**
   - Priority: P1.
   - Goal: reduce manual wallet tracking and avoid unnecessary direct API calls by using CoinTracker's MCP integration where users already have wallet/activity data available.
   - Scope: define a provider boundary rather than coupling wallet UI directly to CoinTracker; use CoinTracker for discovery/investigation/history where appropriate, retain fire's normalized wallet/account model and aggregate USD value, and fall back to existing direct chain providers when CoinTracker is unavailable or incomplete.
   - Acceptance Criteria: provider capabilities and data ownership are documented; duplicate calls are avoided; users can see provider/source and last-refresh state; no private keys or signing capability are ever requested; existing direct-chain tracking remains functional.
 
-- [ ] **Move eBay connector into the Side Hustle Hub**
-  - Priority: P1.
-  - Scope: replace the Settings-first connector workflow with a compact eBay integration card in the Side Hustle Hub showing connection state, last sync, sync action, and disconnect/reconnect controls.
-  - Acceptance Criteria: the connector is discoverable from the ledger workflow without visiting Settings; existing OAuth/security behavior is preserved; Settings can retain a lightweight link/status entry rather than being the primary control surface.
+- [x] **Move eBay connector into the Side Hustle Hub**
+  - Completed in PR #138: eBay is now a compact Side Hustle Hub integration with connection state and manual/automatic sync controls.
 
 - [ ] **Make eBay connection completion a toast + automatic sync**
   - Priority: P1.
