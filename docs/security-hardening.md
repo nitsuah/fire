@@ -140,6 +140,8 @@ For LAN IP access with a self-signed cert, add the IP to the Caddyfile and pin t
 
 #### H-03: SESSION_SECRET Fail-Fast
 
+**Status: Partial.** Production already rejects an unset secret and the `change_me_in_production` placeholder. The remaining gap is rejecting the explicit `a-very-secret-key` fallback, which is still used by the session middleware.
+
 **Gap:** Server starts with a hardcoded fallback `'a-very-secret-key'` — a warning is logged but the server runs.  
 **Fix:** Fail-fast in production mode.
 
@@ -197,6 +199,8 @@ app.use(
 ---
 
 #### H-06: Webhook sideGigLedger Field Validation
+
+**Status: Partial.** The webhook validates required-key presence for ledger entries, but it does not yet enforce field types/formats. Full schema validation remains open.
 
 **Gap:** Incoming `sideGigLedger` entries from webhooks are merged into state without field-level checks — any shape is accepted.  
 **Fix:** Validate required fields before merging:
