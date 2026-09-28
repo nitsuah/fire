@@ -73,8 +73,7 @@ async function handleEns(name) {
             chains,
         });
     } catch (err) {
-        if (err?.code === 'NOT_FOUND')
-            return json(404, { error: err.message });
+        if (err?.code === 'NOT_FOUND') return json(404, { error: err.message });
         if (err?.code === 'INVALID_NAME') return json(400, { error: err.message });
         console.error('[Netlify API] ENS lookup failed:', err);
         return json(502, {
