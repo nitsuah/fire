@@ -351,7 +351,7 @@ async function runEbaySyncNow({ silent = false } = {}) {
         const data = isBrowserOnlyMode()
             ? await syncEbayViaFunction()
             : await syncEbayViaServer();
-        if (!data) return;
+        if (!data) throw new Error('eBay connection is no longer valid. Reconnect eBay and try again.');
         if (statusEl) {
             statusEl.textContent = `Status: Connected · Synced ${data.added} new order${data.added === 1 ? '' : 's'} of ${data.fetched} fetched`;
             statusEl.style.color = 'var(--color-success)';
