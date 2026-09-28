@@ -58,30 +58,35 @@ describe('hosted Plaid Netlify function', () => {
     it(
         'exchanges a public token and returns an opaque encrypted browser token',
         async () => {
-        vi.stubGlobal(
-            'fetch',
-            vi.fn().mockResolvedValue(
-                new Response(
-                    JSON.stringify({
-                        access_token: 'access-secret',
-                        item_id: 'item-1',
-                    }),
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue(
+                    new Response(
+                        JSON.stringify({
+                            access_token: 'access-secret',
+                            item_id: 'item-1',
+                        }),
+                        {
+                            status: 200,
+                            headers: { 'content-type': 'application/json' },
+                        },
+                    ),
+                ),
+            );
+
+            const { default: handler } = await import(
+                '../../netlify/functions/plaid.mjs',
+            );
+            const response = await handler(
+                new Request(
+                    'https://lifefire.netlify.app/api/sync/plaid/exchange',
                     {
-                        status: 200,
+                        method: 'POST',
                         headers: { 'content-type': 'application/json' },
+                        body: JSON.stringify({ public_token: 'public-sandbox' }),
                     },
                 ),
-            ),
-        );
-
-        const { default: handler } = await import('../../netlify/functions/plaid.mjs');
-        const response = await handler(
-            new Request('https://lifefire.netlify.app/api/sync/plaid/exchange', {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ public_token: 'public-sandbox' }),
-            }),
-        );
+            );
 
             expect(response.status).toBe(200);
             const body = await response.json();
