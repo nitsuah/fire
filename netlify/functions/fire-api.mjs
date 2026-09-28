@@ -91,7 +91,7 @@ export default async function handler(req) {
             return await handleMetals(url);
         }
 
-        const ensMatch = path.match(/^\\/wallets\\/ens\\/([^/]+)$/);
+        const ensMatch = path.match(/^\/wallets\/ens\/([^/]+)$/);
         if (ensMatch && method === 'GET') {
             return await handleEns(decodeURIComponent(ensMatch[1]));
         }
