@@ -246,20 +246,20 @@ test.describe('Financial Overview — unified add form', () => {
         await expect(page.locator('#ua-panel-account')).toBeHidden();
     });
 
-    test('API integrations moved from Financial Overview to Settings', async ({
+    test('eBay integration lives in Side Hustle Hub while Plaid stays in Settings', async ({
         page,
     }) => {
-        await page.locator('#btn-tab-financial').click();
+        await page.locator('#btn-tab-sidegig').click();
         await expect(
-            page.locator('#tab-financial #btn-plaid-link'),
-        ).toHaveCount(0);
+            page.locator('#tab-sidegig #btn-ebay-oauth'),
+        ).toBeVisible();
         await expect(
-            page.locator('#tab-financial #btn-ebay-oauth'),
-        ).toHaveCount(0);
+            page.locator('#tab-sidegig #btn-sidegig-ebay-sync'),
+        ).toBeVisible();
         await page.locator('#btn-tab-settings').click();
         await expect(
             page.locator('#tab-settings #btn-ebay-oauth'),
-        ).toBeVisible();
+        ).toHaveCount(0);
         await expect(
             page.locator('#tab-settings #btn-plaid-link'),
         ).toBeVisible();
@@ -618,7 +618,7 @@ test.describe('Summary bar — desktop keeps the full metrics', () => {
 });
 
 test.describe('Settings — card order and color-coded grouping', () => {
-    test('cards are ordered Projection Defaults, Notifications, eBay, Plaid, Privacy, Data Management, Google Drive, Danger Zone', async ({
+    test('cards are ordered Projection Defaults, Notifications, Plaid, Privacy, Data Management, Google Drive, Danger Zone', async ({
         page,
     }) => {
         await page.locator('#btn-tab-settings').click();
@@ -629,7 +629,6 @@ test.describe('Settings — card order and color-coded grouping', () => {
         expect(normalized).toEqual([
             'Projection Defaults',
             'Notifications & Alerts',
-            'eBay Order Sync',
             'Plaid Transaction Sync',
             'Privacy & Terms',
             'Data Management',
