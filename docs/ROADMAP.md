@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · **Roadmap** · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-09-24
+updated: 2026-09-27
 
 > 2027 planning reset (2026-09-24): 2026 Q2 (foundation & calculators), 2026 Q3 (side hustle hub), all shipped
 > 2026 Q4 items, and every shipped PROD Phase 1–3 item were removed from this file — see [FEATURES](./FEATURES.md)
@@ -13,7 +13,7 @@ updated: 2026-09-24
 
 ## 2027 Q1 — PROD Phase 1 Close-out + Carried Items 🧪
 
-PROD Phase 1 (real-time data connectors: eBay API, Web3 wallets across 9 chains, vehicle value, encrypted Drive backup) is shipped; these are what's left, plus open 2026 Q4 items.
+PROD Phase 1 (real-time data connectors: eBay API, Web3 wallets across 8 registered chains, vehicle value, encrypted Drive backup) is shipped; these are what's left, plus open 2026 Q4 items.
 
 - [ ] Model real eBay marginal fee brackets per category (needs per-category cap/tier data) *(PROD Phase 1)*
 - [ ] Tax drag estimation engine (custom federal/state brackets, capital gains) *(carried from 2026 Q4; side-gig tax tagging #120 is a first input)*
