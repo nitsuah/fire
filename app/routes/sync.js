@@ -3,25 +3,12 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const jsonata = require('jsonata');
 const { DATA_DIR, readState, mutateState } = require('../lib/db');
 const { encrypt, decrypt } = require('../lib/crypto-utils');
 const { integrateWebhookData } = require('../lib/webhook-integration');
-const {
-    isConfigured: eBayConfigured,
-    buildAuthorizationUrl,
-    exchangeCodeForTokens,
-    refreshAccessToken,
-    isApiSyncedEbayEntry,
-} = require('../lib/ebay-connector');
-const {
-    handleDeletionChallenge,
-    handleDeletionNotification,
-    syncOrders,
-} = require('../lib/ebay-handlers');
-
 const router = express.Router();
+const ebayRouter = require('./ebay');
 const plaidRouter = require('./plaid');
 const SUPPORTED_WEBHOOK_TYPES = [
     'accounts',
@@ -569,6 +556,7 @@ router.post('/webhook/:templateId', async (req, res) => {
     }
 });
 
+router.use(ebayRouter);
 router.use(plaidRouter);
 
 module.exports = router;
