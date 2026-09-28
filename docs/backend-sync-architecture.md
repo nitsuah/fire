@@ -76,7 +76,7 @@ The webhook receiver is fully implemented and in production use.
 | Blockstream | Bitcoin balance | None | — |
 | Solana RPC | SOL balance | None | — |
 | CoinGecko | Crypto token USD prices | None (optional key) | env var only |
-| Google Drive | Encrypted db.json backup | Service account / OAuth | `config/gdrive-sa.json` (gitignored) |
+| Google Drive | Encrypted db.json backup | Google OAuth 2.0 | `GDRIVE_CLIENT_ID` / `GDRIVE_CLIENT_SECRET` + `SYNC_MASTER_KEY` |
 | NHTSA VPIC | VIN decode / vehicle identity | None | — |
 
 ### Phase 2 Providers (Q2 2027)
