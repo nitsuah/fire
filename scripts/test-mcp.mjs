@@ -67,15 +67,20 @@ try {
     console.log(toolNames.map((n) => `  • ${n}`).join('\n'), '\n');
 
     // 2. Call each tool and validate response
-    for (const name of EXPECTED_TOOLS) {
-        const argumentsByTool = {
+    const argumentsByTool = {
         get_swr_sensitivity: { swr: 4, marketDipPercent: 10 },
-        simulate_rebalance: { soldAsset: 'equities', amount: 1, boughtAsset: 'cash' },
+        simulate_rebalance: {
+            soldAsset: 'equities',
+            amount: 1,
+            boughtAsset: 'cash',
+        },
     };
-    const result = await client.callTool({
-        name,
-        arguments: argumentsByTool[name] || {},
-    });
+
+    for (const name of EXPECTED_TOOLS) {
+        const result = await client.callTool({
+            name,
+            arguments: argumentsByTool[name] || {},
+        });
         const data = assertOk(result, name);
         console.log(`── ${name} ──`);
         console.log(JSON.stringify(data, null, 2), '\n');
