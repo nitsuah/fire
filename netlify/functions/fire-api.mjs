@@ -1,10 +1,8 @@
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const {
-    resolveMetalValue,
-    METAL_PAYOUT_PCT,
-} = require('../../app/lib/metals-prices.js');
+const { resolveMetalValue, METAL_PAYOUT_PCT } =
+    require('../../app/lib/metals-prices.js');
 const { isEnsName, resolveEnsAddress } =
     require('../../app/lib/ens-resolver.js');
 const { aggregateEvmWalletValue } =
