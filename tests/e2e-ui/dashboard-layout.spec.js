@@ -257,9 +257,9 @@ test.describe('Financial Overview — unified add form', () => {
             page.locator('#tab-sidegig #btn-sidegig-ebay-sync'),
         ).toBeVisible();
         await page.locator('#btn-tab-settings').click();
-        await expect(
-            page.locator('#tab-settings #btn-ebay-oauth'),
-        ).toHaveCount(0);
+        await expect(page.locator('#tab-settings #btn-ebay-oauth')).toHaveCount(
+            0,
+        );
         await expect(
             page.locator('#tab-settings #btn-plaid-link'),
         ).toBeVisible();
