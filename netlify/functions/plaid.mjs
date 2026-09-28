@@ -81,9 +81,7 @@ function unseal(value) {
     } catch {
         throw Object.assign(
             new Error('Invalid or expired hosted Plaid token.'),
-            {
-            code: 'INVALID_TOKEN',
-            },
+            { code: 'INVALID_TOKEN' },
         );
     }
 }
