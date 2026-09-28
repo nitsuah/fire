@@ -20,6 +20,14 @@ const EXPECTED_TOOLS = [
     'get_expenses',
     'get_projection_settings',
     'get_side_gig_income',
+    'get_side_gig_tax_summary',
+    'get_wallets',
+    'get_concentration_risk',
+    'get_diversification_score',
+    'get_swr_sensitivity',
+    'simulate_rebalance',
+    'get_emergency_runway',
+    'get_net_worth_trend',
 ];
 
 function assertOk(result, toolName) {
@@ -50,6 +58,9 @@ try {
     // 1. Verify all tools are advertised
     const { tools } = await client.listTools();
     const toolNames = tools.map((t) => t.name);
+    if (tools.length !== EXPECTED_TOOLS.length) {
+        throw new Error(`Expected ${EXPECTED_TOOLS.length} MCP tools, got ${tools.length}`);
+    }
     const missing = EXPECTED_TOOLS.filter((n) => !toolNames.includes(n));
     if (missing.length) throw new Error(`Missing tools: ${missing.join(', ')}`);
     console.log(`── tools/list (${tools.length} tools) ──`);
@@ -63,7 +74,7 @@ try {
         console.log(JSON.stringify(data, null, 2), '\n');
     }
 
-    console.log('✓ All 8 MCP tools tested successfully.');
+    console.log(`✓ All ${EXPECTED_TOOLS.length} MCP tools tested successfully.`);
     await client.close();
     process.exit(0);
 } catch (err) {
