@@ -11,7 +11,10 @@
    ========================================================================== */
 
 const METALS_DEV_BASE = 'https://api.metals.dev/v1';
-const YAHOO_CHART_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
+const YAHOO_CHART_BASES = [
+    'https://query1.finance.yahoo.com/v8/finance/chart',
+    'https://query2.finance.yahoo.com/v8/finance/chart',
+];
 
 // Yahoo's COMEX futures symbol for each metal, quoted in USD per troy
 // ounce — used as the free spot-price proxy (Yahoo's XAUUSD=X/XAGUSD=X
@@ -55,25 +58,39 @@ async function fetchFromMetalsDev(metal, apiKey) {
 
 async function fetchFromYahoo(metal) {
     const symbol = YAHOO_METAL_SYMBOLS[metal];
-    const res = await fetch(
-        `${YAHOO_CHART_BASE}/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
-        { signal: AbortSignal.timeout(8000) },
+    let lastError = null;
+    for (const base of YAHOO_CHART_BASES) {
+        try {
+            const res = await fetch(
+                `${base}/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+                {
+                    headers: {
+                        'User-Agent':
+                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/154 Safari/537.36',
+                    },
+                    signal: AbortSignal.timeout(8000),
+                },
+            );
+            if (!res.ok) {
+                lastError = new Error(
+                    `Yahoo spot price fetch failed (${res.status})`,
+                );
+                continue;
+            }
+            const data = await res.json();
+            const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+            if (Number.isFinite(price)) {
+                return { pricePerOz: price, source: 'yahoo-finance' };
+            }
+            lastError = new Error(`Yahoo returned no price for ${symbol}`);
+        } catch (err) {
+            lastError = err;
+        }
+    }
+    throw Object.assign(
+        lastError || new Error(`Yahoo returned no price for ${symbol}`),
+        { status: 502 },
     );
-    if (!res.ok) {
-        throw Object.assign(
-            new Error(`Yahoo spot price fetch failed (${res.status})`),
-            { status: 502 },
-        );
-    }
-    const data = await res.json();
-    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    if (!Number.isFinite(price)) {
-        throw Object.assign(
-            new Error(`Yahoo returned no price for ${symbol}`),
-            { status: 502 },
-        );
-    }
-    return { pricePerOz: price, source: 'yahoo-finance' };
 }
 
 // Resolves a metal ('gold'|'silver') + weight in troy ounces to a USD
