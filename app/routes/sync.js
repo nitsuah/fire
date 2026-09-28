@@ -2,7 +2,7 @@
 
 const express = require('express');
 const jsonata = require('jsonata');
-const { DATA_DIR, readState, mutateState } = require('../lib/db');
+const { readState, mutateState } = require('../lib/db');
 const { integrateWebhookData } = require('../lib/webhook-integration');
 const router = express.Router();
 const ebayRouter = require('./ebay');
