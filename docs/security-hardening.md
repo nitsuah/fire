@@ -3,8 +3,8 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 >
-> **Status:** Planning  
-> **Last updated:** 2026-08-12  
+> **Status:** Current hardening reference  
+> **Last updated:** 2026-09-27  
 > **See also:** [docs/prod-plan.md](prod-plan.md)
 
 ---
@@ -46,19 +46,19 @@ If you intend to expose this server beyond `localhost`, complete all Critical an
 | event delegation pattern | `data-*` attributes for onclick — no inline handler injection | Strong |
 | Yahoo Finance abort | `AbortSignal.timeout(10000)` on all fetch calls | Moderate |
 
-### Gaps
+### Remaining Gaps
 
 | Gap | Impact | Severity |
 |---|---|---|
-| No rate limiting on /api/* | Brute-force API key, DoS | High |
-| SESSION_SECRET fallback to hardcoded string | Session forgery if default used | High |
-| Webhook payload size unlimited | Memory exhaustion via large payload | Medium |
-| Webhook sideGigLedger entries unvalidated | Schema confusion injection | Medium |
+
+| `SESSION_SECRET` still has a development fallback | Session forgery if production is misconfigured | High |
+
+
 | 6 moderate/critical dev dependency vulns | Supply chain (dev only, not shipped) | Low |
-| No npm audit in CI | Vuln regressions undetected | Low |
-| No MCP audit log | No visibility into LLM data access patterns | Low |
+
+
 | JSONata not statically analyzed | Complex expression side effects | Low |
-| No key rotation mechanism | Key compromise requires manual db.json reconstruction | Low |
+
 
 ---
 
