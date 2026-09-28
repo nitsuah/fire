@@ -56,7 +56,12 @@ function seal(payload) {
 function unseal(value) {
     try {
         const [version, ivText, tagText, dataText] = String(value || '').split('.');
-        if (Number(version) !== PLAID_TOKEN_VERSION || !ivText || !tagText || !dataText) {
+        if (
+            Number(version) !== PLAID_TOKEN_VERSION ||
+            !ivText ||
+            !tagText ||
+            !dataText
+        ) {
             throw new Error('Invalid hosted Plaid token.');
         }
         const decipher = crypto.createDecipheriv(
@@ -71,9 +76,12 @@ function unseal(value) {
         ]).toString('utf8');
         return JSON.parse(plaintext);
     } catch {
-        throw Object.assign(new Error('Invalid or expired hosted Plaid token.'), {
+        throw Object.assign(
+            new Error('Invalid or expired hosted Plaid token.'),
+            {
             code: 'INVALID_TOKEN',
-        });
+            },
+        );
     }
 }
 
@@ -100,7 +108,11 @@ async function plaidPost(path, body) {
     }
     if (!res.ok) {
         throw Object.assign(
-            new Error(data.error_message || data.display_message || `Plaid request failed (HTTP ${res.status}).`),
+            new Error(
+                data.error_message ||
+                    data.display_message ||
+                    `Plaid request failed (HTTP ${res.status}).`,
+            ),
             { status: 502 },
         );
     }
@@ -109,10 +121,17 @@ async function plaidPost(path, body) {
 
 async function requireToken(req, body) {
     const raw = tokenFromRequest(req, body);
-    if (!raw) throw Object.assign(new Error('No hosted Plaid connection. Link an account first.'), { status: 401 });
+    if (!raw)
+        throw Object.assign(
+            new Error('No hosted Plaid connection. Link an account first.'),
+            { status: 401 },
+        );
     const token = unseal(raw);
     if (!Array.isArray(token.items) || token.items.length === 0) {
-        throw Object.assign(new Error('No hosted Plaid connection. Link an account first.'), { status: 401 });
+        throw Object.assign(
+            new Error('No hosted Plaid connection. Link an account first.'),
+            { status: 401 },
+        );
     }
     return token;
 }
@@ -175,9 +194,19 @@ async function accounts(token) {
         }
     }
     if (failedItems.length && !accounts.length) {
-        throw Object.assign(new Error('All Plaid account fetches failed. Existing data preserved.'), { status: 502 });
+        throw Object.assign(
+            new Error(
+                'All Plaid account fetches failed. Existing data preserved.',
+            ),
+            { status: 502 },
+        );
     }
-    return { accounts, warning: failedItems.length ? `${failedItems.length} item(s) failed; partial data returned.` : null };
+    return {
+        accounts,
+        warning: failedItems.length
+            ? `${failedItems.length} item(s) failed; partial data returned.`
+            : null,
+    };
 }
 
 async function positions(token) {
@@ -206,9 +235,19 @@ async function positions(token) {
         }
     }
     if (failedItems.length && !positions.length) {
-        throw Object.assign(new Error('All Plaid position fetches failed. Existing data preserved.'), { status: 502 });
+        throw Object.assign(
+            new Error(
+                'All Plaid position fetches failed. Existing data preserved.',
+            ),
+            { status: 502 },
+        );
     }
-    return { positions, warning: failedItems.length ? `${failedItems.length} item(s) failed; partial data returned.` : null };
+    return {
+        positions,
+        warning: failedItems.length
+            ? `${failedItems.length} item(s) failed; partial data returned.`
+            : null,
+    };
 }
 
 async function transactions(token) {
@@ -238,7 +277,9 @@ async function transactions(token) {
                 itemAdded.push(...(data.added || []));
                 itemModified.push(...(data.modified || []));
                 itemRemovedIds.push(
-                    ...(data.removed || []).map((removed) => removed.transaction_id),
+                    ...(data.removed || []).map(
+                        (removed) => removed.transaction_id,
+                    ),
                 );
                 cursor = data.next_cursor || cursor;
                 hasMore = Boolean(data.has_more);
@@ -250,7 +291,10 @@ async function transactions(token) {
         }
 
         if (itemFailed) {
-            if (!failedItems.length) failedItems.push('Transaction pagination exceeded the safety limit.');
+            if (!failedItems.length)
+                failedItems.push(
+                    'Transaction pagination exceeded the safety limit.',
+                );
             updatedItems.push(item);
         } else {
             allAdded.push(...itemAdded);
@@ -262,7 +306,12 @@ async function transactions(token) {
     }
 
     if (failedItems.length && successfulItemCount === 0) {
-        throw Object.assign(new Error('All Plaid transaction fetches failed. Existing data preserved.'), { status: 502 });
+        throw Object.assign(
+            new Error(
+                'All Plaid transaction fetches failed. Existing data preserved.',
+            ),
+            { status: 502 },
+        );
     }
 
     const parsedAdded = parsePlaidTransactions(allAdded);
@@ -319,7 +368,13 @@ export default async function handler(req) {
             });
         }
         if (path === '/sync/plaid/accounts' && method === 'POST') {
-            const token = await requireToken(req, await req.clone().json().catch(() => ({})));
+            const token = await requireToken(
+                req,
+                await req
+                    .clone()
+                    .json()
+                    .catch(() => ({})),
+            );
             const result = await accounts(token);
             return json(200, {
                 status: 'success',
@@ -329,7 +384,13 @@ export default async function handler(req) {
             });
         }
         if (path === '/sync/plaid/positions' && method === 'POST') {
-            const token = await requireToken(req, await req.clone().json().catch(() => ({})));
+            const token = await requireToken(
+                req,
+                await req
+                    .clone()
+                    .json()
+                    .catch(() => ({})),
+            );
             const result = await positions(token);
             return json(200, {
                 status: 'success',
@@ -339,12 +400,17 @@ export default async function handler(req) {
             });
         }
         if (path === '/sync/plaid/transactions' && method === 'POST') {
-            const body = await req.clone().json().catch(() => ({}));
+            const body = await req
+                .clone()
+                .json()
+                .catch(() => ({}));
             const token = await requireToken(req, body);
             const result = await transactions(token);
             return json(200, {
                 status: 'success',
-                fetched: result.transactions.added.length + result.transactions.modified.length,
+                fetched:
+                    result.transactions.added.length +
+                    result.transactions.modified.length,
                 added: result.transactions.added.length,
                 modified: result.transactions.modified.length,
                 removed: result.transactions.removedIds.length,
@@ -361,6 +427,8 @@ export default async function handler(req) {
         return json(404, { error: 'Hosted Plaid endpoint not found.' });
     } catch (err) {
         console.error('[Netlify Plaid] request failed:', err);
-        return json(err.status || 500, { error: err.message || 'Hosted Plaid request failed.' });
+        return json(err.status || 500, {
+            error: err.message || 'Hosted Plaid request failed.',
+        });
     }
 }
