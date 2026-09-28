@@ -17,8 +17,7 @@ function json(statusCode, body) {
     };
 }
 
-function routePath(event) {
-    const raw = event?.path || event?.rawPath || '';
+function routePath(raw) {
     const marker = '/.netlify/functions/fire-api';
     const idx = raw.indexOf(marker);
     if (idx !== -1) return raw.slice(idx + marker.length) || '/';
@@ -83,23 +82,22 @@ async function handleEns(name) {
     }
 }
 
-export async function handler(event) {
+export default async function handler(req) {
     try {
-        const path = routePath(event);
-        const url = new URL(
-            event?.rawUrl || `https://lifefire.netlify.app${event?.path || ''}`,
-        );
+        const url = new URL(req.url);
+        const path = routePath(url.pathname);
+        const method = req.method || 'GET';
 
-        if (path === '/metals' && event.httpMethod === 'GET') {
+        if (path === '/metals' && method === 'GET') {
             return await handleMetals(url);
         }
 
-        const ensMatch = path.match(/^\/wallets\/ens\/([^/]+)$/);
-        if (ensMatch && event.httpMethod === 'GET') {
+        const ensMatch = path.match(/^\\/wallets\\/ens\\/([^/]+)$/);
+        if (ensMatch && method === 'GET') {
             return await handleEns(decodeURIComponent(ensMatch[1]));
         }
 
-        if (path === '/sync/plaid/status' && event.httpMethod === 'GET') {
+        if (path === '/sync/plaid/status' && method === 'GET') {
             return json(200, {
                 connected: false,
                 itemCount: 0,
@@ -110,8 +108,6 @@ export async function handler(event) {
             });
         }
 
-        // Never let a missing hosted API route fall through to Netlify's HTML
-        // 404 page. Browser callers use JSON parsing and must receive JSON.
         return json(404, {
             error: 'This API endpoint is not available in the hosted browser deployment.',
             path: `/api${path.startsWith('/') ? path : `/${path}`}`,
