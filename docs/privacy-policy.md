@@ -80,7 +80,7 @@ fire includes an optional **MCP (Model Context Protocol) server** (`app/mcp-serv
 
 **What the MCP server does:**
 
-- Exposes **8 read-only tools** that allow an AI assistant to query your FIRE data (net worth, accounts, CDs, expenses, projections, portfolio positions, and side gig income).
+- Exposes **16 read-only tools** that allow an AI assistant to query your FIRE data (net worth, trends, accounts, CDs, expenses, projections, portfolio positions, side-gig tax data, wallets, risk/diversification analysis, SWR sensitivity, rebalancing simulations, and emergency runway).
 - Runs as a **local stdio process** spawned by your AI assistant client. It does not bind to a network port or expose any HTTP endpoint.
 - Reads from `data/db.json` only — it has no write access by design (no write tools are registered).
 
