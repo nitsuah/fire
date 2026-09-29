@@ -50,11 +50,15 @@ describe('hosted Plaid Netlify function', () => {
     it('rate-limits hosted Link token creation without an Origin header', async () => {
         vi.stubGlobal(
             'fetch',
-            vi.fn().mockResolvedValue(
-                new Response(JSON.stringify({ link_token: 'link-sandbox' }), {
-                    status: 200,
-                    headers: { 'content-type': 'application/json' },
-                }),
+            vi.fn().mockImplementation(
+                () =>
+                    new Response(
+                        JSON.stringify({ link_token: 'link-sandbox' }),
+                        {
+                            status: 200,
+                            headers: { 'content-type': 'application/json' },
+                        },
+                    ),
             ),
         );
 
