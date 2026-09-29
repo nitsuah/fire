@@ -461,11 +461,7 @@ async function plaidRequest(path, options = {}) {
         : {
               error: `Server returned a non-JSON response (HTTP ${res.status}).`,
           };
-    if (
-        isHostedPlaid() &&
-        data.plaidToken &&
-        !deferHostedTokenPersistence
-    ) {
+    if (isHostedPlaid() && data.plaidToken && !deferHostedTokenPersistence) {
         setHostedPlaidToken(data.plaidToken);
     }
     return { res, data };
