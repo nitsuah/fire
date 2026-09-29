@@ -186,7 +186,7 @@ router.post('/plaid/positions', async (req, res) => {
         }
         if (!failedItems.includes(itemId)) syncedItemIds.push(itemId);
     }
-    if (failedItems.length > 0 && allPositions.length === 0) {
+    if (failedItems.length > 0 && syncedItemIds.length === 0) {
         return res.status(502).json({
             error: 'All Plaid position fetches failed. Existing data preserved.',
             failedCount: failedItems.length,
