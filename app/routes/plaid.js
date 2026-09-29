@@ -98,7 +98,7 @@ router.post('/plaid/create-link-token', async (req, res) => {
 });
 
 router.post('/plaid/exchange', async (req, res) => {
-    const { public_token } = req.body;
+    const { public_token } = req.body || {};
     if (!public_token)
         return res.status(400).json({ error: 'public_token is required.' });
     if (!plaidConfigured()) {
@@ -152,7 +152,8 @@ router.post('/plaid/positions', async (req, res) => {
     }
     const allPositions = [];
     const failedItems = [];
-    for (const { accessToken } of tokens.items) {
+    const syncedItemIds = [];
+    for (const { accessToken, itemId } of tokens.items) {
         try {
             const r = await fetch(`${plaidBase()}/investments/holdings/get`, {
                 method: 'POST',
@@ -161,7 +162,7 @@ router.post('/plaid/positions', async (req, res) => {
                 signal: AbortSignal.timeout(15000),
             });
             if (!r.ok) {
-                failedItems.push(r.status);
+                failedItems.push(itemId);
                 continue;
             }
             const data = await r.json();
@@ -171,6 +172,7 @@ router.post('/plaid/positions', async (req, res) => {
                 );
                 allPositions.push({
                     symbol: security?.ticker_symbol || holding.security_id,
+                    plaidItemId: itemId,
                     description: security?.name || '',
                     quantity: holding.quantity,
                     value: holding.institution_value,
@@ -180,8 +182,9 @@ router.post('/plaid/positions', async (req, res) => {
             }
         } catch (err) {
             console.error('[Plaid] holdings fetch error:', err);
-            failedItems.push(err.message);
+            failedItems.push(itemId);
         }
+        if (!failedItems.includes(itemId)) syncedItemIds.push(itemId);
     }
     if (failedItems.length > 0 && allPositions.length === 0) {
         return res.status(502).json({
@@ -190,14 +193,22 @@ router.post('/plaid/positions', async (req, res) => {
         });
     }
     const ok = await mutateState((state) => {
-        const nonPlaid = (state.importedPositions || []).filter(
-            (p) => p.source !== 'plaid',
+        const synced = new Set(syncedItemIds);
+        const retained = (state.importedPositions || []).filter(
+            (p) =>
+                p.source !== 'plaid' ||
+                !p.plaidItemId ||
+                !synced.has(p.plaidItemId),
         );
-        state.importedPositions = [...nonPlaid, ...allPositions];
+        state.importedPositions = [...retained, ...allPositions];
     });
     if (!ok)
         return res.status(500).json({ error: 'Failed to save positions.' });
-    res.json({ status: 'success', positionCount: allPositions.length });
+    res.json({
+        status: 'success',
+        positionCount: allPositions.length,
+        syncedItemIds,
+    });
 });
 
 router.post('/plaid/accounts', async (req, res) => {
@@ -209,7 +220,8 @@ router.post('/plaid/accounts', async (req, res) => {
     }
     const accounts = [];
     const failedItems = [];
-    for (const { accessToken } of tokens.items) {
+    const syncedItemIds = [];
+    for (const { accessToken, itemId } of tokens.items) {
         try {
             const r = await fetch(`${plaidBase()}/accounts/balance/get`, {
                 method: 'POST',
@@ -218,13 +230,14 @@ router.post('/plaid/accounts', async (req, res) => {
                 signal: AbortSignal.timeout(15000),
             });
             if (!r.ok) {
-                failedItems.push(r.status);
+                failedItems.push(itemId);
                 continue;
             }
             const data = await r.json();
             for (const acc of data.accounts || []) {
                 accounts.push({
                     id: `plaid-${acc.account_id}`,
+                    plaidItemId: itemId,
                     name: acc.name,
                     type:
                         acc.type === 'depository'
@@ -238,25 +251,25 @@ router.post('/plaid/accounts', async (req, res) => {
             }
         } catch (err) {
             console.error('[Plaid] accounts fetch error:', err);
-            failedItems.push(err.message);
+            failedItems.push(itemId);
         }
-    }
-    if (failedItems.length > 0 && accounts.length === 0) {
-        return res.status(502).json({
-            error: 'All Plaid account fetches failed. Existing data preserved.',
-            failedCount: failedItems.length,
-        });
+        if (!failedItems.includes(itemId)) syncedItemIds.push(itemId);
     }
     const ok = await mutateState((state) => {
-        const nonPlaid = (state.customAccounts || []).filter(
-            (a) => a.source !== 'plaid',
+        const synced = new Set(syncedItemIds);
+        const retained = (state.customAccounts || []).filter(
+            (a) =>
+                a.source !== 'plaid' ||
+                !a.plaidItemId ||
+                !synced.has(a.plaidItemId),
         );
-        state.customAccounts = [...nonPlaid, ...accounts];
+        state.customAccounts = [...retained, ...accounts];
     });
     if (!ok) return res.status(500).json({ error: 'Failed to save accounts.' });
     const accountsResponse = {
         status: 'success',
         accountCount: accounts.length,
+        syncedItemIds,
     };
     if (failedItems.length > 0) {
         accountsResponse.warning = `${failedItems.length} item(s) failed; partial data saved.`;
