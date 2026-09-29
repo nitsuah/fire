@@ -611,6 +611,7 @@ function initPlaidLink() {
                         if (isHostedPlaid()) {
                             applyHostedPlaidAccounts(
                                 accountsResult.data.accounts || [],
+                                accountsResult.data.syncedItemIds || [],
                             );
                             await saveState();
                         }
@@ -627,6 +628,7 @@ function initPlaidLink() {
                         if (isHostedPlaid()) {
                             applyHostedPlaidPositions(
                                 positionsResult.data.positions || [],
+                                positionsResult.data.syncedItemIds || [],
                             );
                             await saveState();
                         }
