@@ -151,13 +151,10 @@ describe('hosted Plaid Netlify function', () => {
         const token = (await exchange.json()).plaidToken;
 
         const status = await handler(
-            new Request(
-                'https://lifefire.netlify.app/api/sync/plaid/status',
-                {
-                    method: 'GET',
-                    headers: { 'x-fire-plaid-token': token },
-                },
-            ),
+            new Request('https://lifefire.netlify.app/api/sync/plaid/status', {
+                method: 'GET',
+                headers: { 'x-fire-plaid-token': token },
+            }),
         );
 
         expect(status.status).toBe(200);
