@@ -1,4 +1,4 @@
-/* global require, module, console */
+/* global require, module, console, process */
 'use strict';
 
 const fs = require('fs');
