@@ -1,46 +1,14 @@
 'use strict';
 
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const { DATA_DIR, readState, mutateState } = require('../lib/db');
-const { encrypt, decrypt } = require('../lib/crypto-utils');
+const { readState, mutateState } = require('../lib/db');
 const { parsePlaidTransactions } = require('../lib/finance-parsing');
+const {
+    loadTokens,
+    saveTokens,
+} = require('../lib/token-store');
 
 const router = express.Router();
-
-function getTokenFile(provider) {
-    return path.join(DATA_DIR, `tokens-${provider}.json`);
-}
-
-function loadTokens(provider) {
-    const file = getTokenFile(provider);
-    if (!fs.existsSync(file)) return null;
-    try {
-        const { data: encrypted, lastUpdated } = JSON.parse(
-            fs.readFileSync(file, 'utf8'),
-        );
-        const tokens = JSON.parse(decrypt(encrypted));
-        tokens._tokenLastUpdated = lastUpdated;
-        return tokens;
-    } catch (err) {
-        console.error(`[Sync] Unable to read ${provider} tokens:`, err.message);
-        return null;
-    }
-}
-
-function saveTokens(provider, tokens) {
-    // eslint-disable-next-line no-unused-vars
-    const { _tokenLastUpdated, ...payload } = tokens;
-    const tokenData = {
-        lastUpdated: new Date().toISOString(),
-        data: encrypt(JSON.stringify(payload)),
-    };
-    const file = getTokenFile(provider);
-    const tmp = `${file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(tokenData), { mode: 0o600 });
-    fs.renameSync(tmp, file);
-}
 
 router.get('/plaid/status', (req, res) => {
     const tokens = loadTokens('plaid');
@@ -52,7 +20,7 @@ router.get('/plaid/status', (req, res) => {
     res.json({
         connected: true,
         itemCount: tokens.items.length,
-        lastUpdated: tokens.lastUpdated,
+        lastUpdated: tokens._tokenLastUpdated || null,
         lastTransactionsSync: tokens.transactionsLastSyncedAt || null,
         syncEnabled,
     });
@@ -186,6 +154,7 @@ router.post('/plaid/positions', async (req, res) => {
         });
     }
     const allPositions = [];
+    const failedItems = [];
     for (const { accessToken } of tokens.items) {
         try {
             const r = await fetch(`${plaidBase()}/investments/holdings/get`, {
@@ -194,7 +163,10 @@ router.post('/plaid/positions', async (req, res) => {
                 body: JSON.stringify({ access_token: accessToken }),
                 signal: AbortSignal.timeout(15000),
             });
-            if (!r.ok) continue;
+            if (!r.ok) {
+                failedItems.push(r.status);
+                continue;
+            }
             const data = await r.json();
             for (const holding of data.holdings || []) {
                 const security = data.securities?.find(
@@ -211,7 +183,14 @@ router.post('/plaid/positions', async (req, res) => {
             }
         } catch (err) {
             console.error('[Plaid] holdings fetch error:', err);
+            failedItems.push(err.message);
         }
+    }
+    if (failedItems.length > 0 && allPositions.length === 0) {
+        return res.status(502).json({
+            error: 'All Plaid position fetches failed. Existing data preserved.',
+            failedCount: failedItems.length,
+        });
     }
     const ok = await mutateState((state) => {
         const nonPlaid = (state.importedPositions || []).filter(
