@@ -80,6 +80,114 @@ describe('hosted Plaid Netlify function', () => {
         expect(body.plaidToken).not.toContain('access-secret');
     });
 
+
+
+    it('returns disconnected status without a hosted token', async () => {
+        vi.stubGlobal('fetch', vi.fn());
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
+        const response = await handler(
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/status',
+                { method: 'GET' },
+            ),
+        );
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({
+            connected: false,
+            itemCount: 0,
+        });
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid stored token before consuming a public token', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
+        const response = await handler(
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/exchange',
+                {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({
+                        public_token: 'public-sandbox',
+                        plaidToken: '1.invalid.invalid.invalid',
+                    }),
+                },
+            ),
+        );
+
+        expect(response.status).toBe(401);
+        expect((await response.json()).error).toContain('Invalid or expired');
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('refreshes the encrypted token expiry on authenticated status', async () => {
+        const plaidFetch = vi.fn().mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    access_token: 'access-secret',
+                    item_id: 'item-1',
+                }),
+                {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' },
+                },
+            ),
+        );
+        vi.stubGlobal('fetch', plaidFetch);
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
+        const exchange = await handler(
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/exchange',
+                {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ public_token: 'public-sandbox' }),
+                },
+            ),
+        );
+        const token = (await exchange.json()).plaidToken;
+
+        const status = await handler(
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/status',
+                {
+                    method: 'GET',
+                    headers: { 'x-fire-plaid-token': token },
+                },
+            ),
+        );
+
+        expect(status.status).toBe(200);
+        const body = await status.json();
+        expect(body.connected).toBe(true);
+        expect(body.plaidToken).toMatch(/^1\./);
+        expect(body.plaidToken).not.toBe(token);
+    });
+
+    it('rejects a cross-origin hosted request', async () => {
+        vi.stubGlobal('fetch', vi.fn());
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
+        const response = await handler(
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/status',
+                {
+                    method: 'GET',
+                    headers: { origin: 'https://evil.example' },
+                },
+            ),
+        );
+
+        expect(response.status).toBe(403);
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
     it('converts non-JSON Plaid failures to JSON', async () => {
         vi.stubGlobal(
             'fetch',
