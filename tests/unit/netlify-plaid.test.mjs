@@ -43,6 +43,39 @@ describe('hosted Plaid Netlify function', () => {
         expect(await response.json()).toEqual({ linkToken: 'link-sandbox' });
     });
 
+    it('rate-limits hosted Link token creation without an Origin header', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue(
+                new Response(JSON.stringify({ link_token: 'link-sandbox' }), {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' },
+                }),
+            ),
+        );
+
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
+
+        for (let i = 0; i < 10; i++) {
+            const response = await handler(
+                new Request(
+                    'https://lifefire.netlify.app/api/sync/plaid/create-link-token',
+                    { method: 'POST' },
+                ),
+            );
+            expect(response.status).toBe(200);
+        }
+
+        const limited = await handler(
+            new Request(
+                'https://lifefire.netlify.app/api/sync/plaid/create-link-token',
+                { method: 'POST' },
+            ),
+        );
+        expect(limited.status).toBe(429);
+    });
+
     it('exchanges a public token into an encrypted browser token', async () => {
         vi.stubGlobal(
             'fetch',
