@@ -231,7 +231,7 @@ async function accounts(token) {
         }
         if (!failedItems.includes(item.itemId)) syncedItemIds.push(item.itemId);
     }
-    if (failedItems.length && !accounts.length) {
+    if (failedItems.length && !syncedItemIds.length) {
         throw Object.assign(
             new Error(
                 'All Plaid account fetches failed. Existing data preserved.',
@@ -276,7 +276,7 @@ async function positions(token) {
         }
         if (!failedItems.includes(item.itemId)) syncedItemIds.push(item.itemId);
     }
-    if (failedItems.length && !positions.length) {
+    if (failedItems.length && !syncedItemIds.length) {
         throw Object.assign(
             new Error(
                 'All Plaid position fetches failed. Existing data preserved.',
