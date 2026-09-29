@@ -204,11 +204,15 @@ router.post('/plaid/positions', async (req, res) => {
     });
     if (!ok)
         return res.status(500).json({ error: 'Failed to save positions.' });
-    res.json({
+    const positionsResponse = {
         status: 'success',
         positionCount: allPositions.length,
         syncedItemIds,
-    });
+    };
+    if (failedItems.length > 0) {
+        positionsResponse.warning = `${failedItems.length} item(s) failed; partial data saved.`;
+    }
+    res.json(positionsResponse);
 });
 
 router.post('/plaid/accounts', async (req, res) => {
@@ -254,6 +258,12 @@ router.post('/plaid/accounts', async (req, res) => {
             failedItems.push(itemId);
         }
         if (!failedItems.includes(itemId)) syncedItemIds.push(itemId);
+    }
+    if (failedItems.length > 0 && syncedItemIds.length === 0) {
+        return res.status(502).json({
+            error: 'All Plaid account fetches failed. Existing data preserved.',
+            failedCount: failedItems.length,
+        });
     }
     const ok = await mutateState((state) => {
         const synced = new Set(syncedItemIds);
