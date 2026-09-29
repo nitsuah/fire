@@ -16,11 +16,7 @@ const {
     handleDeletionNotification,
     syncOrders,
 } = require('../lib/ebay-handlers');
-const {
-    getTokenFile,
-    loadTokens,
-    saveTokens,
-} = require('../lib/token-store');
+const { getTokenFile, loadTokens, saveTokens } = require('../lib/token-store');
 
 const router = express.Router();
 
