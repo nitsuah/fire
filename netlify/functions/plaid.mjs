@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { parsePlaidTransactions } from '../../app/lib/finance-parsing.js';
 
 const PLAID_TOKEN_VERSION = 1;
+const PLAID_TOKEN_TTL_SECONDS = 24 * 60 * 60;
 
 function json(status, body) {
     return new Response(JSON.stringify(body), {
@@ -40,10 +41,14 @@ function encryptionKey() {
 }
 
 function seal(payload) {
+    const withExpiry = {
+        ...payload,
+        exp: Math.floor(Date.now() / 1000) + PLAID_TOKEN_TTL_SECONDS,
+    };
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey(), iv);
     const ciphertext = Buffer.concat([
-        cipher.update(JSON.stringify(payload), 'utf8'),
+        cipher.update(JSON.stringify(withExpiry), 'utf8'),
         cipher.final(),
     ]);
     return [
@@ -77,7 +82,11 @@ function unseal(value) {
             decipher.update(Buffer.from(dataText, 'base64url')),
             decipher.final(),
         ]).toString('utf8');
-        return JSON.parse(plaintext);
+        const payload = JSON.parse(plaintext);
+        if (!Number.isFinite(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) {
+            throw new Error('Expired hosted Plaid token.');
+        }
+        return payload;
     } catch {
         throw Object.assign(
             new Error('Invalid or expired hosted Plaid token.'),
@@ -154,10 +163,10 @@ async function exchange(req) {
     const body = await req.json().catch(() => ({}));
     if (!body.public_token)
         return json(400, { error: 'public_token is required.' });
+    const current = body.plaidToken ? unseal(body.plaidToken) : { items: [] };
     const data = await plaidPost('/item/public_token/exchange', {
         public_token: body.public_token,
     });
-    const current = body.plaidToken ? unseal(body.plaidToken) : { items: [] };
     const items = Array.isArray(current.items) ? current.items : [];
     const idx = items.findIndex((item) => item.itemId === data.item_id);
     const nextItem = { itemId: data.item_id, accessToken: data.access_token };
@@ -288,17 +297,18 @@ async function transactions(token) {
                 cursor = data.next_cursor || cursor;
                 hasMore = Boolean(data.has_more);
             }
-            if (hasMore) itemFailed = true;
+            if (hasMore) {
+                failedItems.push(
+                    'Transaction pagination exceeded the safety limit.',
+                );
+                itemFailed = true;
+            }
         } catch (err) {
             failedItems.push(err.message);
             itemFailed = true;
         }
 
         if (itemFailed) {
-            if (!failedItems.length)
-                failedItems.push(
-                    'Transaction pagination exceeded the safety limit.',
-                );
             updatedItems.push(item);
         } else {
             allAdded.push(...itemAdded);
@@ -358,6 +368,10 @@ export default async function handler(req) {
                 .replace('/.netlify/functions/plaid', '')
                 .replace(/^\/api/, '') || '/';
         const method = req.method || 'GET';
+        const origin = req.headers.get('origin');
+        if (origin && origin !== url.origin) {
+            return json(403, { error: 'Origin not allowed.' });
+        }
 
         if (path === '/sync/plaid/create-link-token' && method === 'POST') {
             return await createLinkToken();
@@ -366,6 +380,16 @@ export default async function handler(req) {
             return await exchange(req);
         }
         if (path === '/sync/plaid/status' && method === 'GET') {
+            const rawToken = tokenFromRequest(req, {});
+            if (!rawToken) {
+                return json(200, {
+                    connected: false,
+                    itemCount: 0,
+                    lastTransactionsSync: null,
+                    syncEnabled: true,
+                    hosted: true,
+                });
+            }
             const token = await requireToken(req, {});
             return json(200, {
                 connected: true,
@@ -373,6 +397,7 @@ export default async function handler(req) {
                 lastTransactionsSync: token.transactionsLastSyncedAt || null,
                 syncEnabled: true,
                 hosted: true,
+                plaidToken: seal(token),
             });
         }
         if (path === '/sync/plaid/accounts' && method === 'POST') {
@@ -389,6 +414,7 @@ export default async function handler(req) {
                 accountCount: result.accounts.length,
                 accounts: result.accounts,
                 warning: result.warning,
+                plaidToken: seal(token),
             });
         }
         if (path === '/sync/plaid/positions' && method === 'POST') {
@@ -405,6 +431,7 @@ export default async function handler(req) {
                 positionCount: result.positions.length,
                 positions: result.positions,
                 warning: result.warning,
+                plaidToken: seal(token),
             });
         }
         if (path === '/sync/plaid/transactions' && method === 'POST') {
