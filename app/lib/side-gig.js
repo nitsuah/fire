@@ -460,6 +460,9 @@ async function plaidRequest(path, options = {}) {
         : {
               error: `Server returned a non-JSON response (HTTP ${res.status}).`,
           };
+    if (isHostedPlaid() && data.plaidToken) {
+        setHostedPlaidToken(data.plaidToken);
+    }
     return { res, data };
 }
 
@@ -717,9 +720,9 @@ async function runPlaidTransactionsSyncNow() {
         );
         if (!res.ok) throw new Error(data.error || 'Sync failed');
         if (isHostedPlaid()) {
-            if (data.plaidToken) setHostedPlaidToken(data.plaidToken);
             applyHostedPlaidTransactions(data);
             await saveState();
+            if (data.plaidToken) setHostedPlaidToken(data.plaidToken);
         }
         if (statusEl) {
             statusEl.textContent = `Synced ${data.added} new transaction${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
