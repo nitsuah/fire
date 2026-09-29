@@ -3,10 +3,7 @@
 const express = require('express');
 const { readState, mutateState } = require('../lib/db');
 const { parsePlaidTransactions } = require('../lib/finance-parsing');
-const {
-    loadTokens,
-    saveTokens,
-} = require('../lib/token-store');
+const { loadTokens, saveTokens } = require('../lib/token-store');
 
 const router = express.Router();
 
