@@ -226,7 +226,7 @@ async function accounts(token) {
                     source: 'plaid',
                 });
             }
-        } catch (err) {
+        } catch {
             failedItems.push(item.itemId);
         }
         if (!failedItems.includes(item.itemId)) syncedItemIds.push(item.itemId);
