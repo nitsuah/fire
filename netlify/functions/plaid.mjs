@@ -83,7 +83,10 @@ function unseal(value) {
             decipher.final(),
         ]).toString('utf8');
         const payload = JSON.parse(plaintext);
-        if (!Number.isFinite(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) {
+        if (
+            !Number.isFinite(payload.exp) ||
+            payload.exp <= Math.floor(Date.now() / 1000)
+        ) {
             throw new Error('Expired hosted Plaid token.');
         }
         return payload;
