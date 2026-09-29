@@ -271,7 +271,7 @@ async function positions(token) {
                     source: 'plaid',
                 });
             }
-        } catch (err) {
+        } catch {
             failedItems.push(item.itemId);
         }
         if (!failedItems.includes(item.itemId)) syncedItemIds.push(item.itemId);
