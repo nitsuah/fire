@@ -80,17 +80,14 @@ describe('hosted Plaid Netlify function', () => {
         expect(body.plaidToken).not.toContain('access-secret');
     });
 
-
-
     it('returns disconnected status without a hosted token', async () => {
         vi.stubGlobal('fetch', vi.fn());
         const { default: handler } =
             await import('../../netlify/functions/plaid.mjs');
         const response = await handler(
-            new Request(
-                'https://lifefire.netlify.app/api/sync/plaid/status',
-                { method: 'GET' },
-            ),
+            new Request('https://lifefire.netlify.app/api/sync/plaid/status', {
+                method: 'GET',
+            }),
         );
 
         expect(response.status).toBe(200);
@@ -175,13 +172,10 @@ describe('hosted Plaid Netlify function', () => {
         const { default: handler } =
             await import('../../netlify/functions/plaid.mjs');
         const response = await handler(
-            new Request(
-                'https://lifefire.netlify.app/api/sync/plaid/status',
-                {
-                    method: 'GET',
-                    headers: { origin: 'https://evil.example' },
-                },
-            ),
+            new Request('https://lifefire.netlify.app/api/sync/plaid/status', {
+                method: 'GET',
+                headers: { origin: 'https://evil.example' },
+            }),
         );
 
         expect(response.status).toBe(403);
