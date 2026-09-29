@@ -35,7 +35,9 @@ function saveTokens(provider, tokens) {
         data: encrypt(JSON.stringify(payload)),
     };
     const file = getTokenFile(provider);
-    const tmp = `${file}.${process.pid}.${Date.now()}.${crypto.randomBytes(8).toString('hex')}.tmp`;
+    const tmp = `${file}.${process.pid}.${Date.now()}.${crypto
+        .randomBytes(8)
+        .toString('hex')}.tmp`;
     try {
         fs.writeFileSync(tmp, JSON.stringify(tokenData), { mode: 0o600 });
         fs.renameSync(tmp, file);
