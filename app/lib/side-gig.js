@@ -444,40 +444,53 @@ function setHostedPlaidToken(token) {
 }
 
 async function plaidRequest(path, options = {}) {
-    const headers = new Headers(options.headers || {});
+    const { deferHostedTokenPersistence = false, ...fetchOptions } = options;
+    const headers = new Headers(fetchOptions.headers || {});
     if (isHostedPlaid()) {
         const token = getHostedPlaidToken();
         if (token) headers.set('x-fire-plaid-token', token);
     }
-    if (options.body && typeof options.body !== 'string') {
+    if (fetchOptions.body && typeof fetchOptions.body !== 'string') {
         headers.set('Content-Type', 'application/json');
-        options.body = JSON.stringify(options.body);
+        fetchOptions.body = JSON.stringify(fetchOptions.body);
     }
-    const res = await fetch(path, { ...options, headers });
+    const res = await fetch(path, { ...fetchOptions, headers });
     const contentType = res.headers.get('content-type') || '';
     const data = contentType.includes('application/json')
         ? await res.json()
         : {
               error: `Server returned a non-JSON response (HTTP ${res.status}).`,
           };
-    if (isHostedPlaid() && data.plaidToken) {
+    if (
+        isHostedPlaid() &&
+        data.plaidToken &&
+        !deferHostedTokenPersistence
+    ) {
         setHostedPlaidToken(data.plaidToken);
     }
     return { res, data };
 }
 
-function applyHostedPlaidAccounts(accounts) {
-    const nonPlaid = (state.customAccounts || []).filter(
-        (account) => account.source !== 'plaid',
+function applyHostedPlaidAccounts(accounts, syncedItemIds = []) {
+    const synced = new Set(syncedItemIds);
+    const retained = (state.customAccounts || []).filter(
+        (account) =>
+            account.source !== 'plaid' ||
+            !account.plaidItemId ||
+            !synced.has(account.plaidItemId),
     );
-    state.customAccounts = [...nonPlaid, ...accounts];
+    state.customAccounts = [...retained, ...accounts];
 }
 
-function applyHostedPlaidPositions(positions) {
-    const nonPlaid = (state.importedPositions || []).filter(
-        (position) => position.source !== 'plaid',
+function applyHostedPlaidPositions(positions, syncedItemIds = []) {
+    const synced = new Set(syncedItemIds);
+    const retained = (state.importedPositions || []).filter(
+        (position) =>
+            position.source !== 'plaid' ||
+            !position.plaidItemId ||
+            !synced.has(position.plaidItemId),
     );
-    state.importedPositions = [...nonPlaid, ...positions];
+    state.importedPositions = [...retained, ...positions];
 }
 
 function applyHostedPlaidTransactions(data) {
@@ -716,7 +729,7 @@ async function runPlaidTransactionsSyncNow() {
     try {
         const { res, data } = await plaidRequest(
             '/api/sync/plaid/transactions',
-            { method: 'POST' },
+            { method: 'POST', deferHostedTokenPersistence: true },
         );
         if (!res.ok) throw new Error(data.error || 'Sync failed');
         if (isHostedPlaid()) {
