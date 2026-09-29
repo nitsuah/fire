@@ -2,10 +2,8 @@
 
 const express = require('express');
 const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
-const { DATA_DIR, readState, mutateState } = require('../lib/db');
-const { encrypt, decrypt } = require('../lib/crypto-utils');
+const { readState, mutateState } = require('../lib/db');
 const {
     isConfigured: eBayConfigured,
     buildAuthorizationUrl,
@@ -18,41 +16,13 @@ const {
     handleDeletionNotification,
     syncOrders,
 } = require('../lib/ebay-handlers');
+const {
+    getTokenFile,
+    loadTokens,
+    saveTokens,
+} = require('../lib/token-store');
 
 const router = express.Router();
-
-function getTokenFile(provider) {
-    return path.join(DATA_DIR, `tokens-${provider}.json`);
-}
-
-function loadTokens(provider) {
-    const file = getTokenFile(provider);
-    if (!fs.existsSync(file)) return null;
-    try {
-        const { data: encrypted, lastUpdated } = JSON.parse(
-            fs.readFileSync(file, 'utf8'),
-        );
-        const tokens = JSON.parse(decrypt(encrypted));
-        tokens._tokenLastUpdated = lastUpdated;
-        return tokens;
-    } catch (err) {
-        console.error(`[Sync] Unable to read ${provider} tokens:`, err.message);
-        return null;
-    }
-}
-
-function saveTokens(provider, tokens) {
-    // eslint-disable-next-line no-unused-vars
-    const { _tokenLastUpdated, ...payload } = tokens;
-    const tokenData = {
-        lastUpdated: new Date().toISOString(),
-        data: encrypt(JSON.stringify(payload)),
-    };
-    const file = getTokenFile(provider);
-    const tmp = `${file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(tokenData), { mode: 0o600 });
-    fs.renameSync(tmp, file);
-}
 
 // ─── eBay OAuth ──────────────────────────────────────────────────────────────
 
@@ -139,9 +109,14 @@ router.post('/ebay/toggle', async (req, res) => {
             .json({ error: 'enabled (boolean) is required.' });
     }
     const enabled = req.body.enabled;
-    const ok = await mutateState((state) => {
-        state.ebaySyncEnabled = enabled;
-    });
+    let ok = false;
+    try {
+        ok = await mutateState((state) => {
+            state.ebaySyncEnabled = enabled;
+        });
+    } catch (err) {
+        console.error('[eBay] toggle error:', err);
+    }
     if (!ok)
         return res.status(500).json({ error: 'Failed to update setting.' });
     res.json({ enabled });
