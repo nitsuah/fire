@@ -448,6 +448,7 @@ export default async function handler(req) {
                 status: 'success',
                 accountCount: result.accounts.length,
                 accounts: result.accounts,
+                syncedItemIds: result.syncedItemIds,
                 warning: result.warning,
                 plaidToken: seal(token),
             });
@@ -465,6 +466,7 @@ export default async function handler(req) {
                 status: 'success',
                 positionCount: result.positions.length,
                 positions: result.positions,
+                syncedItemIds: result.syncedItemIds,
                 warning: result.warning,
                 plaidToken: seal(token),
             });
