@@ -18,6 +18,25 @@ function plaidConfigured() {
     return Boolean(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET);
 }
 
+const createLinkRate = new Map();
+const CREATE_LINK_LIMIT = 10;
+const CREATE_LINK_WINDOW_MS = 60 * 1000;
+
+function checkCreateLinkRateLimit(req) {
+    const key =
+        req.headers.get('x-nf-client-connection-ip') ||
+        req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        'unknown';
+    const now = Date.now();
+    const entry = createLinkRate.get(key);
+    if (!entry || now - entry.startedAt >= CREATE_LINK_WINDOW_MS) {
+        createLinkRate.set(key, { startedAt: now, count: 1 });
+        return true;
+    }
+    entry.count += 1;
+    return entry.count <= CREATE_LINK_LIMIT;
+}
+
 function plaidBase() {
     const env = (process.env.PLAID_ENV || 'sandbox').toLowerCase();
     if (env === 'production') return 'https://production.plaid.com';
@@ -186,6 +205,7 @@ async function exchange(req) {
 async function accounts(token) {
     const accounts = [];
     const failedItems = [];
+    const syncedItemIds = [];
     for (const item of token.items) {
         try {
             const data = await plaidPost('/accounts/balance/get', {
@@ -194,6 +214,7 @@ async function accounts(token) {
             for (const acc of data.accounts || []) {
                 accounts.push({
                     id: `plaid-${acc.account_id}`,
+                    plaidItemId: item.itemId,
                     name: acc.name,
                     type:
                         acc.type === 'depository'
@@ -206,8 +227,9 @@ async function accounts(token) {
                 });
             }
         } catch (err) {
-            failedItems.push(err.message);
+            failedItems.push(item.itemId);
         }
+        if (!failedItems.includes(item.itemId)) syncedItemIds.push(item.itemId);
     }
     if (failedItems.length && !accounts.length) {
         throw Object.assign(
@@ -219,6 +241,7 @@ async function accounts(token) {
     }
     return {
         accounts,
+        syncedItemIds,
         warning: failedItems.length
             ? `${failedItems.length} item(s) failed; partial data returned.`
             : null,
@@ -228,6 +251,7 @@ async function accounts(token) {
 async function positions(token) {
     const positions = [];
     const failedItems = [];
+    const syncedItemIds = [];
     for (const item of token.items) {
         try {
             const data = await plaidPost('/investments/holdings/get', {
@@ -239,6 +263,7 @@ async function positions(token) {
                 );
                 positions.push({
                     symbol: security?.ticker_symbol || holding.security_id,
+                    plaidItemId: item.itemId,
                     description: security?.name || '',
                     quantity: holding.quantity,
                     value: holding.institution_value,
@@ -247,8 +272,9 @@ async function positions(token) {
                 });
             }
         } catch (err) {
-            failedItems.push(err.message);
+            failedItems.push(item.itemId);
         }
+        if (!failedItems.includes(item.itemId)) syncedItemIds.push(item.itemId);
     }
     if (failedItems.length && !positions.length) {
         throw Object.assign(
@@ -260,6 +286,7 @@ async function positions(token) {
     }
     return {
         positions,
+        syncedItemIds,
         warning: failedItems.length
             ? `${failedItems.length} item(s) failed; partial data returned.`
             : null,
@@ -377,6 +404,11 @@ export default async function handler(req) {
         }
 
         if (path === '/sync/plaid/create-link-token' && method === 'POST') {
+            if (!checkCreateLinkRateLimit(req)) {
+                return json(429, {
+                    error: 'Too many Plaid link-token requests. Slow down.',
+                });
+            }
             return await createLinkToken();
         }
         if (path === '/sync/plaid/exchange' && method === 'POST') {
