@@ -22,11 +22,15 @@ describe('hosted Plaid Netlify function', () => {
     it('creates a Link token', async () => {
         vi.stubGlobal(
             'fetch',
-            vi.fn().mockResolvedValue(
-                new Response(JSON.stringify({ link_token: 'link-sandbox' }), {
-                    status: 200,
-                    headers: { 'content-type': 'application/json' },
-                }),
+            vi.fn().mockImplementation(
+                () =>
+                    new Response(
+                        JSON.stringify({ link_token: 'link-sandbox' }),
+                        {
+                            status: 200,
+                            headers: { 'content-type': 'application/json' },
+                        },
+                    ),
             ),
         );
 
