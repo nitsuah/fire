@@ -221,13 +221,13 @@ function updateAllocBreadcrumb(categoryKey, total, count) {
     if (categoryKey === null) {
         titleEl.textContent = 'Asset Allocation';
         if (subEl) subEl.textContent = '';
-        if (backBtn) backBtn.style.display = 'none';
+        if (backBtn) backBtn.classList.add('csp-i-001');
     } else {
         const label = ALLOC_SLICE_MAP[categoryKey]?.label || categoryKey;
         titleEl.textContent = `Asset Allocation — ${label}`;
         if (subEl)
             subEl.textContent = `${count} item${count === 1 ? '' : 's'} · ${formatCurrency(total)} total`;
-        if (backBtn) backBtn.style.display = '';
+        if (backBtn) backBtn.classList.remove('csp-i-001');
     }
 }
 
