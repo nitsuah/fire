@@ -121,7 +121,7 @@ function renderCompactFireBar(progressPercent) {
     fill.innerHTML = segments
         .map(
             (s) =>
-                `<span class="cfb-seg" class="cfb-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(2)}" data-csp-color="${escHtml(s.color)}"></span>`,
+                `<span class="cfb-seg cfb-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(2)}" data-csp-color="${escHtml(s.color)}"></span>`,
         )
         .join('');
     pct.textContent = `${progressPercent.toFixed(1)}%`;
@@ -264,7 +264,7 @@ function renderAllocMiniBarsBanner() {
     const tooltipRows = segments
         .map(
             (s) =>
-                `<div class="at-row"><span class="at-dot" class="at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+                `<div class="at-row"><span class="at-dot at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Total NW</span><span class="at-val">${formatCurrency(total)}</span></div>`;
