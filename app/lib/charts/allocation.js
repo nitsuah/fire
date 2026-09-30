@@ -352,7 +352,7 @@ function renderAssetAllocationChart() {
         listEl.innerHTML = `<div class="alloc-cat-buttons">${slices
             .map(
                 (s) =>
-                    `<button type="button" class="alloc-cat-btn" onclick="allocDrillInto('${s.key}')"><span class="alloc-detail-dot" style="background:${s.color};"></span>${s.label} · ${formatCurrency(s.val)}</button>`,
+                    `<button type="button" class="alloc-cat-btn" data-csp-click-action="allocDrillInto" data-csp-click-value="${escHtml(s.key)}"><span class="alloc-detail-dot" style="background:${s.color};"></span>${s.label} · ${formatCurrency(s.val)}</button>`,
             )
             .join('')}</div>`;
     }
