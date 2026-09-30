@@ -18,7 +18,9 @@ describe('CSP hardening', () => {
         const index = read('index.html');
         expect(index).not.toMatch(/\bon(?:click|change)\s*=/i);
         expect(index).not.toMatch(/\bstyle\s*=/i);
-        expect(index).not.toMatch(/<script>(?!\s*<\/script>)[\s\S]*?<\/script>/i);
+        expect(index).not.toMatch(
+            /<script>(?!\s*<\/script>)[\s\S]*?<\/script>/i,
+        );
     });
 
     it('keeps migrated runtime renderers free of inline handlers and styles', () => {
