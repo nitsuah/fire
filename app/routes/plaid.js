@@ -3,7 +3,8 @@
 const express = require('express');
 const { readState, mutateState } = require('../lib/db');
 const { parsePlaidTransactions } = require('../lib/finance-parsing');
-const { loadTokens, saveTokens } = require('../lib/token-store');
+const fs = require('fs');
+const { getTokenFile, loadTokens, saveTokens } = require('../lib/token-store');
 
 const router = express.Router();
 
@@ -36,9 +37,15 @@ router.post('/plaid/toggle', async (req, res) => {
             .json({ error: 'enabled (boolean) is required.' });
     }
     const enabled = req.body.enabled;
-    const ok = await mutateState((state) => {
-        state.plaidSyncEnabled = enabled;
-    });
+    let ok;
+    try {
+        ok = await mutateState((state) => {
+            state.plaidSyncEnabled = enabled;
+        });
+    } catch (err) {
+        console.error('[Plaid] Toggle error:', err);
+        ok = false;
+    }
     if (!ok)
         return res.status(500).json({ error: 'Failed to update setting.' });
     res.json({ enabled });
@@ -108,6 +115,13 @@ router.post('/plaid/exchange', async (req, res) => {
         return res
             .status(503)
             .json({ error: 'SYNC_MASTER_KEY required to store Plaid tokens.' });
+    }
+    // loadTokens returns null for an unreadable file too; saving now would
+    // overwrite every stored access token with just this one.
+    if (!loadTokens('plaid') && fs.existsSync(getTokenFile('plaid'))) {
+        return res.status(500).json({
+            error: 'Stored Plaid tokens could not be read; refusing to overwrite them. Check SYNC_MASTER_KEY.',
+        });
     }
     try {
         const r = await fetch(`${plaidBase()}/item/public_token/exchange`, {
@@ -194,11 +208,14 @@ router.post('/plaid/positions', async (req, res) => {
     }
     const ok = await mutateState((state) => {
         const synced = new Set(syncedItemIds);
-        const retained = (state.importedPositions || []).filter(
-            (p) =>
-                p.source !== 'plaid' ||
-                !p.plaidItemId ||
-                !synced.has(p.plaidItemId),
+        // Rows saved before item ids existed have no plaidItemId; replace
+        // them once every linked item has synced so they aren't duplicated.
+        const retained = (state.importedPositions || []).filter((p) =>
+            p.source !== 'plaid'
+                ? true
+                : p.plaidItemId
+                  ? !synced.has(p.plaidItemId)
+                  : failedItems.length > 0,
         );
         state.importedPositions = [...retained, ...allPositions];
     });
@@ -267,11 +284,16 @@ router.post('/plaid/accounts', async (req, res) => {
     }
     const ok = await mutateState((state) => {
         const synced = new Set(syncedItemIds);
-        const retained = (state.customAccounts || []).filter(
-            (a) =>
-                a.source !== 'plaid' ||
-                !a.plaidItemId ||
-                !synced.has(a.plaidItemId),
+        const incomingIds = new Set(accounts.map((a) => a.id));
+        // Rows saved before item ids existed have no plaidItemId; replace
+        // them by id, or all of them once every linked item has synced.
+        const retained = (state.customAccounts || []).filter((a) =>
+            a.source !== 'plaid'
+                ? true
+                : !incomingIds.has(a.id) &&
+                  (a.plaidItemId
+                      ? !synced.has(a.plaidItemId)
+                      : failedItems.length > 0),
         );
         state.customAccounts = [...retained, ...accounts];
     });

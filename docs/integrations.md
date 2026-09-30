@@ -382,6 +382,23 @@ Fidelity's support via Plaid depends on Plaid's institution coverage and Fidelit
 - ✅ Connection status check (`checkPlaidConnection()`)
 - ⏳ Requires `PLAID_CLIENT_ID`, `PLAID_SECRET`, `SYNC_MASTER_KEY` environment variables to function
 
+### Browser-only deploy (Netlify Function)
+
+`netlify.toml` rewrites every `/api/sync/plaid/*` path to `netlify/functions/plaid.mjs`. That rule comes before the generic `/api/*` fallback.
+
+- No access token is stored on the server. The function returns the linked items to the browser in an AES-256-GCM token, sealed with a key derived from `SYNC_MASTER_KEY`. The browser keeps it in `localStorage` (`fire_plaid_hosted_token`). The token also carries the transaction cursor.
+- The token has a rolling 180-day expiry that renews on every call.
+- If the token is expired or can't be read, the function returns `401 {"code":"INVALID_TOKEN"}`. The browser then clears the token so the user can link again. A new link doesn't need the old token to be readable.
+- Accounts, positions and transactions return `syncedItemIds`, `failedItems` (`{ itemId, code }`, where `code` is Plaid's `error_code`) and a `warning` when the sync is partial. The browser merges data only for the items that synced.
+
+The site is public, so the function is locked with an owner key:
+
+| Variable | Value |
+|---|---|
+| `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV` | As for Express |
+| `SYNC_MASTER_KEY` | 64 hex characters. The function returns 503 before calling Plaid if it is missing or malformed. |
+| `PLAID_HOSTED_ACCESS_KEY` | Required whenever `PLAID_ENV` is not `sandbox`. Every request must send it in the `x-fire-plaid-access` header. The browser asks for the key once and stores it in `localStorage`. Without it, anyone could link Items, which are billed per Item, on this deploy's Plaid credentials. |
+
 ---
 
 ## Alpha Vantage / Polygon.io (Stock Prices)

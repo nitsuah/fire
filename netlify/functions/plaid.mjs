@@ -2,7 +2,11 @@ import crypto from 'node:crypto';
 import { parsePlaidTransactions } from '../../app/lib/finance-parsing.js';
 
 const PLAID_TOKEN_VERSION = 1;
-const PLAID_TOKEN_TTL_SECONDS = 24 * 60 * 60;
+// Rolling expiry: every response re-seals the token, so this only locks out
+// a browser that has been idle for the whole window.
+const PLAID_TOKEN_TTL_SECONDS = 180 * 24 * 60 * 60;
+const GCM_IV_BYTES = 12;
+const GCM_TAG_BYTES = 16;
 
 function json(status, body) {
     return new Response(JSON.stringify(body), {
@@ -14,8 +18,31 @@ function json(status, body) {
     });
 }
 
-function plaidConfigured() {
-    return Boolean(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET);
+function plaidEnv() {
+    return (process.env.PLAID_ENV || 'sandbox').toLowerCase();
+}
+
+// Returns why hosted Plaid cannot run, or null when it is fully configured.
+// Checked before any Plaid call so a missing key never strands a linked Item.
+function configError() {
+    if (!process.env.PLAID_CLIENT_ID || !process.env.PLAID_SECRET)
+        return 'PLAID_CLIENT_ID and PLAID_SECRET are required.';
+    if (!/^[0-9a-f]{64}$/i.test(process.env.SYNC_MASTER_KEY || ''))
+        return 'SYNC_MASTER_KEY must be 64 hex characters.';
+    if (!process.env.PLAID_HOSTED_ACCESS_KEY && plaidEnv() !== 'sandbox')
+        return 'PLAID_HOSTED_ACCESS_KEY is required outside the Plaid sandbox.';
+    return null;
+}
+
+// The hosted site is public, so without an owner key anyone could link
+// Items (billed per Item) under this deployment's Plaid credentials.
+function hasAccess(req) {
+    const expected = process.env.PLAID_HOSTED_ACCESS_KEY;
+    if (!expected) return true;
+    const given = req.headers.get('x-fire-plaid-access') || '';
+    const digest = (value) =>
+        crypto.createHash('sha256').update(value).digest();
+    return crypto.timingSafeEqual(digest(given), digest(expected));
 }
 
 const createLinkRate = new Map();
@@ -28,8 +55,12 @@ function checkCreateLinkRateLimit(req) {
         req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
         'unknown';
     const now = Date.now();
+    for (const [ip, entry] of createLinkRate) {
+        if (now - entry.startedAt >= CREATE_LINK_WINDOW_MS)
+            createLinkRate.delete(ip);
+    }
     const entry = createLinkRate.get(key);
-    if (!entry || now - entry.startedAt >= CREATE_LINK_WINDOW_MS) {
+    if (!entry) {
         createLinkRate.set(key, { startedAt: now, count: 1 });
         return true;
     }
@@ -38,7 +69,7 @@ function checkCreateLinkRateLimit(req) {
 }
 
 function plaidBase() {
-    const env = (process.env.PLAID_ENV || 'sandbox').toLowerCase();
+    const env = plaidEnv();
     if (env === 'production') return 'https://production.plaid.com';
     if (env === 'development') return 'https://development.plaid.com';
     return 'https://sandbox.plaid.com';
@@ -53,10 +84,19 @@ function plaidHeaders() {
 }
 
 function encryptionKey() {
-    const master = process.env.SYNC_MASTER_KEY;
-    if (!master)
-        throw new Error('SYNC_MASTER_KEY is required for hosted Plaid.');
-    return crypto.createHash('sha256').update(master).digest();
+    return crypto
+        .createHash('sha256')
+        .update(process.env.SYNC_MASTER_KEY)
+        .digest();
+}
+
+function invalidTokenError() {
+    return Object.assign(
+        new Error(
+            'Saved Plaid connection is invalid or expired. Link your account again.',
+        ),
+        { code: 'INVALID_TOKEN', status: 401 },
+    );
 }
 
 function seal(payload) {
@@ -64,8 +104,10 @@ function seal(payload) {
         ...payload,
         exp: Math.floor(Date.now() / 1000) + PLAID_TOKEN_TTL_SECONDS,
     };
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey(), iv);
+    const iv = crypto.randomBytes(GCM_IV_BYTES);
+    const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey(), iv, {
+        authTagLength: GCM_TAG_BYTES,
+    });
     const ciphertext = Buffer.concat([
         cipher.update(JSON.stringify(withExpiry), 'utf8'),
         cipher.final(),
@@ -79,24 +121,21 @@ function seal(payload) {
 }
 
 function unseal(value) {
+    const key = encryptionKey();
     try {
-        const [version, ivText, tagText, dataText] = String(value || '').split(
-            '.',
-        );
-        if (
-            Number(version) !== PLAID_TOKEN_VERSION ||
-            !ivText ||
-            !tagText ||
-            !dataText
-        ) {
-            throw new Error('Invalid hosted Plaid token.');
-        }
-        const decipher = crypto.createDecipheriv(
-            'aes-256-gcm',
-            encryptionKey(),
-            Buffer.from(ivText, 'base64url'),
-        );
-        decipher.setAuthTag(Buffer.from(tagText, 'base64url'));
+        const [version, ivText, tagText, dataText, ...rest] = String(
+            value || '',
+        ).split('.');
+        if (Number(version) !== PLAID_TOKEN_VERSION || !dataText || rest.length)
+            throw new Error('malformed token');
+        const iv = Buffer.from(ivText, 'base64url');
+        const tag = Buffer.from(tagText, 'base64url');
+        if (iv.length !== GCM_IV_BYTES || tag.length !== GCM_TAG_BYTES)
+            throw new Error('bad IV or auth tag length');
+        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv, {
+            authTagLength: GCM_TAG_BYTES,
+        });
+        decipher.setAuthTag(tag);
         const plaintext = Buffer.concat([
             decipher.update(Buffer.from(dataText, 'base64url')),
             decipher.final(),
@@ -106,14 +145,12 @@ function unseal(value) {
             !Number.isFinite(payload.exp) ||
             payload.exp <= Math.floor(Date.now() / 1000)
         ) {
-            throw new Error('Expired hosted Plaid token.');
+            throw new Error('expired');
         }
         return payload;
-    } catch {
-        throw Object.assign(
-            new Error('Invalid or expired hosted Plaid token.'),
-            { code: 'INVALID_TOKEN', status: 401 },
-        );
+    } catch (err) {
+        console.warn('[Netlify Plaid] rejected hosted token:', err.message);
+        throw invalidTokenError();
     }
 }
 
@@ -122,12 +159,25 @@ function tokenFromRequest(req, body) {
 }
 
 async function plaidPost(path, body) {
-    const res = await fetch(`${plaidBase()}${path}`, {
-        method: 'POST',
-        headers: plaidHeaders(),
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(15000),
-    });
+    let res;
+    try {
+        res = await fetch(`${plaidBase()}${path}`, {
+            method: 'POST',
+            headers: plaidHeaders(),
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(15000),
+        });
+    } catch (err) {
+        const timedOut = err.name === 'TimeoutError';
+        throw Object.assign(
+            new Error(
+                timedOut
+                    ? 'Plaid did not respond in time.'
+                    : 'Could not reach Plaid.',
+            ),
+            { status: timedOut ? 504 : 502 },
+        );
+    }
     const text = await res.text();
     let data;
     try {
@@ -147,7 +197,7 @@ async function plaidPost(path, body) {
                     data.display_message ||
                     `Plaid request failed (HTTP ${res.status}).`,
             ),
-            { status: 502 },
+            { status: 502, plaidErrorCode: data.error_code || null },
         );
     }
     return data;
@@ -170,6 +220,27 @@ async function requireToken(req, body) {
     return token;
 }
 
+// Logs the cause server-side and keeps only a sanitized code for the client.
+function recordItemFailure(failures, itemId, err) {
+    console.error(
+        `[Netlify Plaid] item ${itemId} failed:`,
+        err.plaidErrorCode || '',
+        err.message,
+    );
+    failures.push({
+        itemId,
+        code: err.plaidErrorCode || err.code || 'REQUEST_FAILED',
+    });
+}
+
+function partialWarning(failures) {
+    if (!failures.length) return null;
+    const relink = failures.some((f) => f.code === 'ITEM_LOGIN_REQUIRED')
+        ? ' Re-link the affected institution to resume syncing it.'
+        : '';
+    return `${failures.length} item(s) failed; partial data returned.${relink}`;
+}
+
 async function createLinkToken() {
     const data = await plaidPost('/link/token/create', {
         user: { client_user_id: 'fire-tracker-user' },
@@ -185,7 +256,19 @@ async function exchange(req) {
     const body = await req.json().catch(() => ({}));
     if (!body.public_token)
         return json(400, { error: 'public_token is required.' });
-    const current = body.plaidToken ? unseal(body.plaidToken) : { items: [] };
+    // An unreadable saved token must not block linking: start a fresh item
+    // list instead of consuming (and losing) the one-time public_token.
+    let current = { items: [] };
+    let warning = null;
+    if (body.plaidToken) {
+        try {
+            current = unseal(body.plaidToken);
+        } catch (err) {
+            if (err.code !== 'INVALID_TOKEN') throw err;
+            warning =
+                'Your previous Plaid connection could not be read and was replaced. Re-link any other institutions.';
+        }
+    }
     const data = await plaidPost('/item/public_token/exchange', {
         public_token: body.public_token,
     });
@@ -198,7 +281,8 @@ async function exchange(req) {
         status: 'success',
         message: 'Plaid connection encrypted for this browser.',
         itemId: data.item_id,
-        plaidToken: seal({ items }),
+        plaidToken: seal({ ...current, items }),
+        warning,
     });
 }
 
@@ -211,40 +295,38 @@ async function accounts(token) {
             const data = await plaidPost('/accounts/balance/get', {
                 access_token: item.accessToken,
             });
-            for (const acc of data.accounts || []) {
-                accounts.push({
-                    id: `plaid-${acc.account_id}`,
-                    plaidItemId: item.itemId,
-                    name: acc.name,
-                    type:
-                        acc.type === 'depository'
-                            ? 'Cash'
-                            : acc.type === 'investment'
-                              ? 'Brokerage'
-                              : 'Other',
-                    value: acc.balances?.current ?? 0,
-                    source: 'plaid',
-                });
-            }
-        } catch {
-            failedItems.push(item.itemId);
+            const itemAccounts = (data.accounts || []).map((acc) => ({
+                id: `plaid-${acc.account_id}`,
+                plaidItemId: item.itemId,
+                name: acc.name,
+                type:
+                    acc.type === 'depository'
+                        ? 'Cash'
+                        : acc.type === 'investment'
+                          ? 'Brokerage'
+                          : 'Other',
+                value: acc.balances?.current ?? 0,
+                source: 'plaid',
+            }));
+            accounts.push(...itemAccounts);
+            syncedItemIds.push(item.itemId);
+        } catch (err) {
+            recordItemFailure(failedItems, item.itemId, err);
         }
-        if (!failedItems.includes(item.itemId)) syncedItemIds.push(item.itemId);
     }
     if (failedItems.length && !syncedItemIds.length) {
         throw Object.assign(
             new Error(
                 'All Plaid account fetches failed. Existing data preserved.',
             ),
-            { status: 502 },
+            { status: 502, failedItems },
         );
     }
     return {
         accounts,
         syncedItemIds,
-        warning: failedItems.length
-            ? `${failedItems.length} item(s) failed; partial data returned.`
-            : null,
+        failedItems,
+        warning: partialWarning(failedItems),
     };
 }
 
@@ -257,11 +339,11 @@ async function positions(token) {
             const data = await plaidPost('/investments/holdings/get', {
                 access_token: item.accessToken,
             });
-            for (const holding of data.holdings || []) {
+            const itemPositions = (data.holdings || []).map((holding) => {
                 const security = data.securities?.find(
                     (s) => s.security_id === holding.security_id,
                 );
-                positions.push({
+                return {
                     symbol: security?.ticker_symbol || holding.security_id,
                     plaidItemId: item.itemId,
                     description: security?.name || '',
@@ -269,27 +351,27 @@ async function positions(token) {
                     value: holding.institution_value,
                     costBasis: holding.cost_basis,
                     source: 'plaid',
-                });
-            }
-        } catch {
-            failedItems.push(item.itemId);
+                };
+            });
+            positions.push(...itemPositions);
+            syncedItemIds.push(item.itemId);
+        } catch (err) {
+            recordItemFailure(failedItems, item.itemId, err);
         }
-        if (!failedItems.includes(item.itemId)) syncedItemIds.push(item.itemId);
     }
     if (failedItems.length && !syncedItemIds.length) {
         throw Object.assign(
             new Error(
                 'All Plaid position fetches failed. Existing data preserved.',
             ),
-            { status: 502 },
+            { status: 502, failedItems },
         );
     }
     return {
         positions,
         syncedItemIds,
-        warning: failedItems.length
-            ? `${failedItems.length} item(s) failed; partial data returned.`
-            : null,
+        failedItems,
+        warning: partialWarning(failedItems),
     };
 }
 
@@ -328,13 +410,20 @@ async function transactions(token) {
                 hasMore = Boolean(data.has_more);
             }
             if (hasMore) {
-                failedItems.push(
-                    'Transaction pagination exceeded the safety limit.',
+                recordItemFailure(
+                    failedItems,
+                    item.itemId,
+                    Object.assign(
+                        new Error(
+                            'Transaction pagination exceeded the safety limit.',
+                        ),
+                        { code: 'PAGINATION_LIMIT' },
+                    ),
                 );
                 itemFailed = true;
             }
         } catch (err) {
-            failedItems.push(err.message);
+            recordItemFailure(failedItems, item.itemId, err);
             itemFailed = true;
         }
 
@@ -354,7 +443,7 @@ async function transactions(token) {
             new Error(
                 'All Plaid transaction fetches failed. Existing data preserved.',
             ),
-            { status: 502 },
+            { status: 502, failedItems },
         );
     }
 
@@ -381,26 +470,47 @@ async function transactions(token) {
             modified: parsedModified,
             removedIds,
         },
-        warning: failedItems.length
-            ? `${failedItems.length} item(s) failed; partial data returned.`
-            : null,
+        failedItems,
+        warning: partialWarning(failedItems),
         syncedAt,
     };
 }
 
+// Netlify may hand the function either the original /api/sync/plaid/<x>
+// URL or the rewritten /.netlify/functions/plaid/<x> one.
+function routePath(pathname) {
+    const fnPrefix = '/.netlify/functions/plaid';
+    if (pathname.startsWith(fnPrefix))
+        return `/sync/plaid${pathname.slice(fnPrefix.length)}`;
+    return pathname.replace(/^\/api/, '') || '/';
+}
+
+async function readBody(req) {
+    return req
+        .clone()
+        .json()
+        .catch(() => ({}));
+}
+
 export default async function handler(req) {
     try {
-        if (!plaidConfigured())
-            return json(503, { error: 'Plaid not configured.' });
+        const misconfigured = configError();
+        if (misconfigured) {
+            console.error('[Netlify Plaid] not configured:', misconfigured);
+            return json(503, { error: 'Hosted Plaid is not configured.' });
+        }
         const url = new URL(req.url);
-        const path =
-            url.pathname
-                .replace('/.netlify/functions/plaid', '')
-                .replace(/^\/api/, '') || '/';
+        const path = routePath(url.pathname);
         const method = req.method || 'GET';
         const origin = req.headers.get('origin');
         if (origin && origin !== url.origin) {
             return json(403, { error: 'Origin not allowed.' });
+        }
+        if (!hasAccess(req)) {
+            return json(401, {
+                error: 'Hosted Plaid access key required.',
+                code: 'ACCESS_KEY_REQUIRED',
+            });
         }
 
         if (path === '/sync/plaid/create-link-token' && method === 'POST') {
@@ -436,47 +546,33 @@ export default async function handler(req) {
             });
         }
         if (path === '/sync/plaid/accounts' && method === 'POST') {
-            const token = await requireToken(
-                req,
-                await req
-                    .clone()
-                    .json()
-                    .catch(() => ({})),
-            );
+            const token = await requireToken(req, await readBody(req));
             const result = await accounts(token);
             return json(200, {
                 status: 'success',
                 accountCount: result.accounts.length,
                 accounts: result.accounts,
                 syncedItemIds: result.syncedItemIds,
+                failedItems: result.failedItems,
                 warning: result.warning,
                 plaidToken: seal(token),
             });
         }
         if (path === '/sync/plaid/positions' && method === 'POST') {
-            const token = await requireToken(
-                req,
-                await req
-                    .clone()
-                    .json()
-                    .catch(() => ({})),
-            );
+            const token = await requireToken(req, await readBody(req));
             const result = await positions(token);
             return json(200, {
                 status: 'success',
                 positionCount: result.positions.length,
                 positions: result.positions,
                 syncedItemIds: result.syncedItemIds,
+                failedItems: result.failedItems,
                 warning: result.warning,
                 plaidToken: seal(token),
             });
         }
         if (path === '/sync/plaid/transactions' && method === 'POST') {
-            const body = await req
-                .clone()
-                .json()
-                .catch(() => ({}));
-            const token = await requireToken(req, body);
+            const token = await requireToken(req, await readBody(req));
             const result = await transactions(token);
             return json(200, {
                 status: 'success',
@@ -489,6 +585,7 @@ export default async function handler(req) {
                 transactions: result.transactions,
                 plaidToken: result.plaidToken,
                 syncedAt: result.syncedAt,
+                failedItems: result.failedItems,
                 warning: result.warning,
             });
         }
@@ -499,8 +596,14 @@ export default async function handler(req) {
         return json(404, { error: 'Hosted Plaid endpoint not found.' });
     } catch (err) {
         console.error('[Netlify Plaid] request failed:', err);
-        return json(err.status || 500, {
-            error: err.message || 'Hosted Plaid request failed.',
+        // Only errors raised deliberately (with a status) carry a message
+        // meant for the browser; anything else stays in the function log.
+        if (!err.status)
+            return json(500, { error: 'Hosted Plaid request failed.' });
+        return json(err.status, {
+            error: err.message,
+            ...(err.code ? { code: err.code } : {}),
+            ...(err.failedItems ? { failedItems: err.failedItems } : {}),
         });
     }
 }

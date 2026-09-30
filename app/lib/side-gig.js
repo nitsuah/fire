@@ -426,6 +426,7 @@ async function syncEbayViaFunction() {
 
 const PLAID_HOSTED_TOKEN_KEY = 'fire_plaid_hosted_token';
 const PLAID_HOSTED_SYNC_KEY = 'fire_plaid_hosted_sync_enabled';
+const PLAID_HOSTED_ACCESS_KEY = 'fire_plaid_hosted_access_key';
 
 function isHostedPlaid() {
     return (
@@ -443,48 +444,85 @@ function setHostedPlaidToken(token) {
     else localStorage.removeItem(PLAID_HOSTED_TOKEN_KEY);
 }
 
-async function plaidRequest(path, options = {}) {
+async function plaidRequest(path, options = {}, retried = false) {
     const { deferHostedTokenPersistence = false, ...fetchOptions } = options;
     const headers = new Headers(fetchOptions.headers || {});
     if (isHostedPlaid()) {
         const token = getHostedPlaidToken();
         if (token) headers.set('x-fire-plaid-token', token);
+        const accessKey = localStorage.getItem(PLAID_HOSTED_ACCESS_KEY);
+        if (accessKey) headers.set('x-fire-plaid-access', accessKey);
     }
-    if (fetchOptions.body && typeof fetchOptions.body !== 'string') {
+    let body = fetchOptions.body;
+    if (body && typeof body !== 'string') {
         headers.set('Content-Type', 'application/json');
-        fetchOptions.body = JSON.stringify(fetchOptions.body);
+        body = JSON.stringify(body);
     }
-    const res = await fetch(path, { ...fetchOptions, headers });
+    const res = await fetch(path, { ...fetchOptions, body, headers });
     const contentType = res.headers.get('content-type') || '';
-    const data = contentType.includes('application/json')
-        ? await res.json()
-        : {
-              error: `Server returned a non-JSON response (HTTP ${res.status}).`,
-          };
+    if (!contentType.includes('application/json')) {
+        throw new Error(
+            `Server returned a non-JSON response (HTTP ${res.status}).`,
+        );
+    }
+    let data;
+    try {
+        data = await res.json();
+    } catch {
+        throw new Error(`Server returned malformed JSON (HTTP ${res.status}).`);
+    }
+    if (isHostedPlaid() && res.status === 401) {
+        if (data.code === 'ACCESS_KEY_REQUIRED' && !retried) {
+            const key = window.prompt(
+                'Enter the hosted Plaid access key for this site:',
+            );
+            if (key?.trim()) {
+                localStorage.setItem(PLAID_HOSTED_ACCESS_KEY, key.trim());
+                return plaidRequest(path, options, true);
+            }
+        }
+        // A dead token can never become valid again; drop it so the user
+        // can link afresh instead of being stuck on the same 401.
+        if (data.code === 'INVALID_TOKEN') setHostedPlaidToken('');
+    }
     if (isHostedPlaid() && data.plaidToken && !deferHostedTokenPersistence) {
         setHostedPlaidToken(data.plaidToken);
     }
     return { res, data };
 }
 
-function applyHostedPlaidAccounts(accounts, syncedItemIds = []) {
+// Plaid rows without a plaidItemId predate item-aware sync. Replace them by
+// id, or all of them when the sync was complete (no partial warning).
+function applyHostedPlaidAccounts(
+    accounts,
+    syncedItemIds = [],
+    partial = false,
+) {
     const synced = new Set(syncedItemIds);
-    const retained = (state.customAccounts || []).filter(
-        (account) =>
-            account.source !== 'plaid' ||
-            !account.plaidItemId ||
-            !synced.has(account.plaidItemId),
+    const incomingIds = new Set(accounts.map((account) => account.id));
+    const retained = (state.customAccounts || []).filter((account) =>
+        account.source !== 'plaid'
+            ? true
+            : !incomingIds.has(account.id) &&
+              (account.plaidItemId
+                  ? !synced.has(account.plaidItemId)
+                  : partial),
     );
     state.customAccounts = [...retained, ...accounts];
 }
 
-function applyHostedPlaidPositions(positions, syncedItemIds = []) {
+function applyHostedPlaidPositions(
+    positions,
+    syncedItemIds = [],
+    partial = false,
+) {
     const synced = new Set(syncedItemIds);
-    const retained = (state.importedPositions || []).filter(
-        (position) =>
-            position.source !== 'plaid' ||
-            !position.plaidItemId ||
-            !synced.has(position.plaidItemId),
+    const retained = (state.importedPositions || []).filter((position) =>
+        position.source !== 'plaid'
+            ? true
+            : position.plaidItemId
+              ? !synced.has(position.plaidItemId)
+              : partial,
     );
     state.importedPositions = [...retained, ...positions];
 }
@@ -608,6 +646,7 @@ function initPlaidLink() {
                             applyHostedPlaidAccounts(
                                 accountsResult.data.accounts || [],
                                 accountsResult.data.syncedItemIds || [],
+                                Boolean(accountsResult.data.warning),
                             );
                             await saveState();
                         }
@@ -625,12 +664,22 @@ function initPlaidLink() {
                             applyHostedPlaidPositions(
                                 positionsResult.data.positions || [],
                                 positionsResult.data.syncedItemIds || [],
+                                Boolean(positionsResult.data.warning),
                             );
                             await saveState();
                         }
 
                         await checkPlaidConnection();
                         refreshAllUI();
+                        const warnings = [
+                            exchangeData.warning,
+                            accountsResult.data.warning,
+                            positionsResult.data.warning,
+                        ].filter(Boolean);
+                        if (warnings.length) {
+                            statusEl.textContent = `Status: Linked with warnings - ${warnings.join(' ')}`;
+                            statusEl.style.color = 'var(--color-warning)';
+                        }
                     } catch (err) {
                         statusEl.textContent = `Status: Error - ${err.message}`;
                         statusEl.style.color = 'var(--color-danger)';
@@ -658,7 +707,9 @@ function initPlaidLink() {
     });
 }
 
-async function loadPlaidSettingsPanel() {
+// `note` ({ text, color }) is the outcome of a sync that just ran; it is
+// appended to the linked status so the refresh doesn't wipe it.
+async function loadPlaidSettingsPanel(note = null) {
     const toggle = document.getElementById('setting-plaid-sync-enabled');
     const statusEl = document.getElementById('settings-plaid-status');
     const syncBtn = document.getElementById('btn-plaid-sync-now');
@@ -679,8 +730,11 @@ async function loadPlaidSettingsPanel() {
             const lastSyncText = data.lastTransactionsSync
                 ? new Date(data.lastTransactionsSync).toLocaleString()
                 : 'never';
-            statusEl.textContent = `Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''}) · Last sync: ${lastSyncText}`;
-            statusEl.style.color = 'var(--color-success)';
+            const linkedText = `Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''}) · Last sync: ${lastSyncText}`;
+            statusEl.textContent = note
+                ? `${linkedText} · ${note.text}`
+                : linkedText;
+            statusEl.style.color = note?.color || 'var(--color-success)';
         }
         if (syncBtn) syncBtn.disabled = !data.connected || !toggle.checked;
         if (typeof setFidelityImportDisabled === 'function') {
@@ -724,6 +778,7 @@ async function runPlaidTransactionsSyncNow() {
     btn.disabled = true;
     const original = btn.textContent;
     btn.textContent = 'Syncing…';
+    let note = null;
     try {
         const { res, data } = await plaidRequest(
             '/api/sync/plaid/transactions',
@@ -735,19 +790,30 @@ async function runPlaidTransactionsSyncNow() {
             await saveState();
             if (data.plaidToken) setHostedPlaidToken(data.plaidToken);
         }
+        const summary = `Synced ${data.added} new transaction${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
+        note = data.warning
+            ? {
+                  text: `${summary} ${data.warning}`,
+                  color: 'var(--color-warning)',
+              }
+            : { text: summary, color: 'var(--color-success)' };
         if (statusEl) {
-            statusEl.textContent = `Synced ${data.added} new transaction${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
-            statusEl.style.color = 'var(--color-success)';
+            statusEl.textContent = note.text;
+            statusEl.style.color = note.color;
         }
         if (typeof refreshAllUI === 'function') refreshAllUI();
     } catch (err) {
+        note = {
+            text: `Sync failed: ${err.message}`,
+            color: 'var(--color-danger)',
+        };
         if (statusEl) {
-            statusEl.textContent = `Sync failed: ${err.message}`;
-            statusEl.style.color = 'var(--color-danger)';
+            statusEl.textContent = note.text;
+            statusEl.style.color = note.color;
         }
     } finally {
         btn.textContent = original;
-        loadPlaidSettingsPanel();
+        loadPlaidSettingsPanel(note);
     }
 }
 

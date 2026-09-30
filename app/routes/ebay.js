@@ -147,14 +147,22 @@ router.post('/ebay/sync', async (req, res) => {
             // Uploaded report rows and manual entries are the user's own.
             try {
                 fs.unlinkSync(getTokenFile('ebay'));
-            } catch {
-                /* already gone */
+            } catch (unlinkErr) {
+                if (unlinkErr.code !== 'ENOENT')
+                    console.error(
+                        '[eBay] Unable to delete revoked tokens:',
+                        unlinkErr.message,
+                    );
             }
-            await mutateState((state) => {
+            const purged = await mutateState((state) => {
                 state.sideGigLedger = (state.sideGigLedger || []).filter(
                     (e) => !isApiSyncedEbayEntry(e),
                 );
             });
+            if (!purged)
+                console.error(
+                    '[eBay] Unable to purge API-synced orders after revocation.',
+                );
             return res.status(401).json({ error: err.message, code: err.code });
         }
         let added = 0;
