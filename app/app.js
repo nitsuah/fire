@@ -109,7 +109,7 @@ function initCspEventDelegation() {
         if (!CSP_ACTIONS.has(action)) return;
         const fn = window[action];
         if (typeof fn !== 'function') return;
-        if (el.dataset.cspClickValue !== undefined) fn(el.dataset.cspClickValue);
+        if (el.dataset.cspClickValue !== undefined) fn(el.dataset.cspClickValue, el);
         else fn();
     });
 
@@ -120,7 +120,7 @@ function initCspEventDelegation() {
         if (!CSP_ACTIONS.has(action)) return;
         const fn = window[action];
         if (typeof fn !== 'function') return;
-        if (el.dataset.cspChangeValue !== undefined) fn(el.dataset.cspChangeValue);
+        if (el.dataset.cspChangeValue !== undefined) fn(el.dataset.cspChangeValue, event.target.value, event);
         else fn(event);
     });
 }
