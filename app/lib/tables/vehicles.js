@@ -83,7 +83,9 @@ function renderVehiclesTable() {
         }
     });
     tbody.innerHTML = html;
-    tbody.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.color = el.dataset.cspColor; });
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.color = el.dataset.cspColor;
+    });
     renderVehicleStats();
 }
 
