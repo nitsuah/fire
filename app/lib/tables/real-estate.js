@@ -50,8 +50,8 @@ function renderRealEstateTable() {
                 <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-purchase-${re.id}" type="number" value="${re.purchasePrice}" step="1000"></td>
                 <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-payment-${re.id}" type="number" value="${re.monthlyPayment}" step="100"></td>
                 <td class="text-right">
-                    <button class="action-btn save-btn" onclick="saveEditRealEstate('${re.id}')">Save</button>
-                    <button class="action-btn cancel-btn" onclick="cancelEditRealEstate('${re.id}')">Cancel</button>
+                    <button class="action-btn save-btn" data-csp-click-action="saveEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Save</button>
+                    <button class="action-btn cancel-btn" data-csp-click-action="cancelEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Cancel</button>
                 </td>
             </tr>`;
         } else {
