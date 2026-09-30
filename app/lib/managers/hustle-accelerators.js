@@ -172,7 +172,7 @@ function renderHustleAccelerator() {
 
     if (active.length === 0) {
         el.innerHTML = `<div class="hustle-item hustle-mantra">
-                <p style="font-size:13px;">${HUSTLE_MANTRAS[hustleMantraIndex % HUSTLE_MANTRAS.length]}</p>
+                <p class="csp-text-13">${HUSTLE_MANTRAS[hustleMantraIndex % HUSTLE_MANTRAS.length]}</p>
                 <button type="button" class="action-btn mt-2" data-hustle-action="mantra">Another one</button>
             </div>${restore}`;
         return;
@@ -195,7 +195,7 @@ function renderHustleAccelerator() {
                 .join('')}</div>
             <div class="hustle-nav">
                 <button type="button" class="action-btn" data-hustle-action="prev" aria-label="Previous idea">‹</button>
-                <span class="text-muted" style="font-size:11px;">${hustleIndex + 1} / ${active.length}</span>
+                <span class="text-muted" class="csp-text-11">${hustleIndex + 1} / ${active.length}</span>
                 <button type="button" class="action-btn" data-hustle-action="next" aria-label="Next idea">›</button>
             </div>
         </div>${restore}`;
