@@ -55,9 +55,9 @@ window.renderTaxHarvestTable = function () {
             <td class="text-muted">${escHtml((p.description || '').slice(0, 40))}</td>
             <td class="text-right">${formatCurrency(p.value)}</td>
             <td class="text-right text-muted">${formatCurrency(p.costBasis)}</td>
-            <td class="text-right" class="text-coral">${lossStr}</td>
-            <td class="text-right" class="text-emerald">${potentialSavings}</td>
-            <td class="${urgencyClass}" class="csp-text-12 csp-font-600">${alertLabel}</td>
+            <td class="text-right text-coral">${lossStr}</td>
+            <td class="text-right text-emerald">${potentialSavings}</td>
+            <td class="${urgencyClass} csp-text-12 csp-font-600">${alertLabel}</td>
         </tr>`;
     });
 
