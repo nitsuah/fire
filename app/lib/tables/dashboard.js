@@ -676,7 +676,7 @@ function renderDiversificationSuggestions(
     let html = '<div class="divs-bar">';
     html += '<div class="divs-bar-title">💡 Portfolio Insights</div>';
     if (dismissed.length > 0) {
-        html += `<button class="divs-clear-dismissed" onclick="clearAllDismissedTips()">Restore dismissed (${dismissed.length})</button>`;
+        html += `<button class="divs-clear-dismissed" data-csp-click-action="clearAllDismissedTips">Restore dismissed (${dismissed.length})</button>`;
     }
     html += '</div>';
 
@@ -693,7 +693,7 @@ function renderDiversificationSuggestions(
                 <div class="divs-tile-header">
                     <span class="divs-tile-icon">${tip.icon}</span>
                     <span class="divs-tile-title">${tip.title}</span>
-                    <button class="divs-tile-dismiss" onclick="dismissTip('${tip.id}')" aria-label="Dismiss">
+                    <button class="divs-tile-dismiss" data-csp-click-action="dismissTip" data-csp-click-value="${escHtml(tip.id)}" aria-label="Dismiss">
                         <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                     </button>
                 </div>
