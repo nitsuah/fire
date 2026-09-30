@@ -76,7 +76,7 @@ function _updateNotifUI() {
     const perm = Notification.permission;
     if (perm === 'granted') {
         btn.textContent = 'Check Now';
-        btn.onclick = () => checkAndNotify(state, true);
+        btn.addEventListener('click', () => checkAndNotify(state, true));
         statusEl.textContent =
             'Notifications enabled. Active alerts are shown below.';
         checkAndNotify(state, false);
