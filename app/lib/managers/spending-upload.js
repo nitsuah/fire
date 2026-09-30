@@ -176,7 +176,7 @@ function renderMerchantMapEditor() {
     const overrides = state.merchantCategoryOverrides || {};
     const entries = Object.entries(overrides);
     if (entries.length === 0) {
-        container.innerHTML = `<p class="text-muted" style="font-size:12px;">No custom mappings yet — uploads use the built-in keyword categorization.</p>`;
+        container.innerHTML = `<p class="text-muted" class="csp-text-12">No custom mappings yet — uploads use the built-in keyword categorization.</p>`;
         return;
     }
     const catOptions = (selected) =>
