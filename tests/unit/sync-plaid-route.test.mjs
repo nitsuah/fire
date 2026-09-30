@@ -720,3 +720,110 @@ describe('POST /api/sync/plaid/transactions', () => {
         expect(db.spendingTransactions).toHaveLength(1);
     });
 });
+
+describe('POST /api/sync/plaid/accounts and /positions legacy rows', () => {
+    const balanceResponse = {
+        ok: true,
+        json: async () => ({
+            accounts: [
+                {
+                    account_id: 'acc1',
+                    name: 'Checking',
+                    type: 'depository',
+                    balances: { current: 250 },
+                },
+            ],
+        }),
+    };
+
+    it('replaces Plaid accounts saved before item ids existed instead of duplicating them', async () => {
+        writeDb({
+            customAccounts: [
+                { id: 'plaid-acc1', source: 'plaid', value: 100 },
+                { id: 'plaid-old', source: 'plaid', value: 5 },
+                { id: 'manual-1', source: 'manual', value: 7 },
+            ],
+        });
+        writePlaidTokens([{ itemId: 'item-1', accessToken: 'access-1' }]);
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(balanceResponse));
+
+        const res = await request(app).post('/api/sync/plaid/accounts');
+        expect(res.status).toBe(200);
+        const accounts = readState().customAccounts;
+        expect(accounts.map((a) => a.id).sort()).toEqual([
+            'manual-1',
+            'plaid-acc1',
+        ]);
+        expect(accounts.find((a) => a.id === 'plaid-acc1')).toMatchObject({
+            value: 250,
+            plaidItemId: 'item-1',
+        });
+    });
+
+    it('keeps unmatched legacy accounts when a sibling item fails', async () => {
+        writeDb({
+            customAccounts: [
+                { id: 'plaid-acc1', source: 'plaid', value: 100 },
+                { id: 'plaid-other', source: 'plaid', value: 5 },
+            ],
+        });
+        writePlaidTokens([
+            { itemId: 'item-1', accessToken: 'access-1' },
+            { itemId: 'item-2', accessToken: 'access-2' },
+        ]);
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (_url, init) =>
+                JSON.parse(init.body).access_token === 'access-1'
+                    ? balanceResponse
+                    : { ok: false, status: 500, text: async () => 'err' },
+            ),
+        );
+
+        const res = await request(app).post('/api/sync/plaid/accounts');
+        expect(res.status).toBe(200);
+        expect(res.body.warning).toMatch(/1 item/);
+        const ids = readState()
+            .customAccounts.map((a) => a.id)
+            .sort();
+        expect(ids).toEqual(['plaid-acc1', 'plaid-other']);
+    });
+
+    it('replaces legacy Plaid positions once every item has synced', async () => {
+        writeDb({
+            importedPositions: [
+                { symbol: 'VTI', source: 'plaid', value: 100 },
+                { symbol: 'AAPL', source: 'csv', value: 50 },
+            ],
+        });
+        writePlaidTokens([{ itemId: 'item-1', accessToken: 'access-1' }]);
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    holdings: [
+                        {
+                            security_id: 'sec-vti',
+                            quantity: 2,
+                            institution_value: 400,
+                        },
+                    ],
+                    securities: [
+                        { security_id: 'sec-vti', ticker_symbol: 'VTI' },
+                    ],
+                }),
+            }),
+        );
+
+        const res = await request(app).post('/api/sync/plaid/positions');
+        expect(res.status).toBe(200);
+        const positions = readState().importedPositions;
+        expect(positions).toHaveLength(2);
+        expect(positions.find((p) => p.source === 'plaid')).toMatchObject({
+            symbol: 'VTI',
+            value: 400,
+            plaidItemId: 'item-1',
+        });
+    });
+});
