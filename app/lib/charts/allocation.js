@@ -242,8 +242,8 @@ function renderAllocDetailList(items, color) {
         .map(
             (item) => `
         <div class="alloc-detail-row">
-            <span class="alloc-detail-dot" style="background:${color};"></span>
-            <span class="alloc-detail-name">${escHtml(item.name)}<span class="text-muted" style="font-size:11px;display:block;">${escHtml(item.sub)}</span></span>
+            <span class="alloc-detail-dot" class="alloc-detail-dot csp-dynamic-bg" data-csp-color="${escHtml(color)}"></span>
+            <span class="alloc-detail-name">${escHtml(item.name)}<span class="text-muted csp-text-11 csp-block">${escHtml(item.sub)}</span></span>
             <span class="alloc-detail-val">${formatCurrency(item.value)}</span>
         </div>`,
         )
@@ -352,7 +352,7 @@ function renderAssetAllocationChart() {
         listEl.innerHTML = `<div class="alloc-cat-buttons">${slices
             .map(
                 (s) =>
-                    `<button type="button" class="alloc-cat-btn" data-csp-click-action="allocDrillInto" data-csp-click-value="${escHtml(s.key)}"><span class="alloc-detail-dot" style="background:${s.color};"></span>${s.label} · ${formatCurrency(s.val)}</button>`,
+                    `<button type="button" class="alloc-cat-btn" data-csp-click-action="allocDrillInto" data-csp-click-value="${escHtml(s.key)}"><span class="alloc-detail-dot" class="alloc-detail-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span>${s.label} · ${formatCurrency(s.val)}</button>`,
             )
             .join('')}</div>`;
     }
