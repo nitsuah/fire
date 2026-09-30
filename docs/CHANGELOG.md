@@ -172,6 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Agent instructions (`.github/copilot-instructions.md`) now require closing tracked work in the same PR: update `docs/TASKS.md`, `docs/ROADMAP.md` and this changelog before the last push, and confirm `git diff origin/main...HEAD --stat` includes them before merge; added `.github/pull_request_template.md` with a "Closes TASKS item(s)" checklist.
 - **Projection drawdown** — portfolio now withdraws `annualExpenses` per year after retirement age instead of continuing to accumulate; both `projections.js` (browser) and `finance-calcs.js` (server/MCP) updated.
 - **db.js atomic writes** — `writeState` serialises to a `.tmp` file then `fs.renameSync` to prevent corrupt state on mid-write failure.
 - **db.js `readState`** — distinguishes missing file (returns `defaultState()`) from corrupt/unreadable file (throws, propagating to Express error handler).
