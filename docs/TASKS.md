@@ -30,12 +30,14 @@ These items came from the current browser/production pass. **P0** items are corr
   - Priority: P1. Hosted browser deployment must support the same Plaid Link → exchange → accounts → positions → transactions workflow as Express; a JSON-safe 404/status stub is not sufficient.
   - Scope: split Plaid from app/routes/sync.js, extract transport-agnostic Plaid operations, expose the required Netlify Functions/rewrites, preserve encrypted browser/local-first token handling, and keep Express behavior unchanged.
   - Acceptance Criteria: Link, public-token exchange, account/position refresh, and transaction sync all work on lifefire.netlify.app; each hosted function has unit coverage; browser smoke coverage exercises the hosted routes; no /api/sync/plaid/* request can fall through to an HTML Netlify 404.
+  - Progress 2026-09-30 (PR #146): `netlify/functions/plaid.mjs` serves all `/api/sync/plaid/*` routes, with unit coverage and the toml routing test; status is verified on the deploy preview. Remaining: a live Link → sync run on lifefire.netlify.app (set `PLAID_HOSTED_ACCESS_KEY` if `PLAID_ENV` isn't sandbox) and browser smoke coverage.
 
 - [ ] **Split app/routes/sync.js (942 LOC): separate eBay and Plaid routes, extract the transactions handler (F-20260916-05)**
   - Priority: P1. The route grew with the eBay/Plaid work and should be decomposed before another integration lands.
   - Scope: separate eBay and Plaid route modules, extract the Plaid transactions handler, keep webhook/template routes isolated, and move shared provider logic into transport-agnostic modules where practical.
   - Findings ledger: F-20260916-05 · BV 5 · TC 3 · RR 5 · size 3.
   - Acceptance Criteria: existing Express route paths and response contracts remain unchanged; Plaid and eBay tests pass; transaction pagination/cursor semantics remain unchanged; hosted Netlify Plaid functions can reuse the extracted Plaid operations without importing the Express router.
+  - Progress 2026-09-30 (PR #146): split into `app/routes/ebay.js` and `app/routes/plaid.js`, with token helpers in `app/lib/token-store.js`. Paths and cursor semantics are unchanged, and the tests pass. Accounts/positions responses gained `syncedItemIds`/`warning`. Remaining: the hosted function still duplicates the Plaid operations instead of sharing a transport-agnostic module.
 
 - [ ] **CoinTracker MCP integration for wallet discovery/investigation**
   - Priority: P1.
