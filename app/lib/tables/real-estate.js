@@ -59,19 +59,20 @@ function renderRealEstateTable() {
             <tr class="position-row">
                 <td class="font-bold">${_reEscHtml(re.name)}</td>
                 <td><span class="tag-badge">${_reEscHtml(re.type)}</span></td>
-                <td class="text-muted" style="font-size:11px;">${_reEscHtml(re.address) || '—'}</td>
+                <td class="text-muted csp-text-11">${_reEscHtml(re.address) || '—'}</td>
                 <td class="text-right font-bold">${formatCurrency(re.marketValue || 0)}</td>
-                <td class="text-right" style="${equity >= 0 ? 'color:var(--color-success)' : 'color:var(--color-danger)'};">${formatCurrency(equity)}</td>
+                <td class="text-right" class="csp-dynamic-color" data-csp-color="${equity >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">${formatCurrency(equity)}</td>
                 <td class="text-right text-muted">${(re.purchasePrice || 0) > 0 ? formatCurrency(re.purchasePrice) : '—'}</td>
-                <td class="text-right" style="${gainStyle}">${(re.purchasePrice || 0) > 0 ? gainStr : '—'}</td>
+                <td class="text-right" class="csp-dynamic-color" data-csp-color="${escHtml(gainStyle.replace(/^color:\s*/, ''))}">${(re.purchasePrice || 0) > 0 ? gainStr : '—'}</td>
                 <td class="text-right">
-                    <button class="action-btn edit-btn" onclick="startEditRealEstate('${re.id}')">Edit</button>
-                    <button class="action-btn delete-btn" onclick="deleteRealEstate('${re.id}')">Delete</button>
+                    <button class="action-btn edit-btn" data-csp-click-action="startEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Edit</button>
+                    <button class="action-btn delete-btn" data-csp-click-action="deleteRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Delete</button>
                 </td>
             </tr>`;
         }
     });
     tbody.innerHTML = html;
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.color = el.dataset.cspColor; });
     renderRealEstateStats();
 }
 
