@@ -121,7 +121,7 @@ function renderCompactFireBar(progressPercent) {
     fill.innerHTML = segments
         .map(
             (s) =>
-                `<span class="cfb-seg" style="width:${s.pct.toFixed(2)}%;background:${s.color};"></span>`,
+                `<span class="cfb-seg" class="cfb-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(2)}" data-csp-color="${escHtml(s.color)}"></span>`,
         )
         .join('');
     pct.textContent = `${progressPercent.toFixed(1)}%`;
@@ -142,7 +142,7 @@ function buildCompactBarTooltipHtml() {
     const rows = segments
         .map(
             (s) =>
-                `<div class="at-row"><span class="at-dot" style="background:${s.color};"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+                `<div class="at-row"><span class="at-dot" class="at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
@@ -694,7 +694,7 @@ function renderDiversificationSuggestions(
                     <span class="divs-tile-icon">${tip.icon}</span>
                     <span class="divs-tile-title">${tip.title}</span>
                     <button class="divs-tile-dismiss" data-csp-click-action="dismissTip" data-csp-click-value="${escHtml(tip.id)}" aria-label="Dismiss">
-                        <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        <svg class="csp-icon-16" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                     </button>
                 </div>
                 <div class="divs-tile-message">${msg}</div>
@@ -707,6 +707,8 @@ function renderDiversificationSuggestions(
     html += '</div>';
 
     block.innerHTML = html;
+    block.querySelectorAll('[data-csp-width]').forEach((el) => { el.style.width = `${el.dataset.cspWidth}%`; });
+    block.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.backgroundColor = el.dataset.cspColor; });
 }
 
 // Income Sources / Monthly Expenses collapse toggle (mobile only — see
