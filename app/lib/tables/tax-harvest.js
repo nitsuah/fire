@@ -55,9 +55,9 @@ window.renderTaxHarvestTable = function () {
             <td class="text-muted">${escHtml((p.description || '').slice(0, 40))}</td>
             <td class="text-right">${formatCurrency(p.value)}</td>
             <td class="text-right text-muted">${formatCurrency(p.costBasis)}</td>
-            <td class="text-right" style="color:var(--color-danger)">${lossStr}</td>
-            <td class="text-right" style="color:var(--color-success)">${potentialSavings}</td>
-            <td class="${urgencyClass}" style="font-size:12px;font-weight:600;">${alertLabel}</td>
+            <td class="text-right" class="text-coral">${lossStr}</td>
+            <td class="text-right" class="text-emerald">${potentialSavings}</td>
+            <td class="${urgencyClass}" class="csp-text-12 csp-font-600">${alertLabel}</td>
         </tr>`;
     });
 
@@ -70,8 +70,8 @@ window.renderTaxHarvestTable = function () {
         // $3k/yr cap if no gains exist to offset. Consult a tax advisor.
         const potentialTotal = Math.abs(totalLoss) * taxRate;
         summaryEl.innerHTML = `
-            <div class="tax-harvest-stat"><span>Total Harvestable Losses</span><strong style="color:var(--color-danger)">${formatCurrency(totalLoss)}</strong></div>
-            <div class="tax-harvest-stat"><span>Potential Savings* (@ ${state.taxRate ?? 20}% rate)</span><strong style="color:var(--color-success)">${formatCurrency(potentialTotal)}</strong></div>
+            <div class="tax-harvest-stat"><span>Total Harvestable Losses</span><strong class="text-coral">${formatCurrency(totalLoss)}</strong></div>
+            <div class="tax-harvest-stat"><span>Potential Savings* (@ ${state.taxRate ?? 20}% rate)</span><strong class="text-emerald">${formatCurrency(potentialTotal)}</strong></div>
             <div class="tax-harvest-stat"><span>Ordinary Income Offset (max $3k/yr)</span><strong>${formatCurrency(annualCap)}</strong></div>
             <div class="tax-harvest-stat"><span>Days Until Year-End</span><strong class="${isUrgent ? 'text-amber' : ''}">${daysLeft} days${isUrgent ? ' ⚠' : ''}</strong></div>
         `;
