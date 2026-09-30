@@ -126,8 +126,8 @@ app.use((req, res, next) => {
         'Content-Security-Policy',
         [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net",
-            "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
+            "script-src 'self' cdn.jsdelivr.net",
+            "style-src 'self' fonts.googleapis.com",
             "font-src 'self' fonts.gstatic.com",
             "img-src 'self' data:",
             "connect-src 'self' query1.finance.yahoo.com finance.yahoo.com cdn.jsdelivr.net",
