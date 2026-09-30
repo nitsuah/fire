@@ -76,7 +76,7 @@ function _updateNotifUI() {
     const perm = Notification.permission;
     if (perm === 'granted') {
         btn.textContent = 'Check Now';
-        btn.addEventListener('click', () => checkAndNotify(state, true));
+        btn.dataset.cspClickAction = 'checkNotifications';
         statusEl.textContent =
             'Notifications enabled. Active alerts are shown below.';
         checkAndNotify(state, false);
@@ -93,6 +93,10 @@ function _updateNotifUI() {
         checkAndNotify(state, false);
     }
 }
+
+window.checkNotifications = function () {
+    checkAndNotify(state, true);
+};
 
 window.requestNotificationPermission = async function () {
     if (!('Notification' in window)) return;
