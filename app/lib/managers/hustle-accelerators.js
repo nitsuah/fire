@@ -195,7 +195,7 @@ function renderHustleAccelerator() {
                 .join('')}</div>
             <div class="hustle-nav">
                 <button type="button" class="action-btn" data-hustle-action="prev" aria-label="Previous idea">‹</button>
-                <span class="text-muted" class="csp-text-11">${hustleIndex + 1} / ${active.length}</span>
+                <span class="text-muted csp-text-11">${hustleIndex + 1} / ${active.length}</span>
                 <button type="button" class="action-btn" data-hustle-action="next" aria-label="Next idea">›</button>
             </div>
         </div>${restore}`;
