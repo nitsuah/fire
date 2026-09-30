@@ -35,3 +35,28 @@
 .csp-i-034{background:var(--color-danger-bg); border-color:var(--color-danger); color:var(--color-danger);}
 .csp-i-035{background:var(--color-warning-bg); border-color:var(--color-warning); color:var(--color-warning);}
 .csp-i-036{width:18px;height:18px;display:inline-block;vertical-align:middle;margin-right:8px;}
+
+/* Runtime markup utilities; dynamic values are applied through individual
+   CSSStyleDeclaration properties in JavaScript, which CSP permits. */
+.csp-text-10{font-size:10px}
+.csp-text-11{font-size:11px}
+.csp-text-12{font-size:12px}
+.csp-text-13{font-size:13px}
+.csp-font-600{font-weight:600}
+.csp-block{display:block}
+.csp-mt-2{margin-top:2px}
+.csp-ml-6{margin-left:6px}
+.csp-pad-12-0{padding:12px 0}
+.csp-border-top{border-top:1px solid rgba(255,255,255,0.2)}
+.csp-width-70{width:70px}
+.csp-width-80{width:80px}
+.csp-width-90{width:90px}
+.csp-width-110{width:110px}
+.csp-width-120{width:120px}
+.csp-vin-input{font-size:10px;margin-top:2px;text-transform:uppercase}
+.csp-pos-desc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.csp-pre-wrap{white-space:pre-wrap}
+.csp-icon-16{width:16px;height:16px}
+.csp-notif-label{text-transform:uppercase}
+.csp-notif-label.notif-label-urgent{color:var(--color-danger)}
+.csp-notif-label.notif-label-warning{color:var(--color-warning)}
