@@ -53,6 +53,10 @@ If you intend to expose this server beyond `localhost`, complete all Critical an
 
 | `SESSION_SECRET` still has a development fallback | Session forgery if production is misconfigured | High |
 
+| Webhook body cap is 1 MB, not the planned 16 KB (H-05, partial) | Memory pressure from large webhook payloads | Low |
+
+| Webhook `sideGigLedger` fields not type/format-checked (H-06, partial) | Malformed ledger entries in state | Moderate |
+
 
 | 6 moderate/critical dev dependency vulns | Supply chain (dev only, not shipped) | Low |
 
@@ -70,7 +74,9 @@ If you intend to expose this server beyond `localhost`, complete all Critical an
 
 #### H-01: Rate Limiting
 
-**Gap:** No request rate limiting on any API endpoint.  
+**Status: Done.** `express-rate-limit` in `app/server.js`: a general limiter (300 req/min) and a sync limiter (30 req/min). If the package fails to load the limiter becomes a no-op, so keep it in `dependencies`.
+
+**Gap (original):** No request rate limiting on any API endpoint.  
 **Risk:** API key brute force, memory exhaustion via rapid state writes, webhook flooding.
 
 ```bash
@@ -185,7 +191,9 @@ Update `.env.example` to document the opt-out.
 
 #### H-05: Webhook Payload Size Cap
 
-**Gap:** Webhook receiver applies no body size limit. A large payload could exhaust server memory.  
+**Status: Partial.** Every JSON body, webhooks included, is capped at 1 MB by the global `express.json({ limit: '1mb' })` in `app/server.js`. The tighter 16 KB cap on webhook routes below is still open.
+
+**Gap (original):** Webhook receiver applies no body size limit. A large payload could exhaust server memory.  
 **Fix:** Limit raw body capture to 16KB on webhook routes (before the existing HMAC check):
 
 ```js
@@ -202,7 +210,7 @@ app.use(
 
 **Status: Partial.** The webhook validates required-key presence for ledger entries, but it does not yet enforce field types/formats. Full schema validation remains open.
 
-**Gap:** Incoming `sideGigLedger` entries from webhooks are merged into state without field-level checks — any shape is accepted.  
+**Gap:** Required keys are checked, but field types and formats are not (e.g. a non-numeric amount or a malformed date is accepted).  
 **Fix:** Validate required fields before merging:
 
 ```js
@@ -222,7 +230,9 @@ Reject entries that fail validation with a 400 + descriptive error.
 
 #### H-07: npm audit in CI
 
-**Gap:** No automated vulnerability gate; regressions can silently enter production deps.  
+**Status: Done.** `.github/workflows/ci.yml` runs `npm audit --audit-level=high --omit=dev` on every push/PR.
+
+**Gap (original):** No automated vulnerability gate; regressions can silently enter production deps.  
 **Fix:** Add to `.github/workflows/ci.yml`:
 
 ```yaml

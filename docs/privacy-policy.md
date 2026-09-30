@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-**Effective Date:** August 2026  
+**Effective Date:** September 2026  
 **Application:** fire (`lifefire.netlify.app` / self-hosted)  
 **Repository:** [github.com/nitsuah/fire](https://github.com/nitsuah/fire)
 
@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is ever transmitted to any remote server operated by this application.
+fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is ever transmitted to any remote server operated by this application. The only remote copies are ones you opt into: eBay order sync and encrypted Google Drive backups to your own Drive (see Section 2).
 
 ---
 
@@ -24,6 +24,7 @@ When you use the hosted Netlify deployment:
 - Data never leaves your device through this application. It is not sent to Netlify servers, cloud databases, or any third party by this app.
 - Clearing your browser data, switching browsers, or using a private/incognito session **will erase your data**. Use the Export JSON Backup feature regularly.
 - **Optional eBay order sync is the one exception.** If you click *Connect eBay*, the connect and sync requests go through this site's Netlify Functions (`/api/sync/ebay/*`) to eBay. The Functions keep nothing: your eBay tokens come back to your browser encrypted with a server-held key (stored under the separate `localStorage` key `fire_tracker_ebay_token`, which your browser can't decrypt), and orders pulled during a sync are returned straight to your browser. They never log your eBay username or user ID.
+- **Optional Google Drive backup (self-hosted server only).** If you connect Google Drive and run a backup, the server encrypts a copy of `data/db.json` with AES-256-GCM using your `SYNC_MASTER_KEY` before upload, and stores it as a file in **your own** Google Drive (folder `fire-tracker-backups`, or the folder you configure). Google holds only ciphertext. The Drive OAuth token is also stored encrypted with `SYNC_MASTER_KEY`. Backups stay in your Drive until you delete them there; this app has no copy and no separate retention. Losing `SYNC_MASTER_KEY` makes those backups unreadable.
 - **If you revoke this app's eBay access or close your eBay account**, the next sync gets an `invalid_grant` rejection from eBay. The app then deletes the eBay token and the sales it synced from eBay through the API from this browser and tells you. Sales you logged by hand and uploaded CSV reports are yours and are kept. eBay's account-deletion notifications reach the server, but the server holds no eBay data for you and can't reach your browser, so this cleanup happens the next time you open the app and sync.
 - The Netlify platform itself may log standard HTTP access metadata (IP address, timestamp, URL path) as part of normal CDN operation — this is governed by [Netlify's Privacy Policy](https://www.netlify.com/privacy/), not this document.
 
@@ -39,7 +40,7 @@ When you run the application locally via Docker:
 
 ## 3. Data Never Collected or Transmitted by This App
 
-The following data is explicitly **never collected, stored remotely, or shared** by this application:
+The following data is explicitly **never collected, stored remotely, or shared** by this application, apart from the encrypted Google Drive backup you can opt into (Section 2), which only you can decrypt:
 
 - Account balances, net worth, or investment values
 - Portfolio positions or CSV import contents
@@ -110,7 +111,8 @@ The optional webhook feature allows external services to push data updates into 
 - **Export:** Use "Export JSON Backup" in the sidebar to download a complete copy of your data at any time.
 - **Delete (browser mode):** Clear `localStorage` in your browser (DevTools → Application → Storage → Clear Site Data). This also removes the encrypted eBay token, if you connected eBay.
 - **Delete (local server mode):** Delete `data/db.json` from your machine.
-- No data is held remotely by this application, so there is no account to close or remote data to request deletion of.
+- **Delete (Google Drive backups):** delete the backup files from the `fire-tracker-backups` folder in your Google Drive, and revoke this app's access in your Google Account settings.
+- This application operates no server-side account or database of its own, so there is no account to close or app-held data to request deletion of.
 
 ---
 
