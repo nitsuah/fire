@@ -95,6 +95,7 @@ const CSP_ACTIONS = new Set([
     'saveEditAccount', 'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
     'deleteSpendingTx', 'updateSpendingTxCategory', 'dismissNotifAlert',
     'startEditRealEstate', 'deleteRealEstate', 'startEditVehicle', 'deleteVehicle',
+    'deleteImportedFile', 'refreshCryptoAccount', 'refreshMetalAccount', 'deleteCustomAccount',
     'startEditAccount', 'deleteAccount', 'startEditCD', 'deleteCD', 'saveEditVehicle',
     'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate', 'saveEditAccount',
     'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
