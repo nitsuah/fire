@@ -81,12 +81,14 @@ function _updateNotifUI() {
             'Notifications enabled. Active alerts are shown below.';
         checkAndNotify(state, false);
     } else if (perm === 'denied') {
+        btn.dataset.cspClickAction = 'requestNotificationPermission';
         btn.textContent = 'Blocked';
         btn.disabled = true;
         statusEl.textContent =
             'Notifications blocked. Allow them in your browser settings to re-enable.';
         checkAndNotify(state, false);
     } else {
+        btn.dataset.cspClickAction = 'requestNotificationPermission';
         btn.textContent = 'Enable';
         statusEl.textContent =
             'Enable browser notifications to receive FIRE milestone and CD maturity alerts.';
