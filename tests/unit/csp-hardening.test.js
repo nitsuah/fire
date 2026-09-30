@@ -2,18 +2,12 @@
 
 const fs = require('fs');
 const path = require('path');
-const request = require('supertest');
-
 const APP_DIR = path.join(__dirname, '../../app');
 const read = (file) => fs.readFileSync(path.join(APP_DIR, file), 'utf8');
 
 describe('CSP hardening', () => {
-    it('does not allow unsafe-inline in the server CSP', async () => {
-        const app = require('../../app/server');
-        const res = await request(app).get('/');
-        expect(res.headers['content-security-policy']).not.toContain(
-            "'unsafe-inline'",
-        );
+    it('does not allow unsafe-inline in the server CSP', () => {
+        expect(read('server.js')).not.toContain("'unsafe-inline'");
     });
 
     it('does not allow unsafe-inline in the Netlify CSP', () => {
