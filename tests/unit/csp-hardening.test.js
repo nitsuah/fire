@@ -16,9 +16,9 @@ describe('CSP hardening', () => {
 
     it('keeps the static app free of inline handlers and style attributes', () => {
         const index = read('index.html');
-        expect(index).not.toMatch(/\bon(?:click|change)\\s*=/i);
-        expect(index).not.toMatch(/\bstyle\\s*=/i);
-        expect(index).not.toMatch(/<script>(?!\\s*<\\/script>)[\\s\\S]*?<\\/script>/i);
+        expect(index).not.toMatch(/\bon(?:click|change)\s*=/i);
+        expect(index).not.toMatch(/\bstyle\s*=/i);
+        expect(index).not.toMatch(/<script>(?!\s*<\/script>)[\s\S]*?<\/script>/i);
     });
 
     it('keeps migrated runtime renderers free of inline handlers and styles', () => {
@@ -32,8 +32,8 @@ describe('CSP hardening', () => {
         ];
         for (const file of files) {
             const source = read(file);
-            expect(source).not.toMatch(/\bon(?:click|change)\\s*=/i);
-            expect(source).not.toMatch(/\bstyle\\s*=/i);
+            expect(source).not.toMatch(/\bon(?:click|change)\s*=/i);
+            expect(source).not.toMatch(/\bstyle\s*=/i);
         }
     });
 });
