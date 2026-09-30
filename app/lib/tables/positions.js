@@ -188,8 +188,8 @@ function renderDashboardTopPositionsTable() {
             <tr class="table-group-header" data-acc-name="${escHtml(accName)}" data-csp-click-action="toggleAccountGroup" data-csp-click-value="${escHtml(accName)}">
                 <td colspan="${groupSpan}"><span class="${chevronClass}">▼</span> <strong>${escHtml(accName)}</strong>${rollupBadge}</td>
                 <td class="text-right font-bold text-muted pos-col-cost">${accCostBasis > 0 ? formatCurrency(accCostBasis) : '—'}</td>
-                <td class="text-right font-bold" class="csp-dynamic-color" data-csp-color="${escHtml(accStyle.replace(/^color:\s*/, '').replace(/;$/, ''))}">${formatCurrency(accTotalVal)}</td>
-                <td class="text-right font-bold" class="csp-dynamic-color" data-csp-color="${escHtml(accStyle.replace(/^color:\s*/, '').replace(/;$/, ''))}">${accPnLStr}</td>
+                <td class="text-right font-bold csp-dynamic-color" data-csp-color="${escHtml(accStyle.replace(/^color:\s*/, '').replace(/;$/, ''))}">${formatCurrency(accTotalVal)}</td>
+                <td class="text-right font-bold csp-dynamic-color" data-csp-color="${escHtml(accStyle.replace(/^color:\s*/, '').replace(/;$/, ''))}">${accPnLStr}</td>
                 <td class="pos-expand-cell"></td>
             </tr>
         `;
@@ -249,8 +249,8 @@ function renderDashboardTopPositionsTable() {
                         <td class="text-right pos-col-qty">${qtyStr}</td>
                         <td class="text-right pos-col-price">${formatCurrency(pos.lastPrice || 0)}${dayChangeHtml(pos)}</td>
                         <td class="text-right text-muted pos-col-cost">${costStr}</td>
-                        <td class="text-right font-bold" class="csp-dynamic-color" data-csp-color="${escHtml(posStyle.replace(/^color:\s*/, '').replace(/;$/, ''))}">${formatCurrency(pos.value || 0)}</td>
-                        <td class="text-right font-bold" class="csp-dynamic-color" data-csp-color="${escHtml(posStyle.replace(/^color:\s*/, '').replace(/;$/, ''))}">${pnlText} ${mktBadge}</td>
+                        <td class="text-right font-bold csp-dynamic-color" data-csp-color="${escHtml(posStyle.replace(/^color:\s*/, '').replace(/;$/, ''))}">${formatCurrency(pos.value || 0)}</td>
+                        <td class="text-right font-bold csp-dynamic-color" data-csp-color="${escHtml(posStyle.replace(/^color:\s*/, '').replace(/;$/, ''))}">${pnlText} ${mktBadge}</td>
                         <td class="pos-expand-cell"><button type="button" class="pos-expand-btn" data-key="${escHtml(posKey)}" aria-expanded="${isOpen}" aria-label="Show details for ${escHtml(sym)}">${isOpen ? '−' : '+'}</button></td>
                     </tr>
                     <tr class="position-detail-row" ${isOpen ? '' : 'hidden'}>
