@@ -30,7 +30,7 @@ Capture assets live in `promo/out/capture/crops/` after a run. Anything marked *
 | 22 | Expenses + auto-categorization | "Where the money actually goes." | `tab-expenses.png` | README · CSV Imports (Expenses) | |
 | 23 | Live prices over SSE | "Prices update while you watch." | "Live · Today +$…" badge on `dash.png` | README · Yahoo Finance prices | site |
 | 24 | AES-256-GCM encryption at rest | "Encrypted at rest." | Text/stat card | README · SYNC_MASTER_KEY | site |
-| 25 | Encrypted Google Drive backup | "Backed up, still encrypted." | Text | README · Google Drive encrypted backup | *(needs live round-trip verification)* |
+| 25 | Encrypted Google Drive backup | "Backed up, still encrypted." | Text | README · Google Drive encrypted backup | site (states the round trip is still a rollout gate) |
 | 26 | Security defaults (API key, loopback, Caddy HTTPS, CSP/SRI, rate limits) | "Locked down by default." | Text/stat card | README · Security headers, HTTPS | site |
 | 27 | Read-only to real accounts | "Never moves a cent." | Stat "0 transactions ever initiated" | README intro | site |
 | 28 | Responsive mobile layout | "Pocket-sized." | *(needs capture)* 390px viewport | README · Responsive shell | |

@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · **Tasks** · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-09-28
+updated: 2026-09-30
 
 ---
 
@@ -170,7 +170,7 @@ See [security-hardening.md](./security-hardening.md) for full remediation detail
   - Type: Security
   - Not attempted as part of this pass — flagging for a follow-up task.
 
-_Coverage: branch coverage is back above the 70% threshold (74.85%, 484 tests, #119) and CI now enforces it via `npm run test:coverage`; see `docs/METRICS.md`. Re-run the metrics snapshot after this documentation/test pass._
+_Coverage: branch coverage is back above the 70% threshold (74.85%, 484 tests, #119). CI runs `npm run test:coverage`, but its thresholds apply only to the 8 files in `coverage.include` (`app/server.js` plus 7 `app/lib` calculation/aggregation modules). Routes, managers, `gdrive-backup.js`, Netlify Functions and the browser app are not measured, so CI does not enforce coverage for them. See `docs/METRICS.md`. Re-run the metrics snapshot after this documentation/test pass._
 
 ---
 

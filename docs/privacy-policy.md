@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-**Effective Date:** August 2026  
+**Effective Date:** September 2026  
 **Application:** fire (`lifefire.netlify.app` / self-hosted)  
 **Repository:** [github.com/nitsuah/fire](https://github.com/nitsuah/fire)
 
@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is ever transmitted to any remote server operated by this application.
+fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is ever transmitted to any remote server operated by this application. The only remote copies are ones you opt into: eBay order sync and encrypted Google Drive backups to your own Drive (see Section 2).
 
 ---
 
@@ -34,12 +34,13 @@ When you run the application locally via Docker:
 - Data is stored in a **local `data/db.json` file** on your machine.
 - The Express server (`localhost:3001`) is bound to `127.0.0.1` (loopback), so it's reachable only from your machine, not other devices on your network. `FIRE_API_KEY` is required by default (set `FIRE_AUTH_DISABLED=true` to explicitly opt out for local-only use) — see [security-hardening.md](security-hardening.md).
 - The browser app syncs with this local server; `localStorage` serves as a fallback if the server is unreachable.
+- **Optional Google Drive backup.** The hosted site has no Drive backup; it exists only on a self-hosted server. If you connect Google Drive (Google OAuth, `drive.file` scope, so the app can see only the files it creates) and run a backup, the server encrypts a copy of `data/db.json` with AES-256-GCM using your `SYNC_MASTER_KEY` before upload, and stores it as a file in **your own** Google Drive (folder `fire-tracker-backups`, or the folder you configure). Google holds only ciphertext. The Drive OAuth token is stored on your machine in `data/tokens-gdrive.json`, also encrypted with `SYNC_MASTER_KEY`. Backups stay in your Drive until you delete them there; this app has no copy and no separate retention. Losing `SYNC_MASTER_KEY` makes those backups unreadable.
 
 ---
 
 ## 3. Data Never Collected or Transmitted by This App
 
-The following data is explicitly **never collected, stored remotely, or shared** by this application:
+The following data is explicitly **never collected, stored remotely, or shared** by this application, apart from the encrypted Google Drive backup you can opt into (Section 2), which only you can decrypt:
 
 - Account balances, net worth, or investment values
 - Portfolio positions or CSV import contents
@@ -61,6 +62,13 @@ The following **external CDN requests** are made when loading the application. T
 | `cdn.jsdelivr.net` | Marked.js (markdown renderer) | Browser/script request only |
 
 No financial data, account information, or personal data is included in any of these requests.
+
+If you opt into Google Drive backup on a self-hosted server (Section 2b), that server also calls Google:
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `accounts.google.com`, `oauth2.googleapis.com` | Drive OAuth sign-in and token refresh | OAuth client ID/secret, authorization code, refresh token |
+| `www.googleapis.com` (Drive API) | Upload, list and download backups | The AES-256-GCM encrypted backup file and its name (`fire-backup-YYYY-MM-DD.json`) |
 
 ---
 
@@ -109,8 +117,9 @@ The optional webhook feature allows external services to push data updates into 
 
 - **Export:** Use "Export JSON Backup" in the sidebar to download a complete copy of your data at any time.
 - **Delete (browser mode):** Clear `localStorage` in your browser (DevTools → Application → Storage → Clear Site Data). This also removes the encrypted eBay token, if you connected eBay.
-- **Delete (local server mode):** Delete `data/db.json` from your machine.
-- No data is held remotely by this application, so there is no account to close or remote data to request deletion of.
+- **Delete (local server mode):** Delete `data/db.json` (and `data/tokens-gdrive.json`, if you connected Google Drive) from your machine.
+- **Delete (Google Drive backups):** delete the `fire-backup-*.json` files from your backup folder in Google Drive (`fire-tracker-backups` by default, or the folder set in `GDRIVE_BACKUP_FOLDER_ID`), and revoke this app's access in your Google Account settings.
+- This application operates no server-side account or database of its own, so there is no account to close or app-held data to request deletion of.
 
 ---
 

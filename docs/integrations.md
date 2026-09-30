@@ -306,16 +306,16 @@ COINGECKO_API_KEY=    # Optional; increases rate limit
 
 **Purpose:** Store an AES-256-GCM encrypted copy of db.json in the user's personal Google Drive.  
 **Phase:** PROD Phase 1  
-**Auth type:** Service account JSON key (recommended) or user OAuth
+**Auth type:** User OAuth 2.0 (the only mode the code supports; there is no service-account option)
 
-### Setup (Service Account — Recommended)
+### Setup (Google OAuth)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Create a project (or use existing)
 3. Enable the **Google Drive API**
-4. Go to **IAM & Admin → Service Accounts** → create a service account
-5. Create and download a JSON key for the service account
-6. In Google Drive, create a folder called `fire-tracker-backups`
+4. Go to **APIs & Services → Credentials** → create an **OAuth client ID** of type *Web application*
+5. Add the redirect URI `http://localhost:3001/api/backup/drive/callback` (or your `GDRIVE_REDIRECT_URI`) and copy the client ID and secret
+6. Optionally create a Drive folder and put its ID in `GDRIVE_BACKUP_FOLDER_ID`; otherwise `fire-tracker-backups` is created automatically
 7. Configure the Google OAuth consent screen and authorize the account through `/api/backup/drive/authorize`.
 8. `SYNC_MASTER_KEY` encrypts the stored Drive OAuth token and every backup before upload.
 
@@ -326,6 +326,7 @@ GDRIVE_CLIENT_ID=                                    # Google OAuth 2.0 Web appl
 GDRIVE_CLIENT_SECRET=                                # Google OAuth 2.0 Web application client secret
 GDRIVE_REDIRECT_URI=                                  # Optional; defaults to the local callback URL
 GDRIVE_BACKUP_FOLDER_ID=                              # Optional: Drive folder ID (auto-created if blank)
+SYNC_MASTER_KEY=                                      # Required: 64 hex chars (openssl rand -hex 32); encrypts backups and the Drive token
 ```
 
 ### Security Note

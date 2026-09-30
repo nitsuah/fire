@@ -47,7 +47,7 @@
 - **eBay Order Sync** — OAuth 2.0 flow (`GET /api/sync/ebay/authorize` → callback → `POST /api/sync/ebay/sync`) auto-imports completed sales into the side gig ledger; includes the **Marketplace Account Deletion** endpoint eBay requires (`/api/sync/ebay/marketplace-account-deletion`, see [docs/integrations.md](docs/integrations.md))
 - **Plaid integration** — link-token flow, position/account sync, and transaction sync with auto-categorization into Expenses (`POST /api/sync/plaid/*`); manual CSV import is disabled while Plaid sync is active. Connector controls live in Settings
 - **Web3 wallet tracking** — full wallet CRUD (`/api/wallets`) with on-chain balance refresh; supports ETH/EVM, BTC, SOL, BNB, Polygon, Arbitrum, Base, Avalanche
-- **Google Drive encrypted backup** — `POST /api/backup/drive`, `GET /api/backup/drive/list`, `POST /api/backup/drive/restore` (requires `GDRIVE_SERVICE_ACCOUNT_JSON` + `SYNC_MASTER_KEY`)
+- **Google Drive encrypted backup** — `POST /api/backup/drive`, `GET /api/backup/drive/list`, `POST /api/backup/drive/restore` (requires `GDRIVE_CLIENT_ID` + `GDRIVE_CLIENT_SECRET` for Google OAuth, and a 64-hex `SYNC_MASTER_KEY`)
 - **Vehicle VIN decode & value refresh** — NHTSA VIN decode (`GET /api/vehicles/vin/:vin`) and value refresh (`POST /api/vehicles/:id/refresh-value`)
 - **Rate limiting** — 300 req/min general, 30 req/min on sync routes (via `express-rate-limit`)
 - **Security headers** — CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy applied on every response; CDN scripts pinned with SRI
