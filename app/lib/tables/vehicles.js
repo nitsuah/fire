@@ -37,11 +37,11 @@ function renderVehiclesTable() {
         if (editingVehicles.includes(v.id)) {
             html += `
             <tr class="position-row">
-                <td><input class="inline-edit-input" id="veh-edit-year-${v.id}" type="number" value="${v.year}" style="width:70px;"></td>
+                <td><input class="inline-edit-input" id="veh-edit-year-${v.id}" type="number" value="${v.year}" class="csp-width-70"></td>
                 <td><input class="inline-edit-input" id="veh-edit-make-${v.id}" value="${escHtml(v.make || '')}"></td>
                 <td>
                     <input class="inline-edit-input" id="veh-edit-model-${v.id}" value="${escHtml(v.model || '')}">
-                    <input class="inline-edit-input" id="veh-edit-vin-${v.id}" maxlength="17" placeholder="VIN (optional)" style="font-size:10px;margin-top:2px;text-transform:uppercase;" value="${escHtml(v.vin || '')}">
+                    <input class="inline-edit-input" id="veh-edit-vin-${v.id}" maxlength="17" placeholder="VIN (optional)" class="csp-vin-input" value="${escHtml(v.vin || '')}">
                 </td>
                 <td><input class="inline-edit-input" id="veh-edit-mileage-${v.id}" type="number" value="${v.mileage || 0}"></td>
                 <td>
