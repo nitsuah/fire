@@ -60,3 +60,8 @@
 .csp-notif-label{text-transform:uppercase}
 .csp-notif-label.notif-label-urgent{color:var(--color-danger)}
 .csp-notif-label.notif-label-warning{color:var(--color-warning)}
+
+.csp-icon-32-muted{width:32px;height:32px;margin-bottom:8px;opacity:.5}
+.csp-font-500{font-weight:500}
+.csp-muted{color:var(--text-muted)}
+.csp-mt-4{margin-top:4px}
