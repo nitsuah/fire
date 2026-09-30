@@ -96,8 +96,7 @@ async function runGDriveBackupNow() {
 async function loadGDriveBackupList() {
     const listEl = document.getElementById('gdrive-backup-list');
     if (!listEl) return;
-    listEl.innerHTML =
-        '<p class="text-muted csp-text-12">Loading backups…</p>';
+    listEl.innerHTML = '<p class="text-muted csp-text-12">Loading backups…</p>';
     try {
         const res = await fetch('/api/backup/drive/list');
         const data = await res.json();
