@@ -53,8 +53,8 @@ function renderVehiclesTable() {
                 <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-loan-${v.id}" type="number" value="${v.loanBalance || 0}" step="500"></td>
                 <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-purchase-${v.id}" type="number" value="${v.purchasePrice || 0}" step="500"></td>
                 <td class="text-right">
-                    <button class="action-btn save-btn" onclick="saveEditVehicle('${v.id}')">Save</button>
-                    <button class="action-btn cancel-btn" onclick="cancelEditVehicle('${v.id}')">Cancel</button>
+                    <button class="action-btn save-btn" data-csp-click-action="saveEditVehicle" data-csp-click-value="${escHtml(v.id)}">Save</button>
+                    <button class="action-btn cancel-btn" data-csp-click-action="cancelEditVehicle" data-csp-click-value="${escHtml(v.id)}">Cancel</button>
                 </td>
             </tr>`;
         } else {
