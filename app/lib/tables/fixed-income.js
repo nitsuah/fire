@@ -42,8 +42,12 @@ function renderImportedFilesTable() {
         `;
     });
     tbody.innerHTML = html;
-    tbody.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.color = el.dataset.cspColor; });
-    tbody.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.color = el.dataset.cspColor; });
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.color = el.dataset.cspColor;
+    });
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.color = el.dataset.cspColor;
+    });
 }
 
 function renderCustomAccountsTable() {
@@ -111,7 +115,9 @@ function renderCustomAccountsTable() {
         }
     });
     tbody.innerHTML = html;
-    tbody.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.color = el.dataset.cspColor; });
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.color = el.dataset.cspColor;
+    });
 }
 
 function renderCDTable() {
@@ -203,7 +209,9 @@ function renderCDTable() {
         }
     });
     tbody.innerHTML = html;
-    tbody.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.color = el.dataset.cspColor; });
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.color = el.dataset.cspColor;
+    });
 }
 
 function renderUnifiedHoldingsTable() {
@@ -297,5 +305,7 @@ function renderUnifiedHoldingsTable() {
     });
 
     tbody.innerHTML = html;
-    tbody.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.color = el.dataset.cspColor; });
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.color = el.dataset.cspColor;
+    });
 }
