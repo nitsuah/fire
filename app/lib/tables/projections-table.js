@@ -351,7 +351,7 @@ function renderMilestones(
         selectorHtml += `<button type="button" class="proj-preset-btn milestone-preset-btn${key === activePreset ? ' active' : ''}" data-milestone="${key}" title="${preset.description}">${preset.label}</button>`;
     });
     selectorHtml += `</div>
-        <p class="text-muted mt-2" class="csp-text-11" id="milestone-preset-desc">${getActivePreset().description}</p>`;
+        <p class="text-muted mt-2 csp-text-11" id="milestone-preset-desc">${getActivePreset().description}</p>`;
     const mount = document.getElementById('milestone-preset-mount');
     if (mount) {
         mount.innerHTML = selectorHtml;
