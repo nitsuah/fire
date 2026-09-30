@@ -250,7 +250,7 @@ function renderAllocMiniBarsBanner() {
     el.innerHTML = `<div class="alloc-bar-track">${segments
         .map(
             (s) =>
-                `<div class="alloc-bar-seg" style="width:${s.pct.toFixed(1)}%;background:${s.color};" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`,
+                `<div class="alloc-bar-seg" class="alloc-bar-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(1)}" data-csp-color="${escHtml(s.color)}" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`,
         )
         .join('')}</div>`;
 
@@ -261,7 +261,7 @@ function renderAllocMiniBarsBanner() {
     const tooltipRows = segments
         .map(
             (s) =>
-                `<div class="at-row"><span class="at-dot" style="background:${s.color};"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+                `<div class="at-row"><span class="at-dot" class="at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Total NW</span><span class="at-val">${formatCurrency(total)}</span></div>`;
@@ -666,9 +666,9 @@ function renderDiversificationSuggestions(
 
     if (activeTips.length === 0 && dismissed.length === 0) {
         block.innerHTML = `<div class="divs-empty">
-            <svg viewBox="0 0 24 24" style="width:32px;height:32px;margin-bottom:8px;opacity:0.5;"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-            <div style="font-weight:500;">All balanced! 🎉</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Your portfolio diversification looks good.</div>
+            <svg viewBox="0 0 24 24" class="csp-icon-32-muted"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            <div class="csp-font-500">All balanced! 🎉</div>
+            <div class="csp-text-12 csp-muted csp-mt-4">Your portfolio diversification looks good.</div>
         </div>`;
         return;
     }
