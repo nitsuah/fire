@@ -337,7 +337,6 @@ window.closeVehicleEstimate = function (id) {
     if (btn) btn.textContent = 'Estimate';
 };
 
-
 document.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-vehicle-action]');
     if (!btn) return;
