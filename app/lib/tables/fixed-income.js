@@ -42,6 +42,7 @@ function renderImportedFilesTable() {
         `;
     });
     tbody.innerHTML = html;
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.color = el.dataset.cspColor; });
 }
 
 function renderCustomAccountsTable() {
@@ -71,9 +72,9 @@ function renderCustomAccountsTable() {
                         <input type="number" class="inline-edit-input text-right" style="width: 80px;" id="edit-acc-apy-${acc.id}" step="0.01" value="${Number(acc.apy || 0).toFixed(2)}" ${hasYieldEdit ? '' : 'disabled'}>
                     </td>
                     <td class="text-right">
-                        <input type="number" class="inline-edit-input text-right" style="width: 120px;" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}">
-                        ${isCrypto ? `<br><input type="text" class="inline-edit-input" style="width:120px;font-size:11px;" id="edit-acc-identifier-${acc.id}" placeholder="ETH, 0x…, you.eth" value="${escHtml(acc.identifier || '')}"><br><input type="number" class="inline-edit-input text-right" style="width:80px;font-size:11px;" id="edit-acc-quantity-${acc.id}" placeholder="Qty" step="any" value="${acc.quantity != null ? acc.quantity : ''}">` : ''}
-                        ${isMetal ? `<br><select class="inline-edit-input" style="width:90px;font-size:11px;" id="edit-acc-metaltype-${acc.id}"><option value="gold" ${acc.metalType === 'gold' ? 'selected' : ''}>Gold</option><option value="silver" ${acc.metalType === 'silver' ? 'selected' : ''}>Silver</option></select><br><input type="number" class="inline-edit-input text-right" style="width:80px;font-size:11px;" id="edit-acc-weightoz-${acc.id}" placeholder="Weight (oz)" step="any" min="0" value="${acc.weightOz != null ? acc.weightOz : ''}">` : ''}
+                        <input type="number" class="inline-edit-input text-right" class="csp-width-120" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}">
+                        ${isCrypto ? `<br><input type="text" class="inline-edit-input" class="csp-width-120 csp-text-11" id="edit-acc-identifier-${acc.id}" placeholder="ETH, 0x…, you.eth" value="${escHtml(acc.identifier || '')}"><br><input type="number" class="inline-edit-input text-right" class="csp-width-80 csp-text-11" id="edit-acc-quantity-${acc.id}" placeholder="Qty" step="any" value="${acc.quantity != null ? acc.quantity : ''}">` : ''}
+                        ${isMetal ? `<br><select class="inline-edit-input" class="csp-width-90 csp-text-11" id="edit-acc-metaltype-${acc.id}"><option value="gold" ${acc.metalType === 'gold' ? 'selected' : ''}>Gold</option><option value="silver" ${acc.metalType === 'silver' ? 'selected' : ''}>Silver</option></select><br><input type="number" class="inline-edit-input text-right" style="width:80px;font-size:11px;" id="edit-acc-weightoz-${acc.id}" placeholder="Weight (oz)" step="any" min="0" value="${acc.weightOz != null ? acc.weightOz : ''}">` : ''}
                     </td>
                     <td class="text-right">
                         <button class="save-btn" data-csp-click-action="saveEditAccount" data-csp-click-value="${escHtml(acc.id)}">Save</button>
@@ -192,8 +193,8 @@ function renderCDTable() {
                         </span>
                     </td>
                     <td class="text-right">
-                        <button class="edit-btn" onclick="startEditCD('${cd.id}')">Edit</button>
-                        <button class="delete-btn" onclick="deleteCD('${cd.id}')">Delete</button>
+                        <button class="edit-btn" data-csp-click-action="startEditCD" data-csp-click-value="${escHtml(cd.id)}">Edit</button>
+                        <button class="delete-btn" data-csp-click-action="deleteCD" data-csp-click-value="${escHtml(cd.id)}">Delete</button>
                     </td>
                 </tr>
             `;
@@ -229,9 +230,9 @@ function renderUnifiedHoldingsTable() {
             html += `<tr>
                 <td><input type="text" class="inline-edit-input" id="edit-acc-name-${acc.id}" value="${escHtml(acc.name)}"></td>
                 <td><span class="text-muted">${escHtml(acc.type)}</span></td>
-                <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:110px;" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}">
-                    ${isCrypto ? `<br><input type="text" class="inline-edit-input" style="width:110px;font-size:11px;" id="edit-acc-identifier-${acc.id}" placeholder="ETH, 0x…, you.eth" value="${escHtml(acc.identifier || '')}">` : ''}
-                    ${isMetal ? `<br><select class="inline-edit-input" style="width:90px;font-size:11px;" id="edit-acc-metaltype-${acc.id}"><option value="gold" ${acc.metalType === 'gold' ? 'selected' : ''}>Gold</option><option value="silver" ${acc.metalType === 'silver' ? 'selected' : ''}>Silver</option></select>` : ''}
+                <td class="text-right"><input type="number" class="inline-edit-input text-right" class="csp-width-110" id="edit-acc-val-${acc.id}" step="0.01" value="${Number(acc.value).toFixed(2)}">
+                    ${isCrypto ? `<br><input type="text" class="inline-edit-input" class="csp-width-110 csp-text-11" id="edit-acc-identifier-${acc.id}" placeholder="ETH, 0x…, you.eth" value="${escHtml(acc.identifier || '')}">` : ''}
+                    ${isMetal ? `<br><select class="inline-edit-input" class="csp-width-90 csp-text-11" id="edit-acc-metaltype-${acc.id}"><option value="gold" ${acc.metalType === 'gold' ? 'selected' : ''}>Gold</option><option value="silver" ${acc.metalType === 'silver' ? 'selected' : ''}>Silver</option></select>` : ''}
                 </td>
                 <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-acc-apy-${acc.id}" step="0.01" value="${Number(acc.apy || 0).toFixed(2)}" ${hasYield ? '' : 'disabled'}>
                     ${isCrypto ? `<br><input type="number" class="inline-edit-input text-right" style="width:70px;font-size:11px;" id="edit-acc-quantity-${acc.id}" placeholder="Qty" step="any" value="${acc.quantity != null ? acc.quantity : ''}">` : ''}
@@ -279,11 +280,11 @@ function renderUnifiedHoldingsTable() {
             </tr>`;
         } else {
             html += `<tr>
-                <td class="font-bold">${escHtml(cd.bank)} <span class="text-muted" style="font-size:10px;">+${formatCurrency(interest)}/yr</span></td>
+                <td class="font-bold">${escHtml(cd.bank)} <span class="text-muted" class="csp-text-10">+${formatCurrency(interest)}/yr</span></td>
                 <td><span class="badge-type badge-cd">CD</span></td>
                 <td class="text-right font-bold">${formatCurrency(cd.principal)}</td>
                 <td class="text-right text-amber">${Number(cd.rate).toFixed(2)}%</td>
-                <td style="color:${isMatured ? 'var(--color-danger)' : 'rgba(255,255,255,0.6)'};">${cd.maturity}${isMatured ? ' ⚠' : ''}</td>
+                <td class="csp-dynamic-color" data-csp-color="${isMatured ? 'var(--color-danger)' : 'rgba(255,255,255,0.6)'}">${cd.maturity}${isMatured ? ' ⚠' : ''}</td>
                 <td class="text-right">
                     <button class="edit-btn" onclick="startEditCD('${cd.id}')">Edit</button>
                     <button class="delete-btn" onclick="deleteCD('${cd.id}')">Delete</button>
