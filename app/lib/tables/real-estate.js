@@ -61,9 +61,9 @@ function renderRealEstateTable() {
                 <td><span class="tag-badge">${_reEscHtml(re.type)}</span></td>
                 <td class="text-muted csp-text-11">${_reEscHtml(re.address) || '—'}</td>
                 <td class="text-right font-bold">${formatCurrency(re.marketValue || 0)}</td>
-                <td class="text-right" class="csp-dynamic-color" data-csp-color="${equity >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">${formatCurrency(equity)}</td>
+                <td class="text-right csp-dynamic-color" data-csp-color="${equity >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">${formatCurrency(equity)}</td>
                 <td class="text-right text-muted">${(re.purchasePrice || 0) > 0 ? formatCurrency(re.purchasePrice) : '—'}</td>
-                <td class="text-right" class="csp-dynamic-color" data-csp-color="${escHtml(gainStyle.replace(/^color:\s*/, ''))}">${(re.purchasePrice || 0) > 0 ? gainStr : '—'}</td>
+                <td class="text-right csp-dynamic-color" data-csp-color="${escHtml(gainStyle.replace(/^color:\s*/, ''))}">${(re.purchasePrice || 0) > 0 ? gainStr : '—'}</td>
                 <td class="text-right">
                     <button class="action-btn edit-btn" data-csp-click-action="startEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Edit</button>
                     <button class="action-btn delete-btn" data-csp-click-action="deleteRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Delete</button>
