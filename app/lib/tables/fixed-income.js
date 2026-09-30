@@ -76,8 +76,8 @@ function renderCustomAccountsTable() {
                         ${isMetal ? `<br><select class="inline-edit-input" style="width:90px;font-size:11px;" id="edit-acc-metaltype-${acc.id}"><option value="gold" ${acc.metalType === 'gold' ? 'selected' : ''}>Gold</option><option value="silver" ${acc.metalType === 'silver' ? 'selected' : ''}>Silver</option></select><br><input type="number" class="inline-edit-input text-right" style="width:80px;font-size:11px;" id="edit-acc-weightoz-${acc.id}" placeholder="Weight (oz)" step="any" min="0" value="${acc.weightOz != null ? acc.weightOz : ''}">` : ''}
                     </td>
                     <td class="text-right">
-                        <button class="save-btn" onclick="saveEditAccount('${acc.id}', this)">Save</button>
-                        <button class="cancel-btn" onclick="cancelEditAccount('${acc.id}')">Cancel</button>
+                        <button class="save-btn" data-csp-click-action="saveEditAccount" data-csp-click-value="${escHtml(acc.id)}">Save</button>
+                        <button class="cancel-btn" data-csp-click-action="cancelEditAccount" data-csp-click-value="${escHtml(acc.id)}">Cancel</button>
                     </td>
                 </tr>
             `;
@@ -169,8 +169,8 @@ function renderCDTable() {
                     <td class="text-right">—</td>
                     <td class="text-right">—</td>
                     <td class="text-right">
-                        <button class="save-btn" onclick="saveEditCD('${cd.id}')">Save</button>
-                        <button class="cancel-btn" onclick="cancelEditCD('${cd.id}')">Cancel</button>
+                        <button class="save-btn" data-csp-click-action="saveEditCD" data-csp-click-value="${escHtml(cd.id)}">Save</button>
+                        <button class="cancel-btn" data-csp-click-action="cancelEditCD" data-csp-click-value="${escHtml(cd.id)}">Cancel</button>
                     </td>
                 </tr>
             `;
@@ -239,8 +239,8 @@ function renderUnifiedHoldingsTable() {
                 </td>
                 <td>—</td>
                 <td class="text-right">
-                    <button class="save-btn" onclick="saveEditAccount('${acc.id}', this)">Save</button>
-                    <button class="cancel-btn" onclick="cancelEditAccount('${acc.id}')">Cancel</button>
+                    <button class="save-btn" data-csp-click-action="saveEditAccount" data-csp-click-value="${escHtml(acc.id)}">Save</button>
+                    <button class="cancel-btn" data-csp-click-action="cancelEditAccount" data-csp-click-value="${escHtml(acc.id)}">Cancel</button>
                 </td>
             </tr>`;
         } else {
@@ -273,8 +273,8 @@ function renderUnifiedHoldingsTable() {
                 <td class="text-right"><input type="number" class="inline-edit-input text-right" style="width:70px;" id="edit-cd-rate-${cd.id}" step="0.01" value="${Number(cd.rate).toFixed(2)}"></td>
                 <td><input type="date" class="inline-edit-input" id="edit-cd-maturity-${cd.id}" value="${cd.maturity}"><input type="date" class="inline-edit-input" id="edit-cd-start-${cd.id}" value="${cd.startDate || ''}" style="display:none;"></td>
                 <td class="text-right">
-                    <button class="save-btn" onclick="saveEditCD('${cd.id}')">Save</button>
-                    <button class="cancel-btn" onclick="cancelEditCD('${cd.id}')">Cancel</button>
+                    <button class="save-btn" data-csp-click-action="saveEditCD" data-csp-click-value="${escHtml(cd.id)}">Save</button>
+                    <button class="cancel-btn" data-csp-click-action="cancelEditCD" data-csp-click-value="${escHtml(cd.id)}">Cancel</button>
                 </td>
             </tr>`;
         } else {
