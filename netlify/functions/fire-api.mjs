@@ -96,17 +96,6 @@ export default async function handler(req) {
             return await handleEns(decodeURIComponent(ensMatch[1]));
         }
 
-        if (path === '/sync/plaid/status' && method === 'GET') {
-            return json(200, {
-                connected: false,
-                itemCount: 0,
-                syncEnabled: true,
-                hosted: true,
-                message:
-                    'Plaid account persistence is not enabled for the browser-only deployment yet.',
-            });
-        }
-
         return json(404, {
             error: 'This API endpoint is not available in the hosted browser deployment.',
             path: `/api${path.startsWith('/') ? path : `/${path}`}`,

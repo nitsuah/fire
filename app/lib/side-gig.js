@@ -424,12 +424,143 @@ async function syncEbayViaFunction() {
     return { ...data, added };
 }
 
+const PLAID_HOSTED_TOKEN_KEY = 'fire_plaid_hosted_token';
+const PLAID_HOSTED_SYNC_KEY = 'fire_plaid_hosted_sync_enabled';
+const PLAID_HOSTED_ACCESS_KEY = 'fire_plaid_hosted_access_key';
+
+function isHostedPlaid() {
+    return (
+        window.location.hostname === 'lifefire.netlify.app' ||
+        window.location.hostname.endsWith('.netlify.app')
+    );
+}
+
+function getHostedPlaidToken() {
+    return localStorage.getItem(PLAID_HOSTED_TOKEN_KEY) || '';
+}
+
+function setHostedPlaidToken(token) {
+    if (token) localStorage.setItem(PLAID_HOSTED_TOKEN_KEY, token);
+    else localStorage.removeItem(PLAID_HOSTED_TOKEN_KEY);
+}
+
+async function plaidRequest(path, options = {}, retried = false) {
+    const { deferHostedTokenPersistence = false, ...fetchOptions } = options;
+    const headers = new Headers(fetchOptions.headers || {});
+    if (isHostedPlaid()) {
+        const token = getHostedPlaidToken();
+        if (token) headers.set('x-fire-plaid-token', token);
+        const accessKey = localStorage.getItem(PLAID_HOSTED_ACCESS_KEY);
+        if (accessKey) headers.set('x-fire-plaid-access', accessKey);
+    }
+    let body = fetchOptions.body;
+    if (body && typeof body !== 'string') {
+        headers.set('Content-Type', 'application/json');
+        body = JSON.stringify(body);
+    }
+    const res = await fetch(path, { ...fetchOptions, body, headers });
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+        throw new Error(
+            `Server returned a non-JSON response (HTTP ${res.status}).`,
+        );
+    }
+    let data;
+    try {
+        data = await res.json();
+    } catch {
+        throw new Error(`Server returned malformed JSON (HTTP ${res.status}).`);
+    }
+    if (isHostedPlaid() && res.status === 401) {
+        if (data.code === 'ACCESS_KEY_REQUIRED' && !retried) {
+            const key = window.prompt(
+                'Enter the hosted Plaid access key for this site:',
+            );
+            if (key?.trim()) {
+                localStorage.setItem(PLAID_HOSTED_ACCESS_KEY, key.trim());
+                return plaidRequest(path, options, true);
+            }
+        }
+        // A dead token can never become valid again; drop it so the user
+        // can link afresh instead of being stuck on the same 401.
+        if (data.code === 'INVALID_TOKEN') setHostedPlaidToken('');
+    }
+    if (isHostedPlaid() && data.plaidToken && !deferHostedTokenPersistence) {
+        setHostedPlaidToken(data.plaidToken);
+    }
+    return { res, data };
+}
+
+// Plaid rows without a plaidItemId predate item-aware sync. Replace them by
+// id, or all of them when the sync was complete (no partial warning).
+function applyHostedPlaidAccounts(
+    accounts,
+    syncedItemIds = [],
+    partial = false,
+) {
+    const synced = new Set(syncedItemIds);
+    const incomingIds = new Set(accounts.map((account) => account.id));
+    const retained = (state.customAccounts || []).filter((account) =>
+        account.source !== 'plaid'
+            ? true
+            : !incomingIds.has(account.id) &&
+              (account.plaidItemId
+                  ? !synced.has(account.plaidItemId)
+                  : partial),
+    );
+    state.customAccounts = [...retained, ...accounts];
+}
+
+function applyHostedPlaidPositions(
+    positions,
+    syncedItemIds = [],
+    partial = false,
+) {
+    const synced = new Set(syncedItemIds);
+    const retained = (state.importedPositions || []).filter((position) =>
+        position.source !== 'plaid'
+            ? true
+            : position.plaidItemId
+              ? !synced.has(position.plaidItemId)
+              : partial,
+    );
+    state.importedPositions = [...retained, ...positions];
+}
+
+function applyHostedPlaidTransactions(data) {
+    const parsedAdded = data.transactions?.added || [];
+    const parsedModified = data.transactions?.modified || [];
+    const removedIds = new Set(data.transactions?.removedIds || []);
+    if (!state.spendingTransactions) state.spendingTransactions = [];
+
+    state.spendingTransactions = state.spendingTransactions.filter(
+        (txn) => !removedIds.has(txn.id),
+    );
+    for (const txn of parsedAdded) {
+        if (
+            !state.spendingTransactions.some(
+                (existing) => existing.id === txn.id,
+            )
+        ) {
+            state.spendingTransactions.push(txn);
+        }
+    }
+    for (const txn of parsedModified) {
+        const index = state.spendingTransactions.findIndex(
+            (existing) => existing.id === txn.id,
+        );
+        if (index === -1) state.spendingTransactions.push(txn);
+        else state.spendingTransactions[index] = txn;
+    }
+}
+
 async function checkPlaidConnection() {
     const statusEl = document.getElementById('plaid-sync-status');
     if (!statusEl) return;
     try {
-        const res = await fetch('/api/sync/plaid/status');
-        const data = await res.json();
+        const { res, data } = await plaidRequest('/api/sync/plaid/status');
+        if (!res.ok)
+            throw new Error(data.error || 'Unable to check Plaid status.');
         if (data.connected) {
             statusEl.textContent = `Status: Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''})`;
             statusEl.style.color = 'var(--color-success)';
@@ -437,16 +568,14 @@ async function checkPlaidConnection() {
             statusEl.textContent = 'Status: Not Linked';
             statusEl.style.color = 'var(--text-muted)';
         }
-        // Plaid "active" = linked AND not manually paused in Settings.
-        // Disables the Fidelity CSV importer while true to prevent
-        // duplicate expense entries from both sources.
         if (typeof setFidelityImportDisabled === 'function') {
-            setFidelityImportDisabled(
-                data.connected && data.syncEnabled !== false,
-            );
+            const syncEnabled = isHostedPlaid()
+                ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
+                : data.syncEnabled !== false;
+            setFidelityImportDisabled(data.connected && syncEnabled);
         }
     } catch (err) {
-        statusEl.textContent = 'Status: Error checking connection';
+        statusEl.textContent = `Status: Error - ${err.message}`;
         statusEl.style.color = 'var(--color-danger)';
     }
 }
@@ -463,63 +592,100 @@ function initPlaidLink() {
         statusEl.style.color = 'var(--color-warning)';
 
         try {
-            const res = await fetch('/api/sync/plaid/create-link-token', {
-                method: 'POST',
-            });
-            const data = await res.json();
-
-            if (!data.linkToken) {
+            const { res, data } = await plaidRequest(
+                '/api/sync/plaid/create-link-token',
+                { method: 'POST' },
+            );
+            if (!res.ok || !data.linkToken) {
                 throw new Error(data.error || 'Failed to create link token');
             }
 
-            // Initialize Plaid Link
-            if (plaidLinkHandler) {
-                plaidLinkHandler.destroy();
-            }
+            if (plaidLinkHandler) plaidLinkHandler.destroy();
 
             plaidLinkHandler = Plaid.create({
                 token: data.linkToken,
-                onSuccess: async (public_token, metadata) => {
+                onSuccess: async (public_token) => {
                     statusEl.textContent = 'Status: Exchanging token...';
                     statusEl.style.color = 'var(--color-warning)';
 
                     try {
-                        const exchangeRes = await fetch(
-                            '/api/sync/plaid/exchange',
-                            {
+                        const { res: exchangeRes, data: exchangeData } =
+                            await plaidRequest('/api/sync/plaid/exchange', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ public_token }),
-                            },
-                        );
-                        const exchangeData = await exchangeRes.json();
+                                body: {
+                                    public_token,
+                                    ...(isHostedPlaid()
+                                        ? { plaidToken: getHostedPlaidToken() }
+                                        : {}),
+                                },
+                            });
 
-                        if (exchangeData.status === 'success') {
-                            const accountsRes = await fetch(
-                                '/api/sync/plaid/accounts',
-                                { method: 'POST' },
-                            );
-                            if (!accountsRes.ok)
-                                throw new Error('Account sync failed');
-                            const positionsRes = await fetch(
-                                '/api/sync/plaid/positions',
-                                { method: 'POST' },
-                            );
-                            if (!positionsRes.ok)
-                                throw new Error('Position sync failed');
-                            await checkPlaidConnection();
-                            refreshAllUI();
-                        } else {
+                        if (
+                            !exchangeRes.ok ||
+                            exchangeData.status !== 'success'
+                        ) {
                             throw new Error(
                                 exchangeData.error || 'Token exchange failed',
                             );
+                        }
+
+                        if (isHostedPlaid() && exchangeData.plaidToken) {
+                            setHostedPlaidToken(exchangeData.plaidToken);
+                        }
+
+                        const accountsResult = await plaidRequest(
+                            '/api/sync/plaid/accounts',
+                            { method: 'POST' },
+                        );
+                        if (!accountsResult.res.ok)
+                            throw new Error(
+                                accountsResult.data.error ||
+                                    'Account sync failed',
+                            );
+                        if (isHostedPlaid()) {
+                            applyHostedPlaidAccounts(
+                                accountsResult.data.accounts || [],
+                                accountsResult.data.syncedItemIds || [],
+                                Boolean(accountsResult.data.warning),
+                            );
+                            await saveState();
+                        }
+
+                        const positionsResult = await plaidRequest(
+                            '/api/sync/plaid/positions',
+                            { method: 'POST' },
+                        );
+                        if (!positionsResult.res.ok)
+                            throw new Error(
+                                positionsResult.data.error ||
+                                    'Position sync failed',
+                            );
+                        if (isHostedPlaid()) {
+                            applyHostedPlaidPositions(
+                                positionsResult.data.positions || [],
+                                positionsResult.data.syncedItemIds || [],
+                                Boolean(positionsResult.data.warning),
+                            );
+                            await saveState();
+                        }
+
+                        await checkPlaidConnection();
+                        refreshAllUI();
+                        const warnings = [
+                            exchangeData.warning,
+                            accountsResult.data.warning,
+                            positionsResult.data.warning,
+                        ].filter(Boolean);
+                        if (warnings.length) {
+                            statusEl.textContent = `Status: Linked with warnings - ${warnings.join(' ')}`;
+                            statusEl.style.color = 'var(--color-warning)';
                         }
                     } catch (err) {
                         statusEl.textContent = `Status: Error - ${err.message}`;
                         statusEl.style.color = 'var(--color-danger)';
                     }
                 },
-                onExit: (err, metadata) => {
+                onExit: (err) => {
                     if (err) {
                         statusEl.textContent = `Status: ${err.error_message || 'Cancelled'}`;
                         statusEl.style.color = 'var(--color-danger)';
@@ -541,19 +707,21 @@ function initPlaidLink() {
     });
 }
 
-// Settings tab — Plaid Sync card. Reads/writes the server-side
-// `plaidSyncEnabled` gate via /api/sync/plaid/*; the Link/connect flow
-// itself stays on the Financial Overview card (checkPlaidConnection above).
-// Mirrors loadEbaySettingsPanel above.
-async function loadPlaidSettingsPanel() {
+// `note` ({ text, color }) is the outcome of a sync that just ran; it is
+// appended to the linked status so the refresh doesn't wipe it.
+async function loadPlaidSettingsPanel(note = null) {
     const toggle = document.getElementById('setting-plaid-sync-enabled');
     const statusEl = document.getElementById('settings-plaid-status');
     const syncBtn = document.getElementById('btn-plaid-sync-now');
     if (!toggle || !statusEl) return;
     try {
-        const res = await fetch('/api/sync/plaid/status');
-        const data = await res.json();
-        toggle.checked = data.syncEnabled !== false;
+        const { res, data } = await plaidRequest('/api/sync/plaid/status');
+        if (!res.ok)
+            throw new Error(data.error || 'Unable to check Plaid status.');
+        const syncEnabled = isHostedPlaid()
+            ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
+            : data.syncEnabled !== false;
+        toggle.checked = syncEnabled;
         if (!data.connected) {
             statusEl.textContent =
                 'Not connected — use the Plaid Investments card in Financial Overview to link an account first.';
@@ -562,14 +730,15 @@ async function loadPlaidSettingsPanel() {
             const lastSyncText = data.lastTransactionsSync
                 ? new Date(data.lastTransactionsSync).toLocaleString()
                 : 'never';
-            statusEl.textContent = `Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''}) · Last sync: ${lastSyncText}`;
-            statusEl.style.color = 'var(--color-success)';
+            const linkedText = `Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''}) · Last sync: ${lastSyncText}`;
+            statusEl.textContent = note
+                ? `${linkedText} · ${note.text}`
+                : linkedText;
+            statusEl.style.color = note?.color || 'var(--color-success)';
         }
         if (syncBtn) syncBtn.disabled = !data.connected || !toggle.checked;
         if (typeof setFidelityImportDisabled === 'function') {
-            setFidelityImportDisabled(
-                data.connected && data.syncEnabled !== false,
-            );
+            setFidelityImportDisabled(data.connected && syncEnabled);
         }
     } catch (err) {
         statusEl.textContent = 'Unable to check Plaid sync status.';
@@ -582,19 +751,20 @@ async function togglePlaidSyncSetting() {
     if (!toggle) return;
     const enabled = toggle.checked;
     try {
-        const res = await fetch('/api/sync/plaid/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled }),
-        });
-        if (!res.ok) {
-            const d = await res.json().catch(() => ({}));
-            alert(d.error || 'Failed to update Plaid sync setting.');
-            toggle.checked = !enabled;
-            return;
+        if (isHostedPlaid()) {
+            localStorage.setItem(PLAID_HOSTED_SYNC_KEY, String(enabled));
+        } else {
+            const { res, data } = await plaidRequest('/api/sync/plaid/toggle', {
+                method: 'POST',
+                body: { enabled },
+            });
+            if (!res.ok)
+                throw new Error(
+                    data.error || 'Failed to update Plaid sync setting.',
+                );
         }
     } catch (err) {
-        alert('Failed to update Plaid sync setting: ' + err.message);
+        alert(err.message);
         toggle.checked = !enabled;
         return;
     }
@@ -608,25 +778,42 @@ async function runPlaidTransactionsSyncNow() {
     btn.disabled = true;
     const original = btn.textContent;
     btn.textContent = 'Syncing…';
+    let note = null;
     try {
-        const res = await fetch('/api/sync/plaid/transactions', {
-            method: 'POST',
-        });
-        const data = await res.json();
+        const { res, data } = await plaidRequest(
+            '/api/sync/plaid/transactions',
+            { method: 'POST', deferHostedTokenPersistence: true },
+        );
         if (!res.ok) throw new Error(data.error || 'Sync failed');
+        if (isHostedPlaid()) {
+            applyHostedPlaidTransactions(data);
+            await saveState();
+            if (data.plaidToken) setHostedPlaidToken(data.plaidToken);
+        }
+        const summary = `Synced ${data.added} new transaction${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
+        note = data.warning
+            ? {
+                  text: `${summary} ${data.warning}`,
+                  color: 'var(--color-warning)',
+              }
+            : { text: summary, color: 'var(--color-success)' };
         if (statusEl) {
-            statusEl.textContent = `Synced ${data.added} new transaction${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
-            statusEl.style.color = 'var(--color-success)';
+            statusEl.textContent = note.text;
+            statusEl.style.color = note.color;
         }
         if (typeof refreshAllUI === 'function') refreshAllUI();
     } catch (err) {
+        note = {
+            text: `Sync failed: ${err.message}`,
+            color: 'var(--color-danger)',
+        };
         if (statusEl) {
-            statusEl.textContent = `Sync failed: ${err.message}`;
-            statusEl.style.color = 'var(--color-danger)';
+            statusEl.textContent = note.text;
+            statusEl.style.color = note.color;
         }
     } finally {
         btn.textContent = original;
-        loadPlaidSettingsPanel();
+        loadPlaidSettingsPanel(note);
     }
 }
 

@@ -33,6 +33,13 @@
   status = 200
   force = true
 
+# Plaid has a browser-local encrypted token flow on the static deploy.
+[[redirects]]
+  from = "/api/sync/plaid/*"
+  to = "/.netlify/functions/plaid/:splat"
+  status = 200
+  force = true
+
 # All remaining /api/* paths go through a JSON-safe compatibility function.
 # Specific eBay rules above win first; unsupported hosted APIs return JSON
 # instead of Netlify's HTML 404 page, while stateless hosted integrations

@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `security-hardening.md` Remaining Gaps is one well-formed table again, with H-01, H-03, H-05, H-06, H-07, H-12 and H-13 and their status.
 - TASKS/METRICS/CHANGELOG no longer imply CI enforces coverage codebase-wide: the thresholds apply only to the 8 files in `coverage.include`.
 
+### 2026-09 — Split sync routes, Plaid on the Netlify deploy (PR #146)
+
+#### Added
+- **Plaid routes on the Netlify deploy:** `netlify/functions/plaid.mjs` serves Link, exchange, accounts, positions and transactions at the same `/api/sync/plaid/*` paths. No access tokens are stored on the server. The browser holds an AES-256-GCM token (rolling 180-day expiry) that also carries the transaction cursor.
+- Hosted Plaid needs `PLAID_HOSTED_ACCESS_KEY` outside the sandbox and a 64-hex `SYNC_MASTER_KEY`. It checks both before calling Plaid.
+
+#### Changed
+- `app/routes/sync.js` is split into `app/routes/ebay.js` and `app/routes/plaid.js`, and the token file helpers are in `app/lib/token-store.js`. Route paths are unchanged.
+- Plaid accounts and positions record `plaidItemId`. A partial sync replaces only the items that synced, and responses report `syncedItemIds` and a `warning`.
+
+#### Fixed
+- `/plaid/positions` no longer wipes saved positions when every item fails, and Plaid rows saved before item ids existed are replaced instead of duplicated.
+- `/plaid/status` reports `lastUpdated` again, and token saves no longer collide on a shared temp file.
+
 ### 2026-09 — eBay on the Netlify deploy (PR #130)
 
 #### Added
