@@ -185,7 +185,7 @@ function renderDashboardTopPositionsTable() {
         }
 
         html += `
-            <tr class="table-group-header" data-acc-name="${escHtml(accName)}" data-csp-click-action="toggleAccountGroup">
+            <tr class="table-group-header" data-acc-name="${escHtml(accName)}" data-csp-click-action="toggleAccountGroup" data-csp-click-value="${escHtml(accName)}">
                 <td colspan="${groupSpan}"><span class="${chevronClass}">▼</span> <strong>${escHtml(accName)}</strong>${rollupBadge}</td>
                 <td class="text-right font-bold text-muted pos-col-cost">${accCostBasis > 0 ? formatCurrency(accCostBasis) : '—'}</td>
                 <td class="text-right font-bold" style="${accStyle}">${formatCurrency(accTotalVal)}</td>
