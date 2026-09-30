@@ -723,8 +723,12 @@ function renderDiversificationSuggestions(
     html += '</div>';
 
     block.innerHTML = html;
-    block.querySelectorAll('[data-csp-width]').forEach((el) => { el.style.width = `${el.dataset.cspWidth}%`; });
-    block.querySelectorAll('[data-csp-color]').forEach((el) => { el.style.backgroundColor = el.dataset.cspColor; });
+    block.querySelectorAll('[data-csp-width]').forEach((el) => {
+        el.style.width = `${el.dataset.cspWidth}%`;
+    });
+    block.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.backgroundColor = el.dataset.cspColor;
+    });
 }
 
 // Income Sources / Monthly Expenses collapse toggle (mobile only — see
