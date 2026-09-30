@@ -1,1 +1,5 @@
-document.getElementById('close-window')?.addEventListener('click', () => window.close());
+/* global document, window */
+
+document
+    .getElementById('close-window')
+    ?.addEventListener('click', () => window.close());
