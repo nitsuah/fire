@@ -129,12 +129,12 @@ function renderSpendingTransactionsTable() {
             <td>${escHtml(t.merchant)}</td>
             <td class="text-right text-coral">${formatCurrency(t.amount)}</td>
             <td>
-                <select class="spending-cat-select" data-tx-id="${escHtml(t.id)}" onchange="updateSpendingTxCategory(this.dataset.txId, this.value)">
+                <select class="spending-cat-select" data-tx-id="${escHtml(t.id)}" data-csp-change-action="updateSpendingTxCategory" data-csp-change-value="${escHtml(t.id)}">
                     ${catOptions(t.category)}
                 </select>
             </td>
             <td class="text-right">
-                <button class="spending-tx-delete" onclick="deleteSpendingTx('${escHtml(t.id)}')" aria-label="Delete transaction">✕</button>
+                <button class="spending-tx-delete" data-csp-click-action="deleteSpendingTx" data-csp-click-value="${escHtml(t.id)}" aria-label="Delete transaction">✕</button>
             </td>
         </tr>
     `,
