@@ -96,7 +96,7 @@ async function loadWallets() {
         _walletCache = Array.isArray(data.wallets) ? data.wallets : [];
         renderWalletList();
     } catch (err) {
-        listEl.innerHTML = `<p class="text-muted" class="csp-text-12">Unable to load wallets: ${escHtml(err.message)}</p>`;
+        listEl.innerHTML = `<p class="text-muted csp-text-12">Unable to load wallets: ${escHtml(err.message)}</p>`;
     }
 }
 
@@ -108,7 +108,7 @@ function renderWalletList() {
 
     if (_walletCache.length === 0) {
         listEl.innerHTML =
-            '<p class="text-muted" class="csp-text-12">No wallets tracked yet. Add one above.</p>';
+            '<p class="text-muted csp-text-12">No wallets tracked yet. Add one above.</p>';
         if (totalRow) totalRow.style.display = 'none';
         return;
     }
@@ -128,8 +128,8 @@ function renderWalletList() {
             <div class="chain-balance-row wallet-row">
                 <span class="chain-name">
                     <strong>${escHtml(w.label)}</strong>
-                    <span class="tag-badge" class="csp-ml-6">${escHtml(chainLabel)}</span>
-                    <span class="text-muted" class="csp-block csp-text-10">${escHtml(w.address)} · updated ${escHtml(lastFetched)}</span>
+                    <span class="tag-badge csp-ml-6">${escHtml(chainLabel)}</span>
+                    <span class="text-muted csp-block csp-text-10">${escHtml(w.address)} · updated ${escHtml(lastFetched)}</span>
                 </span>
                 <span class="chain-val wallet-row-actions">
                     <span>${balanceText}</span>
