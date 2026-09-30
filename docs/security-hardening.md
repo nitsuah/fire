@@ -48,21 +48,17 @@ If you intend to expose this server beyond `localhost`, complete all Critical an
 
 ### Remaining Gaps
 
-| Gap | Impact | Severity |
-|---|---|---|
+One row per roadmap item that still carries risk. Done items stay listed with the residual risk their fix leaves behind; full detail is under each `H-xx` heading below.
 
-| `SESSION_SECRET` still has a development fallback | Session forgery if production is misconfigured | High |
-
-| Webhook body cap is 1 MB, not the planned 16 KB (H-05, partial) | Memory pressure from large webhook payloads | Low |
-
-| Webhook `sideGigLedger` fields not type/format-checked (H-06, partial) | Malformed ledger entries in state | Moderate |
-
-
-| 6 moderate/critical dev dependency vulns | Supply chain (dev only, not shipped) | Low |
-
-
-| JSONata not statically analyzed | Complex expression side effects | Low |
-
+| ID | Gap | Status | Impact | Severity |
+|---|---|---|---|---|
+| H-01 | Rate limiting fails open: if `express-rate-limit` fails to load, both limiters become no-ops | Done (residual) | Brute-force / flooding protection silently disappears | Low |
+| H-03 | `SESSION_SECRET` still has a development fallback (`a-very-secret-key`) | Partial | Session forgery if production is misconfigured | High |
+| H-05 | Webhook body cap is the global 1 MB, not the planned 16 KB | Partial | Memory pressure from large webhook payloads | Low |
+| H-06 | Webhook `sideGigLedger` fields are key-checked but not type/format-checked | Partial | Malformed ledger entries in state | Moderate |
+| H-07 | CI audit gates production deps only (`--omit=dev`, high+); dev-dep vulns are not gated | Done (residual) | Dev-only supply-chain issues merge unnoticed (see H-13) | Low |
+| H-12 | JSONata not statically analyzed | Open | Complex expression side effects | Low |
+| H-13 | 6 moderate/critical dev dependency vulns | Open | Supply chain (dev only, not shipped) | Low |
 
 ---
 

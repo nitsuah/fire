@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-09 — Drive backup, privacy and security doc accuracy (PR #149)
+
+#### Fixed
+- Google Drive setup docs describe the OAuth client flow the code actually uses (no service-account mode) and list `SYNC_MASTER_KEY` as required.
+- Privacy policy discloses the opt-in encrypted Drive backup under self-hosted mode (`drive.file` scope, encrypted token in `data/tokens-gdrive.json`), lists the Google endpoints it calls, and explains how to delete it.
+- `security-hardening.md` Remaining Gaps is one well-formed table again, with H-01, H-03, H-05, H-06, H-07, H-12 and H-13 and their status.
+- TASKS/METRICS/CHANGELOG no longer imply CI enforces coverage codebase-wide: the thresholds apply only to the 8 files in `coverage.include`.
+
 ### 2026-09 — eBay on the Netlify deploy (PR #130)
 
 #### Added
@@ -86,7 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 2026-09 — Coverage gate + docs reset
 
 #### Fixed
-- Branch coverage restored above the 70% threshold (74.85%, 484 tests via `tests/unit/finance-calcs-branches.test.mjs`) and CI now runs `npm run test:coverage`, so the threshold is actually enforced (#118, #119).
+- Branch coverage restored above the 70% threshold (74.85%, 484 tests via `tests/unit/finance-calcs-branches.test.mjs`) and CI now runs `npm run test:coverage`, so the threshold fails the build for the 8 files in `coverage.include` (not the whole codebase) (#118, #119).
 - Docker `test` image can write coverage output (`chown node:node /app`) (#119).
 
 #### Changed

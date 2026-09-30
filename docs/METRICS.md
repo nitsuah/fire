@@ -6,7 +6,7 @@
 
 | Metric                            | Current                                  | Target  | Status       |
 | :-------------------------------- | :--------------------------------------- | :------ | :----------- |
-| Code Coverage | 84.62% stmts / 74.85% branch / 85.15% funcs / 84.85% lines (Docker, 2026-09-24, 484 tests) | 80% stmts/funcs/lines, 70% branch (`config/vitest.config.ts`) | Met. CI now runs `npm run test:coverage`, so a threshold drop fails the PR |
+| Code Coverage | 84.62% stmts / 74.85% branch / 85.15% funcs / 84.85% lines (Docker, 2026-09-24, 484 tests) | 80% stmts/funcs/lines, 70% branch (`config/vitest.config.ts`) | Met for the measured scope only: thresholds cover the 8 files in `coverage.include`; routes, managers, Netlify Functions and the browser app are unmeasured |
 | Total Tests | 484 (43 files, all passing, Docker 2026-09-24) | 100+ | Met |
 | CI/CD Build Status                | Passing (GitHub Actions)                 | Passing | Met          |
 | ESLint Violations                 | 0                                        | 0       | Met          |

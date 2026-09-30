@@ -24,7 +24,6 @@ When you use the hosted Netlify deployment:
 - Data never leaves your device through this application. It is not sent to Netlify servers, cloud databases, or any third party by this app.
 - Clearing your browser data, switching browsers, or using a private/incognito session **will erase your data**. Use the Export JSON Backup feature regularly.
 - **Optional eBay order sync is the one exception.** If you click *Connect eBay*, the connect and sync requests go through this site's Netlify Functions (`/api/sync/ebay/*`) to eBay. The Functions keep nothing: your eBay tokens come back to your browser encrypted with a server-held key (stored under the separate `localStorage` key `fire_tracker_ebay_token`, which your browser can't decrypt), and orders pulled during a sync are returned straight to your browser. They never log your eBay username or user ID.
-- **Optional Google Drive backup (self-hosted server only).** If you connect Google Drive and run a backup, the server encrypts a copy of `data/db.json` with AES-256-GCM using your `SYNC_MASTER_KEY` before upload, and stores it as a file in **your own** Google Drive (folder `fire-tracker-backups`, or the folder you configure). Google holds only ciphertext. The Drive OAuth token is also stored encrypted with `SYNC_MASTER_KEY`. Backups stay in your Drive until you delete them there; this app has no copy and no separate retention. Losing `SYNC_MASTER_KEY` makes those backups unreadable.
 - **If you revoke this app's eBay access or close your eBay account**, the next sync gets an `invalid_grant` rejection from eBay. The app then deletes the eBay token and the sales it synced from eBay through the API from this browser and tells you. Sales you logged by hand and uploaded CSV reports are yours and are kept. eBay's account-deletion notifications reach the server, but the server holds no eBay data for you and can't reach your browser, so this cleanup happens the next time you open the app and sync.
 - The Netlify platform itself may log standard HTTP access metadata (IP address, timestamp, URL path) as part of normal CDN operation — this is governed by [Netlify's Privacy Policy](https://www.netlify.com/privacy/), not this document.
 
@@ -35,6 +34,7 @@ When you run the application locally via Docker:
 - Data is stored in a **local `data/db.json` file** on your machine.
 - The Express server (`localhost:3001`) is bound to `127.0.0.1` (loopback), so it's reachable only from your machine, not other devices on your network. `FIRE_API_KEY` is required by default (set `FIRE_AUTH_DISABLED=true` to explicitly opt out for local-only use) — see [security-hardening.md](security-hardening.md).
 - The browser app syncs with this local server; `localStorage` serves as a fallback if the server is unreachable.
+- **Optional Google Drive backup.** The hosted site has no Drive backup; it exists only on a self-hosted server. If you connect Google Drive (Google OAuth, `drive.file` scope, so the app can see only the files it creates) and run a backup, the server encrypts a copy of `data/db.json` with AES-256-GCM using your `SYNC_MASTER_KEY` before upload, and stores it as a file in **your own** Google Drive (folder `fire-tracker-backups`, or the folder you configure). Google holds only ciphertext. The Drive OAuth token is stored on your machine in `data/tokens-gdrive.json`, also encrypted with `SYNC_MASTER_KEY`. Backups stay in your Drive until you delete them there; this app has no copy and no separate retention. Losing `SYNC_MASTER_KEY` makes those backups unreadable.
 
 ---
 
@@ -62,6 +62,13 @@ The following **external CDN requests** are made when loading the application. T
 | `cdn.jsdelivr.net` | Marked.js (markdown renderer) | Browser/script request only |
 
 No financial data, account information, or personal data is included in any of these requests.
+
+If you opt into Google Drive backup on a self-hosted server (Section 2b), that server also calls Google:
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `accounts.google.com`, `oauth2.googleapis.com` | Drive OAuth sign-in and token refresh | OAuth client ID/secret, authorization code, refresh token |
+| `www.googleapis.com` (Drive API) | Upload, list and download backups | The AES-256-GCM encrypted backup file and its name (`fire-backup-YYYY-MM-DD.json`) |
 
 ---
 
@@ -110,7 +117,7 @@ The optional webhook feature allows external services to push data updates into 
 
 - **Export:** Use "Export JSON Backup" in the sidebar to download a complete copy of your data at any time.
 - **Delete (browser mode):** Clear `localStorage` in your browser (DevTools → Application → Storage → Clear Site Data). This also removes the encrypted eBay token, if you connected eBay.
-- **Delete (local server mode):** Delete `data/db.json` from your machine.
+- **Delete (local server mode):** Delete `data/db.json` (and `data/tokens-gdrive.json`, if you connected Google Drive) from your machine.
 - **Delete (Google Drive backups):** delete the backup files from the `fire-tracker-backups` folder in your Google Drive, and revoke this app's access in your Google Account settings.
 - This application operates no server-side account or database of its own, so there is no account to close or app-held data to request deletion of.
 
