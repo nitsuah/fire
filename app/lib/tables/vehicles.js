@@ -76,8 +76,8 @@ function renderVehiclesTable() {
                 <td class="text-right" style="${depStyle}">${(v.purchasePrice || 0) > 0 ? depStr : '—'}</td>
                 <td class="text-right">
                     ${canEstimate ? `<button class="action-btn" id="veh-est-btn-${v.id}" onclick="fetchVehicleEstimate('${v.id}')">${escHtml(estimateLabel)}</button>` : ''}
-                    <button class="action-btn edit-btn" onclick="startEditVehicle('${v.id}')">Edit</button>
-                    <button class="action-btn delete-btn" onclick="deleteVehicle('${v.id}')">Delete</button>
+                    <button class="action-btn edit-btn" data-csp-click-action="startEditVehicle" data-csp-click-value="${escHtml(v.id)}">Edit</button>
+                    <button class="action-btn delete-btn" data-csp-click-action="deleteVehicle" data-csp-click-value="${escHtml(v.id)}">Delete</button>
                 </td>
             </tr>`;
         }
