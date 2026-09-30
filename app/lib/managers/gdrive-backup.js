@@ -97,7 +97,7 @@ async function loadGDriveBackupList() {
     const listEl = document.getElementById('gdrive-backup-list');
     if (!listEl) return;
     listEl.innerHTML =
-        '<p class="text-muted" style="font-size:12px;">Loading backups…</p>';
+        '<p class="text-muted" class="csp-text-12">Loading backups…</p>';
     try {
         const res = await fetch('/api/backup/drive/list');
         const data = await res.json();
@@ -105,7 +105,7 @@ async function loadGDriveBackupList() {
         const files = Array.isArray(data.files) ? data.files : [];
         if (files.length === 0) {
             listEl.innerHTML =
-                '<p class="text-muted" style="font-size:12px;">No backups yet.</p>';
+                '<p class="text-muted" class="csp-text-12">No backups yet.</p>';
             return;
         }
         listEl.innerHTML = files
@@ -118,7 +118,7 @@ async function loadGDriveBackupList() {
                     : '';
                 return `
                 <div class="chain-balance-row">
-                    <span class="chain-name">${escHtml(f.name)}<span class="text-muted" style="display:block;font-size:10px;">${escHtml(created)} ${escHtml(sizeKb)}</span></span>
+                    <span class="chain-name">${escHtml(f.name)}<span class="text-muted" class="csp-block csp-text-10">${escHtml(created)} ${escHtml(sizeKb)}</span></span>
                     <span class="chain-val"><button type="button" class="action-btn" data-action="restore-backup" data-file-id="${escHtml(f.id)}">Restore</button></span>
                 </div>`;
             })
