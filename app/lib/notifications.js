@@ -304,8 +304,8 @@ window.checkAndNotify = function (s, sendPush) {
                     (a) => `
                 <div class="notif-alert-row ${a.urgent ? 'notif-urgent' : ''}">
                     ${a.tag ? `<button class="notif-dismiss-btn" data-tag="${escHtml(a.tag)}" aria-label="Dismiss">✕</button>` : ''}
-                    <span class="font-bold" style="font-size:11px;text-transform:uppercase;color:${a.urgent ? 'var(--color-danger)' : 'var(--color-warning)'};">${escHtml(a.label)}</span>
-                    <span style="display:block;font-size:13px;margin-top:2px;">${escHtml(a.msg)}</span>
+                    <span class="font-bold" class="font-bold csp-notif-label ${a.urgent ? 'notif-label-urgent' : 'notif-label-warning'}">${escHtml(a.label)}</span>
+                    <span class="csp-block csp-text-13 csp-mt-2">${escHtml(a.msg)}</span>
                 </div>
             `,
                 )
