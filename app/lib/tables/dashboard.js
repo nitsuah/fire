@@ -121,9 +121,15 @@ function renderCompactFireBar(progressPercent) {
     fill.innerHTML = segments
         .map(
             (s) =>
-                `<span class="cfb-seg cfb-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(2)}" data-csp-color="${escHtml(s.color)}"></span>`,
+                `<span class="cfb-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(2)}" data-csp-color="${escHtml(s.color)}"></span>`,
         )
         .join('');
+    fill.querySelectorAll('[data-csp-width]').forEach((node) => {
+        node.style.width = `${node.dataset.cspWidth}%`;
+    });
+    fill.querySelectorAll('[data-csp-color]').forEach((node) => {
+        node.style.backgroundColor = node.dataset.cspColor;
+    });
     pct.textContent = `${progressPercent.toFixed(1)}%`;
     const bar = document.getElementById('compact-fire-bar');
     if (bar) {
