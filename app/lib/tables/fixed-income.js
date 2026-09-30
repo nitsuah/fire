@@ -283,14 +283,14 @@ function renderUnifiedHoldingsTable() {
             </tr>`;
         } else {
             html += `<tr>
-                <td class="font-bold">${escHtml(cd.bank)} <span class="text-muted" class="csp-text-10">+${formatCurrency(interest)}/yr</span></td>
+                <td class="font-bold">${escHtml(cd.bank)} <span class="text-muted csp-text-10">+${formatCurrency(interest)}/yr</span></td>
                 <td><span class="badge-type badge-cd">CD</span></td>
                 <td class="text-right font-bold">${formatCurrency(cd.principal)}</td>
                 <td class="text-right text-amber">${Number(cd.rate).toFixed(2)}%</td>
                 <td class="csp-dynamic-color" data-csp-color="${isMatured ? 'var(--color-danger)' : 'rgba(255,255,255,0.6)'}">${cd.maturity}${isMatured ? ' ⚠' : ''}</td>
                 <td class="text-right">
                     <button class="edit-btn" data-csp-click-action="startEditCD" data-csp-click-value="${escHtml(cd.id)}">Edit</button>
-                    <button class="delete-btn" data-csp-click-action="deleteCD" data-csp-click-value="${escHtml(cd.id)}>Delete</button>
+                    <button class="delete-btn" data-csp-click-action="deleteCD" data-csp-click-value="${escHtml(cd.id)}">Delete</button>
                 </td>
             </tr>`;
         }
