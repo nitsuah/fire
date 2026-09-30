@@ -94,6 +94,10 @@ const CSP_ACTIONS = new Set([
     'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate',
     'saveEditAccount', 'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
     'deleteSpendingTx', 'updateSpendingTxCategory', 'dismissNotifAlert',
+    'startEditRealEstate', 'deleteRealEstate', 'startEditVehicle', 'deleteVehicle',
+    'startEditAccount', 'deleteAccount', 'startEditCD', 'deleteCD', 'saveEditVehicle',
+    'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate', 'saveEditAccount',
+    'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
 ]);
 
 function initCspEventDelegation() {
