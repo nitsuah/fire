@@ -142,7 +142,7 @@ function buildCompactBarTooltipHtml() {
     const rows = segments
         .map(
             (s) =>
-                `<div class="at-row"><span class="at-dot" class="at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+                `<div class="at-row"><span class="at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
@@ -250,9 +250,12 @@ function renderAllocMiniBarsBanner() {
     el.innerHTML = `<div class="alloc-bar-track">${segments
         .map(
             (s) =>
-                `<div class="alloc-bar-seg" class="alloc-bar-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(1)}" data-csp-color="${escHtml(s.color)}" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`,
+                `<div class="alloc-bar-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(1)}" data-csp-color="${escHtml(s.color)}" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`,
         )
         .join('')}</div>`;
+
+    el.querySelectorAll('[data-csp-width]').forEach((node) => { node.style.width = `${node.dataset.cspWidth}%`; });
+    el.querySelectorAll('[data-csp-color]').forEach((node) => { node.style.backgroundColor = node.dataset.cspColor; });
 
     const track = el.querySelector('.alloc-bar-track');
     const tip = document.getElementById('alloc-tooltip');
@@ -268,6 +271,7 @@ function renderAllocMiniBarsBanner() {
 
     track.addEventListener('mouseenter', () => {
         tip.innerHTML = tooltipRows + totalRow;
+        tip.querySelectorAll('[data-csp-color]').forEach((node) => { node.style.backgroundColor = node.dataset.cspColor; });
         tip.style.display = 'block';
     });
     track.addEventListener('mouseleave', () => {
