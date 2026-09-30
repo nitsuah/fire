@@ -247,7 +247,7 @@ window.fetchVehicleEstimate = async function (id) {
                     <div class="veh-est-range">range ${formatCurrency(d.low)} – ${formatCurrency(d.high)}</div>
                     <div class="veh-est-note">${escHtml(d.note)}</div>
                     <div class="veh-est-cite">Source: ${escHtml(d.citation)}</div>
-                    <button class="action-btn save-btn veh-est-accept" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}"" data-vehicle-value="${d.value}" data-vehicle-source="depreciation-model">Accept ${formatCurrency(d.value)}</button>
+                    <button class="action-btn save-btn veh-est-accept" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}" data-vehicle-value="${d.value}" data-vehicle-source="depreciation-model">Accept ${formatCurrency(d.value)}</button>
                 </div>`);
         }
 
@@ -264,7 +264,7 @@ window.fetchVehicleEstimate = async function (id) {
                     ${m.low != null ? `<div class="veh-est-range">range ${formatCurrency(m.low)} – ${formatCurrency(m.high)}</div>` : ''}
                     <div class="veh-est-note">${escHtml(m.note)}</div>
                     <div class="veh-est-cite">Source: ${escHtml(m.citation)}</div>
-                    <button class="action-btn save-btn veh-est-accept" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}"" data-vehicle-value="${m.value}" data-vehicle-source="${escHtml(m.source)}">Accept ${formatCurrency(m.value)}</button>
+                    <button class="action-btn save-btn veh-est-accept" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}" data-vehicle-value="${m.value}" data-vehicle-source="${escHtml(m.source)}">Accept ${formatCurrency(m.value)}</button>
                 </div>`);
             } else if (m.error) {
                 rows.push(
@@ -278,7 +278,7 @@ window.fetchVehicleEstimate = async function (id) {
                 <div class="veh-est-suggested">
                     Suggested: <strong>${formatCurrency(data.suggestedValue)}</strong>
                     &nbsp;(range ${formatCurrency(data.range.low)} – ${formatCurrency(data.range.high)})
-                    <button class="action-btn save-btn veh-est-accept csp-ml-8" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}"" data-vehicle-value="${data.suggestedValue}" data-vehicle-source="estimate">Accept</button>
+                    <button class="action-btn save-btn veh-est-accept csp-ml-8" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}" data-vehicle-value="${data.suggestedValue}" data-vehicle-source="estimate">Accept</button>
                 </div>`);
         }
 
@@ -342,7 +342,15 @@ document.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-vehicle-action]');
     if (!btn) return;
     const action = btn.dataset.vehicleAction;
-    if (action === 'fetch-estimate') fetchVehicleEstimate(btn.dataset.vehicleId);
-    else if (action === 'accept-estimate') acceptVehicleEstimate(btn.dataset.vehicleId, Number(btn.dataset.vehicleValue), btn.dataset.vehicleSource);
-    else if (action === 'close-estimate') closeVehicleEstimate(btn.dataset.vehicleId);
+    if (action === 'fetch-estimate') {
+        fetchVehicleEstimate(btn.dataset.vehicleId);
+    } else if (action === 'accept-estimate') {
+        acceptVehicleEstimate(
+            btn.dataset.vehicleId,
+            Number(btn.dataset.vehicleValue),
+            btn.dataset.vehicleSource,
+        );
+    } else if (action === 'close-estimate') {
+        closeVehicleEstimate(btn.dataset.vehicleId);
+    }
 });
