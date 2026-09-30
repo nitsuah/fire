@@ -226,7 +226,7 @@ Reject entries that fail validation with a 400 + descriptive error.
 
 #### H-07: npm audit in CI
 
-**Status: Done.** `.github/workflows/ci.yml` runs `npm audit --audit-level=high --omit=dev` on every push/PR.
+**Status: Done.** `.github/workflows/ci.yml` runs `npm audit --audit-level=high --omit=dev` on pushes to `main` and pull requests targeting `main`.
 
 **Gap (original):** No automated vulnerability gate; regressions can silently enter production deps.  
 **Fix:** Add to `.github/workflows/ci.yml`:

@@ -118,7 +118,7 @@ The optional webhook feature allows external services to push data updates into 
 - **Export:** Use "Export JSON Backup" in the sidebar to download a complete copy of your data at any time.
 - **Delete (browser mode):** Clear `localStorage` in your browser (DevTools → Application → Storage → Clear Site Data). This also removes the encrypted eBay token, if you connected eBay.
 - **Delete (local server mode):** Delete `data/db.json` (and `data/tokens-gdrive.json`, if you connected Google Drive) from your machine.
-- **Delete (Google Drive backups):** delete the backup files from the `fire-tracker-backups` folder in your Google Drive, and revoke this app's access in your Google Account settings.
+- **Delete (Google Drive backups):** delete the `fire-backup-*.json` files from your backup folder in Google Drive (`fire-tracker-backups` by default, or the folder set in `GDRIVE_BACKUP_FOLDER_ID`), and revoke this app's access in your Google Account settings.
 - This application operates no server-side account or database of its own, so there is no account to close or app-held data to request deletion of.
 
 ---
