@@ -254,8 +254,12 @@ function renderAllocMiniBarsBanner() {
         )
         .join('')}</div>`;
 
-    el.querySelectorAll('[data-csp-width]').forEach((node) => { node.style.width = `${node.dataset.cspWidth}%`; });
-    el.querySelectorAll('[data-csp-color]').forEach((node) => { node.style.backgroundColor = node.dataset.cspColor; });
+    el.querySelectorAll('[data-csp-width]').forEach((node) => {
+        node.style.width = `${node.dataset.cspWidth}%`;
+    });
+    el.querySelectorAll('[data-csp-color]').forEach((node) => {
+        node.style.backgroundColor = node.dataset.cspColor;
+    });
 
     const track = el.querySelector('.alloc-bar-track');
     const tip = document.getElementById('alloc-tooltip');
@@ -271,7 +275,9 @@ function renderAllocMiniBarsBanner() {
 
     track.addEventListener('mouseenter', () => {
         tip.innerHTML = tooltipRows + totalRow;
-        tip.querySelectorAll('[data-csp-color]').forEach((node) => { node.style.backgroundColor = node.dataset.cspColor; });
+        tip.querySelectorAll('[data-csp-color]').forEach((node) => {
+            node.style.backgroundColor = node.dataset.cspColor;
+        });
         tip.style.display = 'block';
     });
     track.addEventListener('mouseleave', () => {
