@@ -82,7 +82,7 @@ var metalsRefreshTimer = null;
 // Keeping this as addEventListener-based wiring lets script-src omit 'unsafe-inline'.
 const CSP_ACTIONS = new Set([
     'toggleSidebarCollapse', 'closeNavDrawer', 'toggleNotifDropdown',
-    'requestNotificationPermission', 'setDashProjWindow', 'collapseAllGroups',
+    'requestNotificationPermission', 'checkNotifications', 'setDashProjWindow', 'collapseAllGroups',
     'setTableSort', 'allocDrillUp', 'setNwHistoryRange', 'renderRebalancingTool',
     'renderTaxHarvestTable', 'toggleEbaySyncSetting', 'setProjWindow',
     'toggleProjLine', 'applyScenario', 'saveProjectionDefaults',
@@ -125,7 +125,11 @@ function initCspEventDelegation() {
         if (!CSP_ACTIONS.has(action)) return;
         const fn = window[action];
         if (typeof fn !== 'function') return;
-        if (el.dataset.cspChangeValue !== undefined) fn(el.dataset.cspChangeValue, event.target.value, event);
+        if (el.dataset.cspChangeValue !== undefined) {
+            const configuredValue = el.dataset.cspChangeValue;
+            const firstArg = configuredValue === 'event' ? event : configuredValue;
+            fn(firstArg, event.target.value, event);
+        }
         else fn(event);
     });
 }
