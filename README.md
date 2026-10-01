@@ -318,7 +318,9 @@ See [docs/prod-plan.md](docs/prod-plan.md) for the full productionization roadma
 
 ## Docs Index
 
-Every doc at the repo root (other than this README) and under `docs/` (the files mirrored into the Obsidian vault), so none of them is orphaned.
+Every committed Markdown doc in this repo (other than this README, `.github/` and `templates/`), the same set mirrored into the Obsidian vault, so none of them is orphaned.
+
+**`docs/`**
 
 - [Changelog](./docs/CHANGELOG.md) — `docs/CHANGELOG.md`
 - [Features](./docs/FEATURES.md) — `docs/FEATURES.md`
@@ -336,5 +338,17 @@ Every doc at the repo root (other than this README) and under `docs/` (the files
 
 - [fire-feedback](./docs/archive/fire-feedback.md) — `docs/archive/fire-feedback.md`
 - [fire-plan](./docs/archive/fire-plan.md) — `docs/archive/fire-plan.md`
+
+**`promo/`**
+
+- [Promo spots](./promo/README.md) — `promo/README.md`
+
+**`promo/brag-22s/`**
+
+- [brag-22s — storyboard](./promo/brag-22s/storyboard.md) — `promo/brag-22s/storyboard.md`
+
+**`promo/`**
+
+- [Promo feature ledger](./promo/features.md) — `promo/features.md`
 
 <!-- docs-index:end -->
