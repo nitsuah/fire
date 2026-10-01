@@ -52,7 +52,10 @@ function initAccountsManager() {
         if (walletsGroup)
             walletsGroup.classList.toggle('csp-i-001', t !== 'Crypto');
         // APY shown for yield-bearing types
-        apyGroup.classList.toggle('csp-i-001', !(t === 'Savings' || t === 'Cash' || t === 'Crypto'));
+        apyGroup.classList.toggle(
+            'csp-i-001',
+            !(t === 'Savings' || t === 'Cash' || t === 'Crypto'),
+        );
         const apyLabel = document.getElementById('label-acc-apy');
         if (apyLabel)
             apyLabel.textContent =
@@ -65,8 +68,7 @@ function initAccountsManager() {
         // Metal-specific fields (weight in oz — value still starts as a
         // manually-entered estimate, same as Crypto, refreshed live after
         // creation via the "Refresh" button)
-        if (metalGroup)
-            metalGroup.classList.toggle('csp-i-001', t !== 'Metal');
+        if (metalGroup) metalGroup.classList.toggle('csp-i-001', t !== 'Metal');
     }
 
     updateTypeFields();
