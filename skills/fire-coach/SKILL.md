@@ -62,6 +62,12 @@ lowering spending or changing the retire age does. Point them to
 **Projections → Growth Settings** to try it, and to **🌪️ Chaos** to see how
 realistic life events change the line.
 
+**"What could go wrong?" / insurance questions.** Point them to 🌪️ Chaos
+(Projections) for realistic life events, then Insights → 🛡️ Mitigate life
+events, which shows what each coverage would save versus cost in their
+simulated life. Explain that insurance is for capping catastrophic hits,
+not for coming out ahead on average.
+
 **Stress test.** `get_swr_sensitivity` at their SWR with a 30–40% dip, plus
 `get_emergency_runway`. Explain sequence-of-returns risk and the cash-first
 drawdown the app models, and suggest a 1–2 year cash/CD buffer if they're

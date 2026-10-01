@@ -1,5 +1,5 @@
 // @ts-check
-/* global dashboardProjectionsChart, projectionsChart, buildProjectionData, state, getAggregateCash, getMonthlyExpensesBase, FireChaos */
+/* global scenarioOffset, dashboardProjectionsChart, projectionsChart, buildProjectionData, state, getAggregateCash, getMonthlyExpensesBase, FireChaos */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -165,6 +165,32 @@ test.describe('Chaos mode', () => {
                 '#chaos-mitigations [data-mitigation="pet-insurance"]',
             ),
         ).toBeChecked();
+    });
+
+    test('Bear / Base / Bull pass numeric offsets (CSP delegation sends strings)', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-projections').click();
+        const offsets = {};
+        for (const [name, off] of [
+            ['bear', '-2'],
+            ['base', '0'],
+            ['bull', '2'],
+        ]) {
+            await page.locator(`.scenario-btn[data-offset="${off}"]`).click();
+            offsets[name] = await page.evaluate(() => ({
+                offset: scenarioOffset,
+                last: buildProjectionData().nwData.at(-1),
+            }));
+        }
+        expect(offsets.base.offset).toBe(0);
+        expect(offsets.bear.offset).toBe(-2);
+        expect(offsets.bull.offset).toBe(2);
+        Object.values(offsets).forEach((o) =>
+            expect(Number.isFinite(o.last)).toBe(true),
+        );
+        expect(offsets.bear.last).toBeLessThan(offsets.base.last);
+        expect(offsets.base.last).toBeLessThan(offsets.bull.last);
     });
 
     test('Bear/Bull buttons leave the chaos toggle alone', async ({ page }) => {

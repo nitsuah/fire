@@ -209,6 +209,9 @@ main { padding: 0 var(--gutter); }
 /* Tap/click any screenshot (or the Chaos video) to see it full size. */
 .zoomable { cursor: zoom-in; }
 .zoom-wrap { position: relative; }
+/* The picker overlay keeps its own placement when it becomes zoomable. */
+.zoom-wrap.customize-picker { position: absolute; }
+@media (max-width: 860px) { .zoom-wrap.customize-picker { position: static; } }
 .zoom-wrap::after { content: '⤢'; position: absolute; right: 10px; top: 10px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 999px; background: rgba(8, 11, 17, .78); border: 1px solid rgba(255,255,255,.18); color: #fff; font-size: 16px; opacity: 0; transition: opacity .15s ease; pointer-events: none; }
 .zoom-wrap:hover::after, .zoom-wrap:focus-within::after { opacity: 1; }
 @media (hover: none) { .zoom-wrap::after { opacity: .85; } }

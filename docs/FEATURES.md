@@ -55,7 +55,17 @@
 - **Chart Line Toggles** — Toggle NW, 75%/100%/125% FIRE goals, Coast FIRE, and US Median benchmark independently.
 - **CD Maturity Markers** — Overlaid on the retirement growth chart to show liquidity events.
 - **Multi-Scenario FIRE Comparison** — Side-by-side comparison of FIRE dates across varying salary bumps, market downturns, and inflation spikes.
-- **🌪️ Chaos Mode** — A toggle next to Bear/Bull (Projections) and on the Dashboard growth chart that rolls seeded, realistic life events onto the net worth path: 30 events in 8 categories (health, pets, family, career, housing, auto, windfalls, legal/money), each with a life-average yearly probability, an age window and 2–3 predefined outcomes (e.g. gallbladder surgery $2.5k / $6k / $14k). One-time hits and long-term cash-flow shifts (a child −$8k to −$16k/yr for 18 years, a promotion's extra savings until retirement). ▲/▼ markers colored by category, a dashed "without chaos" line, tooltip details on hover/tap, an event-chip timeline that follows the 1Y–All window (≥1 event in year one, ≥3 per 5 years), and 🎲 reroll. Lump sums compound with the portfolio afterwards, recurring flows change savings (or retirement withdrawals) for their duration, job loss costs lost savings plus real spending, and paycheck events are skipped without earned income. Milestone Predictions follow the chaos path (🌪️). Seed and toggle persist per browser (`app/lib/chaos-events.js`, unit-tested, plus a browser test that no-event chaos equals the base projection).
+- **🌪️ Chaos Mode** — A toggle next to Bear/Bull (Projections) and on the Dashboard growth chart that rolls seeded, realistic life events onto the net worth path. There are 37 events in 8 categories (health, pets, family, career, housing, auto, windfalls, legal/money). Each has a life-average yearly probability, an age window, a lifetime cap, a repeat gap and 2–3 predefined outcomes (e.g. gallbladder surgery $2.5k / $6k / $14k).
+  - **Sequences:** follow-up chains such as parent care → funeral → inheritance or inherited house, wedding → child → daycare ends, and job loss → new job. Same-year follow-ups are handled too.
+  - **Good events:** an inherited house (sell, move in, or rent it out), refinance, car loan paid off, roommate/house hack, settlement payout and family gift, alongside bonuses, RSUs, a side hustle and windfalls.
+  - **Accounting, in today's dollars:**
+    - Lump sums land in their year and compound with the portfolio. Recurring flows change savings, or retirement withdrawals, for their duration.
+    - Costs that outrun inflation escalate on top of it: rent +1%/yr, child costs +1%, elder care +3%, insurance after a claim +2%, and medical and vet bills +2%/yr the later they happen. Descriptions quote the inflation setting.
+    - Wages are flat in real terms, so a promotion is a signing bump or 5–6 years of extra savings.
+    - Job loss costs lost savings plus real spending. Paycheck events are skipped when gross income is under $5k.
+  - **🛡️ Mitigations** (Insights): pet insurance, low-OOP plan/HSA, disability, dental, umbrella, water-backup, gap, credit freeze, safe-harbor withholding and an emergency fund. Ticked ones shrink the covered hits and charge their premiums every year, and each card shows saves vs. costs for the current simulated life.
+  - **UI:** ▲/▼ markers colored by category, a dashed "without chaos" line, tooltip details including "after …" causes, an event-chip timeline that follows the 1Y–All window (≥1 event in year one, ≥3 per 5 years), 🌪️ chaos-aware Milestone Predictions and 🎲 reroll.
+  - Seed, toggle and mitigations persist per browser (`app/lib/chaos-events.js`, unit-tested, plus a browser test that no-event chaos equals the base projection).
 - **Money Run-Out Detection** — Tracks depletion age year-by-year for base, bull, and bear scenarios when portfolio reaches zero; portfolios that survive the full projection span are flagged accordingly.
 
 ## CD & Fixed Income
@@ -103,7 +113,10 @@
 - **Mobile-Responsive Layout** — Adaptive layout for tablet and phone viewports.
 - **Metric Tooltips** — Inline explanation indicators for SWR, FIRE number, Coast FIRE, etc.
 - **Settings Page** — Projection defaults, notifications, eBay/Plaid connectors and sync toggles, privacy/terms, data management, Google Drive backup and danger zone, with colour-coded groups.
-- **Customizable Layout** — Click any card title to collapse it; ✎ Customize on every tab enables pointer drag (mouse and touch) and ↑/↓ reordering, with Dashboard cards able to move between columns. On the Dashboard, ＋ Add widget pins any card from another tab (its home tab keeps a "Move back here" placeholder) and ✕ removes Dashboard cards; ↺ Reset restores a tab. Persisted per browser in localStorage (`app/lib/layout-manager.js`).
+- **Customizable Layout (sections)** — Every tab is a board of sections. Each section picks a column layout (1, 2, 2 wide-left, 2 wide-right, 3, 3 wide-center, 4), and its cells stack cards. Empty cells collapse outside Customize mode, so a card alone in a section spans the full width; the old fixed per-tab grids are gone. Sections drop to 2 columns on narrow boards and to 1 on phones, using container queries.
+  - **✎ Customize** is a builder canvas: dotted grid, outlined sections with a layout picker and ↑/↓/🗑, a highlighted target cell, a pulsing drop placeholder, a floating drag chip (mouse and touch), and "＋ New section" drop gaps. Cards also move with ↑/↓.
+  - Click a title to collapse a card. Dashboard ＋ Add widget pins cards from other tabs (keyboard-trapped picker that restores focus), ✕ removes cards, ↺ Reset restores a tab.
+  - Persisted per browser (`fire_layout_v2`, migrating v1) in `app/lib/layout-manager.js`. CSP-safe: no inline handlers or style attributes.
 - **Milestone Preset Selector** — 5 financial profiles (Conservative, Standard, Aggressive, Barista FIRE, Coast FIRE) with dynamic targets based on user's income/net worth.
 
 ## Integrations (UI Ready)
@@ -126,8 +139,8 @@
 
 ## Testing
 
-- **Vitest Suite** — 646 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
-- **Playwright UI Suite** — 62 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
+- **Vitest Suite** — 657 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
+- **Playwright UI Suite** — 67 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
 - **MCP Smoke Test** — `scripts/test-mcp.mjs` exercises the 8 tools in `EXPECTED_TOOLS` end-to-end via the SDK client.
 
 ## Planned

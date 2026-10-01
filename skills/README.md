@@ -19,7 +19,7 @@ Claude into a FIRE coach for this app. It combines:
 Claude Code (personal, all projects):
 
 ```bash
-cp -r skills/fire-coach ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/fire-coach ~/.claude/skills/
 ```
 
 Just this project:

@@ -70,6 +70,13 @@ These items came from the current browser/production pass. **P0** items are corr
 - [x] **Update the GitHub page for Chaos mode and missing feature details**
   - Shipped: landing page Chaos + "Make it yours" sections with the `chaos-24s` video, the skill in the Claude section, the Plaid footnote updated; README/FEATURES updated.
 
+- [x] **Section layouts: a single card fills its row; per-row column layouts (2/3/4, wide-left/right/center) with a Datadog-style builder**
+  - Shipped: section board on every tab, fixed per-tab grids removed, builder canvas with highlighted drop targets and "New section" gaps, phone single-column.
+- [x] **Chaos realism: more good events, sensible sequencing, costs that outrun inflation, flat wages**
+  - Shipped: follow-up chains (parent care → funeral → inheritance/house, wedding → child → daycare ends, job loss → new job), 7 new positive events, real-terms escalation linked to the inflation setting, promotions as bumps or 5–6 years of extra savings.
+- [x] **🛡️ Mitigation tips that offset chaos events (e.g. pet insurance)**
+  - Shipped: 10 mitigations in Insights → Portfolio Insights that shrink covered hits and charge premiums in the chaos projection, with per-life saves vs. costs.
+
 ### P1 — GitHub README / promo parity
 
 - [ ] **README feature-parity and product-story refresh**

@@ -131,7 +131,9 @@ function loadLayout() {
     const blank = { boards: {}, collapsed: {}, hidden: [], legacyBorrowed: [] };
     try {
         const saved = JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY));
-        if (saved && typeof saved === 'object' && saved.boards)
+        const plainObject = (v) =>
+            !!v && typeof v === 'object' && !Array.isArray(v);
+        if (plainObject(saved) && plainObject(saved.boards))
             return {
                 ...blank,
                 boards: saved.boards,
@@ -161,6 +163,7 @@ function loadLayout() {
 
 const LayoutManager = {
     layout: null,
+    pickerOpener: null, // focus returns here when the picker closes
     cards: new Map(), // id -> { el, pane, title }
     roots: new Map(), // paneId -> .lm-board
     parking: new Map(), // paneId -> hidden holder for removed cards
@@ -913,8 +916,11 @@ const LayoutManager = {
     },
 
     // ── Widget picker (Dashboard) ───────────────────────────────────────
-    openPicker() {
-        this.closePicker();
+    openPicker({ focusId = null } = {}) {
+        // Rebuilding after Add/Remove keeps the original opener.
+        if (!document.querySelector('.lm-picker-overlay'))
+            this.pickerOpener = document.activeElement;
+        this.closePicker({ restoreFocus: false });
         const overlay = document.createElement('div');
         overlay.className = 'lm-picker-overlay';
         overlay.innerHTML = `<div class="lm-picker" role="dialog" aria-modal="true" aria-labelledby="lm-picker-title">
@@ -955,11 +961,17 @@ const LayoutManager = {
                 btn.type = 'button';
                 btn.className = pinned ? 'action-btn' : 'primary-btn';
                 btn.textContent = pinned ? 'Remove' : 'Add';
+                btn.dataset.lmPick = id;
+                btn.setAttribute(
+                    'aria-label',
+                    `${btn.textContent} ${entry.title}`,
+                );
                 btn.addEventListener('click', () => {
                     if (isDash) this.restoreDashCard(id);
                     else if (pinned) this.returnHome(id);
                     else this.borrow(id);
-                    this.openPicker(); // re-render with new state
+                    // Re-render with the new state, focus staying on this row.
+                    this.openPicker({ focusId: id });
                 });
                 row.append(name, btn);
                 sec.appendChild(row);
@@ -971,14 +983,46 @@ const LayoutManager = {
                 this.closePicker();
         });
         overlay.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.closePicker();
+            if (e.key === 'Escape') {
+                this.closePicker();
+                return;
+            }
+            if (e.key !== 'Tab') return;
+            // Keep Tab inside the dialog.
+            const focusables = [
+                ...overlay.querySelectorAll(
+                    'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ),
+            ];
+            if (!focusables.length) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
         });
         document.body.appendChild(overlay);
-        overlay.querySelector('[data-lm-close]').focus();
+        const target =
+            (focusId &&
+                overlay.querySelector(
+                    `[data-lm-pick="${CSS.escape(focusId)}"]`,
+                )) ||
+            overlay.querySelector('[data-lm-close]');
+        target.focus();
     },
 
-    closePicker() {
-        document.querySelector('.lm-picker-overlay')?.remove();
+    closePicker({ restoreFocus = true } = {}) {
+        const overlay = document.querySelector('.lm-picker-overlay');
+        if (!overlay) return;
+        overlay.remove();
+        if (restoreFocus) {
+            if (this.pickerOpener?.isConnected) this.pickerOpener.focus();
+            this.pickerOpener = null;
+        }
     },
 
     // ── Per-tab toolbar + edit mode ─────────────────────────────────────
@@ -1074,9 +1118,13 @@ const LayoutManager = {
         this.register();
         this.addToolbars();
         this.panes().forEach((p) => {
-            if (!this.layout.boards[p.id]?.length)
+            const rows = this.layout.boards[p.id];
+            if (!Array.isArray(rows) || !rows.length)
                 this.layout.boards[p.id] = this.defaultBoard(p.id);
         });
+        // Before the hidden filter / v1 migration walk the rows: drop
+        // malformed saved rows and tokens.
+        this.sanitize();
         // Dashboard cards removed earlier stay off the default board.
         this.layout.boards[DASH_TAB] = (this.layout.boards[DASH_TAB] || []).map(
             (r) => ({

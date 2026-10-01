@@ -63,6 +63,7 @@ describe('chains and catalog wiring', () => {
     });
 
     it('follow-ups come after their cause, and the sequences show up', () => {
+        let sameYear = 0;
         const seen = {
             funeralAfterCare: 0,
             houseAfterFuneral: 0,
@@ -71,6 +72,7 @@ describe('chains and catalog wiring', () => {
         for (let seed = 1; seed <= 400; seed++) {
             const evs = FC.generateEvents({ seed, ...opts, span: 45 });
             evs.filter((e) => e.cause).forEach((e) => {
+                if (e.age === Number(/age (\d+)$/.exec(e.cause)[1])) sameYear++;
                 const causeAge = Number(/age (\d+)$/.exec(e.cause)[1]);
                 expect(e.age).toBeGreaterThanOrEqual(causeAge);
                 if (e.defId === 'funeral' && /Aging parent/.test(e.cause))
@@ -84,6 +86,8 @@ describe('chains and catalog wiring', () => {
             const ends = evs.filter((e) => e.defId === 'childcare-ends').length;
             expect(ends).toBeLessThanOrEqual(kids);
         }
+        // Same-year follow-ups (e.g. a funeral then the inheritance) happen.
+        expect(sameYear).toBeGreaterThan(0);
         expect(seen.funeralAfterCare).toBeGreaterThan(0);
         expect(seen.houseAfterFuneral).toBeGreaterThan(0);
         expect(seen.childcareEnds).toBeGreaterThan(0);

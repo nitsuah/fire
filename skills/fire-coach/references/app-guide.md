@@ -47,17 +47,23 @@ one tappable summary bar.
   Median peer benchmark, Scenarios (bull/bear band).
 - **Bear / Base / Bull:** shifts the expected return by −2 / 0 / +2 points.
 - **🌪️ Chaos** (also on the Dashboard chart): adds realistic random life
-  events to the net worth path. There are 30 predefined events in 8
+  events to the net worth path. There are 37 predefined events in 8
   categories: health, pets, family, career, housing, auto, windfalls, and
   legal/money. Examples are gallbladder surgery, cat cancer, a child,
-  a new job, a roof, a job loss and an unexpected windfall.
+  an inherited house, a refinance, a job loss and an unexpected windfall.
+  - Sequences: parent care can lead to a funeral, then an inheritance or
+    an inherited house; a wedding to a child; a child to daycare ending;
+    a job loss to a new job. Follow-ups say "after …".
+  - Rent, child costs, elder care, insurance after a claim, and medical
+    or vet bills rise faster than inflation. Wages don't: a promotion is
+    a bump or 5–6 years of extra savings.
   - Each event has a life-average yearly probability and an age window
     (weddings and children skew young, joint replacements older, career
     events stop at retirement). Outcomes come from a small predefined set
     with sensible costs, e.g. gallbladder surgery is $2.5k, $6k or $14k.
   - **One-time** events (surgery, a roof) drop or lift the line once.
     **Long-term** ones change cash flow for years: a child is −$8k to
-    −$16k/yr for 18 years, a promotion adds to savings until retirement.
+    −$16k/yr for 18 years, and a refinance adds $2.4k–$4.8k/yr.
   - ▲ green markers are increases and ▼ red are decreases; the ring color is
     the category. Hover or tap the line for the events nearest that age and
     their dollar impact. The gray dashed line is the path without chaos, and
@@ -78,13 +84,28 @@ one tappable summary bar.
   FIRE and Fat. **Scenario Comparison** shows how the FIRE age moves with
   savings ±, bear markets and inflation.
 
+## 🛡️ Mitigations (Insights → Portfolio Insights)
+
+Coverage that shrinks Chaos hits: pet insurance (vet bills −80%), a low
+out-of-pocket plan or HSA, disability insurance (lost income −60%),
+dental, umbrella liability, water-backup coverage, gap insurance, a
+credit freeze, safe-harbor tax withholding and a 6-month emergency fund.
+Tick "I have this" and Chaos mode applies it and charges its yearly
+premium. Each card shows what it would save and cost in the current
+simulated life. Insurance usually loses money on average; it's for
+capping the big hits.
+
 ## Customizing the layout
 
+- **Sections:** every tab is rows of sections, each with a column layout
+  (1, 2, 2 wide-left, 2 wide-right, 3, 3 wide-center, 4). A card alone in
+  a section fills the row.
 - **Collapse:** click any card title (or focus it and press Enter). This is
   remembered.
-- **✎ Customize** (top right of every tab): drag ⠿ with a mouse or finger,
-  or use ↑ ↓ to reorder. On the Dashboard, cards can also move between
-  columns. **↺ Reset** restores the tab's default order.
+- **✎ Customize** (top right of every tab): a builder canvas. Drag ⠿ with
+  a mouse or finger into any cell (it lights up) or onto a "＋ New
+  section" gap, pick a section's layout from its preview buttons, or use
+  ↑ ↓. **＋ Section** adds a row; **↺ Reset** restores the tab.
 - **Dashboard widgets:** in Customize mode, **＋ Add widget** pins any card
   from another tab to the Dashboard. Its home tab shows a placeholder with
   "Go to Dashboard" / "Move back here". **✕** removes a Dashboard card; add it

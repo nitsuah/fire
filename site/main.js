@@ -108,9 +108,18 @@
             node = document.createElement('img');
             node.src = el.currentSrc || el.src;
             node.alt = el.alt;
-            node.addEventListener('click', () =>
-                media.classList.toggle('is-actual'),
-            );
+            // Click, Enter or Space toggles fit-to-screen / actual size.
+            node.tabIndex = 0;
+            node.setAttribute('role', 'button');
+            node.setAttribute('aria-label', `Toggle actual size: ${el.alt}`);
+            const toggleSize = () => media.classList.toggle('is-actual');
+            node.addEventListener('click', toggleSize);
+            node.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSize();
+                }
+            });
         }
         media.appendChild(node);
         caption.textContent =

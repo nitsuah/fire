@@ -130,8 +130,12 @@ every year: look up the current figures instead of quoting from memory.
    taxable accounts last; don't sell investments in a panic.
 5. Use the low-income year: Roth conversions and 0%-bracket gain harvesting
    may be cheap now.
-6. Re-run projections with savings set to $0 (Projections → Growth Settings)
-   to see the real impact, then set a date to revisit.
+6. Setting savings to $0 (Projections → Growth Settings) only models
+   *stopped contributions*. Before the retirement age the projection does
+   not subtract living expenses, so it understates a job loss. Use
+   `get_emergency_runway` (months until $0 when spending comes out of the
+   portfolio) for the real depletion picture, or 🌪️ Chaos's job-loss events,
+   which do charge lost savings plus spending. Set a date to revisit.
 
 ## 8. Habits that compound
 

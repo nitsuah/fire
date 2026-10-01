@@ -1011,11 +1011,15 @@
             });
         };
 
-        // Pass 1: each catalog event rolls against its life-average rate.
-        for (let yr = 0; yr < span; yr++) {
+        // Follow-ups are consequences, not coin flips. Drain a year's queue
+        // until it's empty, so follow-ups queued while draining (same-year
+        // chains) are handled too; a full year pushes them to the next one.
+        const runPending = (yr) => {
+            const queue = pending[yr];
+            if (!queue) return;
             const age = currentAge + yr;
-            // Follow-ups first: they're consequences, not coin flips.
-            (pending[yr] || []).forEach(({ defId, cause }) => {
+            while (queue.length) {
+                const { defId, cause } = queue.shift();
                 const def = BY_ID[defId];
                 if (perYear[yr].length >= MAX_EVENTS_PER_YEAR) {
                     if (yr + 1 < span)
@@ -1023,7 +1027,7 @@
                             defId,
                             cause,
                         });
-                    return;
+                    continue;
                 }
                 if (
                     !isEligible(
@@ -1035,7 +1039,7 @@
                         hasEarnedIncome,
                     )
                 )
-                    return;
+                    continue;
                 const ev = makeEvent(def, yr, age, rng);
                 if (cause.yearIndex === yr)
                     ev.month = Math.min(
@@ -1044,7 +1048,16 @@
                     );
                 ev.cause = `${cause.icon} ${cause.label}, age ${cause.age}`;
                 record(ev);
-            });
+            }
+        };
+        const drainFrom = (yr) => {
+            for (let y = yr; y < span; y++) runPending(y);
+        };
+
+        // Pass 1: each catalog event rolls against its life-average rate.
+        for (let yr = 0; yr < span; yr++) {
+            const age = currentAge + yr;
+            runPending(yr);
             // Shuffle-free but fair: start the scan at a random offset so the
             // per-year cap doesn't always favor the catalog's first entries.
             const start = Math.floor(rng() * CATALOG.length);
@@ -1065,6 +1078,7 @@
                     continue;
                 if (roll < def.rate) record(makeEvent(def, yr, age, rng));
             }
+            runPending(yr);
         }
 
         // Pass 2: top up sparse windows so 1Y/5Y views aren't empty.
@@ -1099,6 +1113,7 @@
                     ),
                 );
                 need--;
+                drainFrom(yr);
             }
         };
         if (span > 0) topUp(0, 1, MIN_FIRST_YEAR - perYear[0].length);

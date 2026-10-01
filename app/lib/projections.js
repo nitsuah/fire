@@ -277,7 +277,10 @@ window.toggleProjLine = function (key) {
 };
 
 window.applyScenario = function (offset) {
-    // offset: +2 for bull, -2 for bear, 0 for base
+    // offset: +2 for bull, -2 for bear, 0 for base. CSP-safe delegation
+    // passes data-csp-click-value as a string; "8" + "0" would be an 80%
+    // return, so coerce before it reaches the projection math.
+    offset = Number(offset) || 0;
     scenarioOffset = offset;
     document.querySelectorAll('.scenario-btn').forEach((b) => {
         b.classList.toggle('active', parseInt(b.dataset.offset) === offset);

@@ -265,9 +265,10 @@ async function mockPrices(pg) {
     await mit.scrollIntoViewIfNeeded();
     await sleep(400);
     await mit.screenshot({ path: `${C}/mitigations.png` });
-    await page.evaluate(() =>
-        localStorage.removeItem('fire_chaos_mitigations'),
-    );
+    // Untick through the UI so the saved list and the in-memory state
+    // both reset before the next shots.
+    for (const id of ['pet-insurance', 'dental'])
+        await page.locator(`[data-mitigation="${id}"]`).uncheck();
 
     // Layout customization on the dashboard
     await page.click('#btn-tab-dashboard');
