@@ -81,8 +81,13 @@ function ctPost(action, extra = {}) {
             /^cointracker_(revoked|token_invalid)$/.test(data.code || '')
         ) {
             ctWrite(CT_TOKEN_KEY, null);
+            const d = data.diagnostic;
+            const detail = d
+                ? ` (token: ${d.format}${d.aud ? `, aud ${[].concat(d.aud).join(' ')}` : ''}${d.scope ? `, scope ${d.scope}` : ''})`
+                : '';
             throw new Error(
-                data.error || 'CoinTracker connection expired. Reconnect.',
+                (data.error || 'CoinTracker connection expired. Reconnect.') +
+                    detail,
             );
         }
         // Saved even on failure: a refresh before the error rotated it.

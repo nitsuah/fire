@@ -28,6 +28,15 @@ const ENDPOINTS = {
     register: `${AUTH_BASE}/oidc/register`,
     revoke: `${AUTH_BASE}/oauth/revoke`,
 };
+// Auth0 only issues a JWT for an API when the authorize request names it
+// as `audience`; without one it returns an opaque token for /userinfo,
+// which the MCP server rejects. RFC 8707 `resource` is sent too, but Auth0
+// honors it only with its resource-parameter profile enabled.
+// COINTRACKER_AUDIENCE overrides the value; `none` omits the parameter.
+const AUDIENCE =
+    process.env.COINTRACKER_AUDIENCE === 'none'
+        ? null
+        : process.env.COINTRACKER_AUDIENCE || MCP_URL;
 // offline_access yields a refresh token so the connection outlives the
 // short-lived access token.
 const SCOPE = 'mcp:read offline_access';
@@ -128,6 +137,7 @@ function buildAuthorizationUrl({ clientId, redirectUri, state, challenge }) {
         code_challenge_method: 'S256',
         // RFC 8707: bind the token to the MCP server.
         resource: MCP_URL,
+        ...(AUDIENCE ? { audience: AUDIENCE } : {}),
     }).toString();
     return url.toString();
 }
@@ -241,6 +251,28 @@ async function revokeTokens(tokens, fetchImpl = fetch) {
     }
 }
 
+// Non-secret shape of an access token, for diagnosing a 401: whether it
+// is a JWT (and its audience/scope/issuer) or an opaque/encrypted token.
+// Never includes the token, its signature or the subject.
+function describeToken(token) {
+    const parts = String(token || '').split('.');
+    if (parts.length === 5) return { format: 'jwe (opaque, encrypted)' };
+    if (parts.length !== 3) return { format: 'opaque' };
+    try {
+        const claims = JSON.parse(
+            Buffer.from(parts[1], 'base64url').toString('utf8'),
+        );
+        return {
+            format: 'jwt',
+            aud: claims.aud ?? null,
+            scope: claims.scope ?? claims.scp ?? null,
+            iss: claims.iss ?? null,
+        };
+    } catch {
+        return { format: 'unparseable jwt' };
+    }
+}
+
 // ─── Sealed blobs (token + pending OAuth state) ──────────────────────────────
 
 function sealTokens(tokens) {
@@ -332,11 +364,13 @@ function createMcpSession(accessToken, fetchImpl = fetch) {
             body: JSON.stringify(message),
         });
         if (res.status === 401) {
-            throw connectorError(
+            const err = connectorError(
                 'CoinTracker rejected the access token.',
                 'unauthorized',
                 401,
             );
+            err.diagnostic = describeToken(accessToken);
+            throw err;
         }
         if (res.status === 403) {
             throw connectorError(
@@ -794,6 +828,7 @@ module.exports = {
     MCP_URL,
     ENDPOINTS,
     SCOPE,
+    AUDIENCE,
     USER_AGENT,
     CALLBACK_PATH,
     isConfigured,
@@ -809,6 +844,7 @@ module.exports = {
     sealPending,
     unsealPending,
     statesMatch,
+    describeToken,
     parseRpcResponse,
     createMcpSession,
     scoreTool,

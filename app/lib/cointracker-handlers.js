@@ -70,7 +70,16 @@ async function callback({ params, cookieValue, origin }, fetchImpl = fetch) {
         return back('cointracker-error=invalid_state');
     }
     const code = params.get('code');
-    if (!code) return back('cointracker-error=access_denied');
+    if (!code) {
+        // Pass CoinTracker's own reason (e.g. an unknown audience) through.
+        const reason = [params.get('error'), params.get('error_description')]
+            .filter(Boolean)
+            .join(': ')
+            .slice(0, 200);
+        return back(
+            `cointracker-error=${encodeURIComponent(reason || 'access_denied')}`,
+        );
+    }
     try {
         const tokens = await ct.exchangeCode(
             {
@@ -106,6 +115,7 @@ function errorResult(err) {
                     err.code === 'unauthorized'
                         ? 'cointracker_revoked'
                         : err.code,
+                ...(err.diagnostic ? { diagnostic: err.diagnostic } : {}),
                 ...token,
             },
         };
