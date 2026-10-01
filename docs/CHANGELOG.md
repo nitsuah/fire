@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 2026-10 — CoinTracker wallet sync (#139)
 
 #### Fixed (follow-up)
+- ENS/address crypto refresh failed with `ETH RPC error: Internal error`: the retired `cloudflare-eth.com` gateway was replaced with `ethereum-rpc.publicnode.com` (override with `ETH_RPC_URL`), the same default the ENS resolver uses.
 - **Hosted site: gold/silver and crypto refresh were broken.** `fire-api` imported the `ethers`-based ENS resolver, which Netlify's function bundle doesn't ship, so the whole function crashed (`Cannot find module 'ethers'`), metals included. It now resolves ENS with the dependency-free resolver in `crypto-balance.js`. Crypto account ⟳ Refresh works on the hosted site through a new stateless `POST /api/accounts/refresh-crypto`. The hosted metal refresh no longer throws on an undefined variable, and both refreshes now save the new value in browser-only mode.
 - The first live connect logged in, but CoinTracker's MCP server rejected the token. The authorize request now asks Auth0 for an MCP-audience token (`audience`, configurable with `COINTRACKER_AUDIENCE`). A 401 now shows the rejected token's shape (format, `aud`, `scope`) in the card, and CoinTracker's own login errors are passed through instead of a generic `access_denied`.
 

@@ -1,7 +1,10 @@
 'use strict';
 
-// Public Ethereum JSON-RPC (no key required)
-const ETH_RPC = 'https://cloudflare-eth.com';
+// Public Ethereum JSON-RPC (no key required). cloudflare-eth.com was retired
+// and answers "Internal error"; same default as ens-resolver.js, and the same
+// ETH_RPC_URL override.
+const ETH_RPC =
+    process.env.ETH_RPC_URL || 'https://ethereum-rpc.publicnode.com';
 // ENS resolution via free public API
 const ENS_API = 'https://ensdata.net';
 
@@ -175,7 +178,7 @@ async function resolveCryptoValue(identifier, quantity) {
         ethBalance,
         price: ethPrice,
         ticker: 'ETH',
-        source: 'cloudflare-eth-rpc + yahoo-finance',
+        source: 'ethereum-rpc + yahoo-finance',
     };
 }
 
