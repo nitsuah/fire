@@ -105,6 +105,8 @@ describe('hosted fire API — account refreshes', () => {
 
     it('rejects a missing identifier and a ticker without quantity', async () => {
         expect((await handler(post({}))).status).toBe(400);
+        expect((await handler(post(null))).status).toBe(400);
+        expect((await handler(post([]))).status).toBe(400);
         const res = await handler(post({ identifier: 'BTC' }));
         expect(res.status).toBe(400);
         expect((await res.json()).error).toMatch(/Quantity is required/);

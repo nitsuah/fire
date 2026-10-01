@@ -98,6 +98,9 @@ async function handleRefreshCrypto(req) {
     } catch {
         return json(400, { error: 'Body must be JSON.' });
     }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return json(400, { error: 'Body must be a JSON object.' });
+    }
     const identifier =
         typeof body.identifier === 'string' ? body.identifier.trim() : '';
     if (!identifier) {
