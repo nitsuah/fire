@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · **Tasks** · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-09-30
+updated: 2026-10-01
 
 ---
 
@@ -31,6 +31,8 @@ These items came from the current browser/production pass. **P0** items are corr
   - Scope: split Plaid from app/routes/sync.js, extract transport-agnostic Plaid operations, expose the required Netlify Functions/rewrites, preserve encrypted browser/local-first token handling, and keep Express behavior unchanged.
   - Acceptance Criteria: Link, public-token exchange, account/position refresh, and transaction sync all work on lifefire.netlify.app; each hosted function has unit coverage; browser smoke coverage exercises the hosted routes; no /api/sync/plaid/* request can fall through to an HTML Netlify 404.
   - Progress 2026-09-30 (PR #146): `netlify/functions/plaid.mjs` serves all `/api/sync/plaid/*` routes, with unit coverage and the toml routing test; status is verified on the deploy preview. Remaining: a live Link → sync run on lifefire.netlify.app (set `PLAID_HOSTED_ACCESS_KEY` if `PLAID_ENV` isn't sandbox) and browser smoke coverage.
+  - Rule going forward (from the PR #111 follow-up, merged here on 2026-10-01): any new `/api/*` route the SPA calls needs a Netlify Function, or a documented browser-only fallback, in the same PR.
+  - `docs/integrations.md` already documents the hosted function (`netlify.toml` rewrite, browser-held AES-256-GCM token, `PLAID_HOSTED_ACCESS_KEY`). The privacy-policy update from the same follow-up still needs checking.
 
 - [ ] **Split app/routes/sync.js (942 LOC): separate eBay and Plaid routes, extract the transactions handler (F-20260916-05)**
   - Priority: P1. The route grew with the eBay/Plaid work and should be decomposed before another integration lands.
@@ -105,11 +107,6 @@ for shipped capabilities. Its follow-up items are below._
 
 ### Follow-ups from PR #111 — Sep 2026
 
-- [ ] Serve Plaid on the Netlify deploy (lifefire.netlify.app)
-  - Priority: P1. Plaid Link, positions, accounts and transactions (`/api/sync/plaid/*`) only exist in Express, so on the static Netlify deploy every call returns 404, even though the Plaid env vars are set there.
-  - Approach: follow eBay's pattern from PR #130: v2 Netlify Functions plus `netlify.toml` rewrites, with logic shared with Express via a transport-agnostic module. Plaid access tokens go back to the browser encrypted with `SYNC_MASTER_KEY` instead of being stored server-side, and status and the toggle are computed client-side in browser-only mode.
-  - Acceptance Criteria: Link → exchange → accounts/positions/transactions works on the live site; unit tests for each Function; privacy policy and `docs/integrations.md` updated.
-  - Rule going forward: any new `/api/*` route the SPA calls needs a Netlify Function (or a documented browser-only fallback) in the same PR.
 - [ ] Stop exposing browser helpers as classic-script globals (`app/lib/fetch-utils.js` `fetchJson`, and the rest of `app/lib/**`)
   - Priority: P3 (maintainability) — deferred from PR #111 review (CodeRabbit, `fetch-utils.js` thread).
   - Context: the SPA loads ~40 plain `<script>` files that share one global scope, so any helper is a cross-file global by design. Fixing just `fetchJson` would mean converting every consumer to `import`; doing it properly means moving the frontend to ES modules with a bundler (or native `type="module"`) as one migration.
