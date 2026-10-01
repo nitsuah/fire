@@ -59,7 +59,7 @@ function renderEnsLookupResult(data) {
 
     resultEl.innerHTML = `
         <div class="ens-lookup-total">
-            <span>${escHtml(data.name)} <span class="text-muted" style="font-size:11px;">(${escHtml(data.address)})</span></span>
+            <span>${escHtml(data.name)} <span class="text-muted csp-text-11">(${escHtml(data.address)})</span></span>
             <span class="val">${formatCurrency(data.totalUsdValue || 0)}</span>
         </div>
         ${chainRows}

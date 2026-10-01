@@ -121,9 +121,15 @@ function renderCompactFireBar(progressPercent) {
     fill.innerHTML = segments
         .map(
             (s) =>
-                `<span class="cfb-seg" style="width:${s.pct.toFixed(2)}%;background:${s.color};"></span>`,
+                `<span class="cfb-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(2)}" data-csp-color="${escHtml(s.color)}"></span>`,
         )
         .join('');
+    fill.querySelectorAll('[data-csp-width]').forEach((node) => {
+        node.style.width = `${node.dataset.cspWidth}%`;
+    });
+    fill.querySelectorAll('[data-csp-color]').forEach((node) => {
+        node.style.backgroundColor = node.dataset.cspColor;
+    });
     pct.textContent = `${progressPercent.toFixed(1)}%`;
     const bar = document.getElementById('compact-fire-bar');
     if (bar) {
@@ -142,7 +148,7 @@ function buildCompactBarTooltipHtml() {
     const rows = segments
         .map(
             (s) =>
-                `<div class="at-row"><span class="at-dot" style="background:${s.color};"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+                `<div class="at-row"><span class="at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
@@ -250,9 +256,16 @@ function renderAllocMiniBarsBanner() {
     el.innerHTML = `<div class="alloc-bar-track">${segments
         .map(
             (s) =>
-                `<div class="alloc-bar-seg" style="width:${s.pct.toFixed(1)}%;background:${s.color};" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`,
+                `<div class="alloc-bar-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(1)}" data-csp-color="${escHtml(s.color)}" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`,
         )
         .join('')}</div>`;
+
+    el.querySelectorAll('[data-csp-width]').forEach((node) => {
+        node.style.width = `${node.dataset.cspWidth}%`;
+    });
+    el.querySelectorAll('[data-csp-color]').forEach((node) => {
+        node.style.backgroundColor = node.dataset.cspColor;
+    });
 
     const track = el.querySelector('.alloc-bar-track');
     const tip = document.getElementById('alloc-tooltip');
@@ -261,13 +274,16 @@ function renderAllocMiniBarsBanner() {
     const tooltipRows = segments
         .map(
             (s) =>
-                `<div class="at-row"><span class="at-dot" style="background:${s.color};"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+                `<div class="at-row"><span class="at-dot at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Total NW</span><span class="at-val">${formatCurrency(total)}</span></div>`;
 
     track.addEventListener('mouseenter', () => {
         tip.innerHTML = tooltipRows + totalRow;
+        tip.querySelectorAll('[data-csp-color]').forEach((node) => {
+            node.style.backgroundColor = node.dataset.cspColor;
+        });
         tip.style.display = 'block';
     });
     track.addEventListener('mouseleave', () => {
@@ -666,9 +682,9 @@ function renderDiversificationSuggestions(
 
     if (activeTips.length === 0 && dismissed.length === 0) {
         block.innerHTML = `<div class="divs-empty">
-            <svg viewBox="0 0 24 24" style="width:32px;height:32px;margin-bottom:8px;opacity:0.5;"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-            <div style="font-weight:500;">All balanced! 🎉</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Your portfolio diversification looks good.</div>
+            <svg viewBox="0 0 24 24" class="csp-icon-32-muted"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            <div class="csp-font-500">All balanced! 🎉</div>
+            <div class="csp-text-12 csp-muted csp-mt-4">Your portfolio diversification looks good.</div>
         </div>`;
         return;
     }
@@ -676,7 +692,7 @@ function renderDiversificationSuggestions(
     let html = '<div class="divs-bar">';
     html += '<div class="divs-bar-title">💡 Portfolio Insights</div>';
     if (dismissed.length > 0) {
-        html += `<button class="divs-clear-dismissed" onclick="clearAllDismissedTips()">Restore dismissed (${dismissed.length})</button>`;
+        html += `<button class="divs-clear-dismissed" data-csp-click-action="clearAllDismissedTips">Restore dismissed (${dismissed.length})</button>`;
     }
     html += '</div>';
 
@@ -693,8 +709,8 @@ function renderDiversificationSuggestions(
                 <div class="divs-tile-header">
                     <span class="divs-tile-icon">${tip.icon}</span>
                     <span class="divs-tile-title">${tip.title}</span>
-                    <button class="divs-tile-dismiss" onclick="dismissTip('${tip.id}')" aria-label="Dismiss">
-                        <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    <button class="divs-tile-dismiss" data-csp-click-action="dismissTip" data-csp-click-value="${escHtml(tip.id)}" aria-label="Dismiss">
+                        <svg class="csp-icon-16" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                     </button>
                 </div>
                 <div class="divs-tile-message">${msg}</div>
@@ -707,6 +723,12 @@ function renderDiversificationSuggestions(
     html += '</div>';
 
     block.innerHTML = html;
+    block.querySelectorAll('[data-csp-width]').forEach((el) => {
+        el.style.width = `${el.dataset.cspWidth}%`;
+    });
+    block.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.backgroundColor = el.dataset.cspColor;
+    });
 }
 
 // Income Sources / Monthly Expenses collapse toggle (mobile only — see

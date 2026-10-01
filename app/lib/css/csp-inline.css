@@ -1,0 +1,71 @@
+/* CSP-safe replacements for legacy static inline styles in index.html. */
+.csp-i-001{display:none;}
+.csp-i-002{width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:5px;}
+.csp-i-003{font-size:11px;}
+.csp-i-004{font-size:11px;margin-bottom:8px;}
+.csp-i-005{width:0%}
+.csp-i-006{position: relative;}
+.csp-i-007{font-size:12px;margin-top:-6px;margin-bottom:4px;}
+.csp-i-008{position: relative; height:230px;}
+.csp-i-009{padding:12px 0;}
+.csp-i-010{position: relative; height:200px;}
+.csp-i-011{width:50%}
+.csp-i-012{font-size:13px; margin-bottom:8px;}
+.csp-i-013{font-size:11px; color: var(--text-muted); margin-bottom:8px;}
+.csp-i-014{display:none; margin-top:8px;}
+.csp-i-015{font-size:12px;}
+.csp-i-016{text-transform:uppercase;}
+.csp-i-017{position:relative;height:auto;min-height:80px;}
+.csp-i-018{max-height:220px;}
+.csp-i-019{font-size:11px;color:var(--text-muted);}
+.csp-i-020{display:flex;align-items:center;gap:8px;padding-top:22px;}
+.csp-i-021{width:16px;height:16px;cursor:pointer;}
+.csp-i-022{margin:0;cursor:pointer;}
+.csp-i-023{position: relative; height:380px; width: 100%;}
+.csp-i-024{font-size:12px;margin-top:6px;display:flex;align-items:center;gap:6px;}
+.csp-i-025{width:64px;}
+.csp-i-026{font-size:9px; padding:2px 6px;}
+.csp-i-027{padding: 10px;}
+.csp-i-028{font-size:11px; color: var(--text-muted)}
+.csp-i-029{background:rgba(0,0,0,0.2); border-radius:8px;}
+.csp-i-030{font-size:12px; margin-bottom:8px;}
+.csp-i-031{font-size:11px; margin-left:16px; color:var(--text-muted);}
+.csp-i-032{font-size:12px; margin-top:8px;}
+.csp-i-033{color:var(--color-danger);}
+.csp-i-034{background:var(--color-danger-bg); border-color:var(--color-danger); color:var(--color-danger);}
+.csp-i-035{background:var(--color-warning-bg); border-color:var(--color-warning); color:var(--color-warning);}
+.csp-i-036{width:18px;height:18px;display:inline-block;vertical-align:middle;margin-right:8px;}
+
+/* Runtime markup utilities; dynamic values are applied through individual
+   CSSStyleDeclaration properties in JavaScript, which CSP permits. */
+.csp-text-10{font-size:10px}
+.csp-text-11{font-size:11px}
+.csp-text-12{font-size:12px}
+.csp-text-13{font-size:13px}
+.csp-font-600{font-weight:600}
+.csp-block{display:block}
+.csp-mt-2{margin-top:2px}
+.csp-ml-6{margin-left:6px}
+.csp-pad-12-0{padding:12px 0}
+.csp-border-top{border-top:1px solid rgba(255,255,255,0.2)}
+.csp-width-70{width:70px}
+.csp-width-80{width:80px}
+.csp-width-90{width:90px}
+.csp-width-110{width:110px}
+.csp-width-120{width:120px}
+.csp-vin-input{font-size:10px;margin-top:2px;text-transform:uppercase}
+.csp-pos-desc{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.csp-pre-wrap{white-space:pre-wrap}
+.csp-icon-16{width:16px;height:16px}
+.csp-notif-label{text-transform:uppercase}
+.csp-notif-label.notif-label-urgent{color:var(--color-danger)}
+.csp-notif-label.notif-label-warning{color:var(--color-warning)}
+
+.csp-icon-32-muted{width:32px;height:32px;margin-bottom:8px;opacity:.5}
+.csp-font-500{font-weight:500}
+.csp-muted{color:var(--text-muted)}
+.csp-mt-4{margin-top:4px}
+
+.csp-width-100{width:100px}
+.csp-display-none{display:none}
+.csp-ml-8{margin-left:8px}

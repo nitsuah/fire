@@ -22,6 +22,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js" integrity="sha384-3N9GHhCtN3CQef6tNfqgZlv7sQLYIkcChN+uaTZ7xVdzKYp/SjBNPxa92+hM7EAY" crossorigin="anonymous"></script>
     <!-- Marked.js (markdown renderer for privacy policy) -- unminified build used: jsdelivr's own .min.js for this package is generated on-the-fly per its own docs and isn't SRI-safe -->
     <script src="https://cdn.jsdelivr.net/npm/marked@18.0.11/lib/marked.umd.js" integrity="sha384-N2BlPYJH0HRuJRIZOGNTL/ymqHb++FCViUqW4rdB5/7fH+KvFTqyCvPPQ8X4nElj" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="lib/css/csp-inline.css">
     <link rel="stylesheet" href="lib/css/base.css">
     <link rel="stylesheet" href="lib/css/layout.css">
     <link rel="stylesheet" href="lib/css/components.css">
@@ -36,7 +37,7 @@
             <div class="brand">
                 <span class="brand-icon">🔥</span>
                 <span class="brand-name">fire</span>
-                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="false">
+                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" data-csp-click-action="toggleSidebarCollapse" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="false">
                     <svg class="nav-toggle-chevron" viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
                     <svg class="nav-toggle-hamburger" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
                 </button>
@@ -80,9 +81,9 @@
                 <button class="backup-btn import-btn" id="btn-backup-import-trigger">
                     <span>Import JSON Backup</span>
                 </button>
-                <input type="file" id="backup-file-input" style="display:none;" accept=".json">
+                <input type="file" id="backup-file-input" class="csp-i-001" accept=".json">
                 <button class="backup-btn privacy-btn" id="btn-nav-privacy">
-                    <svg class="nav-icon" viewBox="0 0 24 24" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:5px;"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l6 2.67V11c0 3.97-2.7 7.7-6 8.93C8.7 18.7 6 14.97 6 11V7.67L12 5z"/></svg>
+                    <svg class="nav-icon csp-i-002" viewBox="0 0 24 24" ><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l6 2.67V11c0 3.97-2.7 7.7-6 8.93C8.7 18.7 6 14.97 6 11V7.67L12 5z"/></svg>
                     <span>Privacy &amp; Terms</span>
                 </button>
             </div>
@@ -90,7 +91,7 @@
 
         <!-- Mobile nav-drawer backdrop — click to close; only shown (and only
              does anything) below the 768px breakpoint, see layout.css -->
-        <div class="nav-drawer-backdrop" id="nav-drawer-backdrop" onclick="closeNavDrawer()"></div>
+        <div class="nav-drawer-backdrop" id="nav-drawer-backdrop" data-csp-click-action="closeNavDrawer"></div>
 
         <!-- Main Content Area -->
         <main class="main-content">
@@ -115,21 +116,21 @@
                     <span class="metric-label">
                         <span class="metric-label-text">FIRE Progress</span>
                         <span class="notif-bell-wrap">
-                            <button class="notif-bell-btn" id="notif-bell-btn" onclick="toggleNotifDropdown()" title="Alerts & notifications" aria-label="Alerts & notifications" aria-haspopup="true" aria-expanded="false">
-                                🔔<span class="notif-bell-badge" id="notif-bell-badge" style="display:none;">0</span>
+                            <button class="notif-bell-btn" id="notif-bell-btn" data-csp-click-action="toggleNotifDropdown" title="Alerts & notifications" aria-label="Alerts & notifications" aria-haspopup="true" aria-expanded="false">
+                                🔔<span class="notif-bell-badge csp-i-001" id="notif-bell-badge" >0</span>
                             </button>
-                            <div class="notif-dropdown" id="notif-dropdown" style="display:none;">
+                            <div class="notif-dropdown csp-i-001" id="notif-dropdown" >
                                 <div class="notif-dropdown-header">
                                     <span>Alerts &amp; Notifications</span>
-                                    <button class="action-btn" id="notif-enable-btn" onclick="requestNotificationPermission()" style="font-size:11px;">Enable</button>
+                                    <button class="action-btn csp-i-003" id="notif-enable-btn" data-csp-click-action="requestNotificationPermission" >Enable</button>
                                 </div>
-                                <p class="text-muted" id="notif-status-text" style="font-size:11px;margin-bottom:8px;">Enable browser notifications to receive FIRE milestone and CD maturity alerts.</p>
+                                <p class="text-muted csp-i-004" id="notif-status-text" >Enable browser notifications to receive FIRE milestone and CD maturity alerts.</p>
                                 <div id="notif-alerts-list" class="notif-dropdown-list"></div>
                             </div>
                         </span>
                     </span>
                     <div class="fire-prog-wrap">
-                        <div class="fire-prog-bar" id="banner-fire-bar" style="width:0%">
+                        <div class="fire-prog-bar csp-i-005" id="banner-fire-bar" >
                             <span class="fire-prog-pct" id="banner-progress">0.0%</span>
                         </div>
                     </div>
@@ -148,7 +149,7 @@
                     </div>
                 </div>
             </header>
-            <div id="alloc-tooltip" class="alloc-tooltip" style="display:none;"></div>
+            <div id="alloc-tooltip" class="alloc-tooltip csp-i-001"></div>
 
             <div class="scroll-container">
                 <!-- TAB: Dashboard -->
@@ -163,15 +164,15 @@
                                     <h2 class="card-title">Retirement Growth Path</h2>
                                     <button type="button" class="period-btn" id="growth-expand-btn" aria-pressed="false" title="Expand to full width (wide screens)" aria-label="Expand chart to full width">⤢</button>
                                     <div class="period-btns" id="dash-period-btns">
-                                        <button class="period-btn" onclick="setDashProjWindow('1m')">1M</button>
-                                        <button class="period-btn" onclick="setDashProjWindow('1y')">1Y</button>
-                                        <button class="period-btn" onclick="setDashProjWindow('5y')">5Y</button>
-                                        <button class="period-btn" onclick="setDashProjWindow('10y')">10Y</button>
-                                        <button class="period-btn" onclick="setDashProjWindow('15y')">15Y</button>
-                                        <button class="period-btn active" onclick="setDashProjWindow('all')">All</button>
+                                        <button class="period-btn" data-csp-click-action="setDashProjWindow" data-csp-click-value="1m">1M</button>
+                                        <button class="period-btn" data-csp-click-action="setDashProjWindow" data-csp-click-value="1y">1Y</button>
+                                        <button class="period-btn" data-csp-click-action="setDashProjWindow" data-csp-click-value="5y">5Y</button>
+                                        <button class="period-btn" data-csp-click-action="setDashProjWindow" data-csp-click-value="10y">10Y</button>
+                                        <button class="period-btn" data-csp-click-action="setDashProjWindow" data-csp-click-value="15y">15Y</button>
+                                        <button class="period-btn active" data-csp-click-action="setDashProjWindow" data-csp-click-value="all">All</button>
                                     </div>
                                 </div>
-                                <div class="chart-container dash-growth-chart" style="position: relative;">
+                                <div class="chart-container dash-growth-chart csp-i-006">
                                     <canvas id="chart-dashboard-projections"></canvas>
                                 </div>
                             </div>
@@ -181,19 +182,19 @@
                                 <div class="card-title-row">
                                     <h2 class="card-title">Top Investment Positions</h2>
                                     <span class="price-asof" id="positions-price-asof" hidden></span>
-                                    <button class="collapse-all-btn" onclick="collapseAllGroups()">Collapse All</button>
+                                    <button class="collapse-all-btn" data-csp-click-action="collapseAllGroups">Collapse All</button>
                                 </div>
                                 <div class="table-container">
                                     <table class="data-table" id="table-dashboard-positions">
                                         <thead>
                                             <tr>
-                                                <th class="sortable-th" data-sort="symbol" onclick="setTableSort('symbol')">Symbol</th>
-                                                <th class="sortable-th pos-col-desc" data-sort="desc" onclick="setTableSort('desc')">Description</th>
-                                                <th class="sortable-th text-right pos-col-qty" data-sort="qty" onclick="setTableSort('qty')">Quantity</th>
-                                                <th class="sortable-th text-right pos-col-price" data-sort="price" onclick="setTableSort('price')">Last Price</th>
-                                                <th class="sortable-th text-right pos-col-cost" data-sort="cost" onclick="setTableSort('cost')">Cost Basis</th>
-                                                <th class="sortable-th text-right" data-sort="value" onclick="setTableSort('value')">Current Value</th>
-                                                <th class="sortable-th text-right sort-desc" data-sort="pnl" onclick="setTableSort('pnl')">Total PnL</th>
+                                                <th class="sortable-th" data-sort="symbol" data-csp-click-action="setTableSort" data-csp-click-value="symbol">Symbol</th>
+                                                <th class="sortable-th pos-col-desc" data-sort="desc" data-csp-click-action="setTableSort" data-csp-click-value="desc">Description</th>
+                                                <th class="sortable-th text-right pos-col-qty" data-sort="qty" data-csp-click-action="setTableSort" data-csp-click-value="qty">Quantity</th>
+                                                <th class="sortable-th text-right pos-col-price" data-sort="price" data-csp-click-action="setTableSort" data-csp-click-value="price">Last Price</th>
+                                                <th class="sortable-th text-right pos-col-cost" data-sort="cost" data-csp-click-action="setTableSort" data-csp-click-value="cost">Cost Basis</th>
+                                                <th class="sortable-th text-right" data-sort="value" data-csp-click-action="setTableSort" data-csp-click-value="value">Current Value</th>
+                                                <th class="sortable-th text-right sort-desc" data-sort="pnl" data-csp-click-action="setTableSort" data-csp-click-value="pnl">Total PnL</th>
                                                 <th class="pos-expand-cell"><span class="sr-only">Details</span></th>
                                             </tr>
                                         </thead>
@@ -214,10 +215,10 @@
                             <div class="card glass-card" id="dash-card-alloc">
                                 <div class="card-title-row">
                                     <h2 class="card-title" id="alloc-breadcrumb-title">Asset Allocation</h2>
-                                    <button type="button" class="alloc-back-btn" id="alloc-back-btn" style="display:none;" onclick="allocDrillUp()">← All Assets</button>
+                                    <button type="button" class="alloc-back-btn csp-i-001" id="alloc-back-btn"  data-csp-click-action="allocDrillUp">← All Assets</button>
                                 </div>
-                                <div class="text-muted" id="alloc-breadcrumb-sub" style="font-size:12px;margin-top:-6px;margin-bottom:4px;"></div>
-                                <div class="chart-container" style="position: relative; height:230px;">
+                                <div class="text-muted csp-i-007" id="alloc-breadcrumb-sub" ></div>
+                                <div class="chart-container csp-i-008">
                                     <canvas id="chart-asset-allocation"></canvas>
                                 </div>
                                 <div id="alloc-detail-list"></div>
@@ -227,7 +228,7 @@
                             <div class="card glass-card" id="dash-card-cash">
                                 <h2 class="card-title">Cash &amp; Fixed Income</h2>
                                 <div id="dashboard-liquid-panel">
-                                    <p class="text-muted text-center" style="padding:12px 0;">No cash or CDs recorded yet.</p>
+                                    <p class="text-muted text-center csp-i-009">No cash or CDs recorded yet.</p>
                                 </div>
                             </div>
 
@@ -236,7 +237,7 @@
                             <div class="card glass-card" id="dash-card-other">
                                 <h2 class="card-title">Other Assets</h2>
                                 <div id="dashboard-other-assets-panel">
-                                    <p class="text-muted text-center" style="padding:12px 0;">No other assets recorded yet.</p>
+                                    <p class="text-muted text-center csp-i-009">No other assets recorded yet.</p>
                                 </div>
                             </div>
 
@@ -246,14 +247,14 @@
                                 <div class="card-title-row">
                                     <h2 class="card-title">Net Worth History</h2>
                                     <div class="period-btns" id="nw-history-range">
-                                        <button class="period-btn" data-range="1m" onclick="setNwHistoryRange('1m')">1M</button>
-                                        <button class="period-btn" data-range="3m" onclick="setNwHistoryRange('3m')">3M</button>
-                                        <button class="period-btn" data-range="1y" onclick="setNwHistoryRange('1y')">1Y</button>
-                                        <button class="period-btn active" data-range="all" onclick="setNwHistoryRange('all')">All</button>
+                                        <button class="period-btn" data-range="1m" data-csp-click-action="setNwHistoryRange" data-csp-click-value="1m">1M</button>
+                                        <button class="period-btn" data-range="3m" data-csp-click-action="setNwHistoryRange" data-csp-click-value="3m">3M</button>
+                                        <button class="period-btn" data-range="1y" data-csp-click-action="setNwHistoryRange" data-csp-click-value="1y">1Y</button>
+                                        <button class="period-btn active" data-range="all" data-csp-click-action="setNwHistoryRange" data-csp-click-value="all">All</button>
                                     </div>
                                 </div>
                                 <div class="nw-history-stats" id="nw-history-stats"></div>
-                                <div class="chart-container" style="position: relative; height:200px;">
+                                <div class="chart-container csp-i-010">
                                     <canvas id="chart-nw-history"></canvas>
                                 </div>
                             </div>
@@ -282,8 +283,8 @@
                                 <div class="cf-net-value" id="cf-net-value">$0</div>
                                 <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
                                 <div class="cf-bar-wrap mt-4">
-                                    <div class="cf-bar-income" id="cf-bar-income" style="width:50%">Income</div>
-                                    <div class="cf-bar-expense" id="cf-bar-expense" style="width:50%">Expenses</div>
+                                    <div class="cf-bar-income csp-i-011" id="cf-bar-income" >Income</div>
+                                    <div class="cf-bar-expense csp-i-011" id="cf-bar-expense" >Expenses</div>
                                 </div>
                                 <div class="cf-savings-rate mt-3">
                                     <span class="cf-label">Savings Rate</span>
@@ -376,12 +377,12 @@
                                 <div id="ua-panel-csv" class="ua-panel">
                                 <!-- CSV import (default option of the unified add form) -->
                                 <div>
-                                    <h3 style="font-size:13px; margin-bottom:8px;">📁 Import CSV (local only)</h3>
-                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Drop Fidelity, Chase, Capital One CSV files — read-only, never leaves your browser.</p>
+                                    <h3 class="csp-i-012">📁 Import CSV (local only)</h3>
+                                    <p class="csp-i-013">Drop Fidelity, Chase, Capital One CSV files — read-only, never leaves your browser.</p>
                                     <div class="fo-import-drop" id="csv-drag-zone" role="button" tabindex="0" aria-label="Upload CSV file">
                                         <svg class="fo-upload-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
                                         <span class="fo-import-label">Drop CSV — Fidelity, Chase, Capital One &nbsp;·&nbsp; read-only, local</span>
-                                        <input type="file" id="csv-file-input" style="display:none;" accept=".csv">
+                                        <input type="file" id="csv-file-input" class="csp-i-001" accept=".csv">
                                     </div>
                                     <div class="table-container mt-2">
                                         <table class="data-table fo-import-table" id="table-imported-files">
@@ -401,7 +402,7 @@
                                 </div>
                                 </div>
 
-                                <div id="ua-panel-account" class="ua-panel" style="display:none;">
+                                <div id="ua-panel-account" class="ua-panel csp-i-001">
                                     <form id="form-custom-account">
                                         <div class="fo-form-row">
                                             <div class="form-group">
@@ -430,7 +431,7 @@
                                             </div>
                                         </div>
                                         <!-- Crypto-specific fields (shown when Type = Crypto) -->
-                                        <div id="group-crypto-fields" class="fo-form-row" style="display:none;">
+                                        <div id="group-crypto-fields" class="fo-form-row csp-i-001">
                                             <div class="form-group">
                                                 <label for="acc-identifier">Identifier <span class="text-muted">(ENS, 0x address or ticker — or put it in Name)</span></label>
                                                 <input type="text" id="acc-identifier" placeholder="ETH · BTC · USDC · nitsuah.eth · 0x1a2b…">
@@ -441,7 +442,7 @@
                                             </div>
                                         </div>
                                         <!-- Metal-specific fields (shown when Type = Precious Metal) -->
-                                        <div id="group-metal-fields" class="fo-form-row" style="display:none;">
+                                        <div id="group-metal-fields" class="fo-form-row csp-i-001">
                                             <div class="form-group">
                                                 <label for="acc-metal-type">Metal</label>
                                                 <select id="acc-metal-type">
@@ -457,7 +458,7 @@
                                         <button type="submit" class="primary-btn mt-2">Add Account</button>
                                     </form>
                                     <!-- Wallet tracking: shown only while Type = Cryptocurrency -->
-                                    <div id="group-crypto-wallets" style="display:none;">
+                                    <div id="group-crypto-wallets" class="csp-i-001">
                             <!-- Crypto Wallet Manager -->
                             <div class="mt-4">
                                 <h2 class="card-title">Crypto Wallets</h2>
@@ -477,11 +478,11 @@
                                     <input type="text" id="wallet-label-input" placeholder="Label (e.g. Cold Wallet)" autocomplete="off" aria-label="Wallet label" maxlength="60" required>
                                     <button type="submit" class="action-btn">Add Wallet</button>
                                 </form>
-                                <div id="wallet-manager-error" class="veh-est-error" style="display:none; margin-top:8px;"></div>
+                                <div id="wallet-manager-error" class="veh-est-error csp-i-014"></div>
                                 <div id="wallet-manager-list" class="mt-3">
-                                    <p class="text-muted" style="font-size:12px;">Loading wallets…</p>
+                                    <p class="text-muted csp-i-015">Loading wallets…</p>
                                 </div>
-                                <div class="wallet-total-row" id="wallet-total-row" style="display:none;">
+                                <div class="wallet-total-row csp-i-001" id="wallet-total-row" >
                                     <span class="font-bold">Total Tracked Value</span>
                                     <span class="font-bold" id="wallet-total-value">$0</span>
                                 </div>
@@ -501,7 +502,7 @@
 
                                 </div>
 
-                                <div id="ua-panel-cd" class="ua-panel" style="display:none;">
+                                <div id="ua-panel-cd" class="ua-panel csp-i-001">
                                     <form id="form-cd-entry">
                                         <div class="fo-form-row">
                                             <div class="form-group">
@@ -529,7 +530,7 @@
                                     </form>
                                 </div>
 
-                                <div id="ua-panel-realestate" class="ua-panel" style="display:none;">
+                                <div id="ua-panel-realestate" class="ua-panel csp-i-001">
                                     <form id="form-real-estate">
                                         <div class="fo-form-row">
                                             <div class="form-group">
@@ -575,7 +576,7 @@
                                     </form>
                                 </div>
 
-                                <div id="ua-panel-vehicle" class="ua-panel" style="display:none;">
+                                <div id="ua-panel-vehicle" class="ua-panel csp-i-001">
                                     <form id="form-vehicles">
                                         <div class="fo-form-row">
                                             <div class="form-group">
@@ -605,7 +606,7 @@
                                             </div>
                                             <div class="form-group">
                                                 <label for="veh-vin">VIN <span class="text-muted">(optional)</span></label>
-                                                <input type="text" id="veh-vin" maxlength="17" placeholder="1HGBH41JXMN109186" style="text-transform:uppercase;">
+                                                <input type="text" id="veh-vin" maxlength="17" placeholder="1HGBH41JXMN109186" class="csp-i-016">
                                             </div>
                                             <div class="form-group">
                                                 <label for="veh-mileage">Mileage</label>
@@ -646,13 +647,13 @@
                                 <div class="card-title-row">
                                     <h2 class="card-title">Holdings</h2>
                                     <div class="cd-inline-metrics">
-                                        <span class="text-muted" style="font-size:11px;">CDs:</span>
+                                        <span class="text-muted csp-i-003">CDs:</span>
                                         <span class="text-emerald" id="cd-total-principal">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">principal ·</span>
+                                        <span class="text-muted csp-i-003">principal ·</span>
                                         <span class="text-amber" id="cd-total-interest">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">annual ·</span>
+                                        <span class="text-muted csp-i-003">annual ·</span>
                                         <span class="text-purple" id="cd-weighted-apy">0.00%</span>
-                                        <span class="text-muted" style="font-size:11px;">yield</span>
+                                        <span class="text-muted csp-i-003">yield</span>
                                     </div>
                                 </div>
                                 <div class="table-container">
@@ -680,13 +681,13 @@
                                     <h2 class="card-title">Properties</h2>
                                     <div class="cd-inline-metrics">
                                         <span class="text-emerald" id="re-stat-value">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">value ·</span>
+                                        <span class="text-muted csp-i-003">value ·</span>
                                         <span class="text-purple" id="re-stat-equity">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">equity ·</span>
+                                        <span class="text-muted csp-i-003">equity ·</span>
                                         <span class="text-coral" id="re-stat-mortgage">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">mortgage ·</span>
+                                        <span class="text-muted csp-i-003">mortgage ·</span>
                                         <span id="re-stat-gain">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">gain</span>
+                                        <span class="text-muted csp-i-003">gain</span>
                                     </div>
                                 </div>
                                 <div class="table-container">
@@ -716,13 +717,13 @@
                                     <h2 class="card-title">Vehicles</h2>
                                     <div class="cd-inline-metrics">
                                         <span class="text-emerald" id="veh-stat-value">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">value ·</span>
+                                        <span class="text-muted csp-i-003">value ·</span>
                                         <span class="text-purple" id="veh-stat-equity">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">equity ·</span>
+                                        <span class="text-muted csp-i-003">equity ·</span>
                                         <span class="text-coral" id="veh-stat-loan">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">loan ·</span>
+                                        <span class="text-muted csp-i-003">loan ·</span>
                                         <span id="veh-stat-dep">$0.00</span>
-                                        <span class="text-muted" style="font-size:11px;">depreciation</span>
+                                        <span class="text-muted csp-i-003">depreciation</span>
                                     </div>
                                 </div>
                                 <div class="table-container">
@@ -751,15 +752,15 @@
                             <div class="card glass-card" id="cd-ladder-card">
                                 <div class="card-title-row">
                                     <h2 class="card-title">CD Ladder</h2>
-                                    <span class="text-muted" style="font-size:11px;">green = active · yellow = maturing soon · red = matured</span>
+                                    <span class="text-muted csp-i-003">green = active · yellow = maturing soon · red = matured</span>
                                 </div>
-                                <div style="position:relative;height:auto;min-height:80px;" id="cd-ladder-container">
-                                    <canvas id="chart-cd-ladder" style="max-height:220px;"></canvas>
+                                <div class="csp-i-017" id="cd-ladder-container">
+                                    <canvas id="chart-cd-ladder" class="csp-i-018"></canvas>
                                 </div>
                             </div>
 
                             <!-- Hidden backing tables (used by existing render functions for CD metrics & compat) -->
-                            <div style="display:none;">
+                            <div class="csp-i-001">
                                 <table id="table-custom-accounts"><thead><tr><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody></table>
                                 <table id="table-cd-list"><thead><tr><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody></table>
                             </div>
@@ -887,7 +888,7 @@
                             <p class="card-subtitle">Upload a Chase, Capital One, or generic (Date/Description/Amount) spending CSV — each transaction is auto-categorized and lands in the table below, fully editable.</p>
                             <div class="import-drag-zone" id="spending-drag-zone" tabindex="0" role="button" aria-label="Upload spending CSV">
                                 <p>Drag &amp; drop a spending CSV, or click to browse</p>
-                                <input type="file" id="spending-file-input" accept=".csv" style="display:none;" aria-label="Spending CSV file">
+                                <input type="file" id="spending-file-input" accept=".csv" class="csp-i-001" aria-label="Spending CSV file">
                             </div>
 
                             <div class="table-container mt-3">
@@ -931,7 +932,7 @@
                         <div class="card glass-card span-2">
                             <div class="card-title-row">
                                 <h2 class="card-title">Portfolio Rebalancing</h2>
-                                <button class="action-btn" onclick="renderRebalancingTool()">Recalculate</button>
+                                <button class="action-btn" data-csp-click-action="renderRebalancingTool">Recalculate</button>
                             </div>
                             <p class="card-subtitle">Set target allocations per asset class. We'll compare against your current holdings and suggest trades.</p>
                             <div class="grid-2-col mt-4" id="rebalance-targets">
@@ -956,7 +957,7 @@
                                     <input type="number" id="rebal-target-crypto" class="rebal-target" min="0" max="100" step="1" value="5">
                                 </div>
                             </div>
-                            <div id="rebalance-error" class="text-coral mt-2" style="display:none;"></div>
+                            <div id="rebalance-error" class="text-coral mt-2 csp-i-001"></div>
                             <div class="table-container mt-3">
                                 <table class="data-table" id="table-rebalancing">
                                     <thead>
@@ -980,10 +981,10 @@
                         <div class="card glass-card span-2">
                             <div class="card-title-row">
                                 <h2 class="card-title">Tax-Loss Harvesting Alerts</h2>
-                                <button class="action-btn" onclick="renderTaxHarvestTable()">Refresh</button>
+                                <button class="action-btn" data-csp-click-action="renderTaxHarvestTable">Refresh</button>
                             </div>
                             <p class="card-subtitle">Positions with unrealized losses that may be eligible for tax-loss harvesting before year-end. Selling locks in the loss, which offsets capital gains or reduces ordinary income (up to $3,000/yr). <strong>Not financial advice — consult a tax professional.</strong></p>
-                            <div id="tax-harvest-summary" class="tax-harvest-summary mt-2" style="display:none;"></div>
+                            <div id="tax-harvest-summary" class="tax-harvest-summary mt-2 csp-i-001"></div>
                             <div class="table-container mt-3">
                                 <table class="data-table" id="table-tax-harvest">
                                     <thead>
@@ -1077,12 +1078,12 @@
                                 <button type="button" class="primary-btn mt-3 w-full" id="btn-save-ebay-sale">Log Sale to Side Income History</button>
                             </div>
                             
-                            <p class="text-muted mt-4" style="font-size:11px;">Connect your eBay account from the eBay Sales Sync card in the Side Hustle Hub.</p>
+                            <p class="text-muted mt-4 csp-i-003">Connect your eBay account from the eBay Sales Sync card in the Side Hustle Hub.</p>
                             </div><!-- /calc-panel-ebay -->
 
                             <!-- Etsy Panel -->
-                            <div id="calc-panel-etsy" class="platform-calc-panel" style="display:none;">
-                            <div class="etsy-fee-note mt-2" style="font-size:11px;color:var(--text-muted);">Rates: $0.20 listing · 6.5% transaction · 3%+$0.25 payment processing</div>
+                            <div id="calc-panel-etsy" class="platform-calc-panel csp-i-001">
+                            <div class="etsy-fee-note mt-2 csp-i-019">Rates: $0.20 listing · 6.5% transaction · 3%+$0.25 payment processing</div>
                             <div class="grid-2-col mt-3">
                                 <div class="form-group">
                                     <label for="etsy-price">Item Sale Price ($)</label>
@@ -1117,8 +1118,8 @@
                             </div><!-- /calc-panel-etsy -->
 
                             <!-- FB Marketplace Panel -->
-                            <div id="calc-panel-fb" class="platform-calc-panel" style="display:none;">
-                            <div class="fb-fee-note mt-2" id="fb-fee-note" style="font-size:11px;color:var(--text-muted);">Local pickup — no selling fee</div>
+                            <div id="calc-panel-fb" class="platform-calc-panel csp-i-001">
+                            <div class="fb-fee-note mt-2 csp-i-019" id="fb-fee-note" >Local pickup — no selling fee</div>
                             <div class="grid-2-col mt-3">
                                 <div class="form-group">
                                     <label for="fb-price">Listing Sale Price ($)</label>
@@ -1132,9 +1133,9 @@
                                     <label for="fb-shipping-actual">Actual Shipping Cost ($)</label>
                                     <input type="number" id="fb-shipping-actual" min="0" step="0.01" value="0.00">
                                 </div>
-                                <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:22px;">
-                                    <input type="checkbox" id="fb-is-shipped" style="width:16px;height:16px;cursor:pointer;">
-                                    <label for="fb-is-shipped" style="margin:0;cursor:pointer;">Sold via FB Checkout (5% fee)</label>
+                                <div class="form-group csp-i-020">
+                                    <input type="checkbox" id="fb-is-shipped" class="csp-i-021">
+                                    <label for="fb-is-shipped" class="csp-i-022">Sold via FB Checkout (5% fee)</label>
                                 </div>
                             </div>
                             <div class="calculator-results-box mt-4">
@@ -1177,7 +1178,7 @@
                                 </div>
                             </div>
                             <label class="checkbox-label sidegig-ebay-toggle">
-                                <input type="checkbox" id="setting-ebay-sync-enabled" onchange="toggleEbaySyncSetting()" checked>
+                                <input type="checkbox" id="setting-ebay-sync-enabled" data-csp-change-action="toggleEbaySyncSetting" checked>
                                 <span class="checkmark"></span>
                                 Enable automatic eBay order sync
                             </label>
@@ -1189,7 +1190,7 @@
                                 <h2 class="card-title">Side Gig Ledger (Manual Sales / Income History)</h2>
                                 <div>
                                     <button type="button" class="action-btn" id="btn-ebay-report-upload">⬆ Upload eBay sales report (CSV)</button>
-                                    <input type="file" id="ebay-report-input" accept=".csv" style="display:none;">
+                                    <input type="file" id="ebay-report-input" accept=".csv" class="csp-i-001">
                                 </div>
                             </div>
                             <div class="sg-totals" id="sidegig-totals"></div>
@@ -1345,32 +1346,32 @@
                                     <p class="card-subtitle">Real-terms net worth expansion showing target FIRE milestones.</p>
                                 </div>
                                 <div class="period-btns" id="proj-period-btns">
-                                    <button class="period-btn" onclick="setProjWindow('1m')">1M</button>
-                                    <button class="period-btn" onclick="setProjWindow('1y')">1Y</button>
-                                    <button class="period-btn" onclick="setProjWindow('5y')">5Y</button>
-                                    <button class="period-btn" onclick="setProjWindow('10y')">10Y</button>
-                                    <button class="period-btn" onclick="setProjWindow('15y')">15Y</button>
-                                    <button class="period-btn active" onclick="setProjWindow('all')">All</button>
+                                    <button class="period-btn" data-csp-click-action="setProjWindow" data-csp-click-value="1m">1M</button>
+                                    <button class="period-btn" data-csp-click-action="setProjWindow" data-csp-click-value="1y">1Y</button>
+                                    <button class="period-btn" data-csp-click-action="setProjWindow" data-csp-click-value="5y">5Y</button>
+                                    <button class="period-btn" data-csp-click-action="setProjWindow" data-csp-click-value="10y">10Y</button>
+                                    <button class="period-btn" data-csp-click-action="setProjWindow" data-csp-click-value="15y">15Y</button>
+                                    <button class="period-btn active" data-csp-click-action="setProjWindow" data-csp-click-value="all">All</button>
                                 </div>
                             </div>
                             <!-- Line toggles -->
                             <div class="chart-toggle-row">
-                                <button class="chart-toggle-btn active" data-line="nw" onclick="toggleProjLine('nw')">Net Worth</button>
-                                <button class="chart-toggle-btn active" data-line="fire" onclick="toggleProjLine('fire')">100% FIRE</button>
-                                <button class="chart-toggle-btn active" data-line="lean" onclick="toggleProjLine('lean')">75% Lean</button>
-                                <button class="chart-toggle-btn active" data-line="fat" onclick="toggleProjLine('fat')">125% Fat</button>
-                                <button class="chart-toggle-btn" data-line="coast" onclick="toggleProjLine('coast')">Coast</button>
-                                <button class="chart-toggle-btn" data-line="benchmark" onclick="toggleProjLine('benchmark')">US Median</button>
-                                <button class="chart-toggle-btn" data-line="scenarios" onclick="toggleProjLine('scenarios')">Scenarios</button>
+                                <button class="chart-toggle-btn active" data-line="nw" data-csp-click-action="toggleProjLine" data-csp-click-value="nw">Net Worth</button>
+                                <button class="chart-toggle-btn active" data-line="fire" data-csp-click-action="toggleProjLine" data-csp-click-value="fire">100% FIRE</button>
+                                <button class="chart-toggle-btn active" data-line="lean" data-csp-click-action="toggleProjLine" data-csp-click-value="lean">75% Lean</button>
+                                <button class="chart-toggle-btn active" data-line="fat" data-csp-click-action="toggleProjLine" data-csp-click-value="fat">125% Fat</button>
+                                <button class="chart-toggle-btn" data-line="coast" data-csp-click-action="toggleProjLine" data-csp-click-value="coast">Coast</button>
+                                <button class="chart-toggle-btn" data-line="benchmark" data-csp-click-action="toggleProjLine" data-csp-click-value="benchmark">US Median</button>
+                                <button class="chart-toggle-btn" data-line="scenarios" data-csp-click-action="toggleProjLine" data-csp-click-value="scenarios">Scenarios</button>
                             </div>
                             <!-- Scenario selector (only active when scenarios toggle is on) -->
                             <div class="scenario-row" id="scenario-row">
                                 <span class="scenario-label">Apply scenario:</span>
-                                <button class="scenario-btn" data-offset="-2" onclick="applyScenario(-2)">🐻 Bear (−2%)</button>
-                                <button class="scenario-btn active" data-offset="0" onclick="applyScenario(0)">Base Rate</button>
-                                <button class="scenario-btn" data-offset="2" onclick="applyScenario(2)">🐂 Bull (+2%)</button>
+                                <button class="scenario-btn" data-offset="-2" data-csp-click-action="applyScenario" data-csp-click-value="-2">🐻 Bear (−2%)</button>
+                                <button class="scenario-btn active" data-offset="0" data-csp-click-action="applyScenario" data-csp-click-value="0">Base Rate</button>
+                                <button class="scenario-btn" data-offset="2" data-csp-click-action="applyScenario" data-csp-click-value="2">🐂 Bull (+2%)</button>
                             </div>
-                            <div class="chart-container mt-3" style="position: relative; height:380px; width: 100%;">
+                            <div class="chart-container mt-3 csp-i-023">
                                 <canvas id="chart-networth-projections"></canvas>
                             </div>
                         </div>
@@ -1383,7 +1384,7 @@
                             <div class="card-title-row">
                                 <h2 class="card-title">Milestone Predictions</h2>
                                 <div class="milestone-header-actions">
-                                    <span class="text-muted" style="font-size:11px;">
+                                    <span class="text-muted csp-i-003">
                                         <span class="info-tip" data-tip="Coast FIRE: the amount where, if you stopped saving today, your portfolio would grow on its own to your FIRE number by retirement age.">Coast FIRE</span>
                                         &nbsp;·&nbsp;
                                         <span class="info-tip" data-tip="Lean FIRE: retire on a minimal budget (75% of your target FIRE number). Fat FIRE: retire with 25% extra cushion above your target for lifestyle flexibility.">Lean / Fat FIRE</span>
@@ -1420,31 +1421,31 @@
                             <div class="grid-2-col mt-3">
                                 <div class="form-group">
                                     <label for="default-current-age">Default Current Age</label>
-                                    <input type="number" id="default-current-age" min="18" max="90" value="30" onchange="saveProjectionDefaults()">
+                                    <input type="number" id="default-current-age" min="18" max="90" value="30" data-csp-change-action="saveProjectionDefaults">
                                 </div>
                                 <div class="form-group">
                                     <label for="default-retire-age">Default Retirement Age</label>
-                                    <input type="number" id="default-retire-age" min="30" max="90" value="60" onchange="saveProjectionDefaults()">
+                                    <input type="number" id="default-retire-age" min="30" max="90" value="60" data-csp-change-action="saveProjectionDefaults">
                                 </div>
                                 <div class="form-group">
                                     <label for="default-annual-savings">Default Annual Savings ($)</label>
-                                    <input type="number" id="default-annual-savings" min="0" step="1000" value="20000" onchange="saveProjectionDefaults()">
+                                    <input type="number" id="default-annual-savings" min="0" step="1000" value="20000" data-csp-change-action="saveProjectionDefaults">
                                 </div>
                                 <div class="form-group">
                                     <label for="default-expected-return">Default Expected Return (%)</label>
-                                    <input type="number" id="default-expected-return" min="0" max="20" step="0.5" value="7.0" onchange="saveProjectionDefaults()">
+                                    <input type="number" id="default-expected-return" min="0" max="20" step="0.5" value="7.0" data-csp-change-action="saveProjectionDefaults">
                                 </div>
                                 <div class="form-group">
                                     <label for="default-inflation">Default Inflation Rate (%)</label>
-                                    <input type="number" id="default-inflation" min="0" max="10" step="0.1" value="3.0" onchange="saveProjectionDefaults()">
+                                    <input type="number" id="default-inflation" min="0" max="10" step="0.1" value="3.0" data-csp-change-action="saveProjectionDefaults">
                                 </div>
                                 <div class="form-group">
                                     <label for="default-swr">Default SWR (%)</label>
-                                    <input type="number" id="default-swr" min="1" max="10" step="0.1" value="4.0" onchange="saveProjectionDefaults()">
+                                    <input type="number" id="default-swr" min="1" max="10" step="0.1" value="4.0" data-csp-change-action="saveProjectionDefaults">
                                 </div>
                                 <div class="form-group">
                                     <label for="default-span-years">Default Projection Span (Years)</label>
-                                    <input type="number" id="default-span-years" min="10" max="60" value="30" onchange="saveProjectionDefaults()">
+                                    <input type="number" id="default-span-years" min="10" max="60" value="30" data-csp-change-action="saveProjectionDefaults">
                                 </div>
                             </div>
                         </div>
@@ -1455,53 +1456,53 @@
                             <p class="card-subtitle">Configure browser notifications for FIRE milestones, CD maturities, and market alerts.</p>
                             <div class="form-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="setting-notifications-enabled" onchange="saveNotificationSettings()">
+                                    <input type="checkbox" id="setting-notifications-enabled" data-csp-change-action="saveNotificationSettings">
                                     <span class="checkmark"></span>
                                     Enable browser notifications
                                 </label>
                             </div>
                             <div class="form-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="setting-cd-alerts" onchange="saveNotificationSettings()">
+                                    <input type="checkbox" id="setting-cd-alerts" data-csp-change-action="saveNotificationSettings">
                                     <span class="checkmark"></span>
                                     CD maturity alerts
                                 </label>
                             </div>
                             <div class="form-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="setting-fire-milestones" onchange="saveNotificationSettings()">
+                                    <input type="checkbox" id="setting-fire-milestones" data-csp-change-action="saveNotificationSettings">
                                     <span class="checkmark"></span>
                                     FIRE milestone notifications
                                 </label>
                             </div>
                             <div class="form-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="setting-rebalance-alerts" onchange="saveNotificationSettings()">
+                                    <input type="checkbox" id="setting-rebalance-alerts" data-csp-change-action="saveNotificationSettings">
                                     <span class="checkmark"></span>
                                     Portfolio rebalancing alerts
                                 </label>
                             </div>
                             <div class="form-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="setting-tax-harvest-alerts" onchange="saveNotificationSettings()">
+                                    <input type="checkbox" id="setting-tax-harvest-alerts" data-csp-change-action="saveNotificationSettings">
                                     <span class="checkmark"></span>
                                     Tax-loss harvesting opportunities
                                 </label>
                             </div>
                             <div class="form-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="setting-price-move-alerts" onchange="saveNotificationSettings()">
+                                    <input type="checkbox" id="setting-price-move-alerts" data-csp-change-action="saveNotificationSettings">
                                     <span class="checkmark"></span>
                                     Big daily price moves on my holdings
                                 </label>
-                                <label for="setting-price-move-threshold" style="font-size:12px;margin-top:6px;display:flex;align-items:center;gap:6px;">
+                                <label for="setting-price-move-threshold" class="csp-i-024">
                                     Alert when a holding moves at least
-                                    <input type="number" id="setting-price-move-threshold" min="0.5" max="50" step="0.5" value="5" style="width:64px;" onchange="saveNotificationSettings()">
+                                    <input type="number" id="setting-price-move-threshold" min="0.5" max="50" step="0.5" value="5" class="csp-i-025" data-csp-change-action="saveNotificationSettings">
                                     % in a day
                                 </label>
                             </div>
-                            <button class="action-btn mt-3" onclick="requestNotificationPermission()">Request Permission</button>
-                            <p id="notification-permission-status" class="text-muted mt-2" style="font-size:12px;">Checking permission...</p>
+                            <button class="action-btn mt-3" data-csp-click-action="requestNotificationPermission">Request Permission</button>
+                            <p id="notification-permission-status" class="text-muted mt-2 csp-i-015">Checking permission...</p>
                         </div>
 
                         <!-- Plaid Transaction Sync -->
@@ -1511,25 +1512,25 @@
                                 <!-- Plaid Connector -->
                                 <div class="api-connector-panel mt-3">
                                     <div class="connector-header">
-                                        <h3 style="font-size:13px; margin-bottom:8px;">🔗 Plaid Investments</h3>
-                                        <span class="badge-type badge-cd" style="font-size:9px; padding:2px 6px;">Sandbox</span>
+                                        <h3 class="csp-i-012">🔗 Plaid Investments</h3>
+                                        <span class="badge-type badge-cd csp-i-026">Sandbox</span>
                                     </div>
-                                    <p style="font-size:11px; color: var(--text-muted); margin-bottom:8px;">Connect brokerage accounts to auto-import holdings and balances.</p>
-                                    <button type="button" class="backup-btn import-btn w-full" style="padding: 10px;" id="btn-plaid-link">
+                                    <p class="csp-i-013">Connect brokerage accounts to auto-import holdings and balances.</p>
+                                    <button type="button" class="backup-btn import-btn w-full csp-i-027" id="btn-plaid-link">
                                         <span>Link Investment Account via Plaid</span>
                                     </button>
-                                    <div id="plaid-sync-status" class="text-center mt-2 font-bold" style="font-size:11px; color: var(--text-muted)">Status: Not Linked</div>
+                                    <div id="plaid-sync-status" class="text-center mt-2 font-bold csp-i-028">Status: Not Linked</div>
                                 </div>
 
                             <div class="form-group">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="setting-plaid-sync-enabled" onchange="togglePlaidSyncSetting()">
+                                    <input type="checkbox" id="setting-plaid-sync-enabled" data-csp-change-action="togglePlaidSyncSetting">
                                     <span class="checkmark"></span>
                                     Enable Plaid transaction sync
                                 </label>
                             </div>
-                            <button class="backup-btn mt-2" id="btn-plaid-sync-now" onclick="runPlaidTransactionsSyncNow()">🔄 Sync Now</button>
-                            <p id="settings-plaid-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
+                            <button class="backup-btn mt-2" id="btn-plaid-sync-now" data-csp-click-action="runPlaidTransactionsSyncNow">🔄 Sync Now</button>
+                            <p id="settings-plaid-status" class="text-muted mt-2 csp-i-015">Checking status...</p>
                         </div>
 
                         <!-- Privacy & Terms -->
@@ -1537,17 +1538,17 @@
                             <h2 class="card-title">Privacy & Terms</h2>
                             <p class="card-subtitle">Review how your data is handled and the terms of service.</p>
                             <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" onclick="openPrivacyModal()">📄 Privacy Policy</button>
-                                <button class="backup-btn" onclick="openTermsModal()">📋 Terms of Use</button>
+                                <button class="backup-btn" data-csp-click-action="openPrivacyModal">📄 Privacy Policy</button>
+                                <button class="backup-btn" data-csp-click-action="openTermsModal">📋 Terms of Use</button>
                             </div>
-                            <div class="mt-3 p-3" style="background:rgba(0,0,0,0.2); border-radius:8px;">
-                                <p style="font-size:12px; margin-bottom:8px;"><strong>Data Storage:</strong> All financial data is stored locally in your browser (IndexedDB). No data is sent to external servers except for:</p>
-                                <ul style="font-size:11px; margin-left:16px; color:var(--text-muted);">
+                            <div class="mt-3 p-3 csp-i-029">
+                                <p class="csp-i-030"><strong>Data Storage:</strong> All financial data is stored locally in your browser (IndexedDB). No data is sent to external servers except for:</p>
+                                <ul class="csp-i-031">
                                     <li>eBay API sync (if enabled) - sends only order data to your own eBay account</li>
                                     <li>Plaid Link (if enabled) - tokens exchanged with Plaid for account aggregation</li>
                                     <li>Price quotes - public ticker symbols to Yahoo Finance</li>
                                 </ul>
-                                <p style="font-size:12px; margin-top:8px;"><strong>No Tracking:</strong> No analytics, no cookies, no third-party scripts. Your data never leaves your device unless you explicitly use an API integration.</p>
+                                <p class="csp-i-032"><strong>No Tracking:</strong> No analytics, no cookies, no third-party scripts. Your data never leaves your device unless you explicitly use an API integration.</p>
                             </div>
                         </div>
 
@@ -1556,14 +1557,14 @@
                             <h2 class="card-title">Data Management</h2>
                             <p class="card-subtitle">Export your complete financial profile or import from backup.</p>
                             <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" onclick="exportFullState()">📤 Export Full State (JSON)</button>
-                                <button class="backup-btn" onclick="exportCSV()">📊 Export Holdings (CSV)</button>
-                                <button class="backup-btn import-btn" onclick="document.getElementById('import-file').click()">📥 Import State (JSON)</button>
-                                <button class="backup-btn import-btn" onclick="document.getElementById('import-csv-file').click()">📋 Import Holdings (CSV)</button>
+                                <button class="backup-btn" data-csp-click-action="exportFullState">📤 Export Full State (JSON)</button>
+                                <button class="backup-btn" data-csp-click-action="exportCSV">📊 Export Holdings (CSV)</button>
+                                <button class="backup-btn import-btn" data-csp-target-click="import-file">📥 Import State (JSON)</button>
+                                <button class="backup-btn import-btn" data-csp-target-click="import-csv-file">📋 Import Holdings (CSV)</button>
                             </div>
-                            <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importFullState(event)">
-                            <input type="file" id="import-csv-file" style="display:none;" accept=".csv" onchange="importCSV(event)">
-                            <p class="text-muted mt-2" style="font-size:11px;">Exports include all accounts, CDs, real estate, vehicles, side gig ledger, and projection settings.</p>
+                            <input type="file" id="import-file" class="csp-i-001" accept=".json" data-csp-change-action="importFullState" data-csp-change-value="event">
+                            <input type="file" id="import-csv-file" class="csp-i-001" accept=".csv" data-csp-change-action="importCSV" data-csp-change-value="event">
+                            <p class="text-muted mt-2 csp-i-003">Exports include all accounts, CDs, real estate, vehicles, side gig ledger, and projection settings.</p>
                         </div>
 
                         <!-- Google Drive Backup -->
@@ -1571,22 +1572,22 @@
                             <h2 class="card-title">Google Drive Backup</h2>
                             <p class="card-subtitle">Store an AES-256-GCM encrypted snapshot of your full profile in a private "fire-tracker-backups" folder in your own Google Drive.</p>
                             <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" id="btn-gdrive-connect" onclick="connectGoogleDrive()">🔗 Connect Google Drive</button>
-                                <button class="backup-btn" id="btn-gdrive-backup-now" onclick="runGDriveBackupNow()" disabled>☁️ Backup Now</button>
+                                <button class="backup-btn" id="btn-gdrive-connect" data-csp-click-action="connectGoogleDrive">🔗 Connect Google Drive</button>
+                                <button class="backup-btn" id="btn-gdrive-backup-now" data-csp-click-action="runGDriveBackupNow" disabled>☁️ Backup Now</button>
                             </div>
-                            <p id="gdrive-status" class="text-muted mt-2" style="font-size:12px;">Checking status...</p>
+                            <p id="gdrive-status" class="text-muted mt-2 csp-i-015">Checking status...</p>
                             <div id="gdrive-backup-list" class="mt-2"></div>
                         </div>
 
                         <!-- Advanced / Danger Zone -->
                         <div class="card glass-card settings-card--danger">
-                            <h2 class="card-title" style="color:var(--color-danger);">⚠️ Danger Zone</h2>
+                            <h2 class="card-title csp-i-033">⚠️ Danger Zone</h2>
                             <p class="card-subtitle">Irreversible actions. Use with caution.</p>
                             <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" style="background:var(--color-danger-bg); border-color:var(--color-danger); color:var(--color-danger);" onclick="resetAllData()">🗑️ Reset All Data</button>
-                                <button class="backup-btn" style="background:var(--color-warning-bg); border-color:var(--color-warning); color:var(--color-warning);" onclick="clearSideGigLedger()">🧹 Clear Side Income History</button>
+                                <button class="backup-btn csp-i-034" data-csp-click-action="resetAllData">🗑️ Reset All Data</button>
+                                <button class="backup-btn csp-i-035" data-csp-click-action="clearSideGigLedger">🧹 Clear Side Income History</button>
                             </div>
-                            <p class="text-muted mt-2" style="font-size:11px;">Resetting all data cannot be undone. Consider exporting first.</p>
+                            <p class="text-muted mt-2 csp-i-003">Resetting all data cannot be undone. Consider exporting first.</p>
                         </div>
                     </div>
                 </section>
@@ -1599,7 +1600,7 @@
         <div class="privacy-modal" id="privacy-modal">
             <div class="privacy-modal-header">
                 <span class="privacy-modal-title">
-                    <svg viewBox="0 0 24 24" style="width:18px;height:18px;display:inline-block;vertical-align:middle;margin-right:8px;"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                    <svg viewBox="0 0 24 24" class="csp-i-036"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
                     Privacy Policy &amp; Terms of Use
                 </span>
             </div>
@@ -1660,12 +1661,6 @@
     <!-- Privacy policy modal (after DOM is ready) -->
     <script src="lib/privacy.js"></script>
     <!-- PWA service worker registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(() => {});
-            });
-        }
-    </script>
+    <script src="lib/service-worker-registration.js"></script>
 </body>
 </html>

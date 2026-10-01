@@ -50,12 +50,12 @@ function initAccountsManager() {
                     : 'e.g. Chase Savings';
         }
         if (walletsGroup)
-            walletsGroup.style.display = t === 'Crypto' ? '' : 'none';
+            walletsGroup.classList.toggle('csp-i-001', t !== 'Crypto');
         // APY shown for yield-bearing types
-        apyGroup.style.display =
-            t === 'Savings' || t === 'Cash' || t === 'Crypto'
-                ? 'block'
-                : 'none';
+        apyGroup.classList.toggle(
+            'csp-i-001',
+            !(t === 'Savings' || t === 'Cash' || t === 'Crypto'),
+        );
         const apyLabel = document.getElementById('label-acc-apy');
         if (apyLabel)
             apyLabel.textContent =
@@ -64,11 +64,11 @@ function initAccountsManager() {
                     : 'APY / Yield (%)';
         // Crypto-specific fields
         if (cryptoGroup)
-            cryptoGroup.style.display = t === 'Crypto' ? '' : 'none';
+            cryptoGroup.classList.toggle('csp-i-001', t !== 'Crypto');
         // Metal-specific fields (weight in oz — value still starts as a
         // manually-entered estimate, same as Crypto, refreshed live after
         // creation via the "Refresh" button)
-        if (metalGroup) metalGroup.style.display = t === 'Metal' ? '' : 'none';
+        if (metalGroup) metalGroup.classList.toggle('csp-i-001', t !== 'Metal');
     }
 
     updateTypeFields();

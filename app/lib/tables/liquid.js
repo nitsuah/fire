@@ -72,7 +72,7 @@ function renderDashboardLiquidPanel() {
             html += `<div class="liquid-row">
                 <div class="liquid-name">
                     ${escHtml(cd.bank)} <span class="liquid-type">CD · ${rate.toFixed(2)}%</span>
-                    <span class="liquid-maturity" style="color:${statusColor};">${statusText}</span>
+                    <span class="liquid-maturity csp-dynamic-color" data-csp-color="${escHtml(statusColor)}">${statusText}</span>
                 </div>
                 <div class="liquid-val">
                     ${formatCurrency(principal)}
@@ -83,7 +83,7 @@ function renderDashboardLiquidPanel() {
     }
 
     if (!html) {
-        panel.innerHTML = `<p class="text-muted text-center" style="padding:12px 0;">No cash accounts or CDs recorded yet.</p>`;
+        panel.innerHTML = `<p class="text-muted text-center csp-pad-12-0">No cash accounts or CDs recorded yet.</p>`;
         return;
     }
     // Cash & CD interest only — crypto staking isn't listed in this panel.
@@ -96,6 +96,9 @@ function renderDashboardLiquidPanel() {
         </div>`;
     }
     panel.innerHTML = html;
+    panel.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.color = el.dataset.cspColor;
+    });
 }
 
 // Dashboard "Other Assets" card: everything in net worth that isn't cash,
@@ -188,7 +191,7 @@ function renderDashboardOtherAssetsPanel() {
     }
 
     if (!sections.length) {
-        panel.innerHTML = `<p class="text-muted text-center" style="padding:12px 0;">No other assets recorded yet.</p>`;
+        panel.innerHTML = `<p class="text-muted text-center csp-pad-12-0">No other assets recorded yet.</p>`;
         return;
     }
     const total =
