@@ -83,7 +83,7 @@ function ctPost(action, extra = {}) {
             ctWrite(CT_TOKEN_KEY, null);
             const d = data.diagnostic;
             const detail = d
-                ? ` (token: ${d.format}${d.aud ? `, aud ${[].concat(d.aud).join(' ')}` : ''}${d.scope ? `, scope ${d.scope}` : ''})`
+                ? ` (token: ${d.format}${d.aud ? `, aud ${[].concat(d.aud).join(' ')}` : ''}${d.scope ? `, scope ${d.scope}` : ''}${d.permissions ? `, permissions [${d.permissions.join(' ')}]` : d.format === 'jwt' ? ', no permissions claim' : ''})`
                 : '';
             throw new Error(
                 (data.error || 'CoinTracker connection expired. Reconnect.') +

@@ -267,6 +267,11 @@ function describeToken(token) {
             aud: claims.aud ?? null,
             scope: claims.scope ?? claims.scp ?? null,
             iss: claims.iss ?? null,
+            // Auth0 RBAC: present-but-empty means the user lacks the API
+            // permission; absent means RBAC isn't what dropped the scope.
+            permissions: Array.isArray(claims.permissions)
+                ? claims.permissions
+                : null,
         };
     } catch {
         return { format: 'unparseable jwt' };

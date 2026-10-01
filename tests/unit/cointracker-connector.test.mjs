@@ -602,6 +602,7 @@ describe('audience + 401 diagnostics', () => {
             aud: ['a', 'b'],
             scope: 'mcp:read',
             iss: null,
+            permissions: null,
         });
         expect(JSON.stringify(d)).not.toContain('secret-user');
         expect(ct.describeToken('a.b.c.d.e').format).toMatch(/^jwe/);
