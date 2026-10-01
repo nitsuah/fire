@@ -1,4 +1,4 @@
-# chaos-22s — storyboard
+# chaos-24s — storyboard
 
 **What it is:** fire's new 🌪️ Chaos mode and customizable layout. Chaos sprinkles realistic, seeded life events onto the retirement projection; the layout lets you collapse, reorder and pin any card to the Dashboard.
 **For:** FIRE planners whose spreadsheet assumes a perfectly smooth line.

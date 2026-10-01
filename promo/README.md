@@ -39,7 +39,7 @@ Workflow: change something, then check it with `--stills` at the times that matt
 ## Spots
 
 - **`brag-22s`**: the launch spot (landing-page hero, `site/assets/fire-tracker.mp4`).
-- **`chaos-22s`**: 🌪️ Chaos mode and the customizable layout (`site/assets/chaos.mp4`). Callout positions come from the real chart (`chaos.json`, written by `capture.js` with `CHAOS_SEED`), and slots are set in `spot.json` → `chaos.pops`.
+- **`chaos-24s`**: 🌪️ Chaos mode and the customizable layout (`site/assets/chaos.mp4`). Callout positions come from the real chart (`chaos.json`, written by `capture.js` with `CHAOS_SEED`), and slots are set in `spot.json` → `chaos.pops`.
 
 ## New spots
 

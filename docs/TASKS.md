@@ -68,7 +68,7 @@ These items came from the current browser/production pass. **P0** items are corr
 - [x] **"SKILL" section: FIRE advice + how to use the app, ready to add as a Claude skill**
   - Shipped: `skills/fire-coach/` (SKILL.md, financial playbook, app guide) and `skills/README.md` install steps.
 - [x] **Update the GitHub page for Chaos mode and missing feature details**
-  - Shipped: landing page Chaos + "Make it yours" sections with the `chaos-22s` video, the skill in the Claude section, the Plaid footnote updated; README/FEATURES updated.
+  - Shipped: landing page Chaos + "Make it yours" sections with the `chaos-24s` video, the skill in the Claude section, the Plaid footnote updated; README/FEATURES updated.
 
 ### P1 — GitHub README / promo parity
 

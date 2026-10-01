@@ -299,6 +299,23 @@ test.describe('Customizable layout', () => {
         expect(s2.width).toBeGreaterThan(b2.width - 4);
     });
 
+    test.describe('at phone width', () => {
+        test.use({ viewport: { width: 390, height: 844 } });
+
+        test('every section collapses to a single column', async ({ page }) => {
+            const [g, a, c] = await Promise.all(
+                [
+                    '#dash-card-growth',
+                    '#dash-card-alloc',
+                    '#dash-card-cash',
+                ].map((sel) => page.locator(sel).boundingBox()),
+            );
+            expect(Math.abs(g.x - a.x)).toBeLessThan(2);
+            expect(a.y).toBeGreaterThan(g.y + g.height - 1);
+            expect(c.y).toBeGreaterThan(a.y + a.height - 1);
+        });
+    });
+
     test('pin a card from another tab to the Dashboard, then send it back', async ({
         page,
     }) => {

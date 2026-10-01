@@ -11,7 +11,7 @@ from scipy.signal import butter, sosfilt, fftconvolve
 
 SPOT = json.load(open(sys.argv[1]))
 OUT = sys.argv[2]
-HOOK, CHAOS, PICK = SPOT['hook'], SPOT['chaos'], SPOT['pick']
+HOOK, CHAOS, PICK, MIT = SPOT['hook'], SPOT['chaos'], SPOT['pick'], SPOT['mitigate']
 SR = 44100
 DUR = float(SPOT['duration'])
 N = int(SR * DUR)
@@ -116,7 +116,7 @@ def kick():
     t = np.arange(n) / SR
     f = 45 + 75 * np.exp(-t * 28)
     return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 11) + 0.15 * lp(rng.standard_normal(n), 1800) * np.exp(-t * 60)
-END = 18.5
+END = 21.0
 kicks = [CLICK + i * BEAT for i in range(int((END - CLICK) / BEAT))] + [END + i * 1.0 for i in range(3)]
 for kt in kicks:
     place(music, kick(), kt, db(-9))
@@ -155,7 +155,7 @@ def whoosh(length=0.6):
     w = np.linspace(0, 1, n)
     nz = rng.standard_normal(n)
     return (bp(nz, 300, 1200) * (1 - w) + bp(nz, 1500, 5000) * w) * np.sin(np.pi * w) ** 2
-for tc in (3.5, 8.5, 12.0, 15.5, 18.5):
+for tc in [sc[1] for sc in SPOT['scenes'][1:]]:
     place(sfx, whoosh(0.55), tc - 0.4, db(-25))
 
 def click(m):
@@ -193,21 +193,29 @@ for i in range(12):
 place(sfx, bell(hz(57), 1.2), 10.5, db(-24))
 
 # Chips wipe + dice roll
-place(sfx, whoosh(0.9), 12.8, db(-31))
+place(sfx, whoosh(0.9), 12.3, db(-31))
 for i in range(7):
     nn = int(0.025 * SR)
-    place(sfx, bp(rng.standard_normal(nn), 1200, 4500) * np.exp(-np.arange(nn) / SR * 160), 14.0 + i * 0.08 + 0.01 * i * i, db(-27))
-place(sfx, pluck(hz(76), 0.35, 2), 14.62, db(-22))
+    place(sfx, bp(rng.standard_normal(nn), 1200, 4500) * np.exp(-np.arange(nn) / SR * 160), 13.5 + i * 0.08 + 0.01 * i * i, db(-27))
+place(sfx, pluck(hz(76), 0.35, 2), 14.12, db(-22))
+
+# Mitigate: checkbox tick, then the cost strikes through and the smaller
+# number lands on a soft rising third (relief, not a hit).
+place(sfx, click(76), MIT['click'], db(-20))
+nst = int(0.25 * SR)
+place(sfx, bp(rng.standard_normal(nst), 900, 3500) * np.linspace(1, 0, nst) ** 2, MIT['after'], db(-30))
+place(sfx, pluck(hz(72), 0.5, 2), MIT['after'] + 0.15, db(-22))
+place(sfx, pluck(hz(76), 0.7, 2), MIT['after'] + 0.27, db(-22))
 
 # Picker pop + Add click
-place(sfx, pluck(hz(81), 0.3, 2), 16.25, db(-24))
+place(sfx, pluck(hz(81), 0.3, 2), 18.75, db(-24))
 place(sfx, click(72), PICK['click'], db(-20))
 place(sfx, pluck(hz(84), 0.5, 2), PICK['click'] + 0.08, db(-25))
 
 # Outro: logo impact + URL chime
-place(sfx, impact(45), 18.55, db(-16))
-place(sfx, pluck(hz(76), 0.6, 2), 19.6, db(-23))
-place(sfx, pluck(hz(81), 0.8, 2), 19.67, db(-23))
+place(sfx, impact(45), 21.05, db(-16))
+place(sfx, pluck(hz(76), 0.6, 2), 22.1, db(-23))
+place(sfx, pluck(hz(81), 0.8, 2), 22.17, db(-23))
 
 # --- Shared room + bus ---
 def reverb(x, secs=1.8, seed=1):
