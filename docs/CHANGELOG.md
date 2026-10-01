@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10 — Chaos mode, customizable layout, fire-coach skill
+
+#### Added
+- **🌪️ Chaos mode:** a toggle next to Bear/Bull on Projections and on the Dashboard growth chart rolls seeded, realistic life events onto the projection. There are 30 events in 8 categories, each with a life-average probability, an age window, a lifetime cap, a repeat gap and 2–3 predefined outcomes. The app shows ▲/▼ category-colored markers, a dashed "Without chaos" line, event details in the chart tooltip, an event-chip timeline that follows the 1Y–All window, and 🎲 reroll. Milestones and the depletion age follow the chaos path. The toggle and seed are saved in localStorage (`app/lib/chaos-events.js`, 17 unit tests).
+- **Customizable layout:** clicking a card title collapses it on every tab. ✎ Customize adds pointer drag (mouse and touch) and ↑/↓ reorder, and Dashboard cards can move between columns. ＋ Add widget pins any card from another tab to the Dashboard and leaves a "Move back here" placeholder; ✕ removes Dashboard cards and ↺ Reset restores a tab. Saved in localStorage (`app/lib/layout-manager.js`).
+- **fire-coach Claude skill** (`skills/fire-coach/`): `SKILL.md` maps questions to MCP tools, with a FIRE financial playbook and an app guide as references. `skills/README.md` covers installation.
+- **Landing page:** new Chaos mode and "Make it yours" sections, the `chaos-22s` demo video, and the skill in the Claude section. The nav adds "Chaos", and the Plaid footnote reflects the Netlify Functions from #146.
+- **Promo:** `promo/chaos-22s` spot. `capture.js` now also shoots the chaos chart, tooltip, phone and Customize/picker views, using shared price mocks and chaos seed 60.
+- 7 Playwright tests for chaos and layout (`tests/e2e-ui/chaos-and-layout.spec.js`).
+
+#### Changed
+- Card titles are focusable and show a collapse chevron; they keep their heading role.
+- After you arrange the Dashboard by hand, wide screens (≥1400px) keep the two columns instead of the fixed three-column grid.
+- Service worker cache is bumped to `fire-tracker-v4` and precaches the two new scripts.
+
 ### 2026-09 — Drive backup, privacy and security doc accuracy (PR #149)
 
 #### Fixed

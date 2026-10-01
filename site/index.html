@@ -25,7 +25,8 @@
     <a class="mark" href="#top" aria-label="fire home"><span class="mark-fire" aria-hidden="true">🔥</span><span class="brandname">fire</span></a>
     <nav aria-label="Primary">
       <a href="#features">Features</a>
-      <a href="#mcp">MCP</a>
+      <a href="#chaos">Chaos</a>
+      <a href="#mcp">Claude</a>
       <a href="#install">Install</a>
       <a class="nav-gh" href="https://github.com/nitsuah/fire" target="_blank" rel="noopener">GitHub</a>
     </nav>
@@ -84,7 +85,7 @@
       <p>Savings, brokerage, Roth, CDs with maturity dates, gold and silver by the troy ounce at live spot, ENS names and 0x wallets across eight registered chains, real estate, and the car. Negative equity counts too.</p>
       <ul class="ticks">
         <li>Fidelity, Chase, Capital One and eBay CSV import, parsed locally</li>
-        <li>Plaid sync for positions and transactions on self-hosted deployments</li>
+        <li>Plaid sync for positions and transactions (self-hosted, and Netlify Functions on the hosted demo)</li>
         <li>NHTSA VIN decode for vehicles</li>
         <li>eBay OAuth order sync and side-gig tax tracking</li>
       </ul>
@@ -111,6 +112,42 @@
     </div>
   </section>
 
+  <section class="feature feature-flip" id="chaos" aria-labelledby="f4">
+    <div class="feature-copy">
+      <p class="kicker">New · Chaos mode</p>
+      <h2 id="f4">Every plan assumes <span class="emph emph-chaos">nothing goes wrong.</span></h2>
+      <p>Hit <strong>🌪️ Chaos</strong> next to Bear and Bull, and fire rolls realistic life events onto your projection: gallbladder surgery, a cat's cancer, a new baby, a promotion, a windfall. ▲ lifts the line, ▼ drops it, and a dashed line keeps the original plan.</p>
+      <ul class="ticks">
+        <li>30 events across 8 categories, each with a few predefined outcomes</li>
+        <li>Timed like real life: age windows and life-average odds</li>
+        <li>Hover or tap any marker to see what it cost</li>
+        <li>Dashboard and Projections, desktop and phone · 🎲 reroll</li>
+      </ul>
+    </div>
+    <div class="chaos-media">
+      <figure class="hero-video chaos-video">
+        <video id="chaos-vid" src="assets/chaos.mp4" poster="assets/chaos-poster.jpg" muted loop playsinline preload="none" aria-label="22-second Chaos mode demo video"></video>
+      </figure>
+    </div>
+  </section>
+
+  <section class="feature" id="customize" aria-labelledby="f5">
+    <div class="feature-copy">
+      <p class="kicker">New · Make it yours</p>
+      <h2 id="f5">Your dashboard, <span class="emph">your way.</span></h2>
+      <p>Click any card title to collapse it. Hit <strong>✎ Customize</strong> on any tab to drag cards around (mouse or finger) or nudge them with ↑ ↓. On the Dashboard, <strong>＋ Add widget</strong> pins any card from another tab, such as CD Ladder, Milestone Predictions or Holdings, and leaves a "move back here" link on its home tab.</p>
+      <ul class="ticks">
+        <li>Works on every tab, desktop and mobile</li>
+        <li>Remove Dashboard cards you don't use; add them back any time</li>
+        <li>Remembered across sessions, like the growth-chart size</li>
+      </ul>
+    </div>
+    <div class="customize-shots">
+      <div class="shot shot-wide"><img src="assets/customize.webp" alt="Dashboard in Customize mode with drag handles and up, down, collapse and remove controls on each card" loading="lazy" /></div>
+      <div class="shot customize-picker"><img src="assets/widget-picker.webp" alt="Add widgets to your Dashboard picker listing cards from the Financial Overview and Expenses tabs" loading="lazy" /></div>
+    </div>
+  </section>
+
   <section class="grid3" aria-label="More features">
     <article class="tile">
       <div class="tile-shot"><img src="assets/scenarios.webp" alt="Scenario comparison table showing FIRE age under savings, bear market and inflation scenarios" loading="lazy" /></div>
@@ -134,6 +171,7 @@
       <p class="kicker">Built for Claude</p>
       <h2 id="mcp-title">Ask Claude about <span class="emph">your money.</span></h2>
       <p>An MCP server ships in the box, and <code>.mcp.json</code> connects it automatically when you open the repo in Claude Code. It exposes 16 tools, all read-only: the smoke test now checks the full registered tool set, while the unit suite also guards against writes.</p>
+      <p>Add the <strong>fire-coach</strong> <a href="https://github.com/nitsuah/fire/tree/main/skills" target="_blank" rel="noopener">Claude skill</a> and Claude also gets a FIRE playbook (the 4% rule, savings rate, order of operations, taxes, sequence risk, what to do when income stops) and a guide to every tab, so it answers with your numbers and tells you which button to press.</p>
       <ul class="tools" aria-label="MCP tools">
         <li>fire_status_summary</li><li>get_net_worth</li><li>get_net_worth_trend</li><li>get_accounts</li>
         <li>get_portfolio</li><li>get_cds</li><li>get_expenses</li><li>get_projection_settings</li>
@@ -186,7 +224,7 @@ docker compose up -d">Copy</button><code><span class="prompt">$</span> git clone
 
 <footer class="foot">
   <span><span aria-hidden="true">🔥</span> fire · MIT licensed · made by <a href="https://github.com/nitsuah" target="_blank" rel="noopener">@nitsuah</a></span>
-  <span class="foot-note">Screenshots show a demo portfolio. Plaid is currently self-hosted; the Netlify browser deployment exposes eBay Functions today, with Plaid Functions still planned. Not financial advice.</span>
+  <span class="foot-note">Screenshots show a demo portfolio. eBay and Plaid run as Netlify Functions on the hosted demo; a live Plaid Link run there is still being verified. Not financial advice.</span>
 </footer>
 
 <script src="main.js" defer></script>

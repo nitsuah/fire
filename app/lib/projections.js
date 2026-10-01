@@ -58,8 +58,72 @@ function sliceProjectionData(data, windowKey) {
         retirementLineIndex:
             data.retirementLineIndex < n ? data.retirementLineIndex : -1,
         cdEvents: data.cdEvents.filter((e) => e.yearIndex < n),
+        noChaosData: data.noChaosData ? data.noChaosData.slice(0, n) : null,
+        chaos: data.chaos
+            ? {
+                  ...data.chaos,
+                  events: window.FireChaos.eventsInWindow(data.chaos.events, n),
+              }
+            : null,
     };
 }
+
+/* ---------------------------------------------------------------------------
+   Chaos mode — random (seeded) life events applied to the net worth path.
+   Shared by the Dashboard and Projections charts; persisted per browser
+   like the growth-chart size (localStorage), so it survives reloads.
+   --------------------------------------------------------------------------- */
+const CHAOS_STORAGE_KEY = 'fire_chaos_mode';
+
+function loadChaosMode() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CHAOS_STORAGE_KEY));
+        if (saved && Number.isInteger(saved.seed) && saved.seed > 0)
+            return { enabled: !!saved.enabled, seed: saved.seed };
+    } catch {
+        /* storage unavailable or corrupt — start fresh */
+    }
+    return { enabled: false, seed: 0 };
+}
+
+var chaosMode = loadChaosMode();
+
+function saveChaosMode() {
+    try {
+        localStorage.setItem(CHAOS_STORAGE_KEY, JSON.stringify(chaosMode));
+    } catch {
+        /* storage unavailable — chaos just won't persist */
+    }
+}
+
+function syncChaosButtons() {
+    document.querySelectorAll('.chaos-btn').forEach((btn) => {
+        btn.classList.toggle('active', chaosMode.enabled);
+        btn.setAttribute('aria-pressed', chaosMode.enabled ? 'true' : 'false');
+    });
+    document.querySelectorAll('.chaos-reroll-btn').forEach((btn) => {
+        btn.hidden = !chaosMode.enabled;
+    });
+}
+
+window.toggleChaos = function () {
+    chaosMode.enabled = !chaosMode.enabled;
+    if (chaosMode.enabled && !chaosMode.seed)
+        chaosMode.seed = window.FireChaos.newSeed();
+    saveChaosMode();
+    syncChaosButtons();
+    renderDashboardProjectionsChart();
+    calculateAndRenderProjections();
+};
+
+window.rerollChaos = function () {
+    chaosMode.seed = window.FireChaos.newSeed();
+    chaosMode.enabled = true;
+    saveChaosMode();
+    syncChaosButtons();
+    renderDashboardProjectionsChart();
+    calculateAndRenderProjections();
+};
 
 function setPeriodBtnActive(containerId, windowKey) {
     const container = document.getElementById(containerId);
@@ -267,6 +331,7 @@ function initProjectionsManager() {
     ];
 
     applyProjectionSettingsToForm();
+    syncChaosButtons();
     renderProjSettingsSummary();
     renderProjSettingsPresets();
 
@@ -479,9 +544,40 @@ function buildProjectionData() {
         })
         .filter(Boolean);
 
+    // Chaos mode: replay the base path with seeded life events. The chaos
+    // path becomes the headline net worth (so milestones/annotations follow
+    // it) and the untouched path is kept for a "without chaos" comparison.
+    let chaos = null;
+    let noChaosData = null;
+    if (chaosMode.enabled && window.FireChaos) {
+        const events = window.FireChaos.generateEvents({
+            seed: chaosMode.seed,
+            currentAge,
+            retireAge,
+            span,
+        });
+        const sim = window.FireChaos.simulate({
+            events,
+            startNW: networth,
+            cashFraction: cashFraction0,
+            realReturn,
+            savings,
+            annualExpenses,
+            currentAge,
+            retireAge,
+            span,
+        });
+        noChaosData = nwData;
+        nwData = sim.nwData;
+        baseDepletionAge = sim.depletionAge;
+        chaos = { events, impacts: sim.impacts, seed: chaosMode.seed };
+    }
+
     return {
         labels,
         nwData,
+        noChaosData,
+        chaos,
         fireLine,
         leanFireLine,
         fatFireLine,

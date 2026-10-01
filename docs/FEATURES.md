@@ -19,6 +19,7 @@
 - **16 Read-Only Tools** — `fire_status_summary`, `get_net_worth`, `get_net_worth_trend`, `get_accounts`, `get_portfolio`, `get_cds`, `get_expenses`, `get_projection_settings`, `get_side_gig_income`, `get_side_gig_tax_summary`, `get_wallets`, `get_concentration_risk`, `get_diversification_score`, `get_swr_sensitivity`, `simulate_rebalance`, `get_emergency_runway`. No stubs: tools with nothing behind them were removed. A test asserts no write tools exist.
 - **Claude Code Integration** — `.mcp.json` at repo root auto-connects the server when Claude Code starts in this directory.
 - **Smoke Test** — `scripts/test-mcp.mjs` runs the full MCP handshake and validates all 16 registered read-only tools in `EXPECTED_TOOLS`.
+- **fire-coach Claude Skill** — `skills/fire-coach/` (SKILL.md + a FIRE financial playbook + an app guide) makes Claude a FIRE coach: it maps questions to the MCP tools, applies the playbook (4% rule, savings rate, order of operations, taxes, sequence risk, income-gap plan) and points to the exact tab/card/button. Install steps in `skills/README.md`.
 
 ## Net Worth Tracking
 
@@ -54,6 +55,7 @@
 - **Chart Line Toggles** — Toggle NW, 75%/100%/125% FIRE goals, Coast FIRE, and US Median benchmark independently.
 - **CD Maturity Markers** — Overlaid on the retirement growth chart to show liquidity events.
 - **Multi-Scenario FIRE Comparison** — Side-by-side comparison of FIRE dates across varying salary bumps, market downturns, and inflation spikes.
+- **🌪️ Chaos Mode** — A toggle next to Bear/Bull (Projections) and on the Dashboard growth chart that rolls seeded, realistic life events onto the net worth path: 30 events in 8 categories (health, pets, family, career, housing, auto, windfalls, legal/money), each with a life-average yearly probability, an age window and 2–3 predefined outcomes (e.g. gallbladder surgery $2.5k / $6k / $14k). One-time hits and long-term cash-flow shifts (a child −$8k to −$16k/yr for 18 years, a promotion's extra savings until retirement). ▲/▼ markers colored by category, a dashed "without chaos" line, tooltip details on hover/tap, an event-chip timeline that follows the 1Y–All window (≥1 event in year one, ≥3 per 5 years), and 🎲 reroll. Seed and toggle persist per browser (`app/lib/chaos-events.js`, unit-tested).
 - **Money Run-Out Detection** — Tracks depletion age year-by-year for base, bull, and bear scenarios when portfolio reaches zero; portfolios that survive the full projection span are flagged accordingly.
 
 ## CD & Fixed Income
@@ -101,6 +103,7 @@
 - **Mobile-Responsive Layout** — Adaptive layout for tablet and phone viewports.
 - **Metric Tooltips** — Inline explanation indicators for SWR, FIRE number, Coast FIRE, etc.
 - **Settings Page** — Projection defaults, notifications, eBay/Plaid connectors and sync toggles, privacy/terms, data management, Google Drive backup and danger zone, with colour-coded groups.
+- **Customizable Layout** — Click any card title to collapse it; ✎ Customize on every tab enables pointer drag (mouse and touch) and ↑/↓ reordering, with Dashboard cards able to move between columns. On the Dashboard, ＋ Add widget pins any card from another tab (its home tab keeps a "Move back here" placeholder) and ✕ removes Dashboard cards; ↺ Reset restores a tab. Persisted per browser in localStorage (`app/lib/layout-manager.js`).
 - **Milestone Preset Selector** — 5 financial profiles (Conservative, Standard, Aggressive, Barista FIRE, Coast FIRE) with dynamic targets based on user's income/net worth.
 
 ## Integrations (UI Ready)
@@ -123,8 +126,8 @@
 
 ## Testing
 
-- **Vitest Suite** — 484 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
-- **Playwright UI Suite** — 50 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
+- **Vitest Suite** — 643 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
+- **Playwright UI Suite** — 61 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
 - **MCP Smoke Test** — `scripts/test-mcp.mjs` exercises the 8 tools in `EXPECTED_TOOLS` end-to-end via the SDK client.
 
 ## Planned

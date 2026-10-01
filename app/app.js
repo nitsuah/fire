@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initHustleAccelerators();
     initGrowthSizeControls();
     initStaleTabResync();
+    initLayoutManager();
 
     // Initial Render
     refreshAllUI();

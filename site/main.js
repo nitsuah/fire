@@ -44,6 +44,21 @@
         if (!vid.muted) tryPlay();
     });
 
+    // Chaos-mode demo: play only while on screen, and never under reduced
+    // motion (the poster and the still below it carry the same content).
+    const chaosVid = document.getElementById('chaos-vid');
+    if (chaosVid && !reduceMotion && 'IntersectionObserver' in window) {
+        new IntersectionObserver(
+            (entries) =>
+                entries.forEach((e) =>
+                    e.isIntersecting
+                        ? chaosVid.play().catch(() => {})
+                        : chaosVid.pause(),
+                ),
+            { threshold: 0.4 },
+        ).observe(chaosVid);
+    }
+
     // Real chart captures for each scenario; preload so the swap is instant.
     const img = document.getElementById('scn-img');
     const labels = {

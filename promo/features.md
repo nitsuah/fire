@@ -28,6 +28,10 @@ Capture assets live in `promo/out/capture/crops/` after a run. Anything marked *
 | 20 | Gold/silver at live spot | "Gold by the ounce, at today's spot." | `hrow-5.png` (Gold Eagles · 2oz) | README · Precious metals | |
 | 21 | Vehicle VIN decode | "Paste a VIN, get the car." | *(needs capture)* vehicle form | README · Vehicle VIN decode | |
 | 22 | Expenses + auto-categorization | "Where the money actually goes." | `tab-expenses.png` | README · CSV Imports (Expenses) | |
+| 23 | 🌪️ Chaos mode (seeded life events on the projection) | "Every retirement plan assumes nothing goes wrong." | `proj-calm.png` → `proj-chaos.png` with a cursor click on Chaos; callouts placed from `chaos.json` | FEATURES · Chaos Mode | chaos-22s, site |
+| 24 | Chaos hover details + net effect | "Hover any marker. See what happened and what it cost." | `proj-tooltip.png` zoom + net effect from `chaos.json` | FEATURES · Chaos Mode | chaos-22s |
+| 25 | Chaos on the phone + event list | "Dashboard. Projections. Your phone." | `phone-dash.png` in a phone frame + `chaos-chips.png` | FEATURES · Chaos Mode | chaos-22s |
+| 26 | Customizable layout + Dashboard widgets | "Make it yours. Collapse, reorder, pin any card." | `dash-edit.png` + `picker.png`, cursor on Add | FEATURES · Customizable Layout | chaos-22s, site |
 | 23 | Live prices over SSE | "Prices update while you watch." | "Live · Today +$…" badge on `dash.png` | README · Yahoo Finance prices | site |
 | 24 | AES-256-GCM encryption at rest | "Encrypted at rest." | Text/stat card | README · SYNC_MASTER_KEY | site |
 | 25 | Encrypted Google Drive backup | "Backed up, still encrypted." | Text | README · Google Drive encrypted backup | site (states the round trip is still a rollout gate) |

@@ -193,3 +193,15 @@ main { padding: 0 var(--gutter); }
     html { scroll-behavior: auto; }
     .btn, .chart-shot img { transition: none; }
 }
+
+/* Chaos mode + layout customization sections */
+.emph-chaos { background: linear-gradient(90deg, #ec4899, #f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.chaos-media { display: grid; gap: 16px; }
+.chaos-video { box-shadow: 0 40px 100px rgba(0,0,0,.6), 0 0 0 1px rgba(236,72,153,.25); }
+.customize-shots img { width: 100%; height: auto; display: block; }
+.customize-shots { position: relative; padding-bottom: 48px; }
+.customize-picker { position: absolute; right: -12px; bottom: 0; width: min(36%, 260px); border-color: rgba(139,92,246,.45); }
+@media (max-width: 860px) {
+    .customize-shots { padding-bottom: 0; display: grid; gap: 16px; }
+    .customize-picker { position: static; width: 70%; justify-self: end; }
+}

@@ -63,6 +63,7 @@ export default [
             'app/lib/fetch-utils.js',
             'app/lib/privacy.js',
             'app/lib/notifications.js',
+            'app/lib/layout-manager.js',
             // Modular components (refactored structure)
             'app/lib/charts/**/*.js',
             'app/lib/managers/**/*.js',

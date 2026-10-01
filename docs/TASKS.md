@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · **Tasks** · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-09-30
+updated: 2026-10-01
 
 ---
 
@@ -58,6 +58,17 @@ These items came from the current browser/production pass. **P0** items are corr
   - Priority: P1.
   - Scope: style `Tag all`, tax-tag selects, and item-cost inputs using the existing CSS tokens/components rather than browser/default white controls.
   - Acceptance Criteria: controls match dark/glass theme in desktop and mobile, retain accessible focus/contrast states, and have Playwright coverage at the Side Hustle Hub viewport sizes.
+
+### Chaos mode, layout customization, Claude skill — Oct 1, 2026
+
+- [x] **Chaos button for random life events on the projection graph**
+  - Shipped: 🌪️ Chaos next to Bear/Bull and on the Dashboard chart; 30 events in 8 categories with life-average odds, age windows and predefined outcome buckets; ▲/▼ markers with hover/tap details on Dashboard and Projections (desktop + mobile); density follows the 1Y/5Y/10Y/All window; seeded with 🎲 reroll.
+- [x] **Rearrange and collapse cards on every tab; Dashboard widgets from other tabs; persisted across sessions**
+  - Shipped: click-to-collapse titles, ✎ Customize (drag + ↑/↓), ＋ Add widget / ✕ remove on the Dashboard, ↺ Reset; saved in localStorage like the growth-chart size.
+- [x] **"SKILL" section: FIRE advice + how to use the app, ready to add as a Claude skill**
+  - Shipped: `skills/fire-coach/` (SKILL.md, financial playbook, app guide) and `skills/README.md` install steps.
+- [x] **Update the GitHub page for Chaos mode and missing feature details**
+  - Shipped: landing page Chaos + "Make it yours" sections with the `chaos-22s` video, the skill in the Claude section, the Plaid footnote updated; README/FEATURES updated.
 
 ### P1 — GitHub README / promo parity
 

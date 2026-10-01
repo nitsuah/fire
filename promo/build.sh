@@ -7,6 +7,7 @@
 #   promo/build.sh brag-22s --audio        # re-synth audio + remux only
 #   promo/build.sh brag-22s --recapture    # re-shoot the app (after UI/seed changes)
 #   promo/build.sh brag-22s --publish      # also copy the web cut into site/assets/
+#   promo/build.sh chaos-22s --publish     # Chaos-mode spot → site/assets/chaos.mp4
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="$(pwd -W 2>/dev/null || pwd)"   # Windows path under Git Bash
@@ -33,7 +34,12 @@ MSYS_NO_PATHCONV=1 docker run --rm \
   fire-promo sh /repo/promo/pipeline.sh "$SPOT" "$MODE" "$TIMES"
 
 if [ "$PUBLISH" = 1 ] && [ "$MODE" != stills ]; then
-  cp "promo/out/$SPOT/$SPOT-web.mp4" site/assets/fire-tracker.mp4
-  cp "promo/out/$SPOT/$SPOT.jpg" site/assets/poster.jpg
-  echo "published → site/assets/fire-tracker.mp4, poster.jpg"
+  case "$SPOT" in
+    brag-22s) VID=fire-tracker.mp4; POS=poster.jpg ;;
+    chaos-22s) VID=chaos.mp4; POS=chaos-poster.jpg ;;
+    *) echo "no publish target for $SPOT"; exit 1 ;;
+  esac
+  cp "promo/out/$SPOT/$SPOT-web.mp4" "site/assets/$VID"
+  cp "promo/out/$SPOT/$SPOT.jpg" "site/assets/$POS"
+  echo "published → site/assets/$VID, $POS"
 fi
