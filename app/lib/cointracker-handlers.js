@@ -106,6 +106,23 @@ async function callback({ params, cookieValue, origin }, fetchImpl = fetch) {
 // already rotated the refresh token, so the browser's old blob is dead.
 function errorResult(err) {
     const token = err.tokens ? { token: ct.sealTokens(err.tokens) } : {};
+    // A valid MCP-audience token whose RBAC permissions are empty: the
+    // CoinTracker account itself has no MCP access (early access, paid).
+    const d = err.diagnostic;
+    if (
+        err.code === 'unauthorized' &&
+        d?.format === 'jwt' &&
+        Array.isArray(d.permissions) &&
+        !d.permissions.length
+    ) {
+        return {
+            status: 401,
+            body: {
+                error: "Your CoinTracker account doesn't have MCP access yet. CoinTracker MCP is in early access for paid plans: ask CoinTracker support to enable it, then connect again.",
+                code: 'cointracker_no_access',
+            },
+        };
+    }
     if (err.status === 401 || err.code === 'cointracker_forbidden') {
         return {
             status: err.status === 401 ? 401 : 403,

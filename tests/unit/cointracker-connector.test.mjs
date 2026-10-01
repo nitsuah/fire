@@ -643,3 +643,32 @@ describe('audience + 401 diagnostics', () => {
         );
     });
 });
+
+describe('account without MCP access', () => {
+    it('explains early access instead of reporting a bad token', async () => {
+        const payload = Buffer.from(
+            JSON.stringify({
+                aud: ct.MCP_URL,
+                scope: 'offline_access',
+                permissions: [],
+            }),
+        ).toString('base64url');
+        const jwt = `h.${payload}.sig`;
+        const impl = vi.fn(async (url) =>
+            String(url) === ct.ENDPOINTS.token
+                ? jsonRes(200, { access_token: jwt, expires_in: 60 })
+                : new Response('', { status: 401 }),
+        );
+        const r = await handlers.sync(
+            {
+                body: {
+                    token: ct.sealTokens({ ...TOKENS, access_token: jwt }),
+                },
+            },
+            impl,
+        );
+        expect(r.status).toBe(401);
+        expect(r.body.code).toBe('cointracker_no_access');
+        expect(r.body.error).toMatch(/early access/);
+    });
+});
