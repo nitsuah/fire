@@ -573,3 +573,102 @@ describe('review hardening', () => {
         expect(ct.normalizeWallets({ total: 1 }).partial).toBe(true);
     });
 });
+
+describe('audience + 401 diagnostics', () => {
+    it('asks Auth0 for an MCP-audience token', () => {
+        const url = new URL(
+            ct.buildAuthorizationUrl({
+                clientId: 'c',
+                redirectUri: 'https://x.test/cb',
+                state: 's',
+                challenge: 'ch',
+            }),
+        );
+        expect(url.searchParams.get('audience')).toBe(ct.AUDIENCE);
+        expect(ct.AUDIENCE).toBe(ct.MCP_URL);
+    });
+
+    it('describes tokens without leaking them', () => {
+        const payload = Buffer.from(
+            JSON.stringify({
+                aud: ['a', 'b'],
+                scope: 'mcp:read',
+                sub: 'secret-user',
+            }),
+        ).toString('base64url');
+        const d = ct.describeToken(`h.${payload}.sig`);
+        expect(d).toEqual({
+            format: 'jwt',
+            aud: ['a', 'b'],
+            scope: 'mcp:read',
+            iss: null,
+            permissions: null,
+        });
+        expect(JSON.stringify(d)).not.toContain('secret-user');
+        expect(ct.describeToken('a.b.c.d.e').format).toMatch(/^jwe/);
+        expect(ct.describeToken('opaque123').format).toBe('opaque');
+    });
+
+    it('returns the token shape when CoinTracker rejects it', async () => {
+        const impl = vi.fn(async (url) =>
+            String(url) === ct.ENDPOINTS.token
+                ? jsonRes(200, { access_token: 'still-opaque', expires_in: 60 })
+                : new Response('', { status: 401 }),
+        );
+        const r = await handlers.sync(
+            { body: { token: ct.sealTokens(TOKENS) } },
+            impl,
+        );
+        expect(r.status).toBe(401);
+        expect(r.body.code).toBe('cointracker_revoked');
+        expect(r.body.diagnostic).toEqual({ format: 'opaque' });
+    });
+
+    it('passes CoinTracker login errors through the fragment', async () => {
+        const cookieValue = ct.sealPending({
+            state: 'abc',
+            verifier: 'v',
+            clientId: 'c',
+            redirectUri: 'r',
+        });
+        const r = await handlers.callback({
+            params: new URLSearchParams(
+                'state=abc&error=access_denied&error_description=Service%20not%20found',
+            ),
+            cookieValue,
+            origin: 'https://x.test',
+        });
+        expect(decodeURIComponent(r.redirect)).toBe(
+            '/#cointracker-error=access_denied: Service not found',
+        );
+    });
+});
+
+describe('account without MCP access', () => {
+    it('explains early access instead of reporting a bad token', async () => {
+        const payload = Buffer.from(
+            JSON.stringify({
+                aud: ct.MCP_URL,
+                scope: 'offline_access',
+                permissions: [],
+            }),
+        ).toString('base64url');
+        const jwt = `h.${payload}.sig`;
+        const impl = vi.fn(async (url) =>
+            String(url) === ct.ENDPOINTS.token
+                ? jsonRes(200, { access_token: jwt, expires_in: 60 })
+                : new Response('', { status: 401 }),
+        );
+        const r = await handlers.sync(
+            {
+                body: {
+                    token: ct.sealTokens({ ...TOKENS, access_token: jwt }),
+                },
+            },
+            impl,
+        );
+        expect(r.status).toBe(401);
+        expect(r.body.code).toBe('cointracker_no_access');
+        expect(r.body.error).toMatch(/early access/);
+    });
+});

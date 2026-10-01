@@ -179,4 +179,4 @@ async function resolveCryptoValue(identifier, quantity) {
     };
 }
 
-module.exports = { detectIdentifierType, resolveCryptoValue };
+module.exports = { detectIdentifierType, resolveCryptoValue, resolveEns };

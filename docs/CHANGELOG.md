@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 2026-10 — CoinTracker wallet sync (#139)
 
+#### Fixed (follow-up)
+- **Hosted site: gold/silver and crypto refresh were broken.** `fire-api` imported the `ethers`-based ENS resolver, which Netlify's function bundle doesn't ship, so the whole function crashed (`Cannot find module 'ethers'`), metals included. It now resolves ENS with the dependency-free resolver in `crypto-balance.js`. Crypto account ⟳ Refresh works on the hosted site through a new stateless `POST /api/accounts/refresh-crypto`. The hosted metal refresh no longer throws on an undefined variable, and both refreshes now save the new value in browser-only mode.
+- The first live connect logged in, but CoinTracker's MCP server rejected the token. The authorize request now asks Auth0 for an MCP-audience token (`audience`, configurable with `COINTRACKER_AUDIENCE`). A 401 now shows the rejected token's shape (format, `aud`, `scope`) in the card, and CoinTracker's own login errors are passed through instead of a generic `access_denied`.
+
 #### Added
 - **CoinTracker connector (optional).** Settings → CoinTracker Wallets connects through OAuth 2.1 + PKCE (dynamic client registration, `mcp:read offline_access`) and reads wallet balances from CoinTracker's read-only MCP server. CoinTracker offers no REST API or personal token. The same `/api/sync/cointracker/*` routes run on Express and as a Netlify Function, and neither stores anything: the token is sealed with `SYNC_MASTER_KEY` and kept in the browser.
 - Each CoinTracker wallet becomes a Crypto account, tagged "CoinTracker" with its sync time and per-asset holdings, so the dashboard shows the multichain total and each wallet's value. Balances refresh automatically on load when they are more than 6 hours old.

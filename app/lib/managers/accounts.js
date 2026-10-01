@@ -270,26 +270,58 @@ window.refreshCryptoAccount = async function (id) {
         b.textContent = 'Refreshing…';
     });
     try {
-        const res = await fetch(
-            `/api/accounts/${encodeURIComponent(id)}/refresh-crypto`,
-            {
-                method: 'POST',
-            },
-        );
-        const data = await res.json();
-        if (!res.ok) {
-            alert(data.error || 'Refresh failed');
-            return;
+        const browserOnly =
+            typeof syncedRevision === 'undefined' || syncedRevision === null;
+        const account = state.customAccounts.find((a) => a.id === id);
+        let fields;
+        if (browserOnly) {
+            // Hosted deploy: no server-side account store, so ask the
+            // stateless resolver for the value and save it here.
+            const { ok, data } = await fetchJson(
+                '/api/accounts/refresh-crypto',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        identifier: account?.identifier,
+                        quantity: account?.quantity,
+                    }),
+                },
+            );
+            if (!ok) {
+                alert(data.error || 'Refresh failed');
+                return;
+            }
+            fields = {
+                value: data.usdValue,
+                valueLastRefreshed: new Date().toISOString(),
+                ...(data.resolvedAddress
+                    ? { resolvedAddress: data.resolvedAddress }
+                    : {}),
+                ...(data.ethBalance != null
+                    ? { balance: data.ethBalance, quantity: data.ethBalance }
+                    : {}),
+            };
+        } else {
+            const { ok, data } = await fetchJson(
+                `/api/accounts/${encodeURIComponent(id)}/refresh-crypto`,
+                { method: 'POST' },
+            );
+            if (!ok) {
+                alert(data.error || 'Refresh failed');
+                return;
+            }
+            const { cryptoResult: _cr, ...accountFields } = data;
+            fields = accountFields;
         }
-
-        const { cryptoResult: _cr, ...accountFields } = data;
         const idx = state.customAccounts.findIndex((a) => a.id === id);
         if (idx !== -1) {
             state.customAccounts[idx] = {
                 ...state.customAccounts[idx],
-                ...data,
+                ...fields,
             };
         }
+        if (browserOnly) await saveState();
         refreshAllUI();
     } catch (err) {
         alert(err.message);
@@ -309,7 +341,9 @@ window.refreshMetalAccount = async function (id) {
     });
     try {
         let data;
-        if (typeof syncedRevision === 'undefined' || syncedRevision === null) {
+        const browserOnly =
+            typeof syncedRevision === 'undefined' || syncedRevision === null;
+        if (browserOnly) {
             const account = state.customAccounts.find((a) => a.id === id);
             if (
                 !account?.metalType ||
@@ -356,9 +390,10 @@ window.refreshMetalAccount = async function (id) {
         if (idx !== -1) {
             state.customAccounts[idx] = {
                 ...state.customAccounts[idx],
-                ...accountFields,
+                ...data,
             };
         }
+        if (browserOnly) await saveState();
         refreshAllUI();
     } catch (err) {
         alert(err.message);

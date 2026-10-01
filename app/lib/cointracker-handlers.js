@@ -70,7 +70,16 @@ async function callback({ params, cookieValue, origin }, fetchImpl = fetch) {
         return back('cointracker-error=invalid_state');
     }
     const code = params.get('code');
-    if (!code) return back('cointracker-error=access_denied');
+    if (!code) {
+        // Pass CoinTracker's own reason (e.g. an unknown audience) through.
+        const reason = [params.get('error'), params.get('error_description')]
+            .filter(Boolean)
+            .join(': ')
+            .slice(0, 200);
+        return back(
+            `cointracker-error=${encodeURIComponent(reason || 'access_denied')}`,
+        );
+    }
     try {
         const tokens = await ct.exchangeCode(
             {
@@ -97,6 +106,23 @@ async function callback({ params, cookieValue, origin }, fetchImpl = fetch) {
 // already rotated the refresh token, so the browser's old blob is dead.
 function errorResult(err) {
     const token = err.tokens ? { token: ct.sealTokens(err.tokens) } : {};
+    // A valid MCP-audience token whose RBAC permissions are empty: the
+    // CoinTracker account itself has no MCP access (early access, paid).
+    const d = err.diagnostic;
+    if (
+        err.code === 'unauthorized' &&
+        d?.format === 'jwt' &&
+        Array.isArray(d.permissions) &&
+        !d.permissions.length
+    ) {
+        return {
+            status: 401,
+            body: {
+                error: "Your CoinTracker account doesn't have MCP access yet. CoinTracker MCP is in early access for paid plans: ask CoinTracker support to enable it, then connect again.",
+                code: 'cointracker_no_access',
+            },
+        };
+    }
     if (err.status === 401 || err.code === 'cointracker_forbidden') {
         return {
             status: err.status === 401 ? 401 : 403,
@@ -106,6 +132,7 @@ function errorResult(err) {
                     err.code === 'unauthorized'
                         ? 'cointracker_revoked'
                         : err.code,
+                ...(err.diagnostic ? { diagnostic: err.diagnostic } : {}),
                 ...token,
             },
         };

@@ -192,6 +192,12 @@ The logic is in `app/lib/cointracker-merge.js`, which is pure and unit-tested:
 
 Direct-chain tracking (Etherscan and the others below) is unchanged and still works without CoinTracker.
 
+### Token audience
+
+The first live connect (2026-10-01) logged in fine, but the MCP server rejected the token (`401 invalid_token`), even after a refresh. Auth0 issues a JWT for an API only when the authorize request names it as `audience`; otherwise it returns an opaque token for `/userinfo`. The connector now sends `audience` (default: the MCP URL) alongside `resource`. If the MCP server still rejects the token, the card shows the token's shape (`jwt`/`opaque`, `aud`, `scope`; never the token itself). If CoinTracker's login rejects the audience, its error is passed through to the card. Use `COINTRACKER_AUDIENCE` to try another value, or `none` to omit it.
+
+Live result (2026-10-01): with `audience`, Auth0 issues a correct MCP-audience JWT, but `permissions: []` and the scope has no `mcp:read`. CoinTracker's Auth0 RBAC grants `mcp:read` only to accounts enrolled in MCP early access. The card now reports this as "Your CoinTracker account doesn't have MCP access yet" (`cointracker_no_access`). Once CoinTracker enables the account, connect again; no code change is needed.
+
 ### Tool selection (provisional)
 
 CoinTracker doesn't publish its MCP tool catalog, so the connector picks the balance tool by name and description. The tool must be about wallets or accounts **and** balances or holdings, take no required arguments, and not be about transactions, tax, gains or history. The output is read from `structuredContent` or JSON text, and normalized defensively (common key spellings for name, address, chain, USD value and holdings). After connecting a real account, use **Inspect CoinTracker tools** in the card. If the connector picks the wrong tool, pin the right one with `COINTRACKER_BALANCE_TOOL`.
@@ -203,6 +209,7 @@ SYNC_MASTER_KEY=              # required: seals the token and the OAuth cookie
 COINTRACKER_CLIENT_ID=        # optional: pre-registered public client; otherwise dynamic registration on each connect
 COINTRACKER_REDIRECT_URI=     # optional: defaults to <request origin>/api/sync/cointracker/callback
 COINTRACKER_BALANCE_TOOL=     # optional: exact MCP tool name to read balances from
+COINTRACKER_AUDIENCE=         # optional: Auth0 audience (default: the MCP URL); `none` omits it
 ```
 
 ---

@@ -78,11 +78,18 @@ function ctPost(action, extra = {}) {
         // card offers Connect instead of failing on every sync.
         if (
             res.status === 401 &&
-            /^cointracker_(revoked|token_invalid)$/.test(data.code || '')
+            /^cointracker_(revoked|token_invalid|no_access)$/.test(
+                data.code || '',
+            )
         ) {
             ctWrite(CT_TOKEN_KEY, null);
+            const d = data.diagnostic;
+            const detail = d
+                ? ` (token: ${d.format}${d.aud ? `, aud ${[].concat(d.aud).join(' ')}` : ''}${d.scope ? `, scope ${d.scope}` : ''}${d.permissions ? `, permissions [${d.permissions.join(' ')}]` : d.format === 'jwt' ? ', no permissions claim' : ''})`
+                : '';
             throw new Error(
-                data.error || 'CoinTracker connection expired. Reconnect.',
+                (data.error || 'CoinTracker connection expired. Reconnect.') +
+                    detail,
             );
         }
         // Saved even on failure: a refresh before the error rotated it.
