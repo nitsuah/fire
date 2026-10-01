@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import handler from '../../netlify/functions/fire-api.mjs';
@@ -35,5 +35,78 @@ describe('hosted fire API', () => {
         expect(toml.slice(plaidRule, fallbackRule)).toContain(
             'to = "/.netlify/functions/plaid/:splat"',
         );
+    });
+});
+
+describe('hosted fire API — account refreshes', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    const post = (body) =>
+        new Request(
+            'https://lifefire.netlify.app/api/accounts/refresh-crypto',
+            {
+                method: 'POST',
+                body: JSON.stringify(body),
+            },
+        );
+
+    it('never imports ethers (it is not in the Netlify bundle and crashed every route)', () => {
+        const src = fs.readFileSync(
+            path.join(process.cwd(), 'netlify/functions/fire-api.mjs'),
+            'utf8',
+        );
+        expect(src).not.toMatch(/from ['"].*ens-resolver/);
+        expect(src).not.toMatch(/['"]ethers['"]/);
+    });
+
+    it('prices a ticker account', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                Response.json({
+                    chart: { result: [{ meta: { regularMarketPrice: 2000 } }] },
+                }),
+            ),
+        );
+        const res = await handler(post({ identifier: 'ETH', quantity: 1.5 }));
+        expect(res.status).toBe(200);
+        expect(await res.json()).toMatchObject({
+            usdValue: 3000,
+            ticker: 'ETH',
+        });
+    });
+
+    it('values an ENS account via the ethers-free resolver', async () => {
+        const addr = '0x' + 'a'.repeat(40);
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) => {
+                const u = String(url);
+                if (u.startsWith('https://ensdata.net/'))
+                    return Response.json({ address: addr });
+                if (u.includes('finance.yahoo.com'))
+                    return Response.json({
+                        chart: {
+                            result: [{ meta: { regularMarketPrice: 2000 } }],
+                        },
+                    });
+                // 0.5 ETH in wei
+                return Response.json({ result: '0x6f05b59d3b20000' });
+            }),
+        );
+        const res = await handler(post({ identifier: 'nitsuah.eth' }));
+        expect(res.status).toBe(200);
+        expect(await res.json()).toMatchObject({
+            usdValue: 1000,
+            resolvedAddress: addr,
+            ethBalance: 0.5,
+        });
+    });
+
+    it('rejects a missing identifier and a ticker without quantity', async () => {
+        expect((await handler(post({}))).status).toBe(400);
+        const res = await handler(post({ identifier: 'BTC' }));
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toMatch(/Quantity is required/);
     });
 });

@@ -4,6 +4,8 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  # Read with fs at runtime by app/lib/web3-prices.js (wallet chain list).
+  included_files = ["config/chains.json"]
 
 # The browser-only deploy serves the eBay routes from Netlify Functions at the
 # same public paths the Express server uses (status 200 = rewrite, query

@@ -2,9 +2,15 @@ import {
     resolveMetalValue,
     METAL_PAYOUT_PCT,
 } from '../../app/lib/metals-prices.js';
-import { isEnsName, resolveEnsAddress } from '../../app/lib/ens-resolver.js';
+// Not ens-resolver.js: it needs `ethers`, which Netlify's function bundle
+// doesn't ship, and a failed import took down every route here (metals
+// included). crypto-balance resolves ENS over HTTPS with no dependencies.
+import cryptoBalance from '../../app/lib/crypto-balance.js';
 import { aggregateEvmWalletValue } from '../../app/lib/ens-wallet-lookup.js';
 import { loadChains, refreshWalletBalance } from '../../app/lib/web3-prices.js';
+
+const { detectIdentifierType, resolveCryptoValue, resolveEns } = cryptoBalance;
+const isEnsName = (name) => detectIdentifierType(name) === 'ens';
 
 function json(statusCode, body) {
     return new Response(JSON.stringify(body), {
@@ -57,7 +63,7 @@ async function handleEns(name) {
     }
 
     try {
-        const address = await resolveEnsAddress(name);
+        const address = await resolveEns(name);
         const evmChains = loadChains().filter((c) => c.addressFormat === 'evm');
         const { chains, totalUsdValue } = await aggregateEvmWalletValue(
             address,
@@ -71,12 +77,45 @@ async function handleEns(name) {
             chains,
         });
     } catch (err) {
-        if (err?.code === 'NOT_FOUND') return json(404, { error: err.message });
+        if (err?.code === 'NOT_FOUND' || err?.status === 404)
+            return json(404, { error: err.message });
         if (err?.code === 'INVALID_NAME')
             return json(400, { error: err.message });
         console.error('[Netlify API] ENS lookup failed:', err);
         return json(502, {
             error: 'ENS lookup failed. Please try again shortly.',
+        });
+    }
+}
+
+// Hosted twin of POST /api/accounts/:id/refresh-crypto. The browser owns
+// the account here, so it sends the identifier/quantity and saves the
+// result itself.
+async function handleRefreshCrypto(req) {
+    let body;
+    try {
+        body = JSON.parse((await req.text()) || '{}');
+    } catch {
+        return json(400, { error: 'Body must be JSON.' });
+    }
+    const identifier =
+        typeof body.identifier === 'string' ? body.identifier.trim() : '';
+    if (!identifier) {
+        return json(400, {
+            error: 'Set a coin ticker, ENS name, or 0x address first.',
+        });
+    }
+    try {
+        return json(200, await resolveCryptoValue(identifier, body.quantity));
+    } catch (err) {
+        const status = err?.status || 502;
+        if (status >= 500)
+            console.error('[Netlify API] Crypto refresh failed:', err);
+        return json(status, {
+            error:
+                status >= 500 && !err?.status
+                    ? 'Crypto price lookup failed. Please try again shortly.'
+                    : err.message,
         });
     }
 }
@@ -89,6 +128,10 @@ export default async function handler(req) {
 
         if (path === '/metals' && method === 'GET') {
             return await handleMetals(url);
+        }
+
+        if (path === '/accounts/refresh-crypto' && method === 'POST') {
+            return await handleRefreshCrypto(req);
         }
 
         const ensMatch = path.match(/^\/wallets\/ens\/([^/]+)$/);
