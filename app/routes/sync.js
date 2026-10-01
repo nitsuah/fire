@@ -8,6 +8,7 @@ const { integrateWebhookData } = require('../lib/webhook-integration');
 const router = express.Router();
 const ebayRouter = require('./ebay');
 const plaidRouter = require('./plaid');
+const coinTrackerRouter = require('./cointracker');
 const SUPPORTED_WEBHOOK_TYPES = [
     'accounts',
     'cds',
@@ -292,5 +293,6 @@ router.post('/webhook/:templateId', async (req, res) => {
 
 router.use(ebayRouter);
 router.use(plaidRouter);
+router.use(coinTrackerRouter);
 
 module.exports = router;

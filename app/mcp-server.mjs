@@ -28,6 +28,7 @@ const {
     scoreDiversification,
 } = require('./lib/aggregates.js');
 const { summarizeNetWorthHistory } = require('./lib/net-worth-history.js');
+const { coinTrackerAddresses } = require('./lib/cointracker-merge.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
 
@@ -246,8 +247,14 @@ function computeNetWorthBreakdown(state) {
         (s, v) => s + Math.max(0, (v.currentValue || 0) - (v.loanBalance || 0)),
         0,
     );
+    // A tracked wallet CoinTracker also reports is already in the Crypto
+    // accounts above; count it once.
+    const covered = coinTrackerAddresses(state.customAccounts);
     const cryptoWallets = (state.wallets || []).reduce(
-        (s, w) => s + (w.lastUsdValue || 0),
+        (s, w) =>
+            covered.has(String(w.address || '').toLowerCase())
+                ? s
+                : s + (w.lastUsdValue || 0),
         0,
     );
     const total =
@@ -658,6 +665,7 @@ function handleTool(name, state, toolArgs = {}) {
             return result || { score: null, unavailableReason: 'no_assets' };
         }
         case 'get_wallets': {
+            const covered = coinTrackerAddresses(state.customAccounts);
             const wallets = (state.wallets || []).map((w) => ({
                 id: w.id,
                 chain: w.chain,
@@ -670,6 +678,9 @@ function handleTool(name, state, toolArgs = {}) {
                 lastBalance: w.lastBalance,
                 lastFetched: w.lastFetched,
                 warning: w.warning || null,
+                coveredByCoinTracker: covered.has(
+                    String(w.address || '').toLowerCase(),
+                ),
             }));
             return {
                 wallets,

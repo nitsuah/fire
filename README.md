@@ -48,6 +48,7 @@
 - **Webhook sync framework** — JSON data-mapped templates for automated data ingestion (full CRUD + live receiver at `POST /api/sync/webhook/:templateId`)
 - **eBay Order Sync** — OAuth 2.0 flow (`GET /api/sync/ebay/authorize` → callback → `POST /api/sync/ebay/sync`) auto-imports completed sales into the side gig ledger; includes the **Marketplace Account Deletion** endpoint eBay requires (`/api/sync/ebay/marketplace-account-deletion`, see [docs/integrations.md](docs/integrations.md))
 - **Plaid integration** — link-token flow, position/account sync, and transaction sync with auto-categorization into Expenses (`POST /api/sync/plaid/*`); manual CSV import is disabled while Plaid sync is active. Connector controls live in Settings
+- **CoinTracker wallets (optional)** — connect CoinTracker (OAuth, read-only MCP) to import all wallets and exchange accounts with current balances. It becomes the source of truth for matching manual crypto entries. See [docs/integrations.md](docs/integrations.md#cointracker-wallet-discovery--balances)
 - **Web3 wallet tracking** — full wallet CRUD (`/api/wallets`) with on-chain balance refresh; supports ETH/EVM, BTC, SOL, BNB, Polygon, Arbitrum, Base, Avalanche
 - **Google Drive encrypted backup** — `POST /api/backup/drive`, `GET /api/backup/drive/list`, `POST /api/backup/drive/restore` (requires `GDRIVE_CLIENT_ID` + `GDRIVE_CLIENT_SECRET` for Google OAuth, and a 64-hex `SYNC_MASTER_KEY`)
 - **Vehicle VIN decode & value refresh** — NHTSA VIN decode (`GET /api/vehicles/vin/:vin`) and value refresh (`POST /api/vehicles/:id/refresh-value`)
@@ -241,7 +242,7 @@ Every tab is a set of **sections**. Each section picks a column layout: full wid
 ## Data & Privacy
 
 - All financial data is stored in `data/db.json` inside the project directory (Docker volume-mounted).
-- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain APIs (wallet balances — Etherscan, BscScan, Blockstream, etc.), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance / Alpha Vantage / Polygon). All are opt-in and BYOK.
+- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain APIs (wallet balances — Etherscan, BscScan, Blockstream, etc.), CoinTracker (read-only wallet balances), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance / Alpha Vantage / Polygon). All are opt-in and BYOK.
 - Optionally encrypt `db.json` at rest with `SYNC_MASTER_KEY` (AES-256-GCM).
 - Export/restore a full JSON backup any time from the dashboard.
 

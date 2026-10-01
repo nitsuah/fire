@@ -16,7 +16,11 @@ function accountTypeBadge(acc) {
         acc.type === 'Metal'
             ? `badge-metal-${acc.metalType === 'silver' ? 'silver' : 'gold'}`
             : (byType[acc.type] ?? 'badge-other');
-    return `<span class="badge-type ${cls}">${escHtml(acc.type)}</span>`;
+    const synced =
+        acc.source === 'cointracker'
+            ? ` <span class="tag-badge" title="Balance from CoinTracker${acc.cointracker?.syncedAt ? `, synced ${escHtml(new Date(acc.cointracker.syncedAt).toLocaleString())}` : ''}">CoinTracker</span>`
+            : '';
+    return `<span class="badge-type ${cls}">${escHtml(acc.type)}</span>${synced}`;
 }
 
 function renderImportedFilesTable() {

@@ -164,6 +164,11 @@ if (!AUTH_DISABLED) {
         if (req.path === '/backup/drive/callback') {
             return next();
         }
+        // Same for CoinTracker's OAuth redirect; the encrypted state/PKCE
+        // cookie is that endpoint's trust boundary.
+        if (req.path === '/sync/cointracker/callback') {
+            return next();
+        }
         // eBay's own servers call this directly (both the GET challenge-
         // response verification and the POST deletion notification) — they
         // can't send our x-api-key. The verification token / endpoint-URL

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10 — CoinTracker wallet sync (#139)
+
+#### Added
+- **CoinTracker connector (optional).** Settings → CoinTracker Wallets connects through OAuth 2.1 + PKCE (dynamic client registration, `mcp:read offline_access`) and reads wallet balances from CoinTracker's read-only MCP server. CoinTracker offers no REST API or personal token. The same `/api/sync/cointracker/*` routes run on Express and as a Netlify Function, and neither stores anything: the token is sealed with `SYNC_MASTER_KEY` and kept in the browser.
+- Each CoinTracker wallet becomes a Crypto account, tagged "CoinTracker" with its sync time and per-asset holdings, so the dashboard shows the multichain total and each wallet's value. Balances refresh automatically on load when they are more than 6 hours old.
+- **Dedupe, with CoinTracker as the source of truth:** a manual crypto account with the same address or ENS is adopted (it keeps its name and APY and takes CoinTracker's value) and is restored on disconnect. Ticker-only or address-less manual entries are listed as possible duplicates. Wallets can be excluded, and partial syncs never remove wallets. The MCP server's net worth no longer double-counts tracked wallets that CoinTracker also reports.
+- "Inspect CoinTracker tools" lists CoinTracker's MCP tools (no portfolio data) and the one used for balances. `COINTRACKER_BALANCE_TOOL` pins it.
+
 ### 2026-10 — Chaos mode, customizable layout, fire-coach skill
 
 #### Added (follow-up)

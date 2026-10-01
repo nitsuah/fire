@@ -4,7 +4,7 @@
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 >
 > **Status:** Reference / current implementation  
-> **Last updated:** 2026-09-26  
+> **Last updated:** 2026-10-01  
 > **See also:** [docs/prod-plan.md](prod-plan.md), [docs/backend-sync-architecture.md](backend-sync-architecture.md)
 
 This document describes every planned external integration — what credentials are needed, what data is fetched, and what setup is required.
@@ -146,6 +146,66 @@ Revenue is item sales plus shipping paid by the buyer; expenses are total
 selling costs plus shipping labels you bought. Rows are keyed by eBay item ID
 plus the report's date range: re-uploading a report is skipped, and a later
 report whose range contains an earlier one replaces those rows.
+
+## CoinTracker (Wallet Discovery & Balances)
+
+**Purpose:** Pull every wallet and exchange account the user already tracks in CoinTracker, with current USD balances, so they don't have to add each address and chain by hand.
+**Status:** Implemented and optional; not yet validated against a live CoinTracker account (see "Tool selection" below).
+**Auth type:** OAuth 2.1 Authorization Code + PKCE, public client, dynamic client registration
+
+### What CoinTracker offers
+
+CoinTracker has **no public REST API and no personal read token**. Its only programmatic surface is the remote MCP server at `https://mcp.cointracker.com/mcp`, which accepts only OAuth bearer tokens. Its metadata (`/.well-known/oauth-protected-resource`) names the Auth0 tenant `https://login.cointracker.com/` and the scopes `mcp:read`/`mcp:write`. The tenant supports dynamic client registration (`/oidc/register`), PKCE `S256`, public clients (`token_endpoint_auth_method: none`), refresh tokens (`offline_access`) and revocation. CoinTracker describes MCP as read-only and, as of 2026-10, in early access for paid plans. A `403` from the MCP server is reported as "CoinTracker MCP may require a paid plan or early access".
+
+The Cloudflare layer in front of CoinTracker rejects the default Node/undici user agent with `403`, so every server-side request sends `User-Agent: fire-tracker/…`. The MCP endpoint has no CORS, so the browser can't call it directly and the server brokers every call.
+
+### Flow (identical on Express and Netlify)
+
+| Path | What it does |
+|---|---|
+| `GET /api/sync/cointracker/authorize` | Registers a public client (or uses `COINTRACKER_CLIENT_ID`), creates the PKCE verifier and `state`, stores them in a 10-minute **encrypted** HttpOnly cookie, and redirects to CoinTracker |
+| `GET /api/sync/cointracker/callback` | Checks `state`, exchanges the code with the verifier, seals `{access, refresh, expiry, client_id}` with `SYNC_MASTER_KEY`, and returns it to the SPA at `/#cointracker-connected=…`. Only the tab that started the connect accepts it |
+| `POST /api/sync/cointracker/sync` | Body `{token}`. Refreshes the token when it has expired (or once after a `401`), calls the MCP balance tool, and returns normalized `wallets`, plus a new `token` if it refreshed |
+| `POST /api/sync/cointracker/inspect` | Body `{token}`. Returns the MCP tool catalog (names, descriptions, argument names; no portfolio data) and which tool is used for balances |
+| `POST /api/sync/cointracker/disconnect` | Body `{token}`. Revokes the refresh token (best effort) |
+
+Express serves these from `app/routes/cointracker.js`, and the Netlify deploy from `netlify/functions/cointracker.mjs`. Both wrap `app/lib/cointracker-handlers.js` and `app/lib/cointracker-connector.js` (OAuth, a minimal Streamable-HTTP MCP client, and the normalizer). **Nothing is stored server-side** in either runtime. The browser keeps the sealed token in `localStorage` (`fire_cointracker_token`, outside `fire_tracker_state`, so JSON backups never carry it). Rotating `SYNC_MASTER_KEY` disconnects every browser.
+
+The callback is exempt from the Express `FIRE_API_KEY` gate, because it is a browser redirect from CoinTracker (like the Drive callback). The encrypted state/PKCE cookie is its trust boundary.
+
+### What's fetched and how it's used
+
+- **Read:** wallets and accounts with name, chain(s), public addresses or ENS, current USD value, and per-asset holdings (symbol, quantity, USD value).
+- **Never read:** transactions, cost basis, P&L, tax lots or reports. That stays in CoinTracker. fire never requests `mcp:write`, private keys or signing.
+- Each wallet becomes one `customAccounts` row: `type: 'Crypto'`, `source: 'cointracker'`, `cointracker: {providerId, kind, chains, addresses, holdings, syncedAt}`. The dashboard's crypto total is the sum of these rows, and each row holds one wallet's value. The account table tags them **CoinTracker**, with the sync time in the tooltip.
+
+### Dedupe (CoinTracker is the source of truth)
+
+The logic is in `app/lib/cointracker-merge.js`, which is pure and unit-tested:
+
+- A manual Crypto account whose identifier (address or ENS, case-insensitive) matches a CoinTracker wallet address is **adopted**. It keeps its id, name and APY, takes CoinTracker's value, and its manual `value`/`identifier`/`quantity` move to `manualSnapshot`. Disconnecting restores it exactly.
+- Manual Crypto rows with no address, or with a ticker that CoinTracker also holds, are listed as **possible duplicates** in the card. They are never changed automatically.
+- A wallet missing from a **partial** sync (nothing recognized, or an empty result) is kept, and so is one CoinTracker still lists but returned without a USD value this time. A wallet is removed only after a complete sync without it.
+- All CoinTracker calls from the browser run one at a time across tabs (Web Locks), and every server request has a 15-second timeout. Auth0 rotates refresh tokens, so two parallel refreshes of the same token would break the connection. A token refreshed before a failure is still returned to the browser.
+- Excluding a wallet in the card, or deleting its row, adds its id to `state.coinTrackerExcluded`, and later syncs skip it.
+- When a wallet in `/api/wallets` has an address that CoinTracker reports, the MCP server's `get_net_worth` doesn't count it a second time, and `get_wallets` flags it `coveredByCoinTracker`.
+
+Direct-chain tracking (Etherscan and the others below) is unchanged and still works without CoinTracker.
+
+### Tool selection (provisional)
+
+CoinTracker doesn't publish its MCP tool catalog, so the connector picks the balance tool by name and description. The tool must be about wallets or accounts **and** balances or holdings, take no required arguments, and not be about transactions, tax, gains or history. The output is read from `structuredContent` or JSON text, and normalized defensively (common key spellings for name, address, chain, USD value and holdings). After connecting a real account, use **Inspect CoinTracker tools** in the card. If the connector picks the wrong tool, pin the right one with `COINTRACKER_BALANCE_TOOL`.
+
+### Env vars
+
+```dotenv
+SYNC_MASTER_KEY=              # required: seals the token and the OAuth cookie
+COINTRACKER_CLIENT_ID=        # optional: pre-registered public client; otherwise dynamic registration on each connect
+COINTRACKER_REDIRECT_URI=     # optional: defaults to <request origin>/api/sync/cointracker/callback
+COINTRACKER_BALANCE_TOOL=     # optional: exact MCP tool name to read balances from
+```
+
+---
 
 ## Etherscan (Ethereum Wallet Balances)
 

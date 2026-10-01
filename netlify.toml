@@ -40,6 +40,13 @@
   status = 200
   force = true
 
+# CoinTracker OAuth + read-only MCP sync (tokens stay sealed in the browser).
+[[redirects]]
+  from = "/api/sync/cointracker/*"
+  to = "/.netlify/functions/cointracker/:splat"
+  status = 200
+  force = true
+
 # All remaining /api/* paths go through a JSON-safe compatibility function.
 # Specific eBay rules above win first; unsupported hosted APIs return JSON
 # instead of Netlify's HTML 404 page, while stateless hosted integrations
