@@ -116,7 +116,7 @@
     <div class="feature-copy">
       <p class="kicker">New · Chaos mode</p>
       <h2 id="f4">Every plan assumes <span class="emph emph-chaos">nothing goes wrong.</span></h2>
-      <p>Hit <strong>🌪️ Chaos</strong> next to Bear and Bull, and fire rolls realistic life events onto your projection: gallbladder surgery, a cat's cancer, a new baby, a promotion, a windfall. ▲ lifts the line, ▼ drops it, and a dashed line keeps the original plan.</p>
+      <p>Turn on <strong>🌪️ Chaos</strong>, next to Bear and Bull, and fire scatters realistic life events across your projection: a gallbladder surgery, a cat's cancer, a new baby, a promotion, a windfall. Green ▲ markers push your net worth up, red ▼ markers pull it down, and a dashed line shows where you'd be if life went to plan.</p>
       <ul class="ticks">
         <li>30 events across 8 categories, each with a few predefined outcomes</li>
         <li>Timed like real life: age windows and life-average odds</li>
@@ -226,6 +226,12 @@ docker compose up -d">Copy</button><code><span class="prompt">$</span> git clone
   <span><span aria-hidden="true">🔥</span> fire · MIT licensed · made by <a href="https://github.com/nitsuah" target="_blank" rel="noopener">@nitsuah</a></span>
   <span class="foot-note">Screenshots show a demo portfolio. eBay and Plaid run as Netlify Functions on the hosted demo; a live Plaid Link run there is still being verified. Not financial advice.</span>
 </footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Enlarged image">
+  <button class="lightbox-close" type="button" aria-label="Close">✕</button>
+  <div class="lightbox-media" id="lightbox-media"></div>
+  <p class="lightbox-caption" id="lightbox-caption"></p>
+</dialog>
 
 <script src="main.js" defer></script>
 </body>

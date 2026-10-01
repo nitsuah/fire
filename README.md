@@ -214,6 +214,7 @@ Every projection is a smooth line; life isn't. **🌪️ Chaos** applies a seede
 
 - Each event has a **life-average yearly probability** and an **age window**: weddings and kids skew young, joint replacements older, and career events stop at retirement. Randomness only picks which event happens, when, and which of its predefined outcomes applies.
 - Density follows the window: at least 1 event in the first year and 3 in every 5 years, about 0.7 a year over a lifetime, with at most 2 in any one year.
+- **How it moves net worth:** one-time costs and gains hit in the year they happen and then compound with the rest of the portfolio. Recurring ones change yearly savings before retirement, or yearly withdrawals after it, for their duration. A job loss costs the lost months of savings plus real spending. Paycheck events (job loss, pay cut, bonus, RSUs) are skipped if Expenses → gross income is under $5k. Milestone Predictions switch to the chaos path and are marked 🌪️.
 - Hover or tap the line for the events nearest that age and their dollar impact. The chips under the chart list every event in the 1Y/5Y/10Y/15Y/All window (the Dashboard folds them under "details").
 - The timeline is seeded, so it doesn't change on reload or when you switch windows; **🎲** rerolls. The toggle and seed are saved in the browser. Engine and tests: [`app/lib/chaos-events.js`](app/lib/chaos-events.js), [`tests/unit/chaos-events.test.mjs`](tests/unit/chaos-events.test.mjs).
 

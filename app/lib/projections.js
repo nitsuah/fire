@@ -550,11 +550,17 @@ function buildProjectionData() {
     let chaos = null;
     let noChaosData = null;
     if (chaosMode.enabled && window.FireChaos) {
+        // Paycheck events (job loss, pay cut, bonus, RSUs) need a paycheck:
+        // skip them when the Expenses tab's gross income is effectively 0.
+        const grossIncome = Number(state.taxGrossIncome);
         const events = window.FireChaos.generateEvents({
             seed: chaosMode.seed,
             currentAge,
             retireAge,
             span,
+            hasEarnedIncome: !(
+                Number.isFinite(grossIncome) && grossIncome < 5000
+            ),
         });
         const sim = window.FireChaos.simulate({
             events,
@@ -563,6 +569,7 @@ function buildProjectionData() {
             realReturn,
             savings,
             annualExpenses,
+            spending: getMonthlyExpensesBase() * 12,
             currentAge,
             retireAge,
             span,

@@ -55,7 +55,7 @@
 - **Chart Line Toggles** — Toggle NW, 75%/100%/125% FIRE goals, Coast FIRE, and US Median benchmark independently.
 - **CD Maturity Markers** — Overlaid on the retirement growth chart to show liquidity events.
 - **Multi-Scenario FIRE Comparison** — Side-by-side comparison of FIRE dates across varying salary bumps, market downturns, and inflation spikes.
-- **🌪️ Chaos Mode** — A toggle next to Bear/Bull (Projections) and on the Dashboard growth chart that rolls seeded, realistic life events onto the net worth path: 30 events in 8 categories (health, pets, family, career, housing, auto, windfalls, legal/money), each with a life-average yearly probability, an age window and 2–3 predefined outcomes (e.g. gallbladder surgery $2.5k / $6k / $14k). One-time hits and long-term cash-flow shifts (a child −$8k to −$16k/yr for 18 years, a promotion's extra savings until retirement). ▲/▼ markers colored by category, a dashed "without chaos" line, tooltip details on hover/tap, an event-chip timeline that follows the 1Y–All window (≥1 event in year one, ≥3 per 5 years), and 🎲 reroll. Seed and toggle persist per browser (`app/lib/chaos-events.js`, unit-tested).
+- **🌪️ Chaos Mode** — A toggle next to Bear/Bull (Projections) and on the Dashboard growth chart that rolls seeded, realistic life events onto the net worth path: 30 events in 8 categories (health, pets, family, career, housing, auto, windfalls, legal/money), each with a life-average yearly probability, an age window and 2–3 predefined outcomes (e.g. gallbladder surgery $2.5k / $6k / $14k). One-time hits and long-term cash-flow shifts (a child −$8k to −$16k/yr for 18 years, a promotion's extra savings until retirement). ▲/▼ markers colored by category, a dashed "without chaos" line, tooltip details on hover/tap, an event-chip timeline that follows the 1Y–All window (≥1 event in year one, ≥3 per 5 years), and 🎲 reroll. Lump sums compound with the portfolio afterwards, recurring flows change savings (or retirement withdrawals) for their duration, job loss costs lost savings plus real spending, and paycheck events are skipped without earned income. Milestone Predictions follow the chaos path (🌪️). Seed and toggle persist per browser (`app/lib/chaos-events.js`, unit-tested, plus a browser test that no-event chaos equals the base projection).
 - **Money Run-Out Detection** — Tracks depletion age year-by-year for base, bull, and bear scenarios when portfolio reaches zero; portfolios that survive the full projection span are flagged accordingly.
 
 ## CD & Fixed Income
@@ -126,8 +126,8 @@
 
 ## Testing
 
-- **Vitest Suite** — 643 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
-- **Playwright UI Suite** — 61 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
+- **Vitest Suite** — 646 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
+- **Playwright UI Suite** — 62 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
 - **MCP Smoke Test** — `scripts/test-mcp.mjs` exercises the 8 tools in `EXPECTED_TOOLS` end-to-end via the SDK client.
 
 ## Planned

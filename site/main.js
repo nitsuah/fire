@@ -82,6 +82,70 @@
         });
     });
 
+    // Lightbox: tap/click any screenshot (or the Chaos video) to see it
+    // full size. Inside, tapping an image toggles fit-to-screen and actual
+    // size; Esc, the ✕ button or the backdrop close it.
+    const box = document.getElementById('lightbox');
+    const media = document.getElementById('lightbox-media');
+    const caption = document.getElementById('lightbox-caption');
+    const open = (el) => {
+        media.innerHTML = '';
+        media.classList.remove('is-actual');
+        let node;
+        if (el.tagName === 'VIDEO') {
+            node = document.createElement('video');
+            node.src = el.currentSrc || el.src;
+            node.poster = el.poster;
+            Object.assign(node, {
+                controls: true,
+                loop: true,
+                muted: true,
+                playsInline: true,
+            });
+            if (!reduceMotion) node.autoplay = true;
+            el.pause();
+        } else {
+            node = document.createElement('img');
+            node.src = el.currentSrc || el.src;
+            node.alt = el.alt;
+            node.addEventListener('click', () =>
+                media.classList.toggle('is-actual'),
+            );
+        }
+        media.appendChild(node);
+        caption.textContent =
+            el.getAttribute('alt') || el.getAttribute('aria-label') || '';
+        box.showModal();
+    };
+    box.addEventListener('click', (e) => {
+        if (e.target === box || e.target.closest('.lightbox-close'))
+            box.close();
+    });
+    box.addEventListener('close', () => {
+        media.innerHTML = '';
+    });
+    document
+        .querySelectorAll(
+            '.shot img, .tile-shot img, .chart-shot img, #chaos-vid',
+        )
+        .forEach((el) => {
+            el.classList.add('zoomable');
+            el.parentElement.classList.add('zoom-wrap');
+            el.setAttribute('tabindex', '0');
+            el.setAttribute('role', 'button');
+            el.setAttribute(
+                'aria-label',
+                `Enlarge: ${el.getAttribute('alt') || el.getAttribute('aria-label') || 'image'}`,
+            );
+            el.addEventListener('click', () => open(el));
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    open(el);
+                }
+            });
+        });
+
     document.querySelectorAll('.copy').forEach((btn) => {
         btn.addEventListener('click', async () => {
             try {

@@ -67,6 +67,12 @@ one tappable summary bar.
     5 years, averaging about 0.7 a year over a lifetime.
   - The timeline is seeded, so it stays the same across reloads and window
     changes. **🎲** rerolls a different life. The toggle is saved per browser.
+  - Net worth effect: one-time amounts land in their year and then compound
+    with the portfolio. Recurring ones change yearly savings, or yearly
+    withdrawals once retired. A job loss costs the lost months of savings
+    plus real spending. With chaos on, Milestone Predictions follow the
+    chaos path (marked 🌪️). Paycheck events are skipped when gross income
+    (Expenses tab) is under $5k.
   - Use it to size the emergency fund and to see how much buffer the plan has.
 - **Milestone Predictions** shows when they reach emergency fund, Coast, Lean,
   FIRE and Fat. **Scenario Comparison** shows how the FIRE age moves with

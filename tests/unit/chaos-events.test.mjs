@@ -102,6 +102,28 @@ describe('generateEvents', () => {
         }
     });
 
+    it('skips paycheck events when there is no earned income', () => {
+        const paycheck = FC.CATALOG.filter((d) => d.needsPaycheck).map(
+            (d) => d.id,
+        );
+        expect(paycheck.sort()).toEqual(
+            ['bonus', 'job-loss', 'pay-cut', 'rsu'].sort(),
+        );
+        let withIncome = 0;
+        for (let seed = 1; seed <= 100; seed++) {
+            const none = FC.generateEvents({
+                seed,
+                ...opts,
+                hasEarnedIncome: false,
+            });
+            none.forEach((ev) => expect(paycheck).not.toContain(ev.defId));
+            withIncome += FC.generateEvents({ seed, ...opts }).filter((ev) =>
+                paycheck.includes(ev.defId),
+            ).length;
+        }
+        expect(withIncome).toBeGreaterThan(0);
+    });
+
     it('returns nothing for a zero span', () => {
         expect(
             FC.generateEvents({
@@ -188,6 +210,27 @@ describe('simulate', () => {
         expect(impacts['t@0'].lump).toBe(-30000); // half of 20k + 40k
         // NW at start of year 1 is 100k*1.05+20k-30k = 95k → −19k
         expect(impacts['t@1'].lump).toBe(-19000);
+    });
+
+    it('income loss uses real spending, not the tax-padded expense total', () => {
+        const { impacts } = FC.simulate({
+            ...base,
+            annualExpenses: 48000, // 40k spending + 8k FIRE tax drag
+            spending: 40000,
+            events: [ev({ incomeMonths: 6 }, 0)],
+        });
+        expect(impacts['t@0'].lump).toBe(-30000); // half of 20k + 40k
+    });
+
+    it('lump sums compound with the portfolio afterwards', () => {
+        const plain = FC.simulate({ ...base, events: [] }).nwData;
+        const { nwData } = FC.simulate({
+            ...base,
+            events: [ev({ cost: 10000 }, 0)],
+        });
+        // Paid at the end of year 0, then grows (well, fails to) at 5%/yr
+        expect(plain[1] - nwData[1]).toBe(10000);
+        expect(plain[3] - nwData[3]).toBe(Math.round(10000 * 1.05 ** 2));
     });
 
     it('a windfall in retirement lands in the portfolio', () => {

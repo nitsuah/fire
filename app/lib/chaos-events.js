@@ -42,6 +42,8 @@
     // rate: life-average chance per year while inside [ageMin, ageMax].
     // max: lifetime cap. gap: minimum years between repeats.
     // working: only happens before the retirement age.
+    // needsPaycheck: only while there is earned income to lose or grow
+    //   (job loss, pay cut, bonus, RSUs); skipped for someone between jobs.
     const CATALOG = [
         // ── Health ──────────────────────────────────────────────────────
         {
@@ -305,6 +307,7 @@
         // ── Career (pre-retirement only) ────────────────────────────────
         {
             id: 'job-loss',
+            needsPaycheck: true,
             icon: '📉',
             label: 'Job loss',
             category: 'career',
@@ -347,6 +350,7 @@
         },
         {
             id: 'bonus',
+            needsPaycheck: true,
             icon: '🎁',
             label: 'Unexpected bonus',
             category: 'career',
@@ -383,6 +387,7 @@
         },
         {
             id: 'pay-cut',
+            needsPaycheck: true,
             icon: '✂️',
             label: 'Pay cut / reduced hours',
             category: 'career',
@@ -402,6 +407,7 @@
         },
         {
             id: 'rsu',
+            needsPaycheck: true,
             icon: '📈',
             label: 'Equity / RSUs pay off',
             category: 'career',
@@ -628,10 +634,11 @@
         return items[items.length - 1];
     }
 
-    function isEligible(def, age, retireAge, yr, history) {
+    function isEligible(def, age, retireAge, yr, history, earning) {
         if (def.ageMin !== undefined && age < def.ageMin) return false;
         if (def.ageMax !== undefined && age > def.ageMax) return false;
         if (def.working && age >= retireAge) return false;
+        if (def.needsPaycheck && !earning) return false;
         const past = history[def.id] || [];
         if (past.length >= (def.max || Infinity)) return false;
         if (past.length && yr - past[past.length - 1] < (def.gap || 1))
@@ -658,7 +665,9 @@
 
     /**
      * Build a deterministic life-event timeline.
-     * @param {{seed:number,currentAge:number,retireAge:number,span:number}} opts
+     * @param {{seed:number,currentAge:number,retireAge:number,span:number,
+     *   hasEarnedIncome?:boolean}} opts  hasEarnedIncome=false drops the
+     *   paycheck-dependent events (job loss, pay cut, bonus, RSUs).
      * @returns {Array} events sorted by (yearIndex, month)
      */
     function generateEvents({
@@ -666,6 +675,7 @@
         currentAge = 30,
         retireAge = 60,
         span = 30,
+        hasEarnedIncome = true,
     }) {
         const rng = makeRng(seed);
         const history = {};
@@ -685,7 +695,17 @@
                 const def = CATALOG[(start + k) % CATALOG.length];
                 const roll = rng();
                 if (perYear[yr].length >= MAX_EVENTS_PER_YEAR) continue;
-                if (!isEligible(def, age, retireAge, yr, history)) continue;
+                if (
+                    !isEligible(
+                        def,
+                        age,
+                        retireAge,
+                        yr,
+                        history,
+                        hasEarnedIncome,
+                    )
+                )
+                    continue;
                 if (roll < def.rate) record(makeEvent(def, yr, age, rng));
             }
         }
@@ -701,7 +721,7 @@
                 const yr = years[Math.floor(rng() * years.length)];
                 const age = currentAge + yr;
                 const pool = CATALOG.filter((d) =>
-                    isEligible(d, age, retireAge, yr, history),
+                    isEligible(d, age, retireAge, yr, history, hasEarnedIncome),
                 );
                 if (!pool.length) continue;
                 record(
@@ -744,11 +764,16 @@
         realReturn,
         savings,
         annualExpenses,
+        spending = annualExpenses,
         currentAge,
         retireAge,
         span,
     }) {
-        const income = Math.max(0, savings) + Math.max(0, annualExpenses);
+        // A month without a paycheck costs that month's savings plus the
+        // living costs now paid from the portfolio: actual spending, not the
+        // tax-padded annualExpenses used for the FIRE number (no paycheck,
+        // no income tax on it).
+        const income = Math.max(0, savings) + Math.max(0, spending);
         const byYear = {};
         (events || []).forEach((ev) => {
             (byYear[ev.yearIndex] = byYear[ev.yearIndex] || []).push(ev);

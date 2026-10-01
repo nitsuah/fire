@@ -1,5 +1,5 @@
 // @ts-check
-/* global dashboardProjectionsChart, projectionsChart */
+/* global dashboardProjectionsChart, projectionsChart, buildProjectionData, state, getAggregateCash, getMonthlyExpensesBase, FireChaos */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -88,6 +88,58 @@ test.describe('Chaos mode', () => {
             dashboardProjectionsChart.data.datasets.map((d) => d.label),
         );
         expect(after).not.toContain('Without chaos');
+    });
+
+    test('chaos changes net worth only through its events', async ({
+        page,
+    }) => {
+        await page.locator('#dash-card-growth .chaos-btn').click();
+        const r = await page.evaluate(() => {
+            const d = buildProjectionData();
+            const s = state.projectionSettings;
+            const args = {
+                startNW: d.networth,
+                cashFraction:
+                    d.networth > 0
+                        ? Math.min(
+                              Math.max(getAggregateCash() / d.networth, 0),
+                              1,
+                          )
+                        : 0,
+                realReturn: d.realReturn,
+                savings: d.savings,
+                annualExpenses: d.annualExpenses,
+                spending: getMonthlyExpensesBase() * 12,
+                currentAge: s.currentAge,
+                retireAge: s.retireAge,
+                span: s.spanYears,
+            };
+            const none = FireChaos.simulate({ ...args, events: [] });
+            const first = d.chaos.events[0];
+            return {
+                // The engine with no events must reproduce the app's own path.
+                sameAsBase:
+                    JSON.stringify(none.nwData) ===
+                    JSON.stringify(d.noChaosData),
+                // Nothing changes before the first event lands.
+                untilFirst:
+                    JSON.stringify(d.nwData.slice(0, first.yearIndex + 1)) ===
+                    JSON.stringify(d.noChaosData.slice(0, first.yearIndex + 1)),
+                differs:
+                    JSON.stringify(d.nwData) !== JSON.stringify(d.noChaosData),
+            };
+        });
+        expect(r).toEqual({
+            sameAsBase: true,
+            untilFirst: true,
+            differs: true,
+        });
+
+        // Milestone estimates follow the chaos path.
+        await page.locator('#btn-tab-projections').click();
+        await expect(
+            page.locator('#projection-milestones-container'),
+        ).toContainText('🌪️');
     });
 
     test('Bear/Bull buttons leave the chaos toggle alone', async ({ page }) => {

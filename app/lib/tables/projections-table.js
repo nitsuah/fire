@@ -314,7 +314,9 @@ function buildMilestonesList(rawData, depletionAge) {
         const yearsFromNow = depletionAge.base - currentAge;
         if (yearsFromNow > 0 && yearsFromNow < 50) {
             milestonesList.push({
-                name: `⚠️ Portfolio Depletion (Base Case)`,
+                name: rawData.chaos
+                    ? '⚠️ Portfolio Depletion (with life events)'
+                    : '⚠️ Portfolio Depletion (Base Case)',
                 target: 0,
                 isDepletion: true,
                 depletionAge: depletionAge.base,
@@ -324,6 +326,20 @@ function buildMilestonesList(rawData, depletionAge) {
     }
 
     return milestonesList;
+}
+
+// With Chaos mode on, a milestone is reached when the chaos path (the
+// headline net worth line) first crosses it, interpolated within the year.
+// The closed-form estimate below assumes a smooth path and can't see the
+// events. Returns null when the path never crosses within the span.
+function chaosYearsToTarget(nwPath, target) {
+    for (let i = 1; i < nwPath.length; i++) {
+        if (nwPath[i] >= target && nwPath[i - 1] < target) {
+            const step = nwPath[i] - nwPath[i - 1];
+            return i - 1 + (step > 0 ? (target - nwPath[i - 1]) / step : 1);
+        }
+    }
+    return null;
 }
 
 function renderMilestones(
@@ -373,6 +389,13 @@ function renderMilestones(
             yearsRequired = `Money runs out at Age ${m.depletionAge} (${m.depletionAge - currentAge} yrs)`;
         } else if (isAchieved) {
             yearsRequired = 'Achieved 🎉';
+        } else if (rawData.chaos) {
+            const yrs = chaosYearsToTarget(rawData.nwData, m.target);
+            const lastAge = currentAge + rawData.nwData.length - 1;
+            yearsRequired =
+                yrs === null
+                    ? `Not reached by Age ${lastAge} 🌪️`
+                    : `${yrs.toFixed(1)} yrs (Age ${currentAge + Math.ceil(yrs)}) 🌪️`;
         } else {
             if (realReturnRate > 0) {
                 const num = m.target * realReturnRate + annualSavings;
