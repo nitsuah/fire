@@ -221,13 +221,13 @@ function updateAllocBreadcrumb(categoryKey, total, count) {
     if (categoryKey === null) {
         titleEl.textContent = 'Asset Allocation';
         if (subEl) subEl.textContent = '';
-        if (backBtn) backBtn.style.display = 'none';
+        if (backBtn) backBtn.classList.add('csp-i-001');
     } else {
         const label = ALLOC_SLICE_MAP[categoryKey]?.label || categoryKey;
         titleEl.textContent = `Asset Allocation — ${label}`;
         if (subEl)
             subEl.textContent = `${count} item${count === 1 ? '' : 's'} · ${formatCurrency(total)} total`;
-        if (backBtn) backBtn.style.display = '';
+        if (backBtn) backBtn.classList.remove('csp-i-001');
     }
 }
 
@@ -242,12 +242,15 @@ function renderAllocDetailList(items, color) {
         .map(
             (item) => `
         <div class="alloc-detail-row">
-            <span class="alloc-detail-dot" style="background:${color};"></span>
-            <span class="alloc-detail-name">${escHtml(item.name)}<span class="text-muted" style="font-size:11px;display:block;">${escHtml(item.sub)}</span></span>
+            <span class="alloc-detail-dot csp-dynamic-bg" data-csp-color="${escHtml(color)}"></span>
+            <span class="alloc-detail-name">${escHtml(item.name)}<span class="text-muted csp-text-11 csp-block">${escHtml(item.sub)}</span></span>
             <span class="alloc-detail-val">${formatCurrency(item.value)}</span>
         </div>`,
         )
         .join('')}</div>`;
+    el.querySelectorAll('[data-csp-color]').forEach((node) => {
+        node.style.backgroundColor = node.dataset.cspColor;
+    });
 }
 
 function renderAssetAllocationChart() {
@@ -352,9 +355,12 @@ function renderAssetAllocationChart() {
         listEl.innerHTML = `<div class="alloc-cat-buttons">${slices
             .map(
                 (s) =>
-                    `<button type="button" class="alloc-cat-btn" onclick="allocDrillInto('${s.key}')"><span class="alloc-detail-dot" style="background:${s.color};"></span>${s.label} · ${formatCurrency(s.val)}</button>`,
+                    `<button type="button" class="alloc-cat-btn" data-csp-click-action="allocDrillInto" data-csp-click-value="${escHtml(s.key)}"><span class="alloc-detail-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span>${s.label} · ${formatCurrency(s.val)}</button>`,
             )
             .join('')}</div>`;
+        listEl.querySelectorAll('[data-csp-color]').forEach((node) => {
+            node.style.backgroundColor = node.dataset.cspColor;
+        });
     }
 
     assetAllocationChart = new Chart(ctx, {

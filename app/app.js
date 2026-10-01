@@ -78,8 +78,66 @@ var priceRefreshTimer = null;
 var metalsRefreshTimer = null;
 
 // Initialize App on DOM Load
+// CSP-safe event delegation for controls that were previously inline onclick/onchange handlers.
+// Keeping this as addEventListener-based wiring lets script-src omit 'unsafe-inline'.
+const CSP_ACTIONS = new Set([
+    'toggleSidebarCollapse', 'closeNavDrawer', 'toggleNotifDropdown',
+    'requestNotificationPermission', 'checkNotifications', 'setDashProjWindow', 'collapseAllGroups',
+    'setTableSort', 'allocDrillUp', 'setNwHistoryRange', 'renderRebalancingTool',
+    'renderTaxHarvestTable', 'toggleEbaySyncSetting', 'setProjWindow',
+    'toggleProjLine', 'applyScenario', 'saveProjectionDefaults',
+    'saveNotificationSettings', 'togglePlaidSyncSetting', 'runPlaidTransactionsSyncNow',
+    'openPrivacyModal', 'openTermsModal', 'exportFullState', 'exportCSV',
+    'importFullState', 'importCSV', 'connectGoogleDrive', 'runGDriveBackupNow',
+    'resetAllData', 'clearSideGigLedger', 'collapseAllGroups', 'toggleAccountGroup',
+    'allocDrillInto', 'clearAllDismissedTips', 'dismissTip', 'saveEditVehicle',
+    'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate',
+    'saveEditAccount', 'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
+    'deleteSpendingTx', 'updateSpendingTxCategory', 'dismissNotifAlert',
+    'startEditRealEstate', 'deleteRealEstate', 'startEditVehicle', 'deleteVehicle',
+    'deleteImportedFile', 'refreshCryptoAccount', 'refreshMetalAccount', 'deleteCustomAccount',
+    'startEditAccount', 'deleteAccount', 'startEditCD', 'deleteCD', 'saveEditVehicle',
+    'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate', 'saveEditAccount',
+    'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
+    'toggleChaos', 'rerollChaos',
+]);
+
+function initCspEventDelegation() {
+    document.addEventListener('click', (event) => {
+        const target = event.target.closest('[data-csp-target-click]');
+        if (target) {
+            document.getElementById(target.dataset.cspTargetClick)?.click();
+            return;
+        }
+        const el = event.target.closest('[data-csp-click-action]');
+        if (!el) return;
+        const action = el.dataset.cspClickAction;
+        if (!CSP_ACTIONS.has(action)) return;
+        const fn = window[action];
+        if (typeof fn !== 'function') return;
+        if (el.dataset.cspClickValue !== undefined) fn(el.dataset.cspClickValue, el);
+        else fn();
+    });
+
+    document.addEventListener('change', (event) => {
+        const el = event.target.closest('[data-csp-change-action]');
+        if (!el) return;
+        const action = el.dataset.cspChangeAction;
+        if (!CSP_ACTIONS.has(action)) return;
+        const fn = window[action];
+        if (typeof fn !== 'function') return;
+        if (el.dataset.cspChangeValue !== undefined) {
+            const configuredValue = el.dataset.cspChangeValue;
+            const firstArg = configuredValue === 'event' ? event : configuredValue;
+            fn(firstArg, event.target.value, event);
+        }
+        else fn(event);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await loadStateFromServer();
+    initCspEventDelegation();
     initNavigation();
     initCSVImport();
     initAccountsManager();

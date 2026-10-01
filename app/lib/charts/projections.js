@@ -203,7 +203,7 @@ function renderChaosTimeline(containerId, data, { compact = false } = {}) {
                 label: ev.category,
                 color: '#9ca3af',
             };
-            return `<li class="chaos-chip ${isUp ? 'is-up' : 'is-down'}" style="--chaos-cat:${cat.color}">
+            return `<li class="chaos-chip ${isUp ? 'is-up' : 'is-down'}" data-cat-color="${cat.color}">
                 <span class="chaos-chip-icon" aria-hidden="true">${ev.icon}</span>
                 <span class="chaos-chip-body">
                     <span class="chaos-chip-title">${escHtml(ev.label)} <span class="chaos-chip-term">${ev.term === 'long' ? 'long-term' : 'one-time'}</span></span>
@@ -218,9 +218,14 @@ function renderChaosTimeline(containerId, data, { compact = false } = {}) {
         ? `<ul class="chaos-chip-list">${chips}</ul>`
         : '<p class="text-muted chaos-empty">No life events in this window — try a longer range or reroll.</p>';
     el.hidden = false;
-    el.innerHTML = compact
+    const html = compact
         ? `<details class="chaos-details"><summary class="chaos-summary">${summaryInner}</summary>${list}</details>`
         : `<div class="chaos-summary">${summaryInner}</div>${list}`;
+    el.innerHTML = html;
+    // CSP: category colors go through the CSSOM, not style="" in markup.
+    el.querySelectorAll('[data-cat-color]').forEach((li) =>
+        li.style.setProperty('--chaos-cat', li.dataset.catColor),
+    );
 }
 
 function renderProjectionsChart(data) {

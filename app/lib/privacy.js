@@ -11,7 +11,7 @@ async function loadPrivacyPolicy() {
         const md = await res.text();
         return typeof marked !== 'undefined'
             ? marked.parse(md)
-            : `<pre style="white-space:pre-wrap;">${md}</pre>`;
+            : `<pre class="csp-pre-wrap">${md}</pre>`;
     } catch (e) {
         console.warn('[Privacy] Could not load policy:', e);
         return '<p>Privacy policy could not be loaded. View it at <a href="https://github.com/nitsuah/fire/blob/main/docs/privacy-policy.md" target="_blank" rel="noopener">github.com/nitsuah/fire</a>.</p>';

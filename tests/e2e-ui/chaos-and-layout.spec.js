@@ -182,6 +182,32 @@ test.describe('Chaos mode', () => {
     });
 });
 
+test('chaos, mitigations and Customize run under the strict CSP', async ({
+    page,
+}) => {
+    const violations = [];
+    page.on('console', (m) => {
+        if (/Content Security Policy/i.test(m.text()))
+            violations.push(m.text());
+    });
+    await page.reload();
+    await page.locator('#dash-card-growth .chaos-btn').click();
+    await page.locator('#dash-chaos-timeline summary').click();
+    await page.locator('#tab-dashboard [data-lm-tool="edit"]').click();
+    await page.locator('#btn-tab-projections').click();
+    await page.locator('#btn-tab-insights').click();
+    await page
+        .locator('#chaos-mitigations [data-mitigation="pet-insurance"]')
+        .check();
+    // Chip colors and layout previews are set via the CSSOM, not style="".
+    const chipColor = await page
+        .locator('#proj-chaos-timeline .chaos-chip')
+        .first()
+        .evaluate((el) => el.style.getPropertyValue('--chaos-cat'));
+    expect(chipColor).toMatch(/^#/);
+    expect(violations).toEqual([]);
+});
+
 test.describe('Customizable layout', () => {
     test('collapse a card by its title and keep it collapsed after reload', async ({
         page,

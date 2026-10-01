@@ -37,11 +37,11 @@ function renderVehiclesTable() {
         if (editingVehicles.includes(v.id)) {
             html += `
             <tr class="position-row">
-                <td><input class="inline-edit-input" id="veh-edit-year-${v.id}" type="number" value="${v.year}" style="width:70px;"></td>
+                <td><input class="inline-edit-input csp-width-70" id="veh-edit-year-${v.id}" type="number" value="${v.year}" ></td>
                 <td><input class="inline-edit-input" id="veh-edit-make-${v.id}" value="${escHtml(v.make || '')}"></td>
                 <td>
                     <input class="inline-edit-input" id="veh-edit-model-${v.id}" value="${escHtml(v.model || '')}">
-                    <input class="inline-edit-input" id="veh-edit-vin-${v.id}" maxlength="17" placeholder="VIN (optional)" style="font-size:10px;margin-top:2px;text-transform:uppercase;" value="${escHtml(v.vin || '')}">
+                    <input class="inline-edit-input csp-vin-input" id="veh-edit-vin-${v.id}" maxlength="17" placeholder="VIN (optional)"  value="${escHtml(v.vin || '')}">
                 </td>
                 <td><input class="inline-edit-input" id="veh-edit-mileage-${v.id}" type="number" value="${v.mileage || 0}"></td>
                 <td>
@@ -53,8 +53,8 @@ function renderVehiclesTable() {
                 <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-loan-${v.id}" type="number" value="${v.loanBalance || 0}" step="500"></td>
                 <td class="text-right"><input class="inline-edit-input text-right" id="veh-edit-purchase-${v.id}" type="number" value="${v.purchasePrice || 0}" step="500"></td>
                 <td class="text-right">
-                    <button class="action-btn save-btn" onclick="saveEditVehicle('${v.id}')">Save</button>
-                    <button class="action-btn cancel-btn" onclick="cancelEditVehicle('${v.id}')">Cancel</button>
+                    <button class="action-btn save-btn" data-csp-click-action="saveEditVehicle" data-csp-click-value="${escHtml(v.id)}">Save</button>
+                    <button class="action-btn cancel-btn" data-csp-click-action="cancelEditVehicle" data-csp-click-value="${escHtml(v.id)}">Cancel</button>
                 </td>
             </tr>`;
         } else {
@@ -70,19 +70,22 @@ function renderVehiclesTable() {
                 <td><span class="tag-badge">${escHtml(v.condition)}</span></td>
                 <td class="text-right text-muted">${(v.mileage || 0).toLocaleString()} mi</td>
                 <td class="text-right font-bold">${formatCurrency(v.currentValue || 0)}</td>
-                <td class="text-right" style="${equityStyle}">${formatCurrency(equity)}</td>
+                <td class="text-right csp-dynamic-color" data-csp-color="${escHtml(equityStyle.replace(/^color:\s*/, ''))}">${formatCurrency(equity)}</td>
                 <td class="text-right text-muted">${(v.loanBalance || 0) > 0 ? formatCurrency(v.loanBalance) : 'Paid Off'}</td>
                 <td class="text-right text-muted">${(v.purchasePrice || 0) > 0 ? formatCurrency(v.purchasePrice) : '—'}</td>
-                <td class="text-right" style="${depStyle}">${(v.purchasePrice || 0) > 0 ? depStr : '—'}</td>
+                <td class="text-right csp-dynamic-color" data-csp-color="${escHtml(depStyle.replace(/^color:\s*/, ''))}">${(v.purchasePrice || 0) > 0 ? depStr : '—'}</td>
                 <td class="text-right">
-                    ${canEstimate ? `<button class="action-btn" id="veh-est-btn-${v.id}" onclick="fetchVehicleEstimate('${v.id}')">${escHtml(estimateLabel)}</button>` : ''}
-                    <button class="action-btn edit-btn" onclick="startEditVehicle('${v.id}')">Edit</button>
-                    <button class="action-btn delete-btn" onclick="deleteVehicle('${v.id}')">Delete</button>
+                    ${canEstimate ? `<button class="action-btn" id="veh-est-btn-${v.id}" data-vehicle-action="fetch-estimate" data-vehicle-id="${escHtml(v.id)}">${escHtml(estimateLabel)}</button>` : ''}
+                    <button class="action-btn edit-btn" data-csp-click-action="startEditVehicle" data-csp-click-value="${escHtml(v.id)}">Edit</button>
+                    <button class="action-btn delete-btn" data-csp-click-action="deleteVehicle" data-csp-click-value="${escHtml(v.id)}">Delete</button>
                 </td>
             </tr>`;
         }
     });
     tbody.innerHTML = html;
+    tbody.querySelectorAll('[data-csp-color]').forEach((el) => {
+        el.style.color = el.dataset.cspColor;
+    });
     renderVehicleStats();
 }
 
@@ -246,7 +249,7 @@ window.fetchVehicleEstimate = async function (id) {
                     <div class="veh-est-range">range ${formatCurrency(d.low)} – ${formatCurrency(d.high)}</div>
                     <div class="veh-est-note">${escHtml(d.note)}</div>
                     <div class="veh-est-cite">Source: ${escHtml(d.citation)}</div>
-                    <button class="action-btn save-btn veh-est-accept" onclick="acceptVehicleEstimate('${id}', ${d.value}, 'depreciation-model')">Accept ${formatCurrency(d.value)}</button>
+                    <button class="action-btn save-btn veh-est-accept" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}" data-vehicle-value="${d.value}" data-vehicle-source="depreciation-model">Accept ${formatCurrency(d.value)}</button>
                 </div>`);
         }
 
@@ -263,7 +266,7 @@ window.fetchVehicleEstimate = async function (id) {
                     ${m.low != null ? `<div class="veh-est-range">range ${formatCurrency(m.low)} – ${formatCurrency(m.high)}</div>` : ''}
                     <div class="veh-est-note">${escHtml(m.note)}</div>
                     <div class="veh-est-cite">Source: ${escHtml(m.citation)}</div>
-                    <button class="action-btn save-btn veh-est-accept" onclick="acceptVehicleEstimate('${id}', ${m.value}, '${escHtml(m.source)}')">Accept ${formatCurrency(m.value)}</button>
+                    <button class="action-btn save-btn veh-est-accept" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}" data-vehicle-value="${m.value}" data-vehicle-source="${escHtml(m.source)}">Accept ${formatCurrency(m.value)}</button>
                 </div>`);
             } else if (m.error) {
                 rows.push(
@@ -277,11 +280,11 @@ window.fetchVehicleEstimate = async function (id) {
                 <div class="veh-est-suggested">
                     Suggested: <strong>${formatCurrency(data.suggestedValue)}</strong>
                     &nbsp;(range ${formatCurrency(data.range.low)} – ${formatCurrency(data.range.high)})
-                    <button class="action-btn save-btn veh-est-accept" style="margin-left:8px;" onclick="acceptVehicleEstimate('${id}', ${data.suggestedValue}, 'estimate')">Accept</button>
+                    <button class="action-btn save-btn veh-est-accept csp-ml-8" data-vehicle-action="accept-estimate" data-vehicle-id="${escHtml(id)}" data-vehicle-value="${data.suggestedValue}" data-vehicle-source="estimate">Accept</button>
                 </div>`);
         }
 
-        overlay.innerHTML = `<div class="veh-est-header">Value Estimates</div>${rows.join('')}<button class="action-btn cancel-btn veh-est-close" onclick="closeVehicleEstimate('${id}')">Close</button>`;
+        overlay.innerHTML = `<div class="veh-est-header">Value Estimates</div>${rows.join('')}<button class="action-btn cancel-btn veh-est-close" data-vehicle-action="close-estimate" data-vehicle-id="${escHtml(id)}">Close</button>`;
         positionEstimateOverlay(btn);
         overlay.style.display = 'block';
         btn.textContent = 'Est. shown ▲';
@@ -289,7 +292,7 @@ window.fetchVehicleEstimate = async function (id) {
     } catch (err) {
         btn.textContent = 'Estimate';
         btn.disabled = false;
-        overlay.innerHTML = `<div class="veh-est-error">${escHtml(err.message)}</div><button class="action-btn cancel-btn veh-est-close" onclick="closeVehicleEstimate('${id}')">Close</button>`;
+        overlay.innerHTML = `<div class="veh-est-error">${escHtml(err.message)}</div><button class="action-btn cancel-btn veh-est-close" data-vehicle-action="close-estimate" data-vehicle-id="${escHtml(id)}">Close</button>`;
         positionEstimateOverlay(btn);
         overlay.style.display = 'block';
     }
@@ -335,3 +338,20 @@ window.closeVehicleEstimate = function (id) {
     if (overlay) overlay.style.display = 'none';
     if (btn) btn.textContent = 'Estimate';
 };
+
+document.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-vehicle-action]');
+    if (!btn) return;
+    const action = btn.dataset.vehicleAction;
+    if (action === 'fetch-estimate') {
+        fetchVehicleEstimate(btn.dataset.vehicleId);
+    } else if (action === 'accept-estimate') {
+        acceptVehicleEstimate(
+            btn.dataset.vehicleId,
+            Number(btn.dataset.vehicleValue),
+            btn.dataset.vehicleSource,
+        );
+    } else if (action === 'close-estimate') {
+        closeVehicleEstimate(btn.dataset.vehicleId);
+    }
+});

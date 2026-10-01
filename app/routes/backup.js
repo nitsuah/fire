@@ -90,7 +90,7 @@ h2{color:#10b981;margin-top:0}p{color:#94a3b8}button{background:#6366f1;color:#f
 <body><div class="card">
 <h2>✓ Google Drive connected</h2>
 <p>fire can now back up encrypted snapshots to your personal Google Drive folder <strong>fire-tracker-backups</strong>.</p>
-<button onclick="window.close()">Close this tab</button>
+<button id="close-window">Close this tab</button><script src="/lib/close-window.js"></script>
 </div></body></html>`);
     } catch (err) {
         console.error('[Backup] OAuth callback error:', err);

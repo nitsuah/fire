@@ -512,7 +512,7 @@ const LayoutManager = {
 
     layoutPreview(key) {
         return ROW_LAYOUTS[key].cols
-            .map((f) => `<span style="flex:${f}"></span>`)
+            .map((f) => `<span data-flex="${f}"></span>`)
             .join('');
     },
 
@@ -533,6 +533,10 @@ const LayoutManager = {
             <button type="button" class="lm-btn" data-lm-row="up" aria-label="Move section up" title="Move section up"${ri === 0 ? ' disabled' : ''}>↑</button>
             <button type="button" class="lm-btn" data-lm-row="down" aria-label="Move section down" title="Move section down"${ri === total - 1 ? ' disabled' : ''}>↓</button>
             <button type="button" class="lm-btn lm-btn-remove-row" data-lm-row="delete" aria-label="Delete section" title="Delete section (its cards move to a neighbouring section)">🗑</button>`;
+        // CSP: no style="" in markup — size the preview bars via the CSSOM.
+        bar.querySelectorAll('[data-flex]').forEach((sp) => {
+            sp.style.flex = sp.dataset.flex;
+        });
         bar.addEventListener('click', (e) => {
             const lay = e.target.closest('[data-lm-layout]')?.dataset.lmLayout;
             const act = e.target.closest('[data-lm-row]')?.dataset.lmRow;

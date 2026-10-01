@@ -12,7 +12,7 @@ function initUnifiedAssetForm() {
             const target = btn.dataset.uaTab;
             panels.forEach((p) => {
                 const el = document.getElementById(`ua-panel-${p}`);
-                if (el) el.style.display = target === p ? '' : 'none';
+                if (el) el.classList.toggle('csp-i-001', target !== p);
             });
         });
     });

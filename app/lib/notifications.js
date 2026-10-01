@@ -76,23 +76,29 @@ function _updateNotifUI() {
     const perm = Notification.permission;
     if (perm === 'granted') {
         btn.textContent = 'Check Now';
-        btn.onclick = () => checkAndNotify(state, true);
+        btn.dataset.cspClickAction = 'checkNotifications';
         statusEl.textContent =
             'Notifications enabled. Active alerts are shown below.';
         checkAndNotify(state, false);
     } else if (perm === 'denied') {
+        btn.dataset.cspClickAction = 'requestNotificationPermission';
         btn.textContent = 'Blocked';
         btn.disabled = true;
         statusEl.textContent =
             'Notifications blocked. Allow them in your browser settings to re-enable.';
         checkAndNotify(state, false);
     } else {
+        btn.dataset.cspClickAction = 'requestNotificationPermission';
         btn.textContent = 'Enable';
         statusEl.textContent =
             'Enable browser notifications to receive FIRE milestone and CD maturity alerts.';
         checkAndNotify(state, false);
     }
 }
+
+window.checkNotifications = function () {
+    checkAndNotify(state, true);
+};
 
 window.requestNotificationPermission = async function () {
     if (!('Notification' in window)) return;
@@ -304,8 +310,8 @@ window.checkAndNotify = function (s, sendPush) {
                     (a) => `
                 <div class="notif-alert-row ${a.urgent ? 'notif-urgent' : ''}">
                     ${a.tag ? `<button class="notif-dismiss-btn" data-tag="${escHtml(a.tag)}" aria-label="Dismiss">✕</button>` : ''}
-                    <span class="font-bold" style="font-size:11px;text-transform:uppercase;color:${a.urgent ? 'var(--color-danger)' : 'var(--color-warning)'};">${escHtml(a.label)}</span>
-                    <span style="display:block;font-size:13px;margin-top:2px;">${escHtml(a.msg)}</span>
+                    <span class="font-bold font-bold csp-notif-label ${a.urgent ? 'notif-label-urgent' : 'notif-label-warning'}">${escHtml(a.label)}</span>
+                    <span class="csp-block csp-text-13 csp-mt-2">${escHtml(a.msg)}</span>
                 </div>
             `,
                 )
