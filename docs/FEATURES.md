@@ -27,6 +27,7 @@
 - **Custom Accounts** — Manual entry with value, APY, and account type (Cash, Savings, Crypto, Precious Metal, Brokerage, Real Estate, Other); full CRUD via REST API with server-side validation.
 - **Precious Metals** — Gold/Silver by troy oz valued at live spot (metals.dev or free Yahoo futures fallback) with a Refresh button.
 - **Crypto Accounts** — ENS name, 0x address or ticker accepted in either Name or Identifier; refresh resolves live value; wallet tracker (multi-chain balances) appears under the form for Type = Cryptocurrency.
+- **CoinTracker Wallets (optional)** — Connect CoinTracker in Settings (OAuth, read-only) to import every wallet and exchange account with its current USD balance and per-asset holdings. CoinTracker is the source of truth: a matching manual crypto account is replaced while connected and restored on disconnect, and unmatched ones are flagged as possible duplicates. Rows are tagged "CoinTracker" with their sync time. P&L and tax stay in CoinTracker.
 - **Fidelity CSV Import** — Parses Fidelity brokerage position exports; aggregates symbols, quantities, and cash; deduplicates settled cash from P&L.
 - **Chase / Capital One CSV Import** — Parses credit card statement debits and auto-categorizes spending into monthly cash flow.
 - **Spending Upload** — Expenses-tab CSV upload with auto-categorization, editable merchant-keyword mapping, and per-transaction delete.

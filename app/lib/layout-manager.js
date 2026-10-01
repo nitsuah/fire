@@ -103,7 +103,7 @@ const DEFAULT_BOARDS = {
             [
                 ['settings:projection-defaults'],
                 ['settings:notifications-alerts'],
-                ['settings:plaid-transaction-sync'],
+                ['settings:plaid-transaction-sync', 'cointracker-card'],
             ],
         ],
         [

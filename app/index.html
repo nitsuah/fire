@@ -1542,6 +1542,28 @@
                             <p id="settings-plaid-status" class="text-muted mt-2 csp-i-015">Checking status...</p>
                         </div>
 
+                        <!-- CoinTracker Wallet Sync -->
+                        <div class="card glass-card settings-card--cointracker" id="cointracker-card">
+                            <h2 class="card-title">CoinTracker Wallets</h2>
+                            <p class="card-subtitle">Optional. Connect CoinTracker to pull your wallets and exchange accounts with their current USD balances, so you don't have to enter every wallet and chain by hand. Access is read-only (balances only; fire never reads P&amp;L, cost basis or tax data, and never asks for keys). CoinTracker becomes the source of truth: a manual crypto account with the same address is replaced while connected and restored if you disconnect.</p>
+                            <div class="api-connector-panel mt-3">
+                                <div class="connector-header">
+                                    <h3 class="csp-i-012">🪙 CoinTracker</h3>
+                                    <span class="badge-type badge-crypto">Read-only</span>
+                                </div>
+                                <button type="button" class="backup-btn import-btn w-full" id="btn-cointracker-connect">Connect CoinTracker</button>
+                                <div class="grid-organic-2 mt-2">
+                                    <button type="button" class="backup-btn" id="btn-cointracker-sync">🔄 Sync Now</button>
+                                    <button type="button" class="backup-btn" id="btn-cointracker-disconnect">Disconnect</button>
+                                </div>
+                                <p id="cointracker-status" class="text-muted mt-2 csp-i-015">Not connected</p>
+                            </div>
+                            <div id="cointracker-wallets" class="mt-3"></div>
+                            <div id="cointracker-duplicates" class="mt-2"></div>
+                            <button type="button" class="action-btn mt-2" id="btn-cointracker-inspect">Inspect CoinTracker tools</button>
+                            <div id="cointracker-inspect" class="text-muted mt-2"></div>
+                        </div>
+
                         <!-- Privacy & Terms -->
                         <div class="card glass-card settings-card--privacy">
                             <h2 class="card-title">Privacy & Terms</h2>
@@ -1555,6 +1577,7 @@
                                 <ul class="csp-i-031">
                                     <li>eBay API sync (if enabled) - sends only order data to your own eBay account</li>
                                     <li>Plaid Link (if enabled) - tokens exchanged with Plaid for account aggregation</li>
+                                    <li>CoinTracker (if connected) - read-only wallet balances fetched from CoinTracker; the access token stays encrypted in your browser</li>
                                     <li>Price quotes - public ticker symbols to Yahoo Finance</li>
                                 </ul>
                                 <p class="csp-i-032"><strong>No Tracking:</strong> No analytics, no cookies, no third-party scripts. Your data never leaves your device unless you explicitly use an API integration.</p>
@@ -1631,6 +1654,8 @@
     <script src="lib/csv-import.js"></script>
     <script src="lib/expenses.js"></script>
     <script src="lib/side-gig.js"></script>
+    <script src="lib/cointracker-merge.js"></script>
+    <script src="lib/cointracker.js"></script>
     <script src="lib/chaos-events.js"></script>
     <script src="lib/projections.js"></script>
     <!-- Charts -->

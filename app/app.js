@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initVehiclesManager();
     initExpenseManager();
     initSideGigManager();
+    if (typeof initCoinTracker === 'function') initCoinTracker();
     initPlatformCalculators();
     initProjectionsManager();
     initCashFlowToggles();

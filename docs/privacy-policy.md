@@ -70,6 +70,13 @@ If you opt into Google Drive backup on a self-hosted server (Section 2b), that s
 | `accounts.google.com`, `oauth2.googleapis.com` | Drive OAuth sign-in and token refresh | OAuth client ID/secret, authorization code, refresh token |
 | `www.googleapis.com` (Drive API) | Upload, list and download backups | The AES-256-GCM encrypted backup file and its name (`fire-backup-YYYY-MM-DD.json`) |
 
+If you connect CoinTracker (optional, on the hosted site or self-hosted), the server (Express or the Netlify Function) calls CoinTracker on your behalf. It stores nothing: the OAuth token is returned to your browser encrypted with `SYNC_MASTER_KEY` and kept in `localStorage`.
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `login.cointracker.com` | OAuth client registration, sign-in, token refresh and revocation | Callback URL, authorization code, PKCE verifier, refresh token |
+| `mcp.cointracker.com` | Read-only wallet balances (MCP `mcp:read`) | Your CoinTracker access token. The response (wallet names, public addresses, USD balances and holdings) is merged into your crypto accounts. Transactions, cost basis and tax data are never requested |
+
 ---
 
 ## 5. CSV File Imports

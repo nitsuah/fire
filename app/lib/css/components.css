@@ -45,6 +45,14 @@
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), transparent 40%);
 }
 
+/* CoinTracker uses the crypto amber, matching .badge-crypto. */
+.card.glass-card.settings-card--cointracker {
+    border-left: 3px solid var(--color-warning);
+}
+.card.glass-card.settings-card--cointracker::before {
+    background: linear-gradient(135deg, var(--color-warning-bg), transparent 40%);
+}
+
 .card.glass-card.settings-card--gdrive {
     border-left: 3px solid var(--color-success);
 }

@@ -140,11 +140,24 @@ function initAccountsManager() {
 
 window.deleteCustomAccount = async function (id) {
     const prev = state.customAccounts.slice();
+    const prevExcluded = state.coinTrackerExcluded;
+    // A CoinTracker wallet would come back on the next sync; deleting it
+    // excludes it instead (re-include it from the CoinTracker card).
+    const target = state.customAccounts.find((acc) => acc.id === id);
+    if (target?.source === 'cointracker' && target.cointracker) {
+        state.coinTrackerExcluded = [
+            ...new Set([
+                ...(state.coinTrackerExcluded || []),
+                String(target.cointracker.providerId),
+            ]),
+        ];
+    }
     state.customAccounts = state.customAccounts.filter((acc) => acc.id !== id);
     try {
         await saveState();
     } catch (err) {
         state.customAccounts = prev;
+        state.coinTrackerExcluded = prevExcluded;
         console.error('Failed to delete account:', err);
         return;
     }
