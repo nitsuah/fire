@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10 — Chaos mode, customizable layout, fire-coach skill
+
+#### Added (follow-up)
+- **Section layouts:** every tab is now a board of sections. Each section has a column layout (1, 2, 2 wide-left, 2 wide-right, 3, 3 wide-center, 4) and its cells stack cards. A card alone in a section spans the full width, and the fixed per-tab grids (such as the locked Growth Settings column) are gone. Customize mode is a drag-and-drop builder with highlighted targets, a drop placeholder and "New section" gaps.
+- **Chaos sequences:** parent care → funeral → inheritance or inherited house; wedding → child → daycare ends; job loss → new job. Follow-ups show "after …" in tooltips and chips.
+- **More good events:** inherited house (sell, move in or rent out), refinance, car loan paid off, roommate/house hack, settlement payout, family gift. The catalog now has 37 events.
+- **Costs that outrun inflation:** rent (+1%/yr), child costs (+1%), elder care (+3%), insurance after a claim (+2%), and medical and vet bills (+2%/yr) escalate in the real-terms projection. Descriptions quote the inflation setting.
+- **🛡️ Mitigations** in Insights: tick coverage you have (pet insurance, HSA/low-OOP plan, disability, dental, umbrella, water-backup, gap, credit freeze, safe-harbor withholding, emergency fund). Chaos shrinks the covered hits and charges the premiums every year. Each card shows what it saves and costs in the current simulated life.
+- `promo/chaos-24s` (renamed from `chaos-22s`) adds a Mitigate scene and uses chaos seed 23, which includes a funeral → inherited house sequence.
+
+#### Changed (follow-up)
+- Promotions are a signing bump or 5–6 years of extra savings rather than a permanent raise, since wages are flat in real terms.
+- Merged the strict CSP (#150): the Chaos/🎲 buttons use `data-csp-click-action`, and chip colors and layout previews are set via the CSSOM. A new browser test asserts no CSP violations.
+
+#### Fixed (follow-up)
+- Same-year chain follow-ups, and follow-ups of top-up events, were dropped; they now run in year order.
+- On phones, 3- and 4-column sections now collapse to one column (a CSS specificity bug left them at two).
+- The widget picker traps Tab, keeps focus on the row you acted on and returns focus to its opener. Malformed saved layouts are rejected or sanitized before use.
+- Landing page: zoomed images toggle actual size with Enter/Space, and the picker screenshot keeps its position when made zoomable.
+- Bear / Base / Bull: after the strict-CSP change (#150) the click delegation passed the offset as a string, so "8" + "0" projected an 80% return. The offset is now coerced to a number, with a browser test.
+
+#### Added
+- **🌪️ Chaos mode:** a toggle next to Bear/Bull on Projections and on the Dashboard growth chart rolls seeded, realistic life events onto the projection. There are 30 events in 8 categories, each with a life-average probability, an age window, a lifetime cap, a repeat gap and 2–3 predefined outcomes. The app shows ▲/▼ category-colored markers, a dashed "Without chaos" line, event details in the chart tooltip, an event-chip timeline that follows the 1Y–All window, and 🎲 reroll. The chart's FIRE-crossing markers, the Milestone Predictions estimates (marked 🌪️) and the run-out age all follow the chaos path. The toggle and seed are saved in localStorage (`app/lib/chaos-events.js`, 20 unit tests, plus a browser test that the engine with no events reproduces the app's projection exactly).
+- **How chaos changes net worth:** one-time costs and gains land in the year they happen and then compound (or fail to) with the rest of the portfolio. Recurring costs and income change the yearly savings, or the yearly withdrawal once retired, for their duration. A job loss costs the lost months of savings plus real spending; the FIRE number's tax padding is left out, since there's no paycheck to tax. Paycheck events (job loss, pay cut, bonus, RSUs) are skipped when Expenses → gross income is under $5k.
+- **Customizable layout:** clicking a card title collapses it on every tab. ✎ Customize adds pointer drag (mouse and touch) and ↑/↓ reorder, and Dashboard cards can move between columns. ＋ Add widget pins any card from another tab to the Dashboard and leaves a "Move back here" placeholder; ✕ removes Dashboard cards and ↺ Reset restores a tab. Saved in localStorage (`app/lib/layout-manager.js`).
+- **fire-coach Claude skill** (`skills/fire-coach/`): `SKILL.md` maps questions to MCP tools, with a FIRE financial playbook and an app guide as references. `skills/README.md` covers installation.
+- **Landing page:** new Chaos mode and "Make it yours" sections, the `chaos-24s` demo video, and the skill in the Claude section. The nav adds "Chaos", and the Plaid footnote reflects the Netlify Functions from #146. Screenshots are larger (wider page, wider image column), and every screenshot and the Chaos video open full size on tap or click; tapping again shows actual pixels.
+- **Promo:** `promo/chaos-24s` spot. `capture.js` now also shoots the chaos chart, tooltip, phone and Customize/picker views, using shared price mocks and chaos seed 60.
+- 8 Playwright tests for chaos and layout (`tests/e2e-ui/chaos-and-layout.spec.js`).
+
+#### Changed
+- Card titles are focusable and show a collapse chevron; they keep their heading role.
+- After you arrange the Dashboard by hand, wide screens (≥1400px) keep the two columns instead of the fixed three-column grid.
+- Service worker cache is bumped to `fire-tracker-v4` and precaches the two new scripts.
+
 ### 2026-09 — Drive backup, privacy and security doc accuracy (PR #149)
 
 #### Fixed

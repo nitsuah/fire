@@ -104,6 +104,130 @@ function buildProjectionAnnotations(
     return annotations;
 }
 
+/* ---------------------------------------------------------------------------
+   Chaos-mode chart helpers (events come from lib/chaos-events.js via
+   buildProjectionData → sliceProjectionData).
+   --------------------------------------------------------------------------- */
+
+// Marker for each life event, placed at its fractional year (month/12) on
+// the net worth line. ▲ green = increase, ▼ red = decrease; the ring is the
+// event category's color.
+function buildChaosAnnotations(chaos, nwData) {
+    const annotations = {};
+    if (!chaos || !nwData || !nwData.length) return annotations;
+    const cats = window.FireChaos.CATEGORIES;
+    chaos.events.forEach((ev) => {
+        const x = Math.min(ev.yearIndex + ev.month / 12, nwData.length - 1);
+        const i0 = Math.floor(x);
+        const i1 = Math.min(i0 + 1, nwData.length - 1);
+        const y = nwData[i0] + (nwData[i1] - nwData[i0]) * (x - i0);
+        const up = (chaos.impacts[ev.id]?.total ?? 0) >= 0;
+        annotations[`chaos_${ev.id}`] = {
+            type: 'point',
+            xValue: x,
+            yValue: y,
+            pointStyle: 'triangle',
+            rotation: up ? 0 : 180,
+            radius: 6,
+            backgroundColor: up ? '#10b981' : '#f43f5e',
+            borderColor: cats[ev.category]?.color || '#ffffff',
+            borderWidth: 2,
+        };
+    });
+    return annotations;
+}
+
+// Extra tooltip lines for the hovered/tapped index: every event whose
+// marker is nearest that point, with its outcome and dollar impact.
+function chaosTooltipLines(chaos, idx) {
+    if (!chaos) return [];
+    const evs = window.FireChaos.eventsNearIndex(chaos.events, idx);
+    if (!evs.length) return [];
+    const lines = ['', '🌪️ Life events:'];
+    evs.forEach((ev) => {
+        lines.push(
+            `${ev.icon} ${ev.label} (${window.FireChaos.whenLabel(ev)})`,
+        );
+        if (ev.cause) lines.push(`    after ${ev.cause}`);
+        lines.push(`    ${ev.outcome.label}`);
+        lines.push(
+            `    ${window.FireChaos.describeImpact(ev, chaos.impacts[ev.id])}`,
+        );
+    });
+    return lines;
+}
+
+function noChaosDataset(data, borderWidth) {
+    return {
+        label: 'Without chaos',
+        data: data.noChaosData,
+        borderColor: 'rgba(156,163,175,0.55)',
+        borderDash: [4, 4],
+        borderWidth,
+        fill: false,
+        tension: 0.35,
+        pointRadius: 0,
+        order: 7,
+    };
+}
+
+// Chip list of the events inside the current window, under each chart.
+// Mirrors the tooltips for touch users and anyone scanning the timeline.
+function renderChaosTimeline(containerId, data, { compact = false } = {}) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const chaos = data.chaos;
+    if (!chaos) {
+        el.hidden = true;
+        el.innerHTML = '';
+        return;
+    }
+    const FC = window.FireChaos;
+    const cats = FC.CATEGORIES;
+    const last = data.nwData.length - 1;
+    const delta =
+        last >= 0 && data.noChaosData
+            ? data.nwData[last] - data.noChaosData[last]
+            : 0;
+    const down = chaos.events.filter(
+        (ev) => (chaos.impacts[ev.id]?.total ?? 0) < 0,
+    ).length;
+    const up = chaos.events.length - down;
+    const n = chaos.events.length;
+    const summaryInner = `<span>🌪️ <strong>${n}</strong> life event${n === 1 ? '' : 's'} in view</span><span class="chaos-count-neg">▼ ${down}</span><span class="chaos-count-pos">▲ ${up}</span><span>Net effect by ${escHtml(data.labels[last] || '')}: <strong class="${delta < 0 ? 'text-coral' : 'text-emerald'}">${FC.fmtMoney(delta)}</strong></span>`;
+    const chips = chaos.events
+        .map((ev) => {
+            const imp = chaos.impacts[ev.id];
+            const isUp = (imp?.total ?? 0) >= 0;
+            const cat = cats[ev.category] || {
+                label: ev.category,
+                color: '#9ca3af',
+            };
+            return `<li class="chaos-chip ${isUp ? 'is-up' : 'is-down'}" data-cat-color="${cat.color}">
+                <span class="chaos-chip-icon" aria-hidden="true">${ev.icon}</span>
+                <span class="chaos-chip-body">
+                    <span class="chaos-chip-title">${escHtml(ev.label)} <span class="chaos-chip-term">${ev.term === 'long' ? 'long-term' : 'one-time'}</span></span>
+                    <span class="chaos-chip-meta">${escHtml(FC.whenLabel(ev))} · ${escHtml(cat.label)} · ${escHtml(ev.outcome.label)}</span>
+                    ${ev.cause ? `<span class="chaos-chip-cause">after ${escHtml(ev.cause)}</span>` : ''}
+                    <span class="chaos-chip-impact">${isUp ? '▲' : '▼'} ${escHtml(FC.describeImpact(ev, imp))}</span>
+                </span>
+            </li>`;
+        })
+        .join('');
+    const list = n
+        ? `<ul class="chaos-chip-list">${chips}</ul>`
+        : '<p class="text-muted chaos-empty">No life events in this window — try a longer range or reroll.</p>';
+    el.hidden = false;
+    const html = compact
+        ? `<details class="chaos-details"><summary class="chaos-summary">${summaryInner}</summary>${list}</details>`
+        : `<div class="chaos-summary">${summaryInner}</div>${list}`;
+    el.innerHTML = html;
+    // CSP: category colors go through the CSSOM, not style="" in markup.
+    el.querySelectorAll('[data-cat-color]').forEach((li) =>
+        li.style.setProperty('--chaos-cat', li.dataset.catColor),
+    );
+}
+
 function renderProjectionsChart(data) {
     const ctx = document.getElementById('chart-networth-projections');
     if (!ctx) return;
@@ -218,13 +342,17 @@ function renderProjectionsChart(data) {
         order: 6,
         hidden: !t.benchmark,
     });
+    if (data.chaos) datasets.push(noChaosDataset(data, 1.5));
 
-    const annotations = buildProjectionAnnotations(
-        retirementLineIndex,
-        cdEvents,
-        nwData,
-        data.fireNumber,
-    );
+    const annotations = {
+        ...buildProjectionAnnotations(
+            retirementLineIndex,
+            cdEvents,
+            nwData,
+            data.fireNumber,
+        ),
+        ...buildChaosAnnotations(data.chaos, nwData),
+    };
 
     projectionsChart = new Chart(ctx, {
         type: 'line',
@@ -268,6 +396,8 @@ function renderProjectionsChart(data) {
                     callbacks: {
                         label: (ctx) =>
                             ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`,
+                        afterBody: (items) =>
+                            chaosTooltipLines(data.chaos, items[0]?.dataIndex),
                     },
                 },
                 annotation:
@@ -277,6 +407,7 @@ function renderProjectionsChart(data) {
             },
         },
     });
+    renderChaosTimeline('proj-chaos-timeline', data);
 
     Object.keys(t).forEach((key) => {
         const btn = document.querySelector(
@@ -295,49 +426,51 @@ function renderDashboardProjectionsChart() {
     }
 
     const raw = buildProjectionData();
-    const { labels, nwData, fireLine, retirementLineIndex, cdEvents } =
-        sliceProjectionData(raw, dashProjWindow);
+    const sliced = sliceProjectionData(raw, dashProjWindow);
+    const { labels, nwData, fireLine, retirementLineIndex, cdEvents } = sliced;
 
     const annualExpenses = getAnnualExpensesTotal();
     const swr = state.projectionSettings.swr / 100;
     const fireNumber = swr > 0 ? annualExpenses / swr : 0;
-    const annotations = buildProjectionAnnotations(
-        retirementLineIndex,
-        cdEvents,
-        nwData,
-        fireNumber,
-    );
+    const annotations = {
+        ...buildProjectionAnnotations(
+            retirementLineIndex,
+            cdEvents,
+            nwData,
+            fireNumber,
+        ),
+        ...buildChaosAnnotations(sliced.chaos, nwData),
+    };
+    const datasets = [
+        {
+            label: 'Net Worth',
+            data: nwData,
+            borderColor: '#8b5cf6',
+            backgroundColor: 'rgba(139, 92, 246, 0.08)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointHitRadius: 12,
+        },
+        {
+            label: 'FIRE Target',
+            data: fireLine,
+            borderColor: 'rgba(244,63,94,0.7)',
+            borderDash: [5, 5],
+            borderWidth: 1.5,
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            pointHitRadius: 12,
+        },
+    ];
+    if (sliced.chaos) datasets.push(noChaosDataset(sliced, 1));
 
     dashboardProjectionsChart = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Net Worth',
-                    data: nwData,
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.35,
-                    pointRadius: 0,
-                    pointHoverRadius: 5,
-                    pointHitRadius: 12,
-                },
-                {
-                    label: 'FIRE Target',
-                    data: fireLine,
-                    borderColor: 'rgba(244,63,94,0.7)',
-                    borderDash: [5, 5],
-                    borderWidth: 1.5,
-                    fill: false,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
-                    pointHitRadius: 12,
-                },
-            ],
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -378,6 +511,11 @@ function renderDashboardProjectionsChart() {
                     callbacks: {
                         label: (ctx) =>
                             ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`,
+                        afterBody: (items) =>
+                            chaosTooltipLines(
+                                sliced.chaos,
+                                items[0]?.dataIndex,
+                            ),
                     },
                 },
                 annotation:
@@ -387,4 +525,5 @@ function renderDashboardProjectionsChart() {
             },
         },
     });
+    renderChaosTimeline('dash-chaos-timeline', sliced, { compact: true });
 }

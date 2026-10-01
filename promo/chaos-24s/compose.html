@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=block" rel="stylesheet">
+<!-- The app's own design tokens -->
+<link rel="stylesheet" href="file:///repo/app/lib/css/base.css">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg-app); }
+  body { font-family: var(--font-body); color: var(--text-main); }
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--bg-app); }
+  .bg { position: absolute; inset: -200px; }
+  .grid { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse at 50% 45%, #000 20%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 20%, transparent 75%); }
+  .glow { position: absolute; border-radius: 50%; filter: blur(120px); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .abs { position: absolute; }
+  .h { font-family: var(--font-heading); font-weight: 700; letter-spacing: -1.5px; }
+  .sub { font-size: 40px; color: var(--text-muted); font-weight: 500; }
+  .urlgrad { background: linear-gradient(90deg, #10b981, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .brandname { background: linear-gradient(135deg, #ff7e5f, #feb47b, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .chaosgrad { background: linear-gradient(90deg, #ec4899, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .shot { position: absolute; overflow: hidden; border-radius: 22px; box-shadow: 0 40px 100px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.07); background: #0d1220; }
+  .shot img { position: absolute; left: 0; top: 0; max-width: none; }
+  img { display: block; }
+  .word { display: inline-block; margin-right: 22px; }
+  .callout { position: absolute; padding: 10px 16px 11px; border-radius: 14px; background: rgba(8,11,17,.94); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 14px 34px rgba(0,0,0,.55); white-space: nowrap; transform-origin: 50% 100%; }
+  .callout .t { font-size: 23px; font-weight: 600; }
+  .callout .i { font-size: 21px; font-weight: 600; margin-top: 2px; }
+  .callout.down .i { color: var(--color-danger); } .callout.up .i { color: var(--color-success); }
+  .chip { display: inline-block; padding: 14px 26px; border-radius: 999px; border: 1px solid rgba(139,92,246,.45); background: rgba(139,92,246,.12); font-size: 30px; font-weight: 600; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .g { color: var(--color-success); }
+  .phone { position: absolute; border-radius: 64px; padding: 14px; background: #05070b; box-shadow: 0 50px 120px rgba(0,0,0,.7), 0 0 0 2px rgba(255,255,255,.12), inset 0 0 0 2px rgba(255,255,255,.05); }
+  .phone .screen { position: relative; overflow: hidden; border-radius: 50px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="bg" id="bg">
+    <div class="glow" id="g1" style="width:900px;height:900px;background:rgba(139,92,246,.22)"></div>
+    <div class="glow" id="g2" style="width:700px;height:700px;background:rgba(236,72,153,.13)"></div>
+    <div class="glow" id="g3" style="width:600px;height:600px;background:rgba(16,185,129,.10)"></div>
+  </div>
+  <div class="grid"></div>
+
+  <!-- 1 HOOK -->
+  <div class="scene" id="s1">
+    <svg class="abs" id="calmSvg" width="1920" height="1080" viewBox="0 0 1920 1080" style="left:0;top:0">
+      <path id="calmPath" d="M 120 900 C 600 860, 1100 650, 1800 230" fill="none" stroke="rgba(139,92,246,.55)" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+    <div class="abs h" id="hookText" style="left:0;right:0;top:330px;text-align:center;font-size:104px;line-height:1.15;"></div>
+  </div>
+
+  <!-- 2 CHAOS -->
+  <div class="scene" id="s2">
+    <div class="abs h" id="h2" style="left:0;right:0;top:46px;text-align:center;font-size:84px;"><span style="-webkit-text-fill-color:initial">🌪️</span> <span class="chaosgrad">Chaos mode</span></div>
+    <div class="abs sub" id="h2b" style="left:0;right:0;top:158px;text-align:center;">Realistic life events, rolled onto your plan.</div>
+    <div class="shot" id="chartWrap" style="left:260px;top:236px;width:1400px;">
+      <img id="cCalm" src="crops/proj-calm.png">
+      <img id="cChaos" src="crops/proj-chaos.png" style="opacity:0">
+      <div id="flash" class="abs" style="inset:0;background:#ec4899;opacity:0;mix-blend-mode:screen"></div>
+      <svg id="leaders" class="abs" style="left:0;top:0;overflow:visible" width="1400" height="800"></svg>
+      <div id="callouts" class="abs" style="inset:0"></div>
+      <div id="ripple" class="abs" style="width:80px;height:80px;border-radius:50%;border:3px solid #ec4899;opacity:0"></div>
+    </div>
+  </div>
+
+  <!-- 3 HOVER -->
+  <div class="scene" id="s3">
+    <div class="shot" id="tipWrap" style="left:110px;top:150px;"><img id="tipImg" src="crops/proj-tooltip.png"></div>
+    <div class="abs" style="left:1180px;top:250px;width:700px;">
+      <div id="h3" class="h" style="font-size:76px;line-height:1.08;">Hover any marker.</div>
+      <div id="h3b" class="sub" style="margin-top:22px;line-height:1.3;font-size:36px;">See what happened, what led to it, and what it cost.</div>
+      <div id="stat" style="margin-top:64px;">
+        <div class="h" id="statNum" style="font-size:150px;font-weight:800;color:var(--color-danger);letter-spacing:-5px;line-height:1;font-variant-numeric:tabular-nums;"></div>
+        <div id="statLbl" style="font-size:32px;color:var(--text-muted);margin-top:14px;font-weight:500;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 EVERYWHERE -->
+  <div class="scene" id="s4">
+    <div class="phone" id="phone" style="left:250px;top:90px;">
+      <div class="screen" id="phoneScreen" style="width:400px;height:866px;"><img src="crops/phone-dash.png" style="width:400px;"></div>
+    </div>
+    <div class="abs" style="left:860px;top:150px;width:960px;">
+      <div class="h" style="font-size:74px;line-height:1.08;"><span id="w4a">Dashboard.</span> <span id="w4b">Projections.</span><br><span id="w4c" style="color:var(--color-primary-hover)">Your phone.</span></div>
+      <div class="shot" id="chipsWrap" style="position:relative;margin-top:46px;width:960px;"><img id="chipsImg" src="crops/chaos-chips.png"></div>
+      <div id="reroll" class="h" style="font-size:46px;margin-top:40px;font-weight:600;"><span id="dice" style="display:inline-block;-webkit-text-fill-color:initial">🎲</span> Reroll for a different life.</div>
+    </div>
+  </div>
+
+  <!-- M MITIGATE -->
+  <div class="scene" id="sM">
+    <div class="abs" style="left:110px;top:80px;">
+      <div id="hM" class="h" style="font-size:84px;"><span style="-webkit-text-fill-color:initial">🛡️</span> Mitigate the hits.</div>
+      <div id="hMb" class="sub" style="margin-top:6px;">Tick the coverage you have. Chaos applies it, and what it costs.</div>
+    </div>
+    <div class="shot" id="mitWrap" style="left:110px;top:330px;"><img id="mitImg" src="crops/mitigations.png"></div>
+    <div id="rippleM" class="abs" style="width:70px;height:70px;border-radius:50%;border:3px solid #10b981;opacity:0"></div>
+    <div class="abs" id="mitCallout" style="left:110px;top:760px;width:1700px;display:flex;align-items:center;gap:36px;">
+      <div id="mitEvent" class="h" style="font-size:52px;font-weight:700;"></div>
+      <div class="h" style="font-size:60px;font-weight:800;display:flex;gap:28px;align-items:center;">
+        <span id="mitBefore" style="color:var(--color-danger);position:relative;"></span>
+        <span id="mitArrow" style="color:var(--text-muted)">→</span>
+        <span id="mitAfter" style="color:var(--color-success);"></span>
+      </div>
+      <div id="mitNote" style="font-size:30px;color:var(--text-muted);font-weight:500;">with pet insurance · ~$50/mo</div>
+    </div>
+  </div>
+
+  <!-- 5 MAKE IT YOURS -->
+  <div class="scene" id="s5">
+    <div class="abs" style="left:110px;top:70px;">
+      <div id="h5" class="h" style="font-size:84px;">Make it yours.</div>
+      <div id="h5b" class="sub" style="margin-top:6px;">Collapse, reorder, pin any card.</div>
+    </div>
+    <div class="abs" style="left:0;top:0;width:1920px;height:1080px;perspective:2400px;">
+      <div class="shot" id="dashWrap" style="left:110px;top:290px;width:1210px;height:681px;transform-origin:0% 50%;"><img src="crops/dash-edit.png" style="width:1210px;"></div>
+    </div>
+    <div class="shot" id="pickWrap" style="left:1240px;top:190px;width:560px;height:689px;"><img src="crops/picker.png" style="width:560px;"></div>
+    <div id="ripple5" class="abs" style="width:70px;height:70px;border-radius:50%;border:3px solid #a78bfa;opacity:0"></div>
+  </div>
+
+  <!-- 6 OUTRO -->
+  <div class="scene" id="s6">
+    <div class="abs" style="left:0;right:0;top:150px;text-align:center;">
+      <div id="oLogo" class="h" style="font-size:150px;display:inline-flex;align-items:center;gap:30px;letter-spacing:-4px;"><span id="oFire" style="-webkit-text-fill-color:initial;display:inline-block">🔥</span><span class="brandname">fire</span></div>
+      <div id="oTag" class="h" style="font-size:60px;margin-top:22px;">Plan for the life you'll actually live.</div>
+      <div id="oChips" style="margin-top:44px;display:flex;justify-content:center;gap:24px;">
+        <span class="chip mono">github.com/nitsuah/fire</span>
+        <span class="chip mono" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.1)"><span class="g">$</span> docker compose up fire</span>
+      </div>
+      <div id="oUrl" style="margin-top:78px;">
+        <div style="font-size:26px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted);">Try it live</div>
+        <div class="h" style="font-size:92px;font-weight:800;letter-spacing:-2.5px;margin-top:6px;line-height:1.05;"><span class="urlgrad">lifefire.netlify.app</span></div>
+      </div>
+    </div>
+  </div>
+
+  <svg id="cursor" class="abs" width="44" height="54" viewBox="0 0 22 27" style="filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));opacity:0"><path d="M2 2 L2 21 L7 16.5 L10.5 24.5 L13.5 23 L10 15.5 L17 15.5 Z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const eInOut = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eBack = (x) => { const c1 = 1.6, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+const fadeUp = (el, x, d = 26) => { el.style.opacity = x; el.style.transform = `translateY(${(1 - x) * d}px)`; };
+
+const SPOT = window.SPOT;
+const SCENES = SPOT.scenes;
+window.DURATION = SPOT.duration;
+window.FPS = SPOT.fps;
+const CH = window.PROMO.chaos;           // real events + chart geometry (capture.js)
+
+// ── Scene 1: words ──
+const HOOK_LINES = [['Every', 'retirement', 'plan'], ['assumes', 'nothing', 'goes', 'wrong.']];
+let wi = 0;
+const words = [];
+$('hookText').innerHTML = HOOK_LINES.map((line) => line.map((w) => `<span class="word" data-i="${wi++}">${w}</span>`).join('')).join('<br>');
+document.querySelectorAll('#hookText .word').forEach((el) => words.push(el));
+const nothing = words[4];
+nothing.style.position = 'relative';
+nothing.insertAdjacentHTML('beforeend', '<span id="strike" style="position:absolute;left:-6px;right:-6px;top:54%;height:10px;border-radius:6px;background:#f43f5e;transform-origin:0 50%;transform:scaleX(0)"></span>');
+const pathLen = $('calmPath').getTotalLength();
+$('calmPath').style.strokeDasharray = pathLen;
+
+// ── Scene 2: chart geometry ──
+const CARD_W = CH.box.width;              // css px of the captured card
+const SHOW_H = 676;                       // show the chart, not the chip list
+const K2 = 1400 / CARD_W;
+$('chartWrap').style.height = SHOW_H * K2 + 'px';
+['cCalm', 'cChaos'].forEach((id) => ($(id).style.width = CARD_W * K2 + 'px'));
+const toCard = (p) => ({ x: (CH.canvas.x - CH.box.x + p.x) * K2, y: (CH.canvas.y - CH.box.y + p.y) * K2 });
+const btnC = { x: (CH.chaosBox.x - CH.box.x + CH.chaosBox.width / 2) * K2, y: (CH.chaosBox.y - CH.box.y + CH.chaosBox.height / 2) * K2 };
+
+// Each callout sits in a fixed open slot (spot.json) with a leader line to
+// its real marker, so neighbouring events never pile on top of each other.
+const SVGNS = 'http://www.w3.org/2000/svg';
+const POPS = SPOT.chaos.pops.map((slot, i) => {
+  const matches = CH.events.filter((e) => e.label.toLowerCase().includes(slot.match.toLowerCase()));
+  const ev = matches[matches.length - 1];
+  if (!ev) throw new Error('no chaos event matching ' + slot.match);
+  const pt = toCard(CH.points[Math.min(ev.idx, CH.points.length - 1)]);
+  const up = ev.total >= 0;
+  const el = document.createElement('div');
+  el.className = `callout ${up ? 'up' : 'down'}`;
+  el.style.left = slot.x + 'px'; el.style.top = slot.y + 'px';
+  el.innerHTML = `<div class="t">${ev.icon} ${ev.label}</div><div class="i">${up ? '▲' : '▼'} ${ev.impact.replace(/ \(rising[^)]*\)/, '')}</div>`;
+  $('callouts').appendChild(el);
+  const line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('stroke', up ? 'rgba(16,185,129,.8)' : 'rgba(244,63,94,.8)');
+  line.setAttribute('stroke-width', '2.5');
+  const dot = document.createElementNS(SVGNS, 'circle');
+  dot.setAttribute('r', '9'); dot.setAttribute('fill', 'none');
+  dot.setAttribute('stroke', up ? '#10b981' : '#f43f5e'); dot.setAttribute('stroke-width', '3');
+  dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
+  $('leaders').append(line, dot);
+  return { el, pt, line, dot, t: SPOT.chaos.popStart + i * SPOT.chaos.popStep };
+});
+
+// ── Scene 3 ──
+const delta = CH.endNW - CH.endCalm;
+const lastAge = 32 + CH.points.length - 1; // labels start at the demo's current age
+const fmtK = (n) => `${n < 0 ? '−' : '+'}$${Math.round(Math.abs(n) / 1000)}K`;
+$('statLbl').textContent = `by age ${lastAge}, vs. the plan without chaos`;
+const TIP = { x: 140, y: 222, w: 400, h: 374 }; // css region of the card around the tooltip
+const K3 = 2.2;
+$('tipWrap').style.width = TIP.w * K3 + 'px'; $('tipWrap').style.height = TIP.h * K3 + 'px';
+$('tipImg').style.width = CARD_W * K3 + 'px';
+$('tipImg').style.left = -TIP.x * K3 + 'px'; $('tipImg').style.top = -TIP.y * K3 + 'px';
+
+// ── Scene 4 ──
+$('chipsImg').style.width = '960px';
+let chipsH = 0;
+
+// ── Mitigate scene: zoom on the ticked Dental + Pet insurance cards ──
+const MIT = { x: 350, y: 315, w: 730, h: 235 }; // css region of the panel
+const KM = 1.6;
+$('mitWrap').style.width = MIT.w * KM + 'px'; $('mitWrap').style.height = MIT.h * KM + 'px';
+$('mitImg').style.width = 1434 * KM + 'px';
+$('mitImg').style.left = -MIT.x * KM + 'px'; $('mitImg').style.top = -MIT.y * KM + 'px';
+const petBox = { x: 110 + (771 - MIT.x) * KM, y: 330 + (345 - MIT.y) * KM };
+const dog = CH.events.find((e) => /Dog emergency/.test(e.label));
+const fmt1 = (n) => `${n < 0 ? '−' : '+'}$${(Math.abs(n) / 1000).toFixed(1)}K`;
+$('mitEvent').textContent = dog ? `🐕 ${dog.label}` : '';
+$('mitBefore').textContent = dog ? fmt1(dog.total) : '';
+$('mitAfter').textContent = dog ? fmt1(Math.round(dog.total * 0.2)) : ''; // pet insurance: ~80% off
+$('mitBefore').insertAdjacentHTML('beforeend', '<span id="mitStrike" style="position:absolute;left:-4px;right:-4px;top:52%;height:7px;border-radius:4px;background:#f43f5e;transform-origin:0 50%;transform:scaleX(0)"></span>');
+
+// ── Scene 5: picker "Add" on CD Ladder (css coords of the 520-wide picker) ──
+const PICK_K = 560 / 520;
+const addBtn = { x: 1240 + 469 * PICK_K, y: 190 + 405 * PICK_K };
+
+function sceneAlpha(t, a, b, first, last) {
+  const fin = first ? 1 : eOut(seg(t, a, a + 0.35));
+  const fout = last ? 1 : 1 - seg(t, b - 0.3, b);
+  return t < a || t >= b + (last ? 1 : 0) ? 0 : fin * fout;
+}
+const press = (t, tc) => { const d = t - tc; return d > 0 && d < .16 ? .82 : 1; };
+
+window.render = function (t) {
+  $('g1').style.transform = `translate(${760 + Math.sin(t * .25) * 180}px, ${120 + Math.cos(t * .2) * 90}px)`;
+  $('g2').style.transform = `translate(${200 + Math.cos(t * .18) * 140}px, ${600 + Math.sin(t * .22) * 80}px)`;
+  $('g3').style.transform = `translate(${1500 + Math.sin(t * .15) * 120}px, ${700 + Math.cos(t * .3) * 60}px)`;
+
+  SCENES.forEach(([id, a, b], i) => {
+    const al = sceneAlpha(t, a, b, i === 0, i === SCENES.length - 1);
+    const el = $(id); el.style.opacity = al; el.style.visibility = al > 0 ? 'visible' : 'hidden';
+  });
+  const cur = $('cursor');
+  cur.style.opacity = 0;
+
+  // 1 HOOK
+  {
+    const H = SPOT.hook;
+    words.forEach((w, i) => {
+      const st = H.wordsStart + i * H.wordStep;
+      const x = eBack(seg(t, st, st + 0.32));
+      w.style.opacity = clamp(seg(t, st, st + 0.15));
+      w.style.transform = `translateY(${(1 - x) * 34}px) scale(${lerp(.9, 1, x)})`;
+    });
+    const s = eOut(seg(t, H.strike, H.strike + 0.22));
+    $('strike').style.transform = `scaleX(${s})`;
+    nothing.style.color = s > 0 ? `rgba(244,63,94,${0.55 + 0.45 * s})` : '';
+    const shake = t > H.strike ? Math.exp(-(t - H.strike) * 5) : 0;
+    $('hookText').style.transform = `translate(${Math.sin(t * 90) * 9 * shake}px, ${Math.cos(t * 77) * 5 * shake}px)`;
+    const draw = eInOut(seg(t, 0.1, 2.2));
+    $('calmPath').style.strokeDashoffset = pathLen * (1 - draw);
+    $('calmSvg').style.transform = `translate(${Math.sin(t * 110) * 14 * shake}px, ${Math.cos(t * 93) * 10 * shake}px)`;
+    $('calmPath').style.stroke = shake > 0.05 ? `rgba(236,72,153,${.4 + .5 * shake})` : 'rgba(139,92,246,.55)';
+  }
+
+  // 2 CHAOS
+  {
+    const C = SPOT.chaos;
+    fadeUp($('h2'), eOut(seg(t, 3.6, 4.0)));
+    fadeUp($('h2b'), eOut(seg(t, 3.8, 4.2)), 18);
+    const cw = eOut(seg(t, 3.5, 4.1));
+    const kick = t > C.click ? Math.exp(-(t - C.click) * 9) : 0;
+    $('chartWrap').style.transform = `translateY(${(1 - cw) * 60 + Math.sin(t * 80) * 6 * kick}px) scale(${lerp(.96, 1, cw) * (1 + .012 * kick)})`;
+    const on = t >= C.click + 0.05 ? 1 : 0;
+    $('cChaos').style.opacity = on; $('cCalm').style.opacity = 1 - on;
+    $('flash').style.opacity = on ? 0.35 * Math.exp(-(t - C.click) * 8) : 0;
+    if (t >= 3.6 && t < 5.2) {
+      const start = { x: 1200, y: 900 };
+      const tgt = { x: 260 + btnC.x, y: 236 + btnC.y };
+      const m = eInOut(seg(t, 3.75, 4.4));
+      cur.style.opacity = clamp(seg(t, 3.6, 3.8)) * (1 - seg(t, 4.9, 5.1));
+      cur.style.left = lerp(start.x, tgt.x, m) - 4 + 'px'; cur.style.top = lerp(start.y, tgt.y, m) - 4 + 'px';
+      cur.style.transform = `scale(${press(t, C.click)})`; cur.style.transformOrigin = '4px 4px';
+    }
+    const d = (t - C.click) / .55, rip = $('ripple');
+    if (d >= 0 && d <= 1) {
+      rip.style.opacity = (1 - d) * .9; rip.style.left = btnC.x - 40 + 'px'; rip.style.top = btnC.y - 40 + 'px';
+      rip.style.transform = `scale(${lerp(.3, 1.8, eOut(d))})`;
+    } else rip.style.opacity = 0;
+    POPS.forEach(({ el, pt, line, dot, t: st }) => {
+      const x = eBack(seg(t, st, st + 0.4));
+      const a = clamp(seg(t, st, st + 0.12));
+      el.style.opacity = a;
+      el.style.transform = `scale(${lerp(.6, 1, x)})`;
+      el.style.transformOrigin = '50% 50%';
+      // Leader from the callout's nearest edge midpoint to the marker
+      const l = el.offsetLeft, tp = el.offsetTop, w = el.offsetWidth, h = el.offsetHeight;
+      const ex = clamp(pt.x, l + 24, l + w - 24);
+      const ey = pt.y < tp ? tp : tp + h;
+      const g = eOut(seg(t, st + 0.05, st + 0.35));
+      line.setAttribute('x1', ex); line.setAttribute('y1', ey);
+      line.setAttribute('x2', lerp(ex, pt.x, g)); line.setAttribute('y2', lerp(ey, pt.y, g));
+      line.style.opacity = a; dot.style.opacity = g;
+    });
+  }
+
+  // 3 HOVER
+  {
+    const z = eOut(seg(t, 8.5, 9.2));
+    $('tipWrap').style.transform = `translateX(${(1 - z) * -60}px) scale(${lerp(.92, 1, z) + .02 * seg(t, 9.2, 12)})`;
+    fadeUp($('h3'), eOut(seg(t, 8.65, 9.05)));
+    fadeUp($('h3b'), eOut(seg(t, 8.85, 9.25)), 18);
+    const c = seg(t, 9.6, 10.5);
+    $('statNum').textContent = fmtK(delta * eOut(c));
+    fadeUp($('stat'), eOut(seg(t, 9.5, 9.85)));
+    fadeUp($('statLbl'), eOut(seg(t, 10.4, 10.75)), 12);
+  }
+
+  // 4 EVERYWHERE
+  {
+    const t4 = t + 0.5; // scene now starts at 11.5
+    const p = eOut(seg(t4, 12, 12.7));
+    $('phone').style.transform = `translateY(${(1 - p) * 120}px) rotate(${lerp(-6, -2, p) + Math.sin(t * .8) * .4}deg)`;
+    [['w4a', 12.15], ['w4b', 12.35], ['w4c', 12.55]].forEach(([id, st]) => fadeUp($(id), eOut(seg(t4, st, st + 0.35)), 20));
+    $('w4a').style.display = $('w4b').style.display = $('w4c').style.display = 'inline-block';
+    const ch = $('chipsImg').offsetHeight;
+    chipsH = Math.min(ch, 330);
+    const wipe = eInOut(seg(t4, 12.8, 13.8));
+    $('chipsWrap').style.height = chipsH + 'px';
+    $('chipsWrap').style.clipPath = `inset(0 0 ${(1 - wipe) * 100}% 0 round 22px)`;
+    $('chipsImg').style.top = -lerp(0, Math.max(0, ch - chipsH), eInOut(seg(t4, 13.8, 15.4))) + 'px';
+    fadeUp($('reroll'), eOut(seg(t4, 13.9, 14.3)), 16);
+    const roll = seg(t4, 14.0, 14.6);
+    $('dice').style.transform = `rotate(${eOut(roll) * 720}deg) scale(${1 + .3 * Math.sin(roll * Math.PI)})`;
+  }
+
+  // M MITIGATE
+  {
+    const MS = SPOT.mitigate;
+    fadeUp($('hM'), eOut(seg(t, 14.6, 15.0)));
+    fadeUp($('hMb'), eOut(seg(t, 14.8, 15.2)), 18);
+    const w = eOut(seg(t, 14.5, 15.1));
+    $('mitWrap').style.transform = `translateY(${(1 - w) * 50}px) scale(${lerp(.96, 1, w) + .015 * seg(t, 15.1, 18)})`;
+    $('mitWrap').style.opacity = clamp(w * 1.4);
+    if (t >= 14.8 && t < 16.2) {
+      const start = { x: 1500, y: 950 };
+      const m = eInOut(seg(t, 14.85, MS.click - 0.05));
+      cur.style.opacity = clamp(seg(t, 14.8, 15.0)) * (1 - seg(t, 15.9, 16.1));
+      cur.style.left = lerp(start.x, petBox.x, m) - 4 + 'px'; cur.style.top = lerp(start.y, petBox.y, m) - 4 + 'px';
+      cur.style.transform = `scale(${press(t, MS.click)})`; cur.style.transformOrigin = '4px 4px';
+    }
+    const d = (t - MS.click) / .5, r = $('rippleM');
+    if (d >= 0 && d <= 1) {
+      r.style.opacity = (1 - d) * .9; r.style.left = petBox.x - 35 + 'px'; r.style.top = petBox.y - 35 + 'px';
+      r.style.transform = `scale(${lerp(.3, 1.6, eOut(d))})`;
+    } else r.style.opacity = 0;
+    fadeUp($('mitCallout'), eOut(seg(t, 15.7, 16.1)), 24);
+    $('mitStrike').style.transform = `scaleX(${eOut(seg(t, MS.after, MS.after + 0.25))})`;
+    const a = eBack(seg(t, MS.after + 0.15, MS.after + 0.55));
+    $('mitAfter').style.opacity = clamp(seg(t, MS.after + 0.15, MS.after + 0.3));
+    $('mitAfter').style.display = 'inline-block';
+    $('mitAfter').style.transform = `scale(${lerp(.6, 1, a)})`;
+    $('mitArrow').style.opacity = clamp(seg(t, MS.after, MS.after + 0.2));
+    fadeUp($('mitNote'), eOut(seg(t, MS.after + 0.5, MS.after + 0.85)), 10);
+  }
+
+  // 5 MAKE IT YOURS
+  {
+    const t6 = t - 2.5; // scene now starts at 18
+    fadeUp($('h5'), eOut(seg(t6, 15.6, 16.0)));
+    fadeUp($('h5b'), eOut(seg(t6, 15.8, 16.2)), 18);
+    const e = eOut(seg(t6, 15.5, 16.3));
+    $('dashWrap').style.transform = `translateX(${lerp(-300, 0, e)}px) rotateY(${lerp(28, 9, e) - 2 * seg(t6, 16.3, 18.5)}deg)`;
+    $('dashWrap').style.opacity = clamp(e * 1.5);
+    const pk = eBack(seg(t6, 16.2, 16.65));
+    $('pickWrap').style.opacity = clamp(seg(t6, 16.2, 16.35));
+    $('pickWrap').style.transform = `scale(${lerp(.82, 1, pk)})`;
+    $('pickWrap').style.transformOrigin = '50% 30%';
+    const P = SPOT.pick.click - 2.5;
+    if (t6 >= 16.4 && t6 < 18.3) {
+      const start = { x: 1500, y: 1000 };
+      const m = eInOut(seg(t6, 16.5, P - 0.05));
+      cur.style.opacity = clamp(seg(t6, 16.4, 16.6)) * (1 - seg(t6, 18.0, 18.2));
+      cur.style.left = lerp(start.x, addBtn.x, m) - 4 + 'px'; cur.style.top = lerp(start.y, addBtn.y, m) - 4 + 'px';
+      cur.style.transform = `scale(${press(t6, P)})`; cur.style.transformOrigin = '4px 4px';
+    }
+    const d = (t6 - P) / .5, r = $('ripple5');
+    if (d >= 0 && d <= 1) {
+      r.style.opacity = (1 - d) * .9; r.style.left = addBtn.x - 35 + 'px'; r.style.top = addBtn.y - 35 + 'px';
+      r.style.transform = `scale(${lerp(.3, 1.6, eOut(d))})`;
+    } else r.style.opacity = 0;
+  }
+
+  // 6 OUTRO
+  {
+    const t7 = t - 2.5; // scene now starts at 21
+    const l = eBack(seg(t7, 18.55, 19.1));
+    $('oLogo').style.opacity = clamp(seg(t7, 18.55, 18.8));
+    $('oLogo').style.transform = `scale(${lerp(.85, 1, l)})`;
+    $('oFire').style.transform = `scale(${1 + .04 * Math.sin(t * 7)}) rotate(${2 * Math.sin(t * 5)}deg)`;
+    fadeUp($('oTag'), eOut(seg(t7, 18.9, 19.3)), 20);
+    fadeUp($('oChips'), eOut(seg(t7, 19.3, 19.7)), 20);
+    const u = eOut(seg(t7, 19.6, 20.1));
+    $('oUrl').style.opacity = u; $('oUrl').style.transform = `translateY(${(1 - u) * 26}px) scale(${lerp(.96, 1, u)})`;
+  }
+};
+
+window.ready = (async () => {
+  await document.fonts.ready;
+  await Promise.all(['700 40px Outfit', '800 40px Outfit', '500 40px Inter', '600 40px Inter', '400 30px "JetBrains Mono"'].map((f) => document.fonts.load(f)));
+  await Promise.all([...document.images].map((im) => im.decode().catch(() => {})));
+  render(0);
+  return true;
+})();
+</script>
+</body>
+</html>

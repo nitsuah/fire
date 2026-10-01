@@ -19,6 +19,9 @@ const WORK = `/out/${spot}`;
         mcpStatus: JSON.parse(
             fs.readFileSync('/out/capture/mcp-status.json', 'utf8'),
         ),
+        chaos: fs.existsSync('/out/capture/chaos.json')
+            ? JSON.parse(fs.readFileSync('/out/capture/chaos.json', 'utf8'))
+            : null,
     };
     const browser = await chromium.launch({
         args: ['--allow-file-access-from-files'],

@@ -4,7 +4,7 @@
    (Cache-first under a fixed CACHE_NAME kept serving old JS after every
    deploy, so fixes never reached browsers that had the worker installed.)
 */
-const CACHE_NAME = 'fire-tracker-v3';
+const CACHE_NAME = 'fire-tracker-v4';
 
 // Assets that make up the app shell
 const SHELL_ASSETS = [
@@ -18,6 +18,8 @@ const SHELL_ASSETS = [
     '/lib/prices.js',
     '/lib/expenses.js',
     '/lib/projections.js',
+    '/lib/chaos-events.js',
+    '/lib/layout-manager.js',
     '/lib/side-gig.js',
     '/lib/csv-import.js',
     '/lib/finance-calcs.js',

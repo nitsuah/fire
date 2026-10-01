@@ -162,6 +162,10 @@
                             <div class="card glass-card" id="dash-card-growth">
                                 <div class="card-title-row">
                                     <h2 class="card-title">Retirement Growth Path</h2>
+                                    <div class="chaos-btns">
+                                    <button type="button" class="chaos-btn" data-csp-click-action="toggleChaos" aria-pressed="false" title="Chaos mode: sprinkle realistic random life events (surgery, new job, windfall…) onto the projection">🌪️ Chaos</button>
+                                    <button type="button" class="chaos-reroll-btn" data-csp-click-action="rerollChaos" hidden title="Roll a different set of life events" aria-label="Reroll life events">🎲</button>
+                                    </div>
                                     <button type="button" class="period-btn" id="growth-expand-btn" aria-pressed="false" title="Expand to full width (wide screens)" aria-label="Expand chart to full width">⤢</button>
                                     <div class="period-btns" id="dash-period-btns">
                                         <button class="period-btn" data-csp-click-action="setDashProjWindow" data-csp-click-value="1m">1M</button>
@@ -175,6 +179,7 @@
                                 <div class="chart-container dash-growth-chart csp-i-006">
                                     <canvas id="chart-dashboard-projections"></canvas>
                                 </div>
+                                <div class="chaos-timeline" id="dash-chaos-timeline" hidden></div>
                             </div>
 
                             <!-- Top Investment Positions -->
@@ -365,7 +370,7 @@
                         <div class="fo-left">
 
                             <!-- Unified Add Form -->
-                            <div class="card glass-card">
+                            <div class="card glass-card" data-card-title="Add Accounts &amp; Assets">
                                 <div class="ua-type-tabs">
                                     <button class="ua-tab-btn active" data-ua-tab="csv">Import CSV</button>
                                     <button class="ua-tab-btn" data-ua-tab="account">Account / Asset</button>
@@ -924,8 +929,9 @@
                 <section class="tab-pane" id="tab-insights">
                     <div class="dashboard-grid">
                         <!-- Portfolio Insights (moved from Dashboard) -->
-                        <div class="card glass-card span-2">
+                        <div class="card glass-card span-2" data-card-id="insights:portfolio-insights" data-card-title="Portfolio Insights">
                             <div id="divs-suggestion-block" class="divs-suggestion-block"></div>
+                            <div id="chaos-mitigations" class="mitigation-block"></div>
                         </div>
 
                         <!-- Portfolio Rebalancing (moved from Financial Overview) -->
@@ -1370,10 +1376,13 @@
                                 <button class="scenario-btn" data-offset="-2" data-csp-click-action="applyScenario" data-csp-click-value="-2">🐻 Bear (−2%)</button>
                                 <button class="scenario-btn active" data-offset="0" data-csp-click-action="applyScenario" data-csp-click-value="0">Base Rate</button>
                                 <button class="scenario-btn" data-offset="2" data-csp-click-action="applyScenario" data-csp-click-value="2">🐂 Bull (+2%)</button>
+                                <button type="button" class="chaos-btn" data-csp-click-action="toggleChaos" aria-pressed="false" title="Chaos mode: sprinkle realistic random life events (surgery, new job, windfall…) onto the projection">🌪️ Chaos</button>
+                                <button type="button" class="chaos-reroll-btn" data-csp-click-action="rerollChaos" hidden title="Roll a different set of life events" aria-label="Reroll life events">🎲</button>
                             </div>
                             <div class="chart-container mt-3 csp-i-023">
                                 <canvas id="chart-networth-projections"></canvas>
                             </div>
+                            <div class="chaos-timeline" id="proj-chaos-timeline" hidden></div>
                         </div>
                     </div>
 
@@ -1622,6 +1631,7 @@
     <script src="lib/csv-import.js"></script>
     <script src="lib/expenses.js"></script>
     <script src="lib/side-gig.js"></script>
+    <script src="lib/chaos-events.js"></script>
     <script src="lib/projections.js"></script>
     <!-- Charts -->
     <script src="lib/charts/cd-ladder.js"></script>
@@ -1650,6 +1660,7 @@
     <script src="lib/managers/gdrive-backup.js"></script>
     <script src="lib/managers/spending-upload.js"></script>
     <script src="lib/managers/hustle-accelerators.js"></script>
+    <script src="lib/layout-manager.js"></script>
     <!-- Main Controller Script -->
     <script src="app.js"></script>
     <!-- Taxes & Tax-Loss Harvesting -->

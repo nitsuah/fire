@@ -99,6 +99,7 @@ const CSP_ACTIONS = new Set([
     'startEditAccount', 'deleteAccount', 'startEditCD', 'deleteCD', 'saveEditVehicle',
     'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate', 'saveEditAccount',
     'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
+    'toggleChaos', 'rerollChaos',
 ]);
 
 function initCspEventDelegation() {
@@ -154,6 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initHustleAccelerators();
     initGrowthSizeControls();
     initStaleTabResync();
+    initLayoutManager();
 
     // Initial Render
     refreshAllUI();

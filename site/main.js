@@ -44,6 +44,21 @@
         if (!vid.muted) tryPlay();
     });
 
+    // Chaos-mode demo: play only while on screen, and never under reduced
+    // motion (the poster and the still below it carry the same content).
+    const chaosVid = document.getElementById('chaos-vid');
+    if (chaosVid && !reduceMotion && 'IntersectionObserver' in window) {
+        new IntersectionObserver(
+            (entries) =>
+                entries.forEach((e) =>
+                    e.isIntersecting
+                        ? chaosVid.play().catch(() => {})
+                        : chaosVid.pause(),
+                ),
+            { threshold: 0.4 },
+        ).observe(chaosVid);
+    }
+
     // Real chart captures for each scenario; preload so the swap is instant.
     const img = document.getElementById('scn-img');
     const labels = {
@@ -66,6 +81,79 @@
             img.alt = `Retirement growth path chart, ${labels[k]} scenario`;
         });
     });
+
+    // Lightbox: tap/click any screenshot (or the Chaos video) to see it
+    // full size. Inside, tapping an image toggles fit-to-screen and actual
+    // size; Esc, the ✕ button or the backdrop close it.
+    const box = document.getElementById('lightbox');
+    const media = document.getElementById('lightbox-media');
+    const caption = document.getElementById('lightbox-caption');
+    const open = (el) => {
+        media.innerHTML = '';
+        media.classList.remove('is-actual');
+        let node;
+        if (el.tagName === 'VIDEO') {
+            node = document.createElement('video');
+            node.src = el.currentSrc || el.src;
+            node.poster = el.poster;
+            Object.assign(node, {
+                controls: true,
+                loop: true,
+                muted: true,
+                playsInline: true,
+            });
+            if (!reduceMotion) node.autoplay = true;
+            el.pause();
+        } else {
+            node = document.createElement('img');
+            node.src = el.currentSrc || el.src;
+            node.alt = el.alt;
+            // Click, Enter or Space toggles fit-to-screen / actual size.
+            node.tabIndex = 0;
+            node.setAttribute('role', 'button');
+            node.setAttribute('aria-label', `Toggle actual size: ${el.alt}`);
+            const toggleSize = () => media.classList.toggle('is-actual');
+            node.addEventListener('click', toggleSize);
+            node.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSize();
+                }
+            });
+        }
+        media.appendChild(node);
+        caption.textContent =
+            el.getAttribute('alt') || el.getAttribute('aria-label') || '';
+        box.showModal();
+    };
+    box.addEventListener('click', (e) => {
+        if (e.target === box || e.target.closest('.lightbox-close'))
+            box.close();
+    });
+    box.addEventListener('close', () => {
+        media.innerHTML = '';
+    });
+    document
+        .querySelectorAll(
+            '.shot img, .tile-shot img, .chart-shot img, #chaos-vid',
+        )
+        .forEach((el) => {
+            el.classList.add('zoomable');
+            el.parentElement.classList.add('zoom-wrap');
+            el.setAttribute('tabindex', '0');
+            el.setAttribute('role', 'button');
+            el.setAttribute(
+                'aria-label',
+                `Enlarge: ${el.getAttribute('alt') || el.getAttribute('aria-label') || 'image'}`,
+            );
+            el.addEventListener('click', () => open(el));
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    open(el);
+                }
+            });
+        });
 
     document.querySelectorAll('.copy').forEach((btn) => {
         btn.addEventListener('click', async () => {

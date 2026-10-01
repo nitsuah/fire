@@ -1,0 +1,87 @@
+{
+  "title": "fire — Chaos mode, mitigations + custom layout spot",
+  "duration": 24,
+  "fps": 30,
+  "poster": 7.6,
+  "scenes": [
+    [
+      "s1",
+      0,
+      3.5
+    ],
+    [
+      "s2",
+      3.5,
+      8.5
+    ],
+    [
+      "s3",
+      8.5,
+      11.5
+    ],
+    [
+      "s4",
+      11.5,
+      14.5
+    ],
+    [
+      "sM",
+      14.5,
+      18
+    ],
+    [
+      "s5",
+      18,
+      21
+    ],
+    [
+      "s6",
+      21,
+      24
+    ]
+  ],
+  "hook": {
+    "wordsStart": 0.15,
+    "wordStep": 0.13,
+    "strike": 2.45
+  },
+  "chaos": {
+    "click": 4.5,
+    "pops": [
+      {
+        "match": "Inherited a house",
+        "x": 150,
+        "y": 350
+      },
+      {
+        "match": "Dog emergency",
+        "x": 430,
+        "y": 450
+      },
+      {
+        "match": "windfall",
+        "x": 760,
+        "y": 360
+      },
+      {
+        "match": "Aging parent",
+        "x": 880,
+        "y": 600
+      },
+      {
+        "match": "Family funeral costs",
+        "x": 1090,
+        "y": 420
+      }
+    ],
+    "popStart": 5.0,
+    "popStep": 0.36
+  },
+  "pick": {
+    "click": 19.6
+  },
+  "mitigate": {
+    "click": 15.45,
+    "after": 16.3
+  }
+}

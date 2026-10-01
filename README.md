@@ -19,7 +19,7 @@
 - **Ask your LLM** — the built-in MCP server exposes read-only financial tools for Claude/other MCP clients without giving the model trading or write access to external accounts.
 - **Built for investigation, not just a number** — projections, scenario stress tests, diversification signals, tax-loss alerts, rebalancing what-ifs, CD maturities, emergency runway, and side-gig tax tagging turn raw balances into context.
 
-**Try it:** [live browser demo](https://lifefire.netlify.app/) · **Run it locally:** `docker compose up -d` · **Use with Claude:** see [MCP Server](#mcp-server-claude-integration)
+**Try it:** [live browser demo](https://lifefire.netlify.app/) · **Run it locally:** `docker compose up -d` · **Use with Claude:** see [MCP Server](#mcp-server-claude-integration) and the [fire-coach skill](skills/README.md)
 
 ---
 
@@ -33,6 +33,8 @@
 - **Net Worth Dashboard** — real-time tracking of accounts, CDs, real estate, vehicles, precious metals, and investments; on wide screens Retirement Growth Path, an interactive drill-down Asset Allocation chart, and Cash & Fixed Income share the top row (the growth chart has a full-width expander)
 - **Responsive shell** — hamburger nav drawer on phones, a single minimalist FIRE/net-worth summary bar (breakdown, income and spend on hover/tap) at narrow widths, and a pinned alerts bell
 - **Retirement Projections** — SWR curves (3 – 4%), bull/bear scenarios, cash-first portfolio drawdown after retirement age, growth presets (Conservative / Standard / Aggressive / Early Retiree) and milestone presets in one panel
+- **🌪️ Chaos mode** — one toggle (next to Bear/Bull, and on the Dashboard chart) rolls realistic life events onto your projection: gallbladder surgery, a cat's cancer, a child, an inherited house, a refinance, a job loss, an unexpected windfall… 37 events in 8 categories with life-average odds, age windows, predefined outcomes and follow-ups (a parent's care → funeral → inheritance). Costs that outrun inflation (rent, child and elder care, medical bills) escalate; 🛡️ mitigations like pet insurance shrink the hits they cover and charge their premiums. ▲/▼ markers with hover/tap details, a dashed "without chaos" line and 🎲 reroll. See [Chaos mode](#chaos-mode)
+- **Customizable layout** — every tab is made of sections with a chosen column layout (1–4 columns, wide-left/right/center); a card alone in a section spans the full width. **✎ Customize** gives a drag-and-drop builder canvas with highlighted drop targets, click a title to collapse, and on the Dashboard **＋ Add widget** pins any card from another tab. Saved across sessions. See [Customizable layout](#customizable-layout)
 - **Insights** — portfolio insight tiles (diversification, emergency fund, savings rate, CD maturities, SWR, crypto share), tax-loss harvesting alerts, and a portfolio rebalancing tool
 - **Investment P&L Table** — sortable, color-coded, allocation filter with pie chart, risk concentration badges
 - **CD Ladder Visualizer** — timeline of upcoming maturities with yield overlays
@@ -184,10 +186,55 @@ Connect Claude Code to your live financial data. The project ships a `.mcp.json`
 
 `simulate_rebalance` is a what-if: it reports allocation and diversification score before/after moving money between asset classes, and never trades or saves anything.
 
+**Claude skill:** [`skills/fire-coach`](skills/README.md) makes Claude a FIRE coach for this app. It maps questions to the right MCP tools, applies a FIRE playbook (the 4% rule, savings rate, order of operations, taxes, sequence risk, what to do when income stops) and points to the exact tab and button. Install it with `mkdir -p ~/.claude/skills && cp -r skills/fire-coach ~/.claude/skills/`.
+
 Smoke-test locally:
 ```bash
 docker compose exec fire node scripts/test-mcp.mjs
 ```
+
+---
+
+## Chaos mode
+
+![Retirement growth path with Chaos mode on](site/assets/proj-chaos.webp)
+
+Every projection is a smooth line; life isn't. **🌪️ Chaos** applies a seeded timeline of 37 kinds of life events to the base path. The plain path stays on the chart as a dashed "Without chaos" line.
+
+| Category | Examples | Typical impact |
+| --- | --- | --- |
+| Health | gallbladder surgery, ER visit, dental emergency, serious illness, knee/hip replacement | $1.2k – $14k one-time, rising ~2%/yr above inflation the later it happens; serious illness can add months of lost income |
+| Pets | cat cancer, dog emergency surgery | $1.5k – $10k one-time (vet bills rise ~2%/yr above inflation) |
+| Family | wedding, child birth, daycare ending, divorce, aging parent care, unpaid family loan, funeral, inheritance, **inherited house**, family gift | child −$8k to −$16k/yr for 18 years; divorce −20–35% of net worth; inheritance +$15k – $200k; inherited house: sell (+$220k), move in (+$15k/yr) or rent it out (+$11k/yr) |
+| Career | job loss, new job/promotion, bonus, side hustle takes off, pay cut, RSUs | 2–10 months of income lost; a promotion is a signing bump or extra savings for 5–6 years (wages are flat in real terms) |
+| Housing | roof/HVAC, water damage, rent hike / forced move, **refinance**, **roommate / house hack** | $2.5k – $35k one-time; rent +$3k – $6k/yr; refinance +$2.4k – $4.8k/yr for 15 years; roommate +$7k – $12k/yr |
+| Auto | accident, major repair, replacement car, **car loan paid off** | $1k – $30k; a paid-off loan frees $4k – $5k/yr for a few years |
+| Windfall | surprise tax refund, sold a collection, lottery/crypto, **settlement or claim payout** | +$400 – $40k |
+| Legal & money | identity theft, surprise tax bill, lawsuit | $500 – $30k |
+
+- **Sequences:** some events trigger follow-ups. Aging-parent care can lead to a funeral, and a funeral to an inheritance or an inherited house. A wedding can lead to a child; a child leads to daycare ending a few years later; a job loss is usually followed by a new job. Follow-ups show "after …" in the tooltip and the event list.
+- Each event has a **life-average yearly probability** and an **age window**: weddings and kids skew young, joint replacements older, and career events stop at retirement. Randomness only picks which event happens, when, and which of its predefined outcomes applies.
+- Density follows the window: at least 1 event in the first year and 3 in every 5 years, about 0.75 a year over a lifetime, with at most 2 in any one year.
+- **How it moves net worth** (all in today's dollars, like the chart):
+  - One-time costs and gains hit in the year they happen, then compound with the rest of the portfolio.
+  - Recurring ones change yearly savings before retirement, or yearly withdrawals after it, for their duration.
+  - Costs that rise with inflation are already flat in today's dollars. Those that have historically outrun it climb on top of that: rent +1%/yr, child costs +1%, elder care +3%, insurance after a claim +2%. Descriptions quote your inflation setting, e.g. "rising ~3.5%/yr: inflation + 1%".
+  - A job loss costs the lost months of savings plus real spending. Paycheck events (job loss, pay cut, bonus, RSUs) are skipped if Expenses → gross income is under $5k.
+  - Milestone Predictions switch to the chaos path and are marked 🌪️.
+- **🛡️ Mitigations** (Insights → Portfolio Insights): pet insurance, a low out-of-pocket plan or HSA, disability insurance, dental, an umbrella policy, water-backup coverage, gap insurance, a credit freeze, safe-harbor withholding and a 6-month emergency fund.
+  - Tick what you have. Chaos then shrinks the hits each one covers (pet insurance cuts vet bills ~80%) and charges its yearly premium.
+  - Each card shows what it saves and costs in your current simulated life. Insurance usually costs more than it pays out on average; its job is capping the big hits.
+- Hover or tap the line for the events nearest that age, what led to them and their dollar impact. The chips under the chart list every event in the 1Y/5Y/10Y/15Y/All window (the Dashboard folds them under "details").
+- The timeline is seeded, so it doesn't change on reload or when you switch windows; **🎲** rerolls. The toggle, seed and mitigations are saved in the browser. Engine and tests: [`app/lib/chaos-events.js`](app/lib/chaos-events.js), [`tests/unit/chaos-events.test.mjs`](tests/unit/chaos-events.test.mjs).
+
+## Customizable layout
+
+Every tab is a set of **sections**. Each section picks a column layout: full width, 2 equal, 2 wide-left, 2 wide-right, 3 equal, 3 wide-center or 4. Each column stacks cards. A card alone in its section spans the full width, so there are no fixed per-tab widths. On narrower screens sections drop to two columns, and on phones to one.
+
+- Click any card title to collapse it.
+- **✎ Customize** turns the tab into a builder canvas: a dotted grid with outlined sections and a layout picker for each one. Drag a card's ⠿ handle (mouse or finger) and the target cell lights up, with a pulsing placeholder where it will land. Drop it on a "＋ New section" gap to give it its own row. ↑/↓ moves a card without dragging; sections have ↑/↓ and 🗑.
+- On the Dashboard, **＋ Add widget** pins any card from another tab, leaving a "Move back here" link on its home tab. **✕** removes cards you don't use. **↺ Reset** restores a tab.
+- Everything is saved in the browser and survives reloads.
 
 ---
 
