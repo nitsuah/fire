@@ -321,11 +321,11 @@ test.describe('Financial Overview — unified add form', () => {
 });
 
 test.describe('Financial Overview — cash flow row', () => {
-    test('desktop: Income Sources and Monthly Expenses stack under Net Cash Flow, expanded by default', async ({
+    test('desktop: the cash flow cards share the first section, expanded by default', async ({
         page,
     }) => {
         await page.locator('#btn-tab-financial').click();
-        const row = page.locator('.fo-cashflow-row');
+        const row = page.locator('#tab-financial .lm-row').first();
         const netFlow = row.getByRole('heading', {
             name: 'Net Monthly Cash Flow',
         });
@@ -336,9 +336,10 @@ test.describe('Financial Overview — cash flow row', () => {
             income.boundingBox(),
             expenses.boundingBox(),
         ]);
-        expect(netBox.y).toBeLessThan(incomeBox.y);
-        expect(incomeBox.y).toBeLessThan(expensesBox.y);
-        expect(Math.abs(netBox.x - incomeBox.x)).toBeLessThan(5);
+        // 3-column section; at this width it wraps to two columns.
+        expect(Math.abs(netBox.y - incomeBox.y)).toBeLessThan(5);
+        expect(netBox.x).toBeLessThan(incomeBox.x);
+        expect(expensesBox.y).toBeGreaterThan(netBox.y);
         // Desktop shows the line items (collapsing to totals is phone-only;
         // collapsed-by-default made the cards look empty on desktop).
         await expect(page.locator('#cashflow-income-list')).not.toHaveClass(
@@ -354,9 +355,13 @@ test.describe('Financial Overview — cash flow row', () => {
         page,
     }) => {
         await page.locator('#btn-tab-financial').click();
-        const body = await page.locator('.fo-body').boundingBox();
-        const left = await page.locator('.fo-left').boundingBox();
-        expect(left.width).toBeGreaterThan(body.width - 2);
+        const body = await page
+            .locator('#tab-financial .lm-board')
+            .boundingBox();
+        const holdings = await page
+            .locator('[data-lm-id="financial:holdings"]')
+            .boundingBox();
+        expect(holdings.width).toBeGreaterThan(body.width - 2);
     });
 
     test('mobile: Income Sources and Monthly Expenses default collapsed to just the total, and expand independently', async ({
@@ -790,7 +795,7 @@ test.describe('Projections — Growth Settings presets and milestones', () => {
         await page.locator('#btn-tab-projections').click();
         await expect(
             page.locator(
-                '.proj-secondary-row #projection-milestones-container',
+                '[data-lm-id="projections:milestone-predictions"] #projection-milestones-container',
             ),
         ).toBeAttached();
         await expect(
@@ -959,7 +964,9 @@ test.describe('Dashboard — wide layout and growth chart sizes', () => {
         const before = (await chart.boundingBox()).height;
         await page.locator('#growth-expand-btn').click();
         const card = await page.locator('#dash-card-growth').boundingBox();
-        const body = await page.locator('.dashboard-body').boundingBox();
+        const body = await page
+            .locator('#tab-dashboard .lm-board')
+            .boundingBox();
         expect(card.width).toBeGreaterThan(body.width - 2);
         expect((await chart.boundingBox()).height).toBeGreaterThan(
             before + 100,
@@ -982,7 +989,7 @@ test.describe('Financial Overview — wide top row and vehicle actions', () => {
 
         test('cash flow cards share one row', async ({ page }) => {
             await page.locator('#btn-tab-financial').click();
-            const row = page.locator('.fo-cashflow-row');
+            const row = page.locator('#tab-financial .lm-row').first();
             const boxes = await Promise.all(
                 [
                     'Net Monthly Cash Flow',

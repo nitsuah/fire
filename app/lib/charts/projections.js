@@ -148,6 +148,7 @@ function chaosTooltipLines(chaos, idx) {
         lines.push(
             `${ev.icon} ${ev.label} (${window.FireChaos.whenLabel(ev)})`,
         );
+        if (ev.cause) lines.push(`    after ${ev.cause}`);
         lines.push(`    ${ev.outcome.label}`);
         lines.push(
             `    ${window.FireChaos.describeImpact(ev, chaos.impacts[ev.id])}`,
@@ -207,6 +208,7 @@ function renderChaosTimeline(containerId, data, { compact = false } = {}) {
                 <span class="chaos-chip-body">
                     <span class="chaos-chip-title">${escHtml(ev.label)} <span class="chaos-chip-term">${ev.term === 'long' ? 'long-term' : 'one-time'}</span></span>
                     <span class="chaos-chip-meta">${escHtml(FC.whenLabel(ev))} · ${escHtml(cat.label)} · ${escHtml(ev.outcome.label)}</span>
+                    ${ev.cause ? `<span class="chaos-chip-cause">after ${escHtml(ev.cause)}</span>` : ''}
                     <span class="chaos-chip-impact">${isUp ? '▲' : '▼'} ${escHtml(FC.describeImpact(ev, imp))}</span>
                 </span>
             </li>`;

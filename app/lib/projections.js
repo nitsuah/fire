@@ -88,6 +88,127 @@ function loadChaosMode() {
 
 var chaosMode = loadChaosMode();
 
+// 🛡️ Mitigations the user already has (pet insurance, HSA, ...). Chaos
+// mode shrinks the hits they cover and charges their yearly premiums.
+const MITIGATION_STORAGE_KEY = 'fire_chaos_mitigations';
+function loadMitigations() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(MITIGATION_STORAGE_KEY));
+        if (Array.isArray(saved))
+            return saved.filter((x) => typeof x === 'string');
+    } catch {
+        /* storage unavailable or corrupt */
+    }
+    return [];
+}
+var chaosMitigations = loadMitigations();
+
+window.toggleMitigation = function (id, on) {
+    chaosMitigations = on
+        ? [...new Set([...chaosMitigations, id])]
+        : chaosMitigations.filter((m) => m !== id);
+    try {
+        localStorage.setItem(
+            MITIGATION_STORAGE_KEY,
+            JSON.stringify(chaosMitigations),
+        );
+    } catch {
+        /* storage unavailable — choice just won't persist */
+    }
+    renderDashboardProjectionsChart();
+    calculateAndRenderProjections();
+};
+
+// What one mitigation is worth in the current Chaos timeline: net worth
+// at the end of the span with vs. without it (premiums included).
+function mitigationValue(chaos, id) {
+    if (!chaos) return null;
+    const FC = window.FireChaos;
+    const others = chaosMitigations.filter((m) => m !== id);
+    const withIt = FC.simulate({
+        ...chaos.simArgs,
+        mitigations: [...others, id],
+    });
+    const without = FC.simulate({ ...chaos.simArgs, mitigations: others });
+    const last = withIt.nwData.length - 1;
+    const hits = chaos.events.filter((ev) =>
+        FC.MITIGATIONS.find((m) => m.id === id).covers.includes(ev.defId),
+    );
+    return {
+        hits,
+        saved: withIt.savedTotal - without.savedTotal,
+        premiums: withIt.premiumTotal - without.premiumTotal,
+        net: withIt.nwData[last] - without.nwData[last],
+    };
+}
+
+function renderMitigations(raw) {
+    const el = document.getElementById('chaos-mitigations');
+    if (!el || !window.FireChaos) return;
+    const FC = window.FireChaos;
+    const chaos = raw && raw.chaos;
+    const names = Object.fromEntries(FC.CATALOG.map((d) => [d.id, d]));
+    const rows = FC.MITIGATIONS.map((m) => ({
+        m,
+        v: mitigationValue(chaos, m.id),
+    }));
+    // Most relevant first: covers events in this timeline, best net value.
+    rows.sort(
+        (a, b) =>
+            (b.v?.hits.length ? 1 : 0) - (a.v?.hits.length ? 1 : 0) ||
+            (b.v?.net || 0) - (a.v?.net || 0),
+    );
+    const on = new Set(chaosMitigations);
+    const lastAge = raw ? raw.labels[raw.labels.length - 1] : '';
+    el.innerHTML = `
+        <div class="mit-head">
+            <h3 class="section-sub-title">🛡️ Mitigate life events</h3>
+            <p class="card-subtitle">Coverage that shrinks or absorbs the hits in 🌪️ Chaos mode. Tick what you already have: Chaos mode then applies it, and its yearly cost, to your projection. Insurance usually costs more than it pays out on average; its job is capping the big hits.</p>
+            ${chaos ? '' : '<p class="text-muted mit-note">Turn on 🌪️ Chaos (Projections or Dashboard) to see what each one would have saved in your simulated life.</p>'}
+        </div>
+        <ul class="mit-list">${rows
+            .map(({ m, v }) => {
+                const covers = m.covers
+                    .map((id) => names[id])
+                    .filter(Boolean)
+                    .map((d) => `${d.icon} ${escHtml(d.label)}`)
+                    .join(' · ');
+                const effect = m.reduction
+                    ? `cuts the ${m.part === 'income' ? 'lost income' : 'bill'} ~${Math.round(m.reduction * 100)}%`
+                    : 'paid from cash, not debt';
+                const cost = m.premium
+                    ? `~${formatCurrency(m.premium / 12).replace(/\.\d\d$/, '')}/mo`
+                    : 'free';
+                let value = '';
+                if (v) {
+                    const n = v.hits.length;
+                    value = !n
+                        ? `<span class="mit-value">No covered events in this life${v.premiums ? ` · costs ${FC.fmtMoney(v.premiums).slice(1)}` : ''}</span>`
+                        : !m.reduction
+                          ? `<span class="mit-value is-up">This life: ${n} hit${n === 1 ? '' : 's'} paid from cash instead of debt</span>`
+                          : `<span class="mit-value ${v.net >= 0 ? 'is-up' : 'is-down'}">This life: ${n} hit${n === 1 ? '' : 's'}, saves ${FC.fmtMoney(v.saved).slice(1)}${v.premiums ? `, costs ${FC.fmtMoney(v.premiums).slice(1)}` : ''} → ${FC.fmtMoney(v.net)} by ${escHtml(lastAge)}</span>`;
+                }
+                return `<li class="mit-item${on.has(m.id) ? ' is-on' : ''}">
+                    <label class="mit-toggle">
+                        <input type="checkbox" data-mitigation="${m.id}"${on.has(m.id) ? ' checked' : ''}>
+                        <span>I have this</span>
+                    </label>
+                    <div class="mit-body">
+                        <div class="mit-title">${m.icon} ${escHtml(m.label)} <span class="mit-meta">${effect} · ${cost}</span></div>
+                        <div class="mit-covers">${covers}</div>
+                        <div class="mit-tip">${escHtml(m.tip)}</div>
+                        ${value}
+                    </div>
+                </li>`;
+            })
+            .join('')}</ul>`;
+    el.querySelectorAll('[data-mitigation]').forEach((box) =>
+        box.addEventListener('change', () =>
+            window.toggleMitigation(box.dataset.mitigation, box.checked),
+        ),
+    );
+}
+
 function saveChaosMode() {
     try {
         localStorage.setItem(CHAOS_STORAGE_KEY, JSON.stringify(chaosMode));
@@ -562,7 +683,7 @@ function buildProjectionData() {
                 Number.isFinite(grossIncome) && grossIncome < 5000
             ),
         });
-        const sim = window.FireChaos.simulate({
+        const simArgs = {
             events,
             startNW: networth,
             cashFraction: cashFraction0,
@@ -573,11 +694,23 @@ function buildProjectionData() {
             currentAge,
             retireAge,
             span,
+            inflation,
+        };
+        const sim = window.FireChaos.simulate({
+            ...simArgs,
+            mitigations: chaosMitigations,
         });
         noChaosData = nwData;
         nwData = sim.nwData;
         baseDepletionAge = sim.depletionAge;
-        chaos = { events, impacts: sim.impacts, seed: chaosMode.seed };
+        chaos = {
+            events,
+            impacts: sim.impacts,
+            seed: chaosMode.seed,
+            simArgs,
+            savedTotal: sim.savedTotal,
+            premiumTotal: sim.premiumTotal,
+        };
     }
 
     return {
@@ -647,4 +780,5 @@ function calculateAndRenderProjections() {
         raw.depletionAge,
     );
     renderScenarioComparison();
+    renderMitigations(raw);
 }

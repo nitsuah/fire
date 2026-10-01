@@ -142,6 +142,31 @@ test.describe('Chaos mode', () => {
         ).toContainText('🌪️');
     });
 
+    test('mitigations in Insights shrink covered chaos hits and persist', async ({
+        page,
+    }) => {
+        await page.locator('#dash-card-growth .chaos-btn').click();
+        await page.locator('#btn-tab-insights').click();
+        const block = page.locator('#chaos-mitigations');
+        await expect(block).toContainText('Mitigate life events');
+        const pet = block.locator('[data-mitigation="pet-insurance"]');
+        await pet.check();
+        await expect(block.locator('.mit-item.is-on')).toContainText(
+            'Pet insurance',
+        );
+        const premiums = await page.evaluate(
+            () => buildProjectionData().chaos.premiumTotal,
+        );
+        expect(premiums).toBeGreaterThan(0);
+        await page.reload();
+        await page.locator('#btn-tab-insights').click();
+        await expect(
+            page.locator(
+                '#chaos-mitigations [data-mitigation="pet-insurance"]',
+            ),
+        ).toBeChecked();
+    });
+
     test('Bear/Bull buttons leave the chaos toggle alone', async ({ page }) => {
         await page.locator('#btn-tab-projections').click();
         const chaos = page.locator('#tab-projections .chaos-btn');
@@ -202,6 +227,76 @@ test.describe('Customizable layout', () => {
         await pane.locator('[data-lm-tool="reset"]').click();
         const reset = await order();
         expect(reset[reset.length - 1]).toBe('settings:danger-zone');
+    });
+
+    test('a card alone in its section spans the full width; layouts are per section', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-projections').click();
+        const pane = page.locator('#tab-projections');
+        const board = pane.locator('.lm-board');
+        const settings = page.locator('#proj-settings-card');
+        const chart = page.locator(
+            '[data-lm-id="projections:retirement-growth-path"]',
+        );
+        // Default: Growth Settings beside the chart, chart wider (1:2).
+        let [s, c] = await Promise.all([
+            settings.boundingBox(),
+            chart.boundingBox(),
+        ]);
+        expect(Math.abs(s.y - c.y)).toBeLessThan(2);
+        expect(c.width).toBeGreaterThan(s.width * 1.5);
+
+        await pane.locator('[data-lm-tool="edit"]').click();
+        const firstRow = pane.locator('.lm-row').first();
+        // Equal columns → equal widths.
+        await firstRow.locator('[data-lm-layout="2"]').click();
+        [s, c] = await Promise.all([
+            pane.locator('#proj-settings-card').boundingBox(),
+            chart.boundingBox(),
+        ]);
+        expect(Math.abs(s.width - c.width)).toBeLessThan(4);
+
+        // Drag Growth Settings onto the "New section" gap at the end.
+        const handle = page.locator('#proj-settings-card .lm-handle');
+        const hb = await handle.boundingBox();
+        await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(hb.x + 40, hb.y + 40, { steps: 4 });
+        // The gap moves as the placeholder reflows the rows it passes,
+        // so keep re-aiming at it until it lights up (as a person would).
+        const gap = pane.locator('.lm-row-gap').last();
+        for (let i = 0; i < 5; i++) {
+            await gap.scrollIntoViewIfNeeded();
+            const gb = await gap.boundingBox();
+            await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2, {
+                steps: 3,
+            });
+            if (await gap.evaluate((el) => el.classList.contains('lm-hot')))
+                break;
+        }
+        await expect(gap).toHaveClass(/lm-hot/);
+        await page.mouse.up();
+        await pane.locator('[data-lm-tool="edit"]').click(); // Done
+
+        // Both cards now sit alone in their sections → full width each.
+        const b = await board.boundingBox();
+        [s, c] = await Promise.all([
+            pane.locator('#proj-settings-card').boundingBox(),
+            chart.boundingBox(),
+        ]);
+        expect(s.width).toBeGreaterThan(b.width - 4);
+        expect(c.width).toBeGreaterThan(b.width - 4);
+        expect(s.y).toBeGreaterThan(c.y);
+
+        // Survives a reload.
+        await page.reload();
+        await page.locator('#btn-tab-projections').click();
+        const b2 = await page
+            .locator('#tab-projections .lm-board')
+            .boundingBox();
+        const s2 = await page.locator('#proj-settings-card').boundingBox();
+        expect(s2.width).toBeGreaterThan(b2.width - 4);
     });
 
     test('pin a card from another tab to the Dashboard, then send it back', async ({

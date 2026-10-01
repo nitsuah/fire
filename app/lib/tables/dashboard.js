@@ -221,6 +221,8 @@ function initGrowthSizeControls() {
         card.classList.toggle('growth-size-wide', expanded);
         btn.classList.toggle('active', expanded);
         btn.setAttribute('aria-pressed', expanded ? 'true' : 'false');
+        // The layout board gives a wide card its own full-width row.
+        window.LayoutManager?.refresh();
         try {
             localStorage.setItem('fire_growth_expanded', expanded ? '1' : '0');
         } catch {

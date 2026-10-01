@@ -7,9 +7,12 @@ const FC = require('../../app/lib/chaos-events.js');
 const opts = { currentAge: 30, retireAge: 60, span: 40 };
 
 describe('chaos catalog', () => {
-    it('has 20–30 distinct events', () => {
-        expect(FC.CATALOG.length).toBeGreaterThanOrEqual(20);
-        expect(FC.CATALOG.length).toBeLessThanOrEqual(30);
+    it('has a broad set of distinct events, with plenty of good ones', () => {
+        expect(FC.CATALOG.length).toBeGreaterThanOrEqual(30);
+        expect(FC.CATALOG.length).toBeLessThanOrEqual(40);
+        expect(
+            FC.CATALOG.filter((d) => d.positive).length,
+        ).toBeGreaterThanOrEqual(12);
         const ids = new Set(FC.CATALOG.map((d) => d.id));
         expect(ids.size).toBe(FC.CATALOG.length);
     });
@@ -17,21 +20,82 @@ describe('chaos catalog', () => {
     it('every event has a known category and sane predefined outcomes', () => {
         FC.CATALOG.forEach((def) => {
             expect(FC.CATEGORIES[def.category]).toBeDefined();
-            expect(def.rate).toBeGreaterThan(0);
+            expect(def.rate).toBeGreaterThanOrEqual(0);
             expect(def.rate).toBeLessThan(0.1);
             expect(def.outcomes.length).toBeGreaterThanOrEqual(2);
             def.outcomes.forEach((o) => {
-                // Positive events only ever add money; negative ones only cost.
+                // Positive events come out ahead overall (a refinance or an
+                // inherited house can carry an up-front cost); negative
+                // ones only ever cost.
                 if (def.positive) {
-                    expect(o.cost || 0).toBe(0);
                     expect(o.incomeMonths || 0).toBe(0);
-                    expect((o.gain || 0) + (o.annual || 0)).toBeGreaterThan(0);
+                    const yrs = Math.min(o.years ?? 10, 10);
+                    expect(
+                        (o.gain || 0) + (o.annual || 0) * yrs - (o.cost || 0),
+                    ).toBeGreaterThan(0);
                 } else {
                     expect(o.gain || 0).toBe(0);
                     expect(o.annual || 0).toBeLessThanOrEqual(0);
                     expect(o.nwPct || 0).toBeLessThanOrEqual(0);
                 }
             });
+        });
+    });
+});
+
+describe('chains and catalog wiring', () => {
+    const ids = new Set(FC.CATALOG.map((d) => d.id));
+
+    it('every chain points at a real event; chain-only events are reachable', () => {
+        const targets = new Set();
+        FC.CATALOG.forEach((d) =>
+            (d.chain || []).forEach((c) => {
+                expect(ids.has(c.id)).toBe(true);
+                expect(c.chance).toBeGreaterThan(0);
+                expect(c.chance).toBeLessThanOrEqual(1);
+                expect(c.after[0]).toBeLessThanOrEqual(c.after[1]);
+                targets.add(c.id);
+            }),
+        );
+        FC.CATALOG.filter((d) => d.rate === 0).forEach((d) =>
+            expect(targets.has(d.id)).toBe(true),
+        );
+    });
+
+    it('follow-ups come after their cause, and the sequences show up', () => {
+        const seen = {
+            funeralAfterCare: 0,
+            houseAfterFuneral: 0,
+            childcareEnds: 0,
+        };
+        for (let seed = 1; seed <= 400; seed++) {
+            const evs = FC.generateEvents({ seed, ...opts, span: 45 });
+            evs.filter((e) => e.cause).forEach((e) => {
+                const causeAge = Number(/age (\d+)$/.exec(e.cause)[1]);
+                expect(e.age).toBeGreaterThanOrEqual(causeAge);
+                if (e.defId === 'funeral' && /Aging parent/.test(e.cause))
+                    seen.funeralAfterCare++;
+                if (e.defId === 'inherit-house' && /funeral/.test(e.cause))
+                    seen.houseAfterFuneral++;
+                if (e.defId === 'childcare-ends') seen.childcareEnds++;
+            });
+            // Daycare can only end after a child is born.
+            const kids = evs.filter((e) => e.defId === 'child').length;
+            const ends = evs.filter((e) => e.defId === 'childcare-ends').length;
+            expect(ends).toBeLessThanOrEqual(kids);
+        }
+        expect(seen.funeralAfterCare).toBeGreaterThan(0);
+        expect(seen.houseAfterFuneral).toBeGreaterThan(0);
+        expect(seen.childcareEnds).toBeGreaterThan(0);
+    });
+
+    it('mitigations only cover real events', () => {
+        FC.MITIGATIONS.forEach((m) => {
+            m.covers.forEach((id) => expect(ids.has(id)).toBe(true));
+            expect(m.reduction).toBeGreaterThanOrEqual(0);
+            expect(m.reduction).toBeLessThan(1);
+            expect(['cost', 'income']).toContain(m.part);
+            expect(m.premium).toBeGreaterThanOrEqual(0);
         });
     });
 });
@@ -233,6 +297,81 @@ describe('simulate', () => {
         expect(plain[3] - nwData[3]).toBe(Math.round(10000 * 1.05 ** 2));
     });
 
+    it('rent, child and care costs rise faster than inflation', () => {
+        const plain = FC.simulate({ ...base, events: [] }).nwData;
+        const flat = FC.simulate({
+            ...base,
+            events: [ev({ annual: -3000, years: 3 }, 0)],
+        });
+        const rising = FC.simulate({
+            ...base,
+            events: [
+                { ...ev({ annual: -3000, years: 3 }, 0), flowGrowth: 'rent' },
+            ],
+        });
+        // Year 0 is the same; by year 2 the rent is 1%²-compounded higher.
+        expect(plain[1] - flat.nwData[1]).toBe(3000);
+        expect(plain[1] - rising.nwData[1]).toBe(3000);
+        expect(rising.nwData[3]).toBeLessThan(flat.nwData[3]);
+        const imp = rising.impacts['t@0'];
+        expect(imp.growth).toBe(0.01);
+        expect(imp.total).toBe(-Math.round(3000 + 3030 + 3060.3));
+    });
+
+    it('medical bills cost more the later they happen', () => {
+        const at = (yr) =>
+            FC.simulate({
+                ...base,
+                events: [{ ...ev({ cost: 10000 }, yr), costGrowth: 'medical' }],
+            }).impacts[`t@${yr}`].lump;
+        expect(at(0)).toBe(-10000);
+        expect(at(5)).toBe(-Math.round(10000 * 1.02 ** 5));
+    });
+
+    it('mitigations shrink covered hits and charge premiums every year', () => {
+        const vet = { ...ev({ cost: 10000 }, 2), defId: 'cat-cancer' };
+        const without = FC.simulate({ ...base, events: [vet] });
+        const withIns = FC.simulate({
+            ...base,
+            events: [vet],
+            mitigations: ['pet-insurance'],
+        });
+        expect(without.impacts['t@2'].lump).toBe(-10000);
+        expect(withIns.impacts['t@2'].lump).toBe(-2000);
+        expect(withIns.impacts['t@2'].saved).toBe(8000);
+        expect(withIns.savedTotal).toBe(8000);
+        expect(withIns.premiumTotal).toBe(600 * base.span);
+        // Premiums are real money: with no covered event it's a net loss.
+        const noEvent = FC.simulate({
+            ...base,
+            events: [],
+            mitigations: ['pet-insurance'],
+        });
+        const plain = FC.simulate({ ...base, events: [] });
+        expect(noEvent.nwData[20]).toBeLessThan(plain.nwData[20]);
+        // Uncovered events are untouched.
+        const other = FC.simulate({
+            ...base,
+            events: [{ ...ev({ cost: 10000 }, 2), defId: 'roof-hvac' }],
+            mitigations: ['pet-insurance'],
+        });
+        expect(other.impacts['t@2'].lump).toBe(-10000);
+    });
+
+    it('disability cover shrinks lost income, not the medical bill', () => {
+        const ill = {
+            ...ev({ cost: 9000, incomeMonths: 6 }, 0),
+            defId: 'major-illness',
+        };
+        const r = FC.simulate({
+            ...base,
+            events: [ill],
+            mitigations: ['disability'],
+        });
+        // 9000 + 0.4 × (half of 20k + 40k)
+        expect(r.impacts['t@0'].lump).toBe(-(9000 + 12000));
+    });
+
     it('a windfall in retirement lands in the portfolio', () => {
         const plain = FC.simulate({ ...base, events: [] }).nwData;
         const { nwData } = FC.simulate({
@@ -281,6 +420,30 @@ describe('window + tooltip helpers', () => {
         expect(
             FC.describeImpact({}, { lump: -2500, annual: -12000, years: 18 }),
         ).toBe('−$2.5K one-time, −$12K/yr for 18 yrs');
+        expect(
+            FC.describeImpact(
+                {},
+                {
+                    lump: 0,
+                    annual: -3000,
+                    years: 5,
+                    growth: 0.01,
+                    inflation: 0.025,
+                },
+            ),
+        ).toBe('−$3.0K/yr for 5 yrs (rising ~3.5%/yr: inflation + 1%)');
+        expect(
+            FC.describeImpact(
+                {},
+                {
+                    lump: -2000,
+                    annual: 0,
+                    years: 0,
+                    saved: 8000,
+                    mitigatedBy: ['Pet insurance'],
+                },
+            ),
+        ).toBe('−$2.0K one-time, 🛡️ Pet insurance saved $8.0K');
         expect(FC.describeImpact({}, { lump: 0, annual: 5000, years: 1 })).toBe(
             '+$5.0K/yr for 1 yr',
         );

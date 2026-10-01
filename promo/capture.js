@@ -18,8 +18,9 @@ const OUT = '/out/capture';
 const C = `${OUT}/crops`;
 const PORT = 3011;
 const BASE = `http://localhost:${PORT}`;
-// Chaos-mode seed with a good mix of events for the demo portfolio.
-const CHAOS_SEED = 60;
+// Chaos-mode seed with a good mix of events for the demo portfolio,
+// including a funeral → inherited house sequence.
+const CHAOS_SEED = 23;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Prices/metals are mocked so captures never depend on Yahoo being up.
@@ -234,7 +235,7 @@ async function mockPrices(pg) {
     });
     // Hover the index with the most interesting event for the tooltip shot.
     const hoverIdx = (
-        chaosData.events.find((e) => /Gallbladder/.test(e.label)) ||
+        chaosData.events.find((e) => /Inherited a house/.test(e.label)) ||
         chaosData.events[0]
     ).idx;
     const hp = chaosData.points[hoverIdx];
@@ -252,6 +253,20 @@ async function mockPrices(pg) {
             ...chaosData,
             hoverIdx,
         }),
+    );
+
+    // 🛡️ Mitigations panel (Insights) with a couple ticked
+    await page.click('#btn-tab-insights');
+    await sleep(1200);
+    for (const id of ['pet-insurance', 'dental'])
+        await page.locator(`[data-mitigation="${id}"]`).check();
+    await sleep(800);
+    const mit = page.locator('#chaos-mitigations');
+    await mit.scrollIntoViewIfNeeded();
+    await sleep(400);
+    await mit.screenshot({ path: `${C}/mitigations.png` });
+    await page.evaluate(() =>
+        localStorage.removeItem('fire_chaos_mitigations'),
     );
 
     // Layout customization on the dashboard

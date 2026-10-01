@@ -44,6 +44,10 @@
     // working: only happens before the retirement age.
     // needsPaycheck: only while there is earned income to lose or grow
     //   (job loss, pay cut, bonus, RSUs); skipped for someone between jobs.
+    // chain: follow-up events, e.g. a parent's care → funeral → inheritance.
+    //   Each { id, chance, after: [minYears, maxYears] } is rolled when the
+    //   event happens; rate 0 events only ever arrive through a chain.
+    // flowGrowth: recurring costs that outpace inflation (see EXCESS_GROWTH).
     const CATALOG = [
         // ── Health ──────────────────────────────────────────────────────
         {
@@ -169,6 +173,7 @@
         // ── Family ──────────────────────────────────────────────────────
         {
             id: 'wedding',
+            chain: [{ id: 'child', chance: 0.45, after: [1, 4] }],
             icon: '💍',
             label: 'Wedding',
             category: 'family',
@@ -184,6 +189,8 @@
         },
         {
             id: 'child',
+            flowGrowth: 'kids',
+            chain: [{ id: 'childcare-ends', chance: 0.6, after: [4, 6] }],
             icon: '👶',
             label: 'Child birth',
             category: 'family',
@@ -232,6 +239,8 @@
         },
         {
             id: 'parent-care',
+            flowGrowth: 'care',
+            chain: [{ id: 'funeral', chance: 0.6, after: [2, 6] }],
             icon: '🧓',
             label: 'Aging parent needs care',
             category: 'family',
@@ -276,6 +285,10 @@
         },
         {
             id: 'funeral',
+            chain: [
+                { id: 'inherit-house', chance: 0.25, after: [0, 1] },
+                { id: 'inheritance', chance: 0.35, after: [0, 1] },
+            ],
             icon: '⚱️',
             label: 'Family funeral costs',
             category: 'family',
@@ -294,7 +307,7 @@
             label: 'Inheritance',
             category: 'family',
             positive: true,
-            rate: 0.01,
+            rate: 0.003,
             ageMin: 40,
             ageMax: 75,
             max: 1,
@@ -307,6 +320,7 @@
         // ── Career (pre-retirement only) ────────────────────────────────
         {
             id: 'job-loss',
+            chain: [{ id: 'new-job', chance: 0.6, after: [0, 1] }],
             needsPaycheck: true,
             icon: '📉',
             label: 'Job loss',
@@ -335,17 +349,28 @@
             working: true,
             max: 3,
             gap: 4,
-            // Amounts are the extra *savings* kept after lifestyle creep and
-            // taxes, not the raise itself.
+            // Wages barely beat inflation, so a raise is a few good years,
+            // not a permanent step up. Amounts are the extra *savings* kept
+            // after lifestyle creep and taxes, not the raise itself.
             outcomes: [
                 {
-                    label: 'Lateral move, small raise',
-                    annual: 2500,
-                    years: null,
+                    label: 'Lateral move with a signing bonus',
+                    gain: 4000,
                     w: 3,
                 },
-                { label: 'Promotion', annual: 6000, years: null, w: 2 },
-                { label: 'Big career jump', annual: 12000, years: null, w: 1 },
+                {
+                    label: 'Promotion (raises stall after a few years)',
+                    annual: 6000,
+                    years: 5,
+                    w: 2,
+                },
+                {
+                    label: 'Big career jump + signing bonus',
+                    gain: 5000,
+                    annual: 10000,
+                    years: 6,
+                    w: 1,
+                },
             ],
         },
         {
@@ -453,6 +478,7 @@
         },
         {
             id: 'rent-hike',
+            flowGrowth: 'rent',
             icon: '🏢',
             label: 'Rent hike / forced move',
             category: 'housing',
@@ -474,6 +500,7 @@
         // ── Auto ────────────────────────────────────────────────────────
         {
             id: 'car-accident',
+            flowGrowth: 'insurance',
             icon: '🚗',
             label: 'Car accident',
             category: 'auto',
@@ -584,7 +611,293 @@
                 },
             ],
         },
+        // ── More good news (and the follow-ups) ─────────────────────────
+        {
+            id: 'inherit-house',
+            icon: '🏡',
+            label: 'Inherited a house',
+            category: 'family',
+            positive: true,
+            rate: 0.002,
+            ageMin: 28,
+            max: 1,
+            outcomes: [
+                { label: 'Sold the paid-off house', gain: 220000, w: 2 },
+                {
+                    label: 'Moved in: no more rent (upkeep + taxes still due)',
+                    cost: 6000,
+                    annual: 15000,
+                    years: 99,
+                    w: 2,
+                },
+                {
+                    label: 'Kept it as a rental',
+                    cost: 9000,
+                    annual: 11000,
+                    years: 99,
+                    w: 1,
+                },
+            ],
+        },
+        {
+            id: 'childcare-ends',
+            icon: '🎒',
+            label: 'Kid starts school, daycare ends',
+            category: 'family',
+            positive: true,
+            rate: 0,
+            max: 3,
+            outcomes: [
+                {
+                    label: 'Part-time care until middle school',
+                    annual: 4000,
+                    years: 12,
+                    w: 2,
+                },
+                { label: 'Daycare bill gone', annual: 7000, years: 12, w: 1 },
+            ],
+        },
+        {
+            id: 'refinance',
+            icon: '🏦',
+            label: 'Refinanced at a lower rate',
+            category: 'housing',
+            positive: true,
+            rate: 0.015,
+            ageMin: 25,
+            max: 2,
+            gap: 6,
+            outcomes: [
+                {
+                    label: 'Rate dropped ~1%',
+                    cost: 3000,
+                    annual: 2400,
+                    years: 15,
+                    w: 3,
+                },
+                {
+                    label: 'Rate dropped ~2%',
+                    cost: 4000,
+                    annual: 4800,
+                    years: 15,
+                    w: 1,
+                },
+            ],
+        },
+        {
+            id: 'car-paid-off',
+            icon: '🔑',
+            label: 'Car loan paid off',
+            category: 'auto',
+            positive: true,
+            rate: 0.04,
+            max: 3,
+            gap: 5,
+            outcomes: [
+                {
+                    label: 'Kept driving it, payment gone',
+                    annual: 4200,
+                    years: 4,
+                    w: 3,
+                },
+                {
+                    label: 'Paid-off car lasted for years',
+                    annual: 5400,
+                    years: 6,
+                    w: 1,
+                },
+            ],
+        },
+        {
+            id: 'roommate',
+            icon: '🛋️',
+            label: 'Took in a roommate',
+            category: 'housing',
+            positive: true,
+            rate: 0.015,
+            ageMin: 21,
+            ageMax: 45,
+            max: 2,
+            gap: 4,
+            outcomes: [
+                { label: 'Spare room rented', annual: 7200, years: 3, w: 3 },
+                {
+                    label: 'House hack: rented the basement unit',
+                    annual: 12000,
+                    years: 4,
+                    w: 1,
+                },
+            ],
+        },
+        {
+            id: 'settlement',
+            icon: '📬',
+            label: 'Settlement or claim payout',
+            category: 'windfall',
+            positive: true,
+            rate: 0.02,
+            max: 3,
+            gap: 3,
+            outcomes: [
+                { label: 'Class-action check', gain: 400, w: 4 },
+                { label: 'Unclaimed property found', gain: 1500, w: 2 },
+                {
+                    label: 'Insurance claim paid out above the deductible',
+                    gain: 6000,
+                    w: 1,
+                },
+            ],
+        },
+        {
+            id: 'family-gift',
+            icon: '🎀',
+            label: 'Gift from family',
+            category: 'family',
+            positive: true,
+            rate: 0.012,
+            ageMax: 50,
+            max: 2,
+            gap: 5,
+            outcomes: [
+                { label: 'Help with a big expense', gain: 5000, w: 3 },
+                { label: 'Down-payment help', gain: 20000, w: 1 },
+            ],
+        },
     ];
+
+    // Real (above-inflation) growth. The projection is in today's dollars,
+    // so a cost that rises with inflation is already flat on the chart;
+    // these are the costs that have historically outrun it.
+    const EXCESS_GROWTH = {
+        rent: 0.01, // rent hikes: ~1%/yr over CPI
+        kids: 0.01, // raising a child (education, care, health): ~1%/yr over CPI
+        care: 0.03, // elder / home care: ~3%/yr over CPI
+        insurance: 0.02, // premium hikes after a claim
+        medical: 0.02, // medical bills: ~2%/yr over CPI
+        vet: 0.02, // vet bills
+    };
+    // One-time costs that cost more (in real terms) the later they happen.
+    const COST_GROWTH_BY_CATEGORY = { health: 'medical', pets: 'vet' };
+
+    // 🛡️ Mitigations: coverage people can buy or set up ahead of time.
+    // reduction = share of the covered cost removed (0 = pays it from
+    // savings without debt, no net-worth change); part = which part of the
+    // hit it shrinks; premium = real yearly cost, charged every year when on.
+    const MITIGATIONS = [
+        {
+            id: 'pet-insurance',
+            icon: '🐾',
+            label: 'Pet insurance',
+            covers: ['cat-cancer', 'dog-surgery'],
+            reduction: 0.8,
+            part: 'cost',
+            premium: 600,
+            tip: 'Accident-and-illness plans usually reimburse 70–90% of vet bills after the deductible. Enroll while pets are young: pre-existing conditions are excluded.',
+        },
+        {
+            id: 'health-oop',
+            icon: '🩺',
+            label: 'Low out-of-pocket health plan or a funded HSA',
+            covers: [
+                'gallbladder',
+                'er-visit',
+                'major-illness',
+                'joint-replacement',
+            ],
+            reduction: 0.5,
+            part: 'cost',
+            premium: 1200,
+            tip: 'A lower out-of-pocket maximum caps the big bills; an HSA pays them with pre-tax money. Check the in-network OOP max, not just the premium.',
+        },
+        {
+            id: 'disability',
+            icon: '🛟',
+            label: 'Long-term disability insurance',
+            covers: ['major-illness'],
+            reduction: 0.6,
+            part: 'income',
+            premium: 900,
+            tip: 'Replaces ~60% of pay if illness keeps you out of work for months. Often cheap or free through an employer.',
+        },
+        {
+            id: 'dental',
+            icon: '🦷',
+            label: 'Dental insurance or a discount plan',
+            covers: ['dental'],
+            reduction: 0.5,
+            part: 'cost',
+            premium: 420,
+            tip: 'Most plans pay ~50% of major work like crowns and implants, after a waiting period and up to an annual maximum.',
+        },
+        {
+            id: 'umbrella',
+            icon: '☂️',
+            label: 'Umbrella liability policy',
+            covers: ['lawsuit'],
+            reduction: 0.9,
+            part: 'cost',
+            premium: 300,
+            tip: '$1M of extra liability coverage typically costs a few hundred dollars a year, and matters more as net worth grows.',
+        },
+        {
+            id: 'water-rider',
+            icon: '💧',
+            label: 'Water-backup / flood coverage',
+            covers: ['water-damage'],
+            reduction: 0.7,
+            part: 'cost',
+            premium: 180,
+            tip: 'Standard home and renters policies exclude sewer backup and floods. A rider or NFIP policy closes the gap.',
+        },
+        {
+            id: 'gap-insurance',
+            icon: '🚗',
+            label: 'Gap insurance + good liability limits',
+            covers: ['car-accident'],
+            reduction: 0.5,
+            part: 'cost',
+            premium: 120,
+            tip: 'Gap pays the loan balance when a financed car is totaled for less than you owe.',
+        },
+        {
+            id: 'credit-freeze',
+            icon: '🔒',
+            label: 'Credit freeze + account alerts',
+            covers: ['identity-theft'],
+            reduction: 0.8,
+            part: 'cost',
+            premium: 0,
+            tip: 'Free at all three bureaus. Add transaction alerts and never wire money on a phone or email request.',
+        },
+        {
+            id: 'safe-harbor',
+            icon: '🧾',
+            label: 'Safe-harbor tax withholding',
+            covers: ['tax-bill'],
+            reduction: 0.8,
+            part: 'cost',
+            premium: 0,
+            tip: 'Withholding or paying estimates of at least 100% of last year’s tax (110% at higher incomes) avoids underpayment penalties.',
+        },
+        {
+            id: 'emergency-fund',
+            icon: '⛑️',
+            label: '6-month emergency fund',
+            covers: [
+                'job-loss',
+                'pay-cut',
+                'car-repair',
+                'new-car',
+                'roof-hvac',
+            ],
+            reduction: 0,
+            part: 'cost',
+            premium: 0,
+            tip: 'Doesn’t make the bill smaller, but you pay it from cash instead of credit cards or selling investments in a downturn.',
+        },
+    ];
+
+    const BY_ID = Object.fromEntries(CATALOG.map((d) => [d.id, d]));
 
     const MAX_EVENTS_PER_YEAR = 2;
     // Floor so short windows always show something: ≥1 event in the first
@@ -660,6 +973,8 @@
             age,
             outcome: { ...outcome },
             term: outcome.annual ? 'long' : 'short',
+            flowGrowth: def.flowGrowth || null,
+            costGrowth: COST_GROWTH_BY_CATEGORY[def.category] || null,
         };
     }
 
@@ -680,14 +995,56 @@
         const rng = makeRng(seed);
         const history = {};
         const perYear = Array.from({ length: Math.max(span, 0) }, () => []);
+        const pending = {}; // yearIndex -> [{ defId, cause }]
         const record = (ev) => {
             perYear[ev.yearIndex].push(ev);
             (history[ev.defId] = history[ev.defId] || []).push(ev.yearIndex);
+            (BY_ID[ev.defId].chain || []).forEach((c) => {
+                if (rng() >= c.chance) return;
+                const [lo, hi] = c.after;
+                const y = ev.yearIndex + lo + Math.floor(rng() * (hi - lo + 1));
+                if (y < span)
+                    (pending[y] = pending[y] || []).push({
+                        defId: c.id,
+                        cause: ev,
+                    });
+            });
         };
 
         // Pass 1: each catalog event rolls against its life-average rate.
         for (let yr = 0; yr < span; yr++) {
             const age = currentAge + yr;
+            // Follow-ups first: they're consequences, not coin flips.
+            (pending[yr] || []).forEach(({ defId, cause }) => {
+                const def = BY_ID[defId];
+                if (perYear[yr].length >= MAX_EVENTS_PER_YEAR) {
+                    if (yr + 1 < span)
+                        (pending[yr + 1] = pending[yr + 1] || []).push({
+                            defId,
+                            cause,
+                        });
+                    return;
+                }
+                if (
+                    !isEligible(
+                        def,
+                        age,
+                        retireAge,
+                        yr,
+                        history,
+                        hasEarnedIncome,
+                    )
+                )
+                    return;
+                const ev = makeEvent(def, yr, age, rng);
+                if (cause.yearIndex === yr)
+                    ev.month = Math.min(
+                        11,
+                        Math.max(ev.month, cause.month + 1),
+                    );
+                ev.cause = `${cause.icon} ${cause.label}, age ${cause.age}`;
+                record(ev);
+            });
             // Shuffle-free but fair: start the scan at a random offset so the
             // per-year cap doesn't always favor the catalog's first entries.
             const start = Math.floor(rng() * CATALOG.length);
@@ -720,8 +1077,17 @@
                 if (!years.length) return;
                 const yr = years[Math.floor(rng() * years.length)];
                 const age = currentAge + yr;
-                const pool = CATALOG.filter((d) =>
-                    isEligible(d, age, retireAge, yr, history, hasEarnedIncome),
+                const pool = CATALOG.filter(
+                    (d) =>
+                        d.rate > 0 &&
+                        isEligible(
+                            d,
+                            age,
+                            retireAge,
+                            yr,
+                            history,
+                            hasEarnedIncome,
+                        ),
                 );
                 if (!pool.length) continue;
                 record(
@@ -754,8 +1120,17 @@
     /**
      * Real-terms projection of one path with life events applied. Mirrors
      * the base loop in projections.js (accumulate, then cash-first
-     * withdrawals once retired) so with no events it reproduces it exactly.
-     * Mutates nothing; returns per-event resolved dollar impacts.
+     * withdrawals once retired) so with no events and no mitigations it
+     * reproduces it exactly. Mutates nothing; returns per-event impacts.
+     *
+     * Accounting (all in today's dollars, like the chart):
+     *  - one-time amounts land in their year, then compound with the rest
+     *    of the portfolio; medical/vet bills grow ~2%/yr above inflation
+     *  - recurring amounts change yearly savings (or, once retired, the
+     *    yearly withdrawal) for their duration; rent, child costs, care and
+     *    insurance escalate above inflation (EXCESS_GROWTH)
+     *  - active mitigations shrink the covered part of a hit and charge
+     *    their premium every year
      */
     function simulate({
         events,
@@ -768,18 +1143,23 @@
         currentAge,
         retireAge,
         span,
+        inflation = 0,
+        mitigations = [],
     }) {
         // A month without a paycheck costs that month's savings plus the
         // living costs now paid from the portfolio: actual spending, not the
         // tax-padded annualExpenses used for the FIRE number (no paycheck,
         // no income tax on it).
         const income = Math.max(0, savings) + Math.max(0, spending);
+        const active = MITIGATIONS.filter((m) => mitigations.includes(m.id));
+        const premium = active.reduce((sum, m) => sum + m.premium, 0);
         const byYear = {};
         (events || []).forEach((ev) => {
             (byYear[ev.yearIndex] = byYear[ev.yearIndex] || []).push(ev);
         });
-        const active = []; // { annual, untilYr }
+        const flows = []; // { annual, startYr, untilYr, g }
         const impacts = {};
+        let savedTotal = 0;
 
         let nw = startNW;
         let cash = null;
@@ -799,32 +1179,69 @@
             (byYear[yr] || []).forEach((ev) => {
                 const o = ev.outcome;
                 const curNW = cash !== null ? cash + invested : nw;
-                let evLump = (o.gain || 0) - (o.cost || 0);
-                if (o.incomeMonths && !retired)
-                    evLump -= (income * o.incomeMonths) / 12;
+                const costG = EXCESS_GROWTH[ev.costGrowth] || 0;
+                let cost = (o.cost || 0) * Math.pow(1 + costG, yr);
+                let lostIncome =
+                    o.incomeMonths && !retired
+                        ? (income * o.incomeMonths) / 12
+                        : 0;
+                // Mitigations: the best cover for each part of the hit.
+                const covering = active.filter((m) =>
+                    m.covers.includes(ev.defId),
+                );
+                const best = (part) =>
+                    covering
+                        .filter((m) => m.part === part)
+                        .reduce((r, m) => Math.max(r, m.reduction), 0);
+                const saved = cost * best('cost') + lostIncome * best('income');
+                cost *= 1 - best('cost');
+                lostIncome *= 1 - best('income');
+                savedTotal += saved;
+
+                let evLump = (o.gain || 0) - cost - lostIncome;
                 if (o.nwPct) evLump += Math.max(curNW, 0) * o.nwPct;
                 let annualTotal = 0;
+                let yrs = 0;
+                const g = o.annual ? EXCESS_GROWTH[ev.flowGrowth] || 0 : 0;
                 if (o.annual) {
-                    const yrs =
+                    yrs = Math.min(
                         o.years === null || o.years === undefined
                             ? yearsToRetire
-                            : o.years;
+                            : o.years,
+                        span - yr,
+                    );
                     if (yrs > 0) {
-                        active.push({ annual: o.annual, untilYr: yr + yrs });
-                        annualTotal = o.annual * yrs;
+                        flows.push({
+                            annual: o.annual,
+                            startYr: yr,
+                            untilYr: yr + yrs,
+                            g,
+                        });
+                        for (let k = 0; k < yrs; k++)
+                            annualTotal += o.annual * Math.pow(1 + g, k);
                     }
                 }
                 lump += evLump;
                 impacts[ev.id] = {
                     lump: Math.round(evLump),
                     annual: o.annual || 0,
-                    years: o.annual ? (o.years ?? yearsToRetire) : 0,
+                    years: yrs,
+                    ongoing: (o.years || 0) >= 99,
+                    growth: g,
+                    inflation,
+                    saved: Math.round(saved),
+                    mitigatedBy: covering.map((m) => m.label),
                     total: Math.round(evLump + annualTotal),
                 };
             });
-            const flow = active
-                .filter((a) => yr < a.untilYr)
-                .reduce((s, a) => s + a.annual, 0);
+            const flow =
+                flows
+                    .filter((f) => yr >= f.startYr && yr < f.untilYr)
+                    .reduce(
+                        (sum, f) =>
+                            sum + f.annual * Math.pow(1 + f.g, yr - f.startYr),
+                        0,
+                    ) - premium;
 
             if (!retired) {
                 nw = nw * (1 + realReturn) + savings + flow + lump;
@@ -850,7 +1267,13 @@
                     depletionAge = age + 1;
             }
         }
-        return { nwData, impacts, depletionAge };
+        return {
+            nwData,
+            impacts,
+            depletionAge,
+            savedTotal: Math.round(savedTotal),
+            premiumTotal: Math.round(premium * span),
+        };
     }
 
     // Events whose marker sits nearest to chart index `idx` — what the
@@ -881,13 +1304,27 @@
         return (n < 0 ? '−' : '+') + s;
     }
 
+    const pct = (x) => `${(x * 100).toFixed((x * 100) % 1 ? 1 : 0)}%`;
+
     function describeImpact(ev, impact) {
         const parts = [];
         if (impact && impact.lump)
             parts.push(`${fmtMoney(impact.lump)} one-time`);
-        if (impact && impact.annual && impact.years)
+        if (impact && impact.annual && impact.years) {
+            let flow = impact.ongoing
+                ? `${fmtMoney(impact.annual)}/yr from then on`
+                : `${fmtMoney(impact.annual)}/yr for ${impact.years} yr${impact.years === 1 ? '' : 's'}`;
+            if (impact.growth)
+                flow += impact.inflation
+                    ? ` (rising ~${pct(impact.inflation + impact.growth)}/yr: inflation + ${pct(impact.growth)})`
+                    : ` (rising ${pct(impact.growth)}/yr above inflation)`;
+            parts.push(flow);
+        }
+        if (impact && impact.mitigatedBy && impact.mitigatedBy.length)
             parts.push(
-                `${fmtMoney(impact.annual)}/yr for ${impact.years} yr${impact.years === 1 ? '' : 's'}`,
+                impact.saved
+                    ? `🛡️ ${impact.mitigatedBy.join(' + ')} saved ${fmtMoney(impact.saved).slice(1)}`
+                    : `🛡️ covered by ${impact.mitigatedBy.join(' + ')}`,
             );
         return parts.join(', ') || 'no net change';
     }
@@ -899,6 +1336,8 @@
     const api = {
         CATEGORIES,
         CATALOG,
+        MITIGATIONS,
+        EXCESS_GROWTH,
         MAX_EVENTS_PER_YEAR,
         makeRng,
         newSeed,
