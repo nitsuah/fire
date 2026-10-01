@@ -54,7 +54,7 @@ function initAccountsManager() {
         // APY shown for yield-bearing types
         apyGroup.classList.toggle(
             'csp-i-001',
-            !(t === 'Savings' || t === 'Cash' || t === 'Crypto'),
+            !(t === 'Savings' || t === 'Cash' || t === 'Crypto')
         );
         const apyLabel = document.getElementById('label-acc-apy');
         if (apyLabel)
@@ -146,7 +146,7 @@ window.deleteCustomAccount = async function (id) {
         await saveState();
     } catch (err) {
         state.customAccounts = prev;
-        console.error('Failed to delete account:', err);
+        console.error('Failed to save account:', err);
         return;
     }
     refreshAllUI();
@@ -352,6 +352,7 @@ window.refreshMetalAccount = async function (id) {
         alert(err.message);
     } finally {
         btns.forEach((b) => {
+            btns.forEach((b) => {
             b.disabled = false;
             b.textContent = '⟳ Refresh';
         });
