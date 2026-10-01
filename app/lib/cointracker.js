@@ -48,32 +48,52 @@ function ctExcluded() {
         : [];
 }
 
-async function ctPost(action, extra = {}) {
-    const token = ctRead(CT_TOKEN_KEY);
-    if (!token) throw new Error('CoinTracker is not connected.');
-    const res = await fetch(`/api/sync/cointracker/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, ...extra }),
-    });
-    const data = await res.json().catch(() => ({}));
-    // A dead or unreadable grant can never work again: drop it so the
-    // card offers Connect instead of failing on every sync.
-    if (
-        res.status === 401 &&
-        /^cointracker_(revoked|token_invalid)$/.test(data.code || '')
-    ) {
-        ctWrite(CT_TOKEN_KEY, null);
-        throw new Error(
-            data.error || 'CoinTracker connection expired. Reconnect.',
-        );
+// Auth0 rotates refresh tokens, so two requests refreshing the same blob
+// at once (an Exclude click during a sync, or auto-sync in a second tab)
+// would burn the grant. Every call runs under one cross-tab Web Lock (or a
+// per-tab queue where Web Locks are unavailable) and reads the token only
+// once it holds the lock, so it always sends the newest blob.
+let ctQueue = Promise.resolve();
+
+function ctLocked(fn) {
+    if (navigator.locks?.request) {
+        return navigator.locks.request('fire-cointracker', fn);
     }
-    if (!res.ok)
-        throw new Error(
-            data.error || `CoinTracker request failed (HTTP ${res.status}).`,
-        );
-    if (data.token) ctWrite(CT_TOKEN_KEY, data.token);
-    return data;
+    const run = ctQueue.then(fn, fn);
+    ctQueue = run.catch(() => {});
+    return run;
+}
+
+function ctPost(action, extra = {}) {
+    return ctLocked(async () => {
+        const token = ctRead(CT_TOKEN_KEY);
+        if (!token) throw new Error('CoinTracker is not connected.');
+        const res = await fetch(`/api/sync/cointracker/${action}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, ...extra }),
+        });
+        const data = await res.json().catch(() => ({}));
+        // A dead or unreadable grant can never work again: drop it so the
+        // card offers Connect instead of failing on every sync.
+        if (
+            res.status === 401 &&
+            /^cointracker_(revoked|token_invalid)$/.test(data.code || '')
+        ) {
+            ctWrite(CT_TOKEN_KEY, null);
+            throw new Error(
+                data.error || 'CoinTracker connection expired. Reconnect.',
+            );
+        }
+        // Saved even on failure: a refresh before the error rotated it.
+        if (data.token) ctWrite(CT_TOKEN_KEY, data.token);
+        if (!res.ok)
+            throw new Error(
+                data.error ||
+                    `CoinTracker request failed (HTTP ${res.status}).`,
+            );
+        return data;
+    });
 }
 
 function ctSetStatus(text, color = 'var(--text-muted)') {
@@ -95,7 +115,8 @@ async function runCoinTrackerSync({ silent = false } = {}) {
             data.wallets || [],
             {
                 syncedAt: data.syncedAt,
-                partial: (data.warnings || []).length > 0,
+                partial: Boolean(data.partial),
+                keep: data.skippedProviderIds || [],
                 excluded: ctExcluded(),
             },
         );
@@ -179,6 +200,9 @@ async function toggleCoinTrackerWallet(providerId) {
     if (excluded.has(providerId)) excluded.delete(providerId);
     else excluded.add(providerId);
     state.coinTrackerExcluded = [...excluded];
+    // Persist first: the choice must stick even if the sync below fails.
+    await saveState();
+    renderCoinTrackerCard();
     await runCoinTrackerSync({ silent: true });
 }
 

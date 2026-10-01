@@ -92,7 +92,11 @@ async function callback({ params, cookieValue, origin }, fetchImpl = fetch) {
 
 // Shared error mapping: dead/unreadable grants are 401 with a `code` that
 // tells the SPA to drop its blob; everything else keeps the connection.
+//
+// A token refreshed before the failure rides along as `token`: Auth0 has
+// already rotated the refresh token, so the browser's old blob is dead.
 function errorResult(err) {
+    const token = err.tokens ? { token: ct.sealTokens(err.tokens) } : {};
     if (err.status === 401 || err.code === 'cointracker_forbidden') {
         return {
             status: err.status === 401 ? 401 : 403,
@@ -102,15 +106,24 @@ function errorResult(err) {
                     err.code === 'unauthorized'
                         ? 'cointracker_revoked'
                         : err.code,
+                ...token,
             },
         };
     }
-    console.error('[CoinTracker] Request failed:', err.code, err.message);
+    const timedOut = err.name === 'TimeoutError' || err.name === 'AbortError';
+    console.error(
+        '[CoinTracker] Request failed:',
+        timedOut ? 'timeout' : err.code,
+        err.message,
+    );
     return {
-        status: 502,
+        status: timedOut ? 504 : 502,
         body: {
-            error: err.message || 'CoinTracker request failed.',
-            code: err.code || 'mcp_failed',
+            error: timedOut
+                ? 'CoinTracker did not respond in time. Try again shortly.'
+                : err.message || 'CoinTracker request failed.',
+            code: timedOut ? 'timeout' : err.code || 'mcp_failed',
+            ...token,
         },
     };
 }
@@ -130,6 +143,8 @@ async function sync({ body }, fetchImpl = fetch) {
                 tool: result.tool,
                 wallets: result.wallets,
                 warnings: result.warnings,
+                skippedProviderIds: result.skippedProviderIds,
+                partial: result.partial,
                 syncedAt: new Date().toISOString(),
                 ...(result.refreshed
                     ? { token: ct.sealTokens(result.tokens) }
@@ -151,7 +166,7 @@ async function inspect({ body }, fetchImpl = fetch) {
             status: 200,
             body: {
                 tools: result.tools,
-                selected: ct.chooseBalanceTool(result.tools)?.name || null,
+                selected: result.selected,
                 ...(result.refreshed
                     ? { token: ct.sealTokens(result.tokens) }
                     : {}),

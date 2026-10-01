@@ -513,3 +513,63 @@ describe('Netlify function', () => {
         expect((await res.json()).code).toBe('cointracker_token_invalid');
     });
 });
+
+describe('review hardening', () => {
+    it('bounds every CoinTracker request with an abort signal', async () => {
+        const { impl, calls } = fakeCoinTracker();
+        await ct.syncWallets({ ...TOKENS, expires_at: 1 }, impl);
+        await ct.registerClient('https://x.test/cb', impl);
+        await ct.revokeTokens(TOKENS, impl);
+        expect(calls.length).toBeGreaterThan(4);
+        for (const c of calls)
+            expect(c.init.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('maps a timeout to a 504 the browser can retry', async () => {
+        const impl = vi.fn(async () => {
+            throw Object.assign(new Error('The operation timed out.'), {
+                name: 'TimeoutError',
+            });
+        });
+        const r = await handlers.sync(
+            { body: { token: ct.sealTokens(TOKENS) } },
+            impl,
+        );
+        expect(r).toMatchObject({ status: 504, body: { code: 'timeout' } });
+    });
+
+    it('returns the rotated token even when the call after a refresh fails', async () => {
+        const { impl } = fakeCoinTracker({ forbidden: true });
+        const r = await handlers.sync(
+            { body: { token: ct.sealTokens({ ...TOKENS, expires_at: 1 }) } },
+            impl,
+        );
+        expect(r.status).toBe(403);
+        expect(ct.unsealTokens(r.body.token)).toMatchObject({
+            access_token: 'at-refresh_token',
+            refresh_token: 'rt-new',
+        });
+        // No refresh happened: nothing rotated, nothing to hand back.
+        const r2 = await handlers.sync(
+            { body: { token: ct.sealTokens(TOKENS) } },
+            impl,
+        );
+        expect(r2.body.token).toBeUndefined();
+    });
+
+    it('inspect selects from raw tools, so required-argument tools are never "in use"', async () => {
+        const { impl } = fakeCoinTracker({ tools: [TOOLS[0], TOOLS[2]] });
+        const r = await handlers.inspect(
+            { body: { token: ct.sealTokens(TOKENS) } },
+            impl,
+        );
+        expect(r.body.selected).toBeNull();
+    });
+
+    it('reports wallets it could not value instead of marking the sync partial', () => {
+        const r = ct.normalizeWallets(BALANCES);
+        expect(r.skippedProviderIds).toEqual(['w3']);
+        expect(r.partial).toBe(false);
+        expect(ct.normalizeWallets({ total: 1 }).partial).toBe(true);
+    });
+});

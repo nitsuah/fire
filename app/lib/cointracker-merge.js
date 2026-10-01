@@ -14,8 +14,9 @@
      the manual row exactly.
    - Manual rows that can't be matched by address (ticker-only entries, or
      no identifier) are reported as possible duplicates, never changed.
-   - A wallet missing from a partial sync is kept as-is; it is only dropped
-     (or its manual row restored) after a complete sync without it.
+   - A wallet missing from a partial sync, or one CoinTracker still lists
+     but couldn't value this time, is kept as-is; it is only dropped (or its
+     manual row restored) after a complete sync without it.
    ========================================================================== */
 /* global module */
 
@@ -107,12 +108,15 @@
     /**
      * @param {object[]} accounts state.customAccounts
      * @param {object[]} wallets  normalized CoinTracker wallets
-     * @param {object}   opts     { syncedAt, partial, excluded: providerId[] }
+     * @param {object}   opts     { syncedAt, partial, excluded: providerId[],
+     *                            keep: providerId[] still in CoinTracker but
+     *                            skipped this sync (e.g. no USD value) }
      * @returns {{accounts, added, updated, adopted, removed, possibleDuplicates}}
      */
     function mergeCoinTrackerWallets(accounts, wallets, opts = {}) {
         const syncedAt = opts.syncedAt || new Date().toISOString();
         const excluded = new Set((opts.excluded || []).map(String));
+        const keep = new Set((opts.keep || []).map(String));
         // An empty result can't prove every wallet is gone.
         const partial = Boolean(opts.partial) || wallets.length === 0;
         const incoming = wallets.filter(
@@ -180,7 +184,9 @@
                 continue;
             }
             const pid = String(acc.cointracker.providerId);
-            const gone = !seen.has(pid) && (!partial || excluded.has(pid));
+            const gone =
+                excluded.has(pid) ||
+                (!seen.has(pid) && !partial && !keep.has(pid));
             if (!gone) {
                 final.push(acc);
                 continue;

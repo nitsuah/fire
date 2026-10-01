@@ -113,7 +113,7 @@
 - **Financial Overview Tab** — Unified Accounts + CDs & Fixed Income tab with Monthly Cash Flow section (income vs. expenses, savings rate, annual surplus/deficit).
 - **Mobile-Responsive Layout** — Adaptive layout for tablet and phone viewports.
 - **Metric Tooltips** — Inline explanation indicators for SWR, FIRE number, Coast FIRE, etc.
-- **Settings Page** — Projection defaults, notifications, eBay/Plaid connectors and sync toggles, privacy/terms, data management, Google Drive backup and danger zone, with colour-coded groups.
+- **Settings Page** — Projection defaults, notifications, eBay/Plaid/CoinTracker connectors and sync toggles, privacy/terms, data management, Google Drive backup and danger zone, with colour-coded groups.
 - **Customizable Layout (sections)** — Every tab is a board of sections. Each section picks a column layout (1, 2, 2 wide-left, 2 wide-right, 3, 3 wide-center, 4), and its cells stack cards. Empty cells collapse outside Customize mode, so a card alone in a section spans the full width; the old fixed per-tab grids are gone. Sections drop to 2 columns on narrow boards and to 1 on phones, using container queries.
   - **✎ Customize** is a builder canvas: dotted grid, outlined sections with a layout picker and ↑/↓/🗑, a highlighted target cell, a pulsing drop placeholder, a floating drag chip (mouse and touch), and "＋ New section" drop gaps. Cards also move with ↑/↓.
   - Click a title to collapse a card. Dashboard ＋ Add widget pins cards from other tabs (keyboard-trapped picker that restores focus), ✕ removes cards, ↺ Reset restores a tab.
@@ -140,7 +140,7 @@
 
 ## Testing
 
-- **Vitest Suite** — 657 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
+- **Vitest Suite** — 699 unit and integration tests; coverage tracked via `@vitest/coverage-v8`.
 - **Playwright UI Suite** — 67 real-browser regression tests (layout, navigation, drill-down, imports, presets, responsive behaviour) run in a pinned Docker image.
 - **MCP Smoke Test** — `scripts/test-mcp.mjs` exercises the 8 tools in `EXPECTED_TOOLS` end-to-end via the SDK client.
 

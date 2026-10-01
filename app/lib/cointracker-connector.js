@@ -40,6 +40,13 @@ const PENDING_TTL_MS = 10 * 60 * 1000;
 // Refresh a little early so a token can't expire mid-sync.
 const EXPIRY_SKEW_MS = 60 * 1000;
 const CALLBACK_PATH = '/api/sync/cointracker/callback';
+// Every CoinTracker request is bounded, so a stalled upstream can't hang
+// the handler (or the browser's Sync button) indefinitely.
+const REQUEST_TIMEOUT_MS = 15 * 1000;
+
+function timeoutSignal() {
+    return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+}
 
 function connectorError(message, code, status) {
     return Object.assign(new Error(message), { code, status });
@@ -83,6 +90,7 @@ async function registerClient(redirectUri, fetchImpl = fetch) {
     if (process.env.COINTRACKER_CLIENT_ID)
         return process.env.COINTRACKER_CLIENT_ID;
     const res = await fetchImpl(ENDPOINTS.register, {
+        signal: timeoutSignal(),
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -148,6 +156,7 @@ function normalizeTokenResponse(body, clientId, previous = {}) {
 
 async function tokenRequest(params, fetchImpl) {
     const res = await fetchImpl(ENDPOINTS.token, {
+        signal: timeoutSignal(),
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -215,6 +224,7 @@ async function revokeTokens(tokens, fetchImpl = fetch) {
     if (!tokens?.refresh_token) return false;
     try {
         const res = await fetchImpl(ENDPOINTS.revoke, {
+            signal: timeoutSignal(),
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -316,6 +326,7 @@ function createMcpSession(accessToken, fetchImpl = fetch) {
         };
         if (sessionId) headers['Mcp-Session-Id'] = sessionId;
         const res = await fetchImpl(MCP_URL, {
+            signal: timeoutSignal(),
             method: 'POST',
             headers,
             body: JSON.stringify(message),
@@ -629,6 +640,7 @@ function normalizeWallets(payload) {
     const items = findWalletArray(payload) || [];
     const wallets = [];
     const warnings = [];
+    const skippedProviderIds = [];
     for (const item of items) {
         const name = firstString(item, NAME_KEYS) || 'CoinTracker wallet';
         const addresses = collectStrings(item, ADDRESS_KEYS);
@@ -642,12 +654,6 @@ function normalizeWallets(payload) {
             ? holdings.reduce((s, h) => s + (h.usdValue || 0), 0)
             : null;
         const usdValue = firstNumber(item, VALUE_KEYS) ?? holdingsTotal;
-        if (usdValue === null) {
-            warnings.push(
-                `Skipped "${name}": no USD value in CoinTracker's response.`,
-            );
-            continue;
-        }
         const providerId = String(
             item.id ??
                 item.wallet_id ??
@@ -655,6 +661,14 @@ function normalizeWallets(payload) {
                 item.uuid ??
                 stableId(name, addresses),
         );
+        if (usdValue === null) {
+            // Still in CoinTracker, so its existing row is kept, not dropped.
+            skippedProviderIds.push(providerId);
+            warnings.push(
+                `Skipped "${name}": no USD value in CoinTracker's response.`,
+            );
+            continue;
+        }
         wallets.push({
             providerId,
             name,
@@ -675,7 +689,8 @@ function normalizeWallets(payload) {
             'CoinTracker returned no wallets or accounts fire could recognize.',
         );
     }
-    return { wallets, warnings };
+    // partial: nothing was recognized, so absence proves nothing.
+    return { wallets, warnings, skippedProviderIds, partial: !items.length };
 }
 
 function summarizeTools(tools) {
@@ -707,14 +722,24 @@ async function withSession(tokens, fn, fetchImpl = fetch) {
         await session.initialize();
         return fn(session);
     };
+    // Auth0 rotates refresh tokens: once refreshed, the old blob is dead,
+    // so any later failure must still hand the new grant back (err.tokens).
+    const withTokens = (err) => {
+        if (refreshed) err.tokens = current;
+        return err;
+    };
     let result;
     try {
         result = await run();
     } catch (err) {
-        if (err.code !== 'unauthorized' || refreshed) throw err;
+        if (err.code !== 'unauthorized' || refreshed) throw withTokens(err);
         current = await refreshTokens(current, fetchImpl);
         refreshed = true;
-        result = await run();
+        try {
+            result = await run();
+        } catch (retryErr) {
+            throw withTokens(retryErr);
+        }
     }
     return { result, tokens: current, refreshed };
 }
@@ -753,10 +778,16 @@ async function inspectTools(tokens, fetchImpl = fetch) {
         refreshed,
     } = await withSession(
         tokens,
-        async (session) => summarizeTools(await session.listTools()),
+        async (session) => {
+            const raw = await session.listTools();
+            return {
+                tools: summarizeTools(raw),
+                selected: chooseBalanceTool(raw)?.name || null,
+            };
+        },
         fetchImpl,
     );
-    return { tools: result, tokens: current, refreshed };
+    return { ...result, tokens: current, refreshed };
 }
 
 module.exports = {

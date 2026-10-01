@@ -185,7 +185,8 @@ The logic is in `app/lib/cointracker-merge.js`, which is pure and unit-tested:
 
 - A manual Crypto account whose identifier (address or ENS, case-insensitive) matches a CoinTracker wallet address is **adopted**. It keeps its id, name and APY, takes CoinTracker's value, and its manual `value`/`identifier`/`quantity` move to `manualSnapshot`. Disconnecting restores it exactly.
 - Manual Crypto rows with no address, or with a ticker that CoinTracker also holds, are listed as **possible duplicates** in the card. They are never changed automatically.
-- A wallet missing from a **partial** sync (any warning, or an empty result) is kept. It is removed only after a complete sync without it.
+- A wallet missing from a **partial** sync (nothing recognized, or an empty result) is kept, and so is one CoinTracker still lists but returned without a USD value this time. A wallet is removed only after a complete sync without it.
+- All CoinTracker calls from the browser run one at a time across tabs (Web Locks), and every server request has a 15-second timeout. Auth0 rotates refresh tokens, so two parallel refreshes of the same token would break the connection. A token refreshed before a failure is still returned to the browser.
 - Excluding a wallet in the card, or deleting its row, adds its id to `state.coinTrackerExcluded`, and later syncs skip it.
 - When a wallet in `/api/wallets` has an address that CoinTracker reports, the MCP server's `get_net_worth` doesn't count it a second time, and `get_wallets` flags it `coveredByCoinTracker`.
 

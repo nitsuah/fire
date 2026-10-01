@@ -177,6 +177,25 @@ describe('mergeCoinTrackerWallets', () => {
     });
 });
 
+describe('skipped wallets', () => {
+    it('keeps a wallet CoinTracker still lists but could not value, and drops removed ones', () => {
+        const first = mergeCoinTrackerWallets(
+            [],
+            [ledger, coinbase],
+            {},
+        ).accounts;
+        const r = mergeCoinTrackerWallets(first, [], { keep: ['w1'] });
+        // An empty result is partial anyway; use a non-empty complete sync.
+        const other = { ...coinbase, providerId: 'w9', name: 'New' };
+        const r2 = mergeCoinTrackerWallets(first, [other], { keep: ['w1'] });
+        expect(r.accounts).toHaveLength(2);
+        expect(r2.accounts.map((a) => a.id)).toEqual([
+            'cointracker-w1',
+            'cointracker-w9',
+        ]);
+    });
+});
+
 describe('removeCoinTrackerWallets', () => {
     it('drops CoinTracker-only rows and restores adopted ones', () => {
         const merged = mergeCoinTrackerWallets(

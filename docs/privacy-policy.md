@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is ever transmitted to any remote server operated by this application. The only remote copies are ones you opt into: eBay order sync and encrypted Google Drive backups to your own Drive (see Section 2).
+fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is ever transmitted to any remote server operated by this application. The only remote copies are ones you opt into: eBay order sync, CoinTracker wallet balances (read from your CoinTracker account) and encrypted Google Drive backups to your own Drive (see Sections 2 and 4).
 
 ---
 
@@ -23,7 +23,7 @@ When you use the hosted Netlify deployment:
 - **All data lives exclusively in your browser's `localStorage`**, keyed to `fire_tracker_state`.
 - Data never leaves your device through this application. It is not sent to Netlify servers, cloud databases, or any third party by this app.
 - Clearing your browser data, switching browsers, or using a private/incognito session **will erase your data**. Use the Export JSON Backup feature regularly.
-- **Optional eBay order sync is the one exception.** If you click *Connect eBay*, the connect and sync requests go through this site's Netlify Functions (`/api/sync/ebay/*`) to eBay. The Functions keep nothing: your eBay tokens come back to your browser encrypted with a server-held key (stored under the separate `localStorage` key `fire_tracker_ebay_token`, which your browser can't decrypt), and orders pulled during a sync are returned straight to your browser. They never log your eBay username or user ID.
+- **Optional eBay order sync and CoinTracker wallet sync are the exceptions.** CoinTracker works like eBay below: its requests go through `/api/sync/cointracker/*`, nothing is kept server-side, and the encrypted token is stored under the separate `localStorage` key `fire_cointracker_token` (see Section 4). If you click *Connect eBay*, the connect and sync requests go through this site's Netlify Functions (`/api/sync/ebay/*`) to eBay. The Functions keep nothing: your eBay tokens come back to your browser encrypted with a server-held key (stored under the separate `localStorage` key `fire_tracker_ebay_token`, which your browser can't decrypt), and orders pulled during a sync are returned straight to your browser. They never log your eBay username or user ID.
 - **If you revoke this app's eBay access or close your eBay account**, the next sync gets an `invalid_grant` rejection from eBay. The app then deletes the eBay token and the sales it synced from eBay through the API from this browser and tells you. Sales you logged by hand and uploaded CSV reports are yours and are kept. eBay's account-deletion notifications reach the server, but the server holds no eBay data for you and can't reach your browser, so this cleanup happens the next time you open the app and sync.
 - The Netlify platform itself may log standard HTTP access metadata (IP address, timestamp, URL path) as part of normal CDN operation — this is governed by [Netlify's Privacy Policy](https://www.netlify.com/privacy/), not this document.
 
@@ -123,7 +123,7 @@ The optional webhook feature allows external services to push data updates into 
 ## 8. Data Backup & Deletion
 
 - **Export:** Use "Export JSON Backup" in the sidebar to download a complete copy of your data at any time.
-- **Delete (browser mode):** Clear `localStorage` in your browser (DevTools → Application → Storage → Clear Site Data). This also removes the encrypted eBay token, if you connected eBay.
+- **Delete (browser mode):** Clear `localStorage` in your browser (DevTools → Application → Storage → Clear Site Data). This also removes the encrypted eBay and CoinTracker tokens, if you connected them. To revoke CoinTracker's grant itself, use *Disconnect* in Settings or remove the connection in your CoinTracker settings.
 - **Delete (local server mode):** Delete `data/db.json` (and `data/tokens-gdrive.json`, if you connected Google Drive) from your machine.
 - **Delete (Google Drive backups):** delete the `fire-backup-*.json` files from your backup folder in Google Drive (`fire-tracker-backups` by default, or the folder set in `GDRIVE_BACKUP_FOLDER_ID`), and revoke this app's access in your Google Account settings.
 - This application operates no server-side account or database of its own, so there is no account to close or app-held data to request deletion of.
