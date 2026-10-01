@@ -146,7 +146,7 @@ window.deleteCustomAccount = async function (id) {
         await saveState();
     } catch (err) {
         state.customAccounts = prev;
-        console.error('Failed to save account:', err);
+        console.error('Failed to delete account:', err);
         return;
     }
     refreshAllUI();
@@ -352,7 +352,6 @@ window.refreshMetalAccount = async function (id) {
         alert(err.message);
     } finally {
         btns.forEach((b) => {
-            btns.forEach((b) => {
             b.disabled = false;
             b.textContent = '⟳ Refresh';
         });
