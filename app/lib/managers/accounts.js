@@ -52,10 +52,7 @@ function initAccountsManager() {
         if (walletsGroup)
             walletsGroup.classList.toggle('csp-i-001', t !== 'Crypto');
         // APY shown for yield-bearing types
-        apyGroup.classList.toggle(
-            'csp-i-001',
-            !(t === 'Savings' || t === 'Cash' || t === 'Crypto')
-        );
+        apyGroup.classList.toggle('csp-i-001', !(t === 'Savings' || t === 'Cash' || t === 'Crypto'));
         const apyLabel = document.getElementById('label-acc-apy');
         if (apyLabel)
             apyLabel.textContent =
