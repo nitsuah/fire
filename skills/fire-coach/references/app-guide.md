@@ -31,7 +31,10 @@ one tappable summary bar.
   Everything is parsed locally.
 - **Manual:** the same form's Account/Asset, CD, Real Estate and Vehicle
   options. Gold/silver are valued by weight × live spot price. For crypto,
-  enter an ENS name, 0x address or ticker.
+  enter an ENS name, 0x address or ticker (with a quantity). ⟳ Refresh on an
+  ENS/0x account totals coins and tokens across 7 EVM chains and shows the
+  per-chain split. CoinTracker (Settings) can import every wallet once its
+  MCP access is enabled.
 - **Synced (self-hosted, opt-in):** Plaid (Settings), eBay (Side Hustle Hub →
   eBay Sales Sync), wallets (Crypto Wallets).
 - **Spending:** Expenses → Spending Upload, then adjust the categories.

@@ -1,10 +1,7 @@
 'use strict';
 
-// Public Ethereum JSON-RPC (no key required). cloudflare-eth.com was retired
-// and answers "Internal error"; same default as ens-resolver.js, and the same
-// ETH_RPC_URL override.
-const ETH_RPC =
-    process.env.ETH_RPC_URL || 'https://ethereum-rpc.publicnode.com';
+const { getMultichainValue, summarizeChains } = require('./multichain-balance');
+
 // ENS resolution via free public API
 const ENS_API = 'https://ensdata.net';
 
@@ -54,38 +51,6 @@ async function resolveEns(name) {
         );
     }
     return addr;
-}
-
-async function getEthBalance(address) {
-    const body = JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'eth_getBalance',
-        params: [address, 'latest'],
-        id: 1,
-    });
-    const res = await fetch(ETH_RPC, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok)
-        throw Object.assign(new Error(`ETH RPC failed (${res.status})`), {
-            status: 502,
-        });
-    const data = await res.json();
-    if (data.error)
-        throw Object.assign(new Error(`ETH RPC error: ${data.error.message}`), {
-            status: 502,
-        });
-    if (!data.result || typeof data.result !== 'string') {
-        throw Object.assign(new Error('ETH RPC returned no result'), {
-            status: 502,
-        });
-    }
-    // Result is hex wei
-    const wei = BigInt(data.result);
-    return Number(wei) / 1e18;
 }
 
 async function getTickerUsdPrice(ticker) {
@@ -163,22 +128,19 @@ async function resolveCryptoValue(identifier, quantity) {
         };
     }
 
-    // address or ens — resolve ENS first, then fetch balance + price concurrently
+    // address or ens: resolve ENS first, then total the address across
+    // every supported chain (native coins + priced tokens).
     let address = identifier;
     if (type === 'ens') {
         address = await resolveEns(identifier);
     }
-    const [ethBalance, ethPrice] = await Promise.all([
-        getEthBalance(address),
-        getTickerUsdPrice('ETH'),
-    ]);
+    const result = await getMultichainValue(address);
     return {
-        usdValue: ethBalance * ethPrice,
+        usdValue: result.usdValue,
         resolvedAddress: address,
-        ethBalance,
-        price: ethPrice,
-        ticker: 'ETH',
-        source: 'ethereum-rpc + yahoo-finance',
+        partial: result.partial,
+        chains: summarizeChains(result.chains),
+        source: 'blockscout + publicnode',
     };
 }
 

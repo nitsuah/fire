@@ -34,6 +34,7 @@ export default [
             'app/lib/prices-provider.js',
             'app/lib/vehicle-api.js',
             'app/lib/crypto-balance.js',
+            'app/lib/multichain-balance.js',
             'app/lib/ens-resolver.js',
             'app/lib/ens-wallet-lookup.js',
         ],

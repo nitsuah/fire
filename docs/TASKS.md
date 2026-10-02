@@ -41,13 +41,23 @@ These items came from the current browser/production pass. **P0** items are corr
   - Acceptance Criteria: existing Express route paths and response contracts remain unchanged; Plaid and eBay tests pass; transaction pagination/cursor semantics remain unchanged; hosted Netlify Plaid functions can reuse the extracted Plaid operations without importing the Express router.
   - Progress 2026-09-30 (PR #146): split into `app/routes/ebay.js` and `app/routes/plaid.js`, with token helpers in `app/lib/token-store.js`. Paths and cursor semantics are unchanged, and the tests pass. Accounts/positions responses gained `syncedItemIds`/`warning`. Remaining: the hosted function still duplicates the Plaid operations instead of sharing a transport-agnostic module.
 
-- [ ] **CoinTracker MCP integration for wallet discovery/investigation**
+- [ ] **CoinTracker MCP integration for wallet discovery/investigation** _(blocked on CoinTracker: the test account isn't enrolled in MCP early access)_
   - Priority: P1.
   - Goal: reduce manual wallet tracking and avoid unnecessary direct API calls by using CoinTracker's MCP integration where users already have wallet/activity data available.
   - Scope: define a provider boundary rather than coupling wallet UI directly to CoinTracker; use CoinTracker for discovery/investigation/history where appropriate, retain fire's normalized wallet/account model and aggregate USD value, and fall back to existing direct chain providers when CoinTracker is unavailable or incomplete.
   - Acceptance Criteria: provider capabilities and data ownership are documented; duplicate calls are avoided; users can see provider/source and last-refresh state; no private keys or signing capability are ever requested; existing direct-chain tracking remains functional.
   - Progress 2026-10-01 (#139): the connector runs on Express and Netlify. CoinTracker has no REST API or read token, so it uses OAuth 2.1 + PKCE with dynamic client registration and reads balances over the read-only MCP. Balances merge into Crypto accounts with CoinTracker as the source of truth (address/ENS adoption, a possible-duplicate list, exclusions, partial-sync safety). Added the Settings card and source tags, 42 unit tests, and docs in `docs/integrations.md`. Remaining: connect a real CoinTracker account (MCP is paid/early access), confirm the balance tool and payload shape with "Inspect CoinTracker tools", then tighten the normalizer and close this item.
   - 2026-10-01 live test: the OAuth redirect and login work, but the MCP server answered `401 invalid_token` for the issued token. The follow-up sends an Auth0 `audience` and reports the token shape on a 401. Retest on its deploy preview. Retest result: the token is now correct (MCP audience), but `permissions: []`. The test account isn't enrolled in CoinTracker MCP early access, so this item is blocked on CoinTracker enabling it.
+
+- [x] **Multichain crypto account value (ENS/0x)**
+  - Done 2026-10-01: ⟳ Refresh on an ENS/0x crypto account totals native coins and priced tokens across Ethereum, Base, Optimism, Arbitrum, Polygon, BNB Chain and Avalanche via keyless Blockscout/publicnode lookups (`app/lib/multichain-balance.js`), with a per-chain breakdown and a partial-result warning. The ENS lookup card uses the same source. It replaced the Ethereum-only ETH balance (`nitsuah.eth`: ~$29 ETH-only → ~$445 including PIXL and Base tokens).
+
+- [x] **Restore hosted gold/silver and crypto refreshes**
+  - Done 2026-10-01 (#154, #155): `fire-api` crashed on Netlify (`Cannot find module 'ethers'`), which took down metals too; crypto ⟳ Refresh had no hosted route; the hosted metal refresh threw on an undefined variable; and the retired `cloudflare-eth.com` RPC broke ENS refresh. All fixed and verified against the live site.
+
+- [ ] **CoinTracker export-file fallback when MCP isn't available**
+  - Priority: P2. CoinTracker has no public REST API, and its OAuth only offers `mcp:read`/`mcp:write`, so there is no same-login fallback. Exchange balances (not on-chain) could instead come from CoinTracker's holdings/portfolio export, imported in the CoinTracker card when MCP reports `cointracker_no_access`, using the same merge/dedupe rules. On-chain wallets are already covered by the multichain lookup.
+  - Blocked on: a sample export file to confirm the column format.
 
 - [x] **Move eBay connector into the Side Hustle Hub**
   - Completed in PR #138: eBay is now a compact Side Hustle Hub integration with connection state and manual/automatic sync controls.
@@ -187,7 +197,7 @@ See [security-hardening.md](./security-hardening.md) for full remediation detail
   - Type: Security
   - Not attempted as part of this pass — flagging for a follow-up task.
 
-_Coverage: branch coverage is back above the 70% threshold (74.85%, 484 tests, #119). CI runs `npm run test:coverage`, but its thresholds apply only to the 8 files in `coverage.include` (`app/server.js` plus 7 `app/lib` calculation/aggregation modules). Routes, managers, `gdrive-backup.js`, Netlify Functions and the browser app are not measured, so CI does not enforce coverage for them. See `docs/METRICS.md`. Re-run the metrics snapshot after this documentation/test pass._
+_Coverage: 84.31% stmts / 77.16% branch / 84.66% funcs / 84.97% lines (715 tests, 2026-10-01). CI runs `npm run test:coverage`, but its thresholds apply only to the 8 files in `coverage.include` (`app/server.js` plus 7 `app/lib` calculation/aggregation modules). Routes, managers, `gdrive-backup.js`, Netlify Functions and the browser app are not measured, so CI does not enforce coverage for them. See `docs/METRICS.md`. _
 
 ---
 

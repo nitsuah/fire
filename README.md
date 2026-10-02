@@ -41,7 +41,7 @@
 - **Side Hustle Tracker** — income logs, built-in eBay/Etsy/Facebook fee calculators, an eBay sales-report CSV upload (deduplicated against earlier imports), and rotating, dismissible side-hustle ideas with guide/video links
 - **CSV Imports** — one unified add form (Import CSV is the default option) for Fidelity positions, Chase and Capital One statements, and eBay sales reports, plus Expenses-tab spending upload with auto-categorization (all processed locally)
 - **Precious metals** — Gold/Silver account type valued by weight × live spot (metals.dev with a free Yahoo futures fallback)
-- **Crypto accounts** — enter an ENS name, 0x address or ticker in either Name or Identifier; wallet tracking appears under the form when Type = Cryptocurrency
+- **Crypto accounts** — enter an ENS name, 0x address or ticker in either Name or Identifier. ⟳ Refresh on an ENS/0x account totals native coins plus priced tokens across Ethereum, Base, Optimism, Arbitrum, Polygon, BNB Chain and Avalanche, with no API keys, and shows the per-chain breakdown under the row. A ticker account is valued as quantity × live price. Wallet tracking appears under the form when Type = Cryptocurrency
 - **REST API** — full CRUD for accounts, CDs, wallets, vehicles, sync templates, state; `FIRE_API_KEY` header auth required by default (opt out with `FIRE_AUTH_DISABLED=true` for local-only use); `FIRE_ADMIN_KEY`-gated key-rotation endpoint
 - **MCP Server** — 16 read-only tools for Claude/LLM integration via `app/mcp-server.mjs`
 - **Yahoo Finance prices** — live portfolio valuation with crumb-based auth, stale-data fallback, and SSE (`GET /api/prices/stream`) for live push; configurable via `ALPHA_VANTAGE_API_KEY` or `POLYGON_API_KEY` as stable alternatives
@@ -242,7 +242,7 @@ Every tab is a set of **sections**. Each section picks a column layout: full wid
 ## Data & Privacy
 
 - All financial data is stored in `data/db.json` inside the project directory (Docker volume-mounted).
-- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain APIs (wallet balances — Etherscan, BscScan, Blockstream, etc.), CoinTracker (read-only wallet balances), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance / Alpha Vantage / Polygon). All are opt-in and BYOK.
+- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain lookups (crypto account refresh: ENS via ensdata.net, balances via Blockscout and publicnode.com RPCs; the wallet tracker: Etherscan, BscScan, Blockstream, etc.), CoinTracker (read-only wallet balances), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance / Alpha Vantage / Polygon). All are opt-in and BYOK.
 - Optionally encrypt `db.json` at rest with `SYNC_MASTER_KEY` (AES-256-GCM).
 - Export/restore a full JSON backup any time from the dashboard.
 
@@ -268,7 +268,12 @@ fire/
 │   │   ├── prices-provider.js  # Price provider abstraction (Yahoo / Alpha Vantage / Polygon)
 │   │   ├── webhook-integration.js # Webhook payload handler
 │   │   ├── ebay-connector.js   # eBay Order API OAuth + order fetch
-│   │   ├── web3-prices.js      # On-chain balance fetch (ETH, BTC, SOL, EVM chains)
+│   │   ├── cointracker-connector.js # CoinTracker OAuth (PKCE + DCR) + read-only MCP client
+│   │   ├── cointracker-handlers.js  # CoinTracker routes, shared by Express + Netlify
+│   │   ├── cointracker-merge.js     # Folds CoinTracker wallets into accounts (dedupe, browser + Node)
+│   │   ├── crypto-balance.js   # Crypto account value: ticker × price, or ENS/0x multichain total
+│   │   ├── multichain-balance.js # Keyless multichain total (Blockscout + publicnode RPCs)
+│   │   ├── web3-prices.js      # Wallet-tracker balance fetch (ETH, BTC, SOL, EVM chains; BYOK keys)
 │   │   ├── gdrive-backup.js    # Google Drive encrypted backup/restore
 │   │   ├── vehicle-api.js      # NHTSA VIN decode + vehicle value estimate
 │   │   ├── csv-import.js       # Fidelity / Chase / CapOne CSV parsing (also routes eBay reports)
@@ -292,7 +297,14 @@ fire/
 │       ├── vehicles.js         # GET /api/vehicles/vin/:vin, POST /api/vehicles/:id/refresh-value
 │       ├── (accounts.js also)  # POST /api/accounts/:id/refresh-crypto, /refresh-metal
 │       ├── backup.js           # POST /api/backup/drive, GET /api/backup/drive/list, POST /api/backup/drive/restore
-│       └── sync.js             # Webhook templates CRUD, POST /api/sync/webhook/:templateId, eBay OAuth, Plaid
+│       ├── sync.js             # Webhook templates CRUD, POST /api/sync/webhook/:templateId; mounts the three below
+│       ├── ebay.js             # /api/sync/ebay/* (OAuth, sync, marketplace deletion)
+│       ├── plaid.js            # /api/sync/plaid/*
+│       └── cointracker.js      # /api/sync/cointracker/* (authorize, callback, sync, inspect, disconnect)
+├── netlify/
+│   ├── functions/              # Hosted (lifefire.netlify.app) API: fire-api (metals, ENS lookup, crypto refresh),
+│   │                           #   ebay-*, plaid, cointracker — same handlers as the Express routes
+│   └── lib/http.mjs            # Shared Function helpers
 ├── config/
 │   ├── docker-compose.yml      # fire + Caddy (HTTPS)
 │   ├── Dockerfile              # node:22-alpine
@@ -337,6 +349,8 @@ The system is being productionized toward real-time, API-driven data in four pha
 |---|---|---|
 | eBay Order API (auto-import sales) | Phase 1 | Live (BYOK) |
 | Web3 wallet tracking (ETH, BTC, SOL, + EVM chains) | Phase 1 | Live (BYOK keys per chain) |
+| Crypto account multichain value (ENS/0x, 7 EVM chains, tokens) | Phase 1 | Live (keyless: Blockscout + public RPCs) |
+| CoinTracker wallets (read-only MCP) | Phase 1 | Implemented; blocked until CoinTracker enables MCP early access for the account |
 | Google Drive encrypted backup | Phase 1 | Implemented self-hosted via Google OAuth; live round-trip verification pending |
 | Vehicle value API (NHTSA VIN free; paid providers via `VEHICLE_VALUE_PROVIDER`) | Phase 1 | Live |
 | Fidelity / Plaid positions + balance sync | Phase 2 | Live (BYOK; sandbox ready) |

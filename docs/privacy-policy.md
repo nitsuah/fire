@@ -70,6 +70,15 @@ If you opt into Google Drive backup on a self-hosted server (Section 2b), that s
 | `accounts.google.com`, `oauth2.googleapis.com` | Drive OAuth sign-in and token refresh | OAuth client ID/secret, authorization code, refresh token |
 | `www.googleapis.com` (Drive API) | Upload, list and download backups | The AES-256-GCM encrypted backup file and its name (`fire-backup-YYYY-MM-DD.json`) |
 
+When you refresh a crypto, gold/silver or stock value, or use the ENS lookup, the server (Express or the Netlify Function) looks up public data. It sends only the public identifier, never your balances or other data:
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `ensdata.net` | Resolve an ENS name to its address | The ENS name |
+| Blockscout explorers (`eth.blockscout.com`, `base.blockscout.com`, `explorer.optimism.io`, `arbitrum.blockscout.com`, `polygon.blockscout.com`) | Native and token balances with USD prices | The public wallet address |
+| `*.publicnode.com` RPCs | ENS resolution and BNB/Avalanche balances | The public wallet address |
+| Yahoo Finance, metals.dev | Coin, metal and stock prices | Ticker symbols only |
+
 If you connect CoinTracker (optional, on the hosted site or self-hosted), the server (Express or the Netlify Function) calls CoinTracker on your behalf. It stores nothing: the OAuth token is returned to your browser encrypted with `SYNC_MASTER_KEY` and kept in `localStorage`.
 
 | Service | Purpose | What is sent |
