@@ -298,8 +298,11 @@ window.refreshCryptoAccount = async function (id) {
                 ...(data.resolvedAddress
                     ? { resolvedAddress: data.resolvedAddress }
                     : {}),
-                ...(data.ethBalance != null
-                    ? { balance: data.ethBalance, quantity: data.ethBalance }
+                ...(data.chains
+                    ? {
+                          chainBreakdown: data.chains,
+                          valuePartial: Boolean(data.partial),
+                      }
                     : {}),
             };
         } else {

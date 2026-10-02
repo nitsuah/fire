@@ -23,6 +23,19 @@ function accountTypeBadge(acc) {
     return `<span class="badge-type ${cls}">${escHtml(acc.type)}</span>${synced}`;
 }
 
+// "Ethereum $432 · Base $13 · Optimism $0.22" for a multichain crypto
+// account (chainBreakdown is written by the ⟳ Refresh of an ENS/0x row).
+function cryptoBreakdownLabel(acc) {
+    const rows = Array.isArray(acc.chainBreakdown) ? acc.chainBreakdown : [];
+    if (!rows.length) return '';
+    const parts = rows
+        .filter((c) => c.usdValue >= 0.01)
+        .slice(0, 4)
+        .map((c) => `${c.name} ${formatCurrency(c.usdValue)}`);
+    const more = rows.filter((c) => c.usdValue >= 0.01).length - parts.length;
+    return `${parts.join(' · ')}${more > 0 ? ` · +${more} more` : ''}${acc.valuePartial ? ' · ⚠ some chains unavailable' : ''}`;
+}
+
 function renderImportedFilesTable() {
     const tbody = document.querySelector('#table-imported-files tbody');
     if (!tbody) return;
@@ -104,7 +117,7 @@ function renderCustomAccountsTable() {
                     : '';
             html += `
                 <tr>
-                    <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted csp-text-11">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}${metalLabel ? `<br><span class="text-muted csp-text-11">${escHtml(metalLabel)}</span>` : ''}</td>
+                    <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted csp-text-11">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}${isCrypto && cryptoBreakdownLabel(acc) ? `<br><span class="text-muted csp-text-10">${escHtml(cryptoBreakdownLabel(acc))}</span>` : ''}${metalLabel ? `<br><span class="text-muted csp-text-11">${escHtml(metalLabel)}</span>` : ''}</td>
                     <td>${accountTypeBadge(acc)}</td>
                     <td class="text-right text-amber font-bold">${hasYield && (!isCrypto || acc.apy) ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>
                     <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
@@ -261,7 +274,7 @@ function renderUnifiedHoldingsTable() {
             </tr>`;
         } else {
             html += `<tr>
-                <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted csp-text-11">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}${metalLabel ? `<br><span class="text-muted csp-text-11">${escHtml(metalLabel)}</span>` : ''}</td>
+                <td class="font-bold">${escHtml(acc.name)}${isCrypto && acc.identifier ? `<br><span class="text-muted csp-text-11">${escHtml(acc.identifier)}${acc.quantity != null ? ` × ${acc.quantity}` : ''}</span>` : ''}${isCrypto && cryptoBreakdownLabel(acc) ? `<br><span class="text-muted csp-text-10">${escHtml(cryptoBreakdownLabel(acc))}</span>` : ''}${metalLabel ? `<br><span class="text-muted csp-text-11">${escHtml(metalLabel)}</span>` : ''}</td>
                 <td>${accountTypeBadge(acc)}</td>
                 <td class="text-right font-bold text-emerald">${formatCurrency(acc.value)}</td>
                 <td class="text-right text-amber">${hasYield && (!isCrypto || acc.apy) ? `${Number(acc.apy).toFixed(2)}%` : '—'}</td>

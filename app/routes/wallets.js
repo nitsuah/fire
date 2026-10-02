@@ -5,10 +5,8 @@ const crypto = require('crypto');
 const { readState, mutateState } = require('../lib/db');
 const { refreshWalletBalance, loadChains } = require('../lib/web3-prices');
 const { isEnsName, resolveEnsAddress } = require('../lib/ens-resolver');
-const {
-    mapEnsErrorToResponse,
-    aggregateEvmWalletValue,
-} = require('../lib/ens-wallet-lookup');
+const { mapEnsErrorToResponse } = require('../lib/ens-wallet-lookup');
+const { getMultichainValue } = require('../lib/multichain-balance');
 
 const router = express.Router();
 const CHAINS = loadChains();
@@ -151,10 +149,10 @@ router.post('/refresh-all', async (req, res) => {
 });
 
 // GET /api/wallets/ens/:name — resolve an ENS (.eth) name to its address,
-// then aggregate the USD value of everything held at that address across all
-// configured EVM chains (Ethereum, BSC, Polygon, Arbitrum, Base, Avalanche).
-// Chains without their explorer API key configured come back with a warning
-// instead of failing the whole lookup.
+// then total everything held there (native coins + priced tokens) across
+// Ethereum, Base, Optimism, Arbitrum, Polygon, BNB Chain and Avalanche via
+// keyless Blockscout/public-RPC lookups (app/lib/multichain-balance.js). A
+// chain that fails comes back with a warning instead of failing the lookup.
 router.get('/ens/:name', async (req, res) => {
     const name = req.params.name;
     if (!isEnsName(name)) {
@@ -174,19 +172,21 @@ router.get('/ens/:name', async (req, res) => {
         return res.status(status).json(body);
     }
 
-    const evmChains = CHAINS.filter((c) => c.addressFormat === 'evm');
-    const { chains, totalUsdValue } = await aggregateEvmWalletValue(
-        address,
-        evmChains,
-        refreshWalletBalance,
-    );
-
-    res.json({
-        name,
-        address: `...${address.slice(-8)}`,
-        totalUsdValue,
-        chains,
-    });
+    try {
+        const result = await getMultichainValue(address);
+        res.json({
+            name,
+            address: `...${address.slice(-8)}`,
+            totalUsdValue: result.usdValue,
+            partial: result.partial,
+            chains: result.chains,
+        });
+    } catch (err) {
+        console.error('[ENS] Multichain lookup failed:', err.message);
+        res.status(err.status || 502).json({
+            error: 'Wallet balance lookup failed. Please try again shortly.',
+        });
+    }
 });
 
 module.exports = router;

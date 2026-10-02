@@ -6,7 +6,7 @@ This file provides custom instructions to GitHub Copilot when working in this re
 
 **Project Name:** fire  
 **Description:** Lightweight fire tracker & API server for tracking financial independence, retire early goals.  
-**Tech Stack:** JavaScript (Node.js), Database (e.g., SQLite, PostgreSQL for data persistence), Express.js (for API server).
+**Tech Stack:** JavaScript (Node.js 22), Express 5 API server, a vanilla-JS single-page app (`app/`), JSON-file persistence (`data/db.json`, optionally AES-256-GCM encrypted), Netlify Functions for the hosted deploy, Vitest + Playwright for tests.
 
 ## Code Style & Conventions
 

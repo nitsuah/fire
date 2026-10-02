@@ -76,7 +76,7 @@ describe('hosted fire API — account refreshes', () => {
         });
     });
 
-    it('values an ENS account via the ethers-free resolver', async () => {
+    it('values an ENS account across chains via the ethers-free resolver', async () => {
         const addr = '0x' + 'a'.repeat(40);
         vi.stubGlobal(
             'fetch',
@@ -84,23 +84,33 @@ describe('hosted fire API — account refreshes', () => {
                 const u = String(url);
                 if (u.startsWith('https://ensdata.net/'))
                     return Response.json({ address: addr });
-                if (u.includes('finance.yahoo.com'))
+                if (u === `https://eth.blockscout.com/api/v2/addresses/${addr}`)
+                    // 0.5 ETH at $2000
                     return Response.json({
-                        chart: {
-                            result: [{ meta: { regularMarketPrice: 2000 } }],
-                        },
+                        coin_balance: '500000000000000000',
+                        exchange_rate: '2000',
                     });
-                // 0.5 ETH in wei
-                return Response.json({ result: '0x6f05b59d3b20000' });
+                if (u.endsWith('/token-balances')) return Response.json([]);
+                if (u.includes('/api/v2/addresses/'))
+                    return Response.json({
+                        coin_balance: '0',
+                        exchange_rate: '2000',
+                    });
+                // RPC-only chains: empty
+                return Response.json({ result: '0x0' });
             }),
         );
         const res = await handler(post({ identifier: 'nitsuah.eth' }));
         expect(res.status).toBe(200);
-        expect(await res.json()).toMatchObject({
+        const body = await res.json();
+        expect(body).toMatchObject({
             usdValue: 1000,
             resolvedAddress: addr,
-            ethBalance: 0.5,
+            partial: false,
         });
+        expect(body.chains).toEqual([
+            expect.objectContaining({ chain: 'ethereum', usdValue: 1000 }),
+        ]);
     });
 
     it('rejects a missing identifier and a ticker without quantity', async () => {

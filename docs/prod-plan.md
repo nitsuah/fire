@@ -153,6 +153,7 @@ Adding a new EVM chain requires only a new entry in `config/chains.json` — no 
 
 **Balance calculation:**
 - EVM chains: native balance + ERC-20 token balances (Etherscan `tokenbalance` endpoint)
+  - _Status 2026-10-01: crypto accounts and the ENS lookup now use a keyless multichain path instead (Blockscout + publicnode RPCs, 7 EVM chains, priced tokens). See [integrations.md](integrations.md#multichain-wallet-value-keyless). The Etherscan-family keys remain for the server-side wallet tracker._
 - Prices: CoinGecko free API (`/api/v3/simple/price`) for native token USD value
 - Token USD value = `balance × price`; aggregated per wallet
 - Wallet totals roll into net worth under "Crypto Wallets" (replaces manual Crypto accounts)

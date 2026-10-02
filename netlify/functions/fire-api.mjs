@@ -6,8 +6,7 @@ import {
 // doesn't ship, and a failed import took down every route here (metals
 // included). crypto-balance resolves ENS over HTTPS with no dependencies.
 import cryptoBalance from '../../app/lib/crypto-balance.js';
-import { aggregateEvmWalletValue } from '../../app/lib/ens-wallet-lookup.js';
-import { loadChains, refreshWalletBalance } from '../../app/lib/web3-prices.js';
+import multichain from '../../app/lib/multichain-balance.js';
 
 const { detectIdentifierType, resolveCryptoValue, resolveEns } = cryptoBalance;
 const isEnsName = (name) => detectIdentifierType(name) === 'ens';
@@ -64,17 +63,13 @@ async function handleEns(name) {
 
     try {
         const address = await resolveEns(name);
-        const evmChains = loadChains().filter((c) => c.addressFormat === 'evm');
-        const { chains, totalUsdValue } = await aggregateEvmWalletValue(
-            address,
-            evmChains,
-            refreshWalletBalance,
-        );
+        const result = await multichain.getMultichainValue(address);
         return json(200, {
             name,
             address: `...${address.slice(-8)}`,
-            totalUsdValue,
-            chains,
+            totalUsdValue: result.usdValue,
+            partial: result.partial,
+            chains: result.chains,
         });
     } catch (err) {
         if (err?.code === 'NOT_FOUND' || err?.status === 404)

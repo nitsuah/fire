@@ -150,7 +150,7 @@ report whose range contains an earlier one replaces those rows.
 ## CoinTracker (Wallet Discovery & Balances)
 
 **Purpose:** Pull every wallet and exchange account the user already tracks in CoinTracker, with current USD balances, so they don't have to add each address and chain by hand.
-**Status:** Implemented and optional; not yet validated against a live CoinTracker account (see "Tool selection" below).
+**Status:** Implemented and optional. Live-tested 2026-10-01: login works, but the MCP server needs `mcp:read`, which CoinTracker grants only to accounts enrolled in MCP early access (see "Token audience" below).
 **Auth type:** OAuth 2.1 Authorization Code + PKCE, public client, dynamic client registration
 
 ### What CoinTracker offers
@@ -211,6 +211,28 @@ COINTRACKER_REDIRECT_URI=     # optional: defaults to <request origin>/api/sync/
 COINTRACKER_BALANCE_TOOL=     # optional: exact MCP tool name to read balances from
 COINTRACKER_AUDIENCE=         # optional: Auth0 audience (default: the MCP URL); `none` omits it
 ```
+
+---
+
+## Multichain Wallet Value (keyless)
+
+**Purpose:** Value an ENS name or 0x address as one USD total across chains: native coins plus ERC-20 tokens. Used by the crypto account ⟳ Refresh and the ENS lookup card.
+**Status:** Live on Express and Netlify (`app/lib/multichain-balance.js`)
+**Auth type:** None. No API keys, no registration.
+
+| Chains | Source | What's read |
+|---|---|---|
+| Ethereum, Base, Optimism, Arbitrum One, Polygon | Blockscout public API v2 (`eth.blockscout.com`, `base.blockscout.com`, `explorer.optimism.io`, `arbitrum.blockscout.com`, `polygon.blockscout.com`) | `GET /api/v2/addresses/{addr}` (native balance + USD rate) and `/token-balances` (every token, with USD rate) |
+| BNB Smart Chain, Avalanche | publicnode.com RPCs (`eth_getBalance`) + Yahoo Finance `BNB-USD`/`AVAX-USD` | Native balance only |
+
+- ENS names are resolved with `ensdata.net` (`crypto-balance.js`). The hosted function doesn't use the `ethers` resolver, which Netlify's bundle doesn't ship.
+- **Spam filter:** a token counts only if it is ERC-20, Blockscout prices it, it isn't flagged `scam`, it has at least 50 holders, and it's worth at most $10M in this wallet (a guard against fake prices on illiquid tokens).
+- **Partial results:** each chain is fetched on its own with a 10 s timeout. A failed chain comes back `ok: false` with a warning, the rest still count, and the result is marked `partial` (shown as ⚠ on the row and in the ENS card). The lookup fails only if every chain fails.
+- **What's stored:** the account's `value` (the total), `chainBreakdown` (chains holding ≥ $0.01, largest first, top 3 tokens each) and `valuePartial`. Full token lists are not stored.
+- **Endpoints:** `POST /api/accounts/:id/refresh-crypto` (Express) and the stateless `POST /api/accounts/refresh-crypto` `{identifier, quantity}` (Netlify `fire-api`; the browser saves the result). Both runtimes also serve `GET /api/wallets/ens/:name`.
+- **Not covered:** NFTs, DeFi positions (LP/staking), chains outside the seven above, and tokens Blockscout doesn't price. CoinTracker (above) covers those once MCP access is enabled.
+
+The Etherscan-family keys below are still used by the server-side **wallet tracker** (`/api/wallets`, `app/lib/web3-prices.js`), not by crypto accounts.
 
 ---
 

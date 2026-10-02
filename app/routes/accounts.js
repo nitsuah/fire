@@ -339,10 +339,10 @@ router.post('/:id/refresh-crypto', async (req, res) => {
                 ...(result.resolvedAddress
                     ? { resolvedAddress: result.resolvedAddress }
                     : {}),
-                ...(result.ethBalance != null
+                ...(result.chains
                     ? {
-                          balance: result.ethBalance,
-                          quantity: result.ethBalance,
+                          chainBreakdown: result.chains,
+                          valuePartial: Boolean(result.partial),
                       }
                     : {}),
             };
