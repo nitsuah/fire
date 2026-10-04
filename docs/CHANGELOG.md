@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multichain value for ENS/0x crypto accounts.** ⟳ Refresh now totals native coins plus priced ERC-20 tokens across Ethereum, Base, Optimism, Arbitrum, Polygon, BNB Chain and Avalanche (`app/lib/multichain-balance.js`). It uses keyless Blockscout explorers and publicnode.com RPCs, and filters spam tokens: unpriced, flagged as scam, few holders, or absurd values. The row shows a per-chain breakdown, plus ⚠ when a chain couldn't be read. The ENS lookup card uses the same source, with top tokens per chain. Previously only mainnet ETH counted.
 
 #### Changed
+
 - The hosted `fire-api` no longer imports `web3-prices`/`config/chains.json` for the ENS lookup (and `netlify.toml` no longer bundles the file). Etherscan-family keys are now used only by the server-side wallet tracker.
 
 #### Docs
