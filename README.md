@@ -242,7 +242,7 @@ Every tab is a set of **sections**. Each section picks a column layout: full wid
 ## Data & Privacy
 
 - All financial data is stored in `data/db.json` inside the project directory (Docker volume-mounted).
-- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain lookups (crypto account refresh: ENS via ensdata.net, balances via Blockscout and publicnode.com RPCs; the wallet tracker: Etherscan, BscScan, Blockstream, etc.), CoinTracker (read-only wallet balances), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance / Alpha Vantage / Polygon). All are opt-in and BYOK.
+- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain lookups (crypto account refresh: ENS via ensdata.net, balances via Blockscout and publicnode.com RPCs — these two need no API key; the wallet tracker: Etherscan, BscScan, Blockstream, etc., which do), CoinTracker (read-only wallet balances), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance needs none; Alpha Vantage / Polygon need keys). Each integration is opt-in independently of the others; beyond being enabled, an integration needs user-provided credentials only where its provider issues them.
 - Optionally encrypt `db.json` at rest with `SYNC_MASTER_KEY` (AES-256-GCM).
 - Export/restore a full JSON backup any time from the dashboard.
 
@@ -343,22 +343,23 @@ docker run --rm fire-playwright-e2e
 
 ## Planned Integrations
 
-The system is being productionized toward real-time, API-driven data in four phases. All planned connections are opt-in, BYOK, and read-only with respect to external accounts.
+The system is being productionized toward real-time, API-driven data in four phases. All planned connections are opt-in, need user-provided credentials only where the provider issues them, and are read-only with respect to external accounts.
 
 | Integration | Phase | Status |
 |---|---|---|
-| eBay Order API (auto-import sales) | Phase 1 | Live (BYOK) |
-| Web3 wallet tracking (ETH, BTC, SOL, + EVM chains) | Phase 1 | Live (BYOK keys per chain) |
+| eBay Order API (auto-import sales) | Phase 1 | Live (user-provided credentials) |
+| Web3 wallet tracking (ETH, BTC, SOL, + EVM chains) | Phase 1 | Live (user-provided keys per chain) |
 | Crypto account multichain value (ENS/0x, 7 EVM chains, tokens) | Phase 1 | Live (keyless: Blockscout + public RPCs) |
 | CoinTracker wallets (read-only MCP) | Phase 1 | Implemented; blocked until CoinTracker enables MCP early access for the account |
 | Google Drive encrypted backup | Phase 1 | Implemented self-hosted via Google OAuth; live round-trip verification pending |
 | Vehicle value API (NHTSA VIN free; paid providers via `VEHICLE_VALUE_PROVIDER`) | Phase 1 | Live |
-| Fidelity / Plaid positions + balance sync | Phase 2 | Live (BYOK; sandbox ready) |
+| Fidelity / Plaid positions + balance sync | Phase 2 | Live (user-provided credentials; sandbox ready) |
+| Plaid on Netlify (hosted) | Phase 2 | **Hosted only** — endpoints route to `netlify/functions/plaid.mjs` at `/api/sync/plaid/*` (see [docs/integrations.md](docs/integrations.md#browser-only-deploy-netlify-function)); unit- and route-tested, live Link → sync run against the hosted deploy still pending |
 | Stable stock quote API (Alpha Vantage / Polygon.io) | Phase 2 | Live (fallback: Yahoo Finance) |
 | Rate limiting (300/min general, 30/min sync) | Phase 3 | Live |
 | Security headers (CSP, X-Frame-Options, Referrer-Policy) | Phase 3 | Live |
 | HTTPS via Caddy reverse proxy | Phase 3 | Live |
-| Plaid transaction sync → Expenses | Phase 2 | Live (BYOK; verified against mocked API) |
+| Plaid transaction sync → Expenses | Phase 2 | Live (user-provided credentials; verified against mocked API) |
 | eBay Marketplace Account Deletion endpoint | Phase 1 | Live — needs a public HTTPS URL registered in the eBay Developer Portal |
 | Precious-metals spot pricing | Phase 2 | Live (free fallback; optional metals.dev key) |
 
@@ -412,5 +413,12 @@ Every committed Markdown doc in this repo (other than this README, `.github/` an
 **`promo/`**
 
 - [Promo feature ledger](./promo/features.md) — `promo/features.md`
+
+**`skills/`**
+
+- [fire-coach Skill README](./skills/README.md) — `skills/README.md`
+- [fire-coach Skill Definition](./skills/fire-coach/SKILL.md) — `skills/fire-coach/SKILL.md`
+- [fire-coach App Guide](./skills/fire-coach/references/app-guide.md) — `skills/fire-coach/references/app-guide.md`
+- [fire-coach Financial Playbook](./skills/fire-coach/references/financial-playbook.md) — `skills/fire-coach/references/financial-playbook.md`
 
 <!-- docs-index:end -->
