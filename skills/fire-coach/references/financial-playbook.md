@@ -73,7 +73,7 @@ every year: look up the current figures instead of quoting from memory.
   retirement. High earners pursuing FIRE often favor traditional
   contributions now and convert to Roth in low-income early-retirement years.
 - **Tax-loss harvesting:** realized losses offset realized gains, then up to
-  $3,000/yr of ordinary income; the rest carries forward. **Wash-sale rule:**
+  $3,000/yr of ordinary income ($1,500 if married filing separately); the rest carries forward. **Wash-sale rule:**
   buying a substantially identical security within 30 days before or after the
   sale (in *any* account, including IRAs) disallows the loss. fire's Insights tab
   lists harvesting candidates.
@@ -89,7 +89,9 @@ every year: look up the current figures instead of quoting from memory.
   earnings, on top of income tax. A return is generally required once net
   self-employment earnings reach $400. Pay **quarterly estimates**; the
   safe-harbor rule is 100% of last year's tax, or 110% above the high-income
-  threshold. Deduct real costs: cost of goods, platform fees, shipping,
+  threshold, or 90% of the current year's tax in four equal payments. The 90%
+  current-year alternative avoids overpayment when income drops but requires a
+  reasonable projection. Deduct real costs: cost of goods, platform fees, shipping,
   supplies and business mileage. fire tags ledger rows for this.
 
 ## 5. Protecting the plan

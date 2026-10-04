@@ -37,6 +37,7 @@ one tappable summary bar.
   MCP access is enabled.
 - **Synced (self-hosted, opt-in):** Plaid (Settings), eBay (Side Hustle Hub →
   eBay Sales Sync), wallets (Crypto Wallets).
+- **Google Drive Backup (Settings → Data Management):** self-hosted only — encrypts db.json with `SYNC_MASTER_KEY` before uploading to your personal Drive; the hosted demo does not offer this.
 - **Spending:** Expenses → Spending Upload, then adjust the categories.
   Budget numbers drive the FIRE number.
 
