@@ -56,9 +56,9 @@ One row per roadmap item that still carries risk. Done items stay listed with th
 | H-03 | `SESSION_SECRET` still has a development fallback (`a-very-secret-key`) | Partial | Session forgery if production is misconfigured | High |
 | H-05 | Webhook body cap is the global 1 MB, not the planned 16 KB | Partial | Memory pressure from large webhook payloads | Low |
 | H-06 | Webhook `sideGigLedger` fields are key-checked but not type/format-checked | Partial | Malformed ledger entries in state | Moderate |
-| H-07 | CI audit gates production deps only (`--omit=dev`, high+); dev-dep vulns are not gated | Done (residual) | Dev-only supply-chain issues merge unnoticed (see H-13) | Low |
+| H-07 | CI audit gates production deps only (`--omit=dev`, high+); dev-dep vulns are not gated | Done (residual) | Dev-dep supply-chain issues merge unnoticed (see H-13 — those deps do reach the production image) | Low |
 | H-12 | JSONata not statically analyzed | Open | Complex expression side effects | Low |
-| H-13 | 6 moderate/critical dev dependency vulns | Open | Supply chain (dev only, not shipped) | Low |
+| H-13 | 6 moderate/critical dev dependency vulns | Open | Supply chain — the `config/Dockerfile` base stage runs a plain `npm install` (no `--omit=dev`) and the final image inherits that layer, so dev deps **are** present in the production image. Their presence does not establish that the deployed process reaches the vulnerable code paths. | Low |
 
 ---
 
