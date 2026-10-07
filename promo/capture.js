@@ -7,7 +7,8 @@
 //   proj-boxes.json      chart card + scenario button positions (for the cursor)
 //   mcp-status.json      fire_status_summary output from the real MCP server
 //   demo-db.json         the seeded DB (what the MCP server reads)
-//   chaos.json           Chaos-mode events, chart points and button box (chaos-21s)
+//   chaos.json           Chaos-mode events, chart points and button box (chaos-24s)
+//   crops/card-*.png …   per-card shots for the tour spots (capture-tour.js)
 /* global Chart, chaosMode, buildProjectionData, projectionsChart, FireChaos */
 const { chromium } = require('/deps/node_modules/playwright');
 const { spawn, execFileSync } = require('child_process');
@@ -63,6 +64,8 @@ async function mockPrices(pg) {
             ...process.env,
             PORT: String(PORT),
             FIRE_DB_FILE: '/tmp/demo-db.json',
+            // /repo is mounted read-only; keep backups etc. out of it.
+            FIRE_DATA_DIR: '/tmp/fire-data',
             FIRE_AUTH_DISABLED: 'true',
         },
     });
@@ -331,6 +334,9 @@ async function mockPrices(pg) {
     await mp.screenshot({ path: `${C}/phone-dash.png` });
     await phone.close();
 
+    // Cards and interactions for the narrated tour spots.
+    await require('./capture-tour.js')(page, C);
+
     await browser.close();
     server.kill();
 
@@ -339,10 +345,30 @@ async function mockPrices(pg) {
         'node',
         ['/repo/promo/mcp.mjs', 'fire_status_summary'],
         {
-            env: { ...process.env, FIRE_DB_FILE: `${OUT}/demo-db.json` },
+            env: {
+                ...process.env,
+                FIRE_DB_FILE: `${OUT}/demo-db.json`,
+                FIRE_DATA_DIR: '/tmp/fire-data',
+            },
         },
     );
     fs.writeFileSync(`${OUT}/mcp-status.json`, status);
+    // More real tool output for the tour spots' terminal scenes.
+    for (const tool of [
+        'get_side_gig_tax_summary',
+        'get_emergency_runway',
+        'get_concentration_risk',
+    ])
+        fs.writeFileSync(
+            `${OUT}/mcp-${tool}.json`,
+            execFileSync('node', ['/repo/promo/mcp.mjs', tool], {
+                env: {
+                    ...process.env,
+                    FIRE_DB_FILE: `${OUT}/demo-db.json`,
+                    FIRE_DATA_DIR: '/tmp/fire-data',
+                },
+            }),
+        );
     console.log('capture: ok');
     process.exit(0);
 })().catch((e) => {

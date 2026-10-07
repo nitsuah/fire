@@ -1012,7 +1012,9 @@ function initPlatformCalculators() {
             const panel = document.getElementById(
                 `calc-panel-${btn.dataset.platform}`,
             );
-            if (panel) panel.style.display = '';
+            // 'block', not '': the Etsy/FB panels start hidden by a CSS
+            // class (csp-i-001), which an empty inline style can't override.
+            if (panel) panel.style.display = 'block';
         });
     });
 

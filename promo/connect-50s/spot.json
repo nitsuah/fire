@@ -1,0 +1,51 @@
+{
+  "type": "tour",
+  "title": "fire — getting your data in, narrated",
+  "chapter": "Your accounts",
+  "fps": 30,
+  "voice": "af_heart",
+  "speed": 1.05,
+  "posterScene": 1,
+  "posterAt": 3.0,
+  "scenes": [
+    {
+      "kind": "title", "emoji": "🔗", "kicker": "Your accounts", "title": "Every account. However it lives.", "size": 92, "min": 4,
+      "say": "Getting your money into fire takes minutes, and none of it leaves your control."
+    },
+    {
+      "kind": "shot", "img": "card-add-csv.png", "title": "Drop in a CSV.",
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.3, 0.4, 1.3]],
+      "say": "Drop in a Fidelity positions export, or a Chase or Capital One statement. It's parsed locally, and spending is categorized for you."
+    },
+    {
+      "kind": "shot", "img": "card-plaid.png", "title": "Or link it.",
+      "bullets": ["Plaid investments", "Bank and card transactions", "Auto-categorized spending"],
+      "say": "Or link accounts through Plaid, and holdings and transactions sync and categorize themselves."
+    },
+    {
+      "kind": "shot", "img": "card-add-account.png", "title": "Crypto: paste an ENS name.",
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.25, 0.3, 1.6]],
+      "say": "For crypto, paste an ENS name or a wallet address. fire totals coins and tokens across seven chains, with no API keys. CoinTracker works too."
+    },
+    {
+      "kind": "shot", "img": "card-other-assets.png", "title": "Gold at today's spot.",
+      "bullets": ["Gold and silver by the ounce", "Live spot price", "Cars at what they're worth"],
+      "say": "Gold and silver are entered by the ounce and valued at live spot. Vehicles track value, loan balance and depreciation."
+    },
+    {
+      "kind": "shot", "img": "card-cash.png", "title": "Cash, CDs and property.",
+      "bullets": ["APY on every balance", "CD maturity countdowns", "Yearly interest, totaled"],
+      "say": "Savings earn their APY, CDs count down to maturity, and real estate tracks equity against the mortgage."
+    },
+    {
+      "kind": "shot", "img": "dash.png", "title": "One number. Always current.",
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.25, 0.08, 2.2]],
+      "say": "Then prices update while you watch, so your net worth is always current."
+    },
+    {
+      "kind": "outro", "title": "Your money. Your machine.", "min": 5,
+      "say": "fire. Try it live at lifefire dot netlify dot app.",
+      "caption": "fire. Try it live at lifefire.netlify.app"
+    }
+  ]
+}

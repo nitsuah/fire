@@ -33,7 +33,8 @@ const SEED = {
         pos('VXUS', 'VANGUARD TOTAL INTL STOCK ETF', 420, 68.1, 25100),
         pos('NVDA', 'NVIDIA CORP', 60, 181.2, 4300),
         pos('AAPL', 'APPLE INC', 45, 241.5, 8200),
-        pos('SCHD', 'SCHWAB US DIVIDEND EQUITY ETF', 380, 28.4, 10100),
+        // Bought high: the one losing position, for the Tax-Loss Harvesting card.
+        pos('SCHD', 'SCHWAB US DIVIDEND EQUITY ETF', 380, 28.4, 12900),
         {
             id: 'p-spaxx',
             account: 'Fidelity Brokerage',

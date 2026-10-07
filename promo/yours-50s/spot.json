@@ -1,0 +1,56 @@
+{
+  "type": "tour",
+  "title": "fire — private by design, narrated",
+  "chapter": "Private by design",
+  "fps": 30,
+  "voice": "af_heart",
+  "speed": 1.05,
+  "posterScene": 1,
+  "posterAt": 4.0,
+  "scenes": [
+    {
+      "kind": "title", "emoji": "🔒", "title": "Your money. Your machine.", "size": 110, "min": 4,
+      "say": "Most money apps want your logins, and your data on their servers. fire doesn't."
+    },
+    {
+      "kind": "stats", "title": "Private by default.",
+      "items": [
+        { "big": "1 file", "label": "your whole profile, on **your** disk" },
+        { "big": "AES-256", "label": "GCM encryption at rest", "color": "#a78bfa" },
+        { "big": "$0", "label": "ever moved: fire is **read-only**", "color": "#f59e0b" },
+        { "big": "MIT", "label": "open source", "color": "#f3f4f6" }
+      ],
+      "say": "Everything lives in one JSON file on your own machine. Set a master key, and it's AES-256 encrypted at rest. fire is read-only, so it never moves a cent. And it's open source."
+    },
+    {
+      "kind": "shot", "img": "card-privacy.png", "title": "Locked down by default.",
+      "bullets": ["HTTPS on localhost", "API key on every route", "CSP, SRI and rate limits", "No analytics, no tracking"],
+      "say": "One command starts it behind HTTPS, with an API key, strict security headers and rate limits already on. No analytics, and no tracking."
+    },
+    {
+      "kind": "shot", "img": "dash-edit.png", "title": "Make it yours.",
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.55, 0.45, 1.25]],
+      "say": "Every tab is a board of sections. Collapse, reorder, or pin any card to your dashboard."
+    },
+    {
+      "kind": "terminal", "title": "Ask Claude about your money.", "sub": "16 read-only MCP tools + the fire-coach skill",
+      "prompt": "what happens if I lose my job?", "tool": "get_emergency_runway",
+      "say": "Connect Claude through sixteen read-only MCP tools, add the FIRE coach skill, and ask about your money in plain English."
+    },
+    {
+      "kind": "shot", "img": "card-data.png", "title": "Your data stays portable.",
+      "bullets": ["Export JSON or CSV", "Restore any time", "Everything's a REST endpoint"],
+      "say": "Export or restore everything as JSON or CSV, and every feature is also a REST endpoint."
+    },
+    {
+      "kind": "phone", "img": "phone-dash.png", "title": "Pocket-sized.",
+      "bullets": ["Responsive down to your phone", "Self-host it, or try the live demo"],
+      "say": "It works from a wide monitor down to your phone."
+    },
+    {
+      "kind": "outro", "title": "Your money. Your machine.", "min": 5,
+      "say": "fire is free and open source. Run it yourself, or try it live at lifefire dot netlify dot app.",
+      "caption": "fire is free and open source. Run it yourself, or try it live at lifefire.netlify.app"
+    }
+  ]
+}

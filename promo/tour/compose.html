@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Shared composer for narrated "tour" spots. Each spot's spot.json lists
+     scenes (kind + content + "say"); narrate.py turns the voice-over into
+     window.TIMELINE (scene start/end + captions). render(t) is a pure
+     function of time, like the hand-built spots. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=block" rel="stylesheet">
+<link rel="stylesheet" href="file:///repo/app/lib/css/base.css">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg-app); }
+  body { font-family: var(--font-body); color: var(--text-main); }
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--bg-app); }
+  .bg { position: absolute; inset: -200px; }
+  .grid { position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse at 50% 45%, #000 20%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 20%, transparent 75%); }
+  .glow { position: absolute; border-radius: 50%; filter: blur(120px); }
+  .scene { position: absolute; inset: 0; opacity: 0; visibility: hidden; }
+  .abs { position: absolute; }
+  .h { font-family: var(--font-heading); font-weight: 700; letter-spacing: -1.5px; }
+  .brandname { background: linear-gradient(135deg, #ff7e5f, #feb47b, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .urlgrad { background: linear-gradient(90deg, #10b981, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .card { background: rgba(15, 19, 30, .92); border: 1px solid var(--card-border); border-radius: 20px; box-shadow: 0 30px 80px rgba(0,0,0,.55); }
+  img { display: block; max-width: none; }
+  .kicker { font-size: 26px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--color-primary-hover); }
+  .title { font-size: 66px; line-height: 1.06; }
+  .sub { font-size: 34px; color: var(--text-muted); font-weight: 500; line-height: 1.3; margin-top: 18px; }
+  .bullets { margin-top: 44px; display: flex; flex-direction: column; gap: 22px; }
+  .bullet { font-size: 33px; font-weight: 500; line-height: 1.3; display: flex; gap: 16px; align-items: baseline; }
+  .bullet b { color: var(--text-main); font-weight: 700; }
+  .bullet .dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--color-primary); transform: translateY(-4px); box-shadow: 0 0 16px rgba(139,92,246,.8); }
+  .frame { position: absolute; overflow: hidden; border-radius: 18px; box-shadow: 0 40px 100px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.08); background: var(--bg-app); }
+  .frame img { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .hl { position: absolute; border-radius: 14px; border: 3px solid var(--color-warning); box-shadow: 0 0 0 9999px rgba(8,11,17,.0), 0 0 40px rgba(245,158,11,.45); pointer-events: none; }
+  .ripple { position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px; border-radius: 50%; border: 3px solid var(--color-warning); opacity: 0; }
+  .cursor { position: absolute; filter: drop-shadow(0 4px 8px rgba(0,0,0,.6)); transform-origin: 4px 4px; opacity: 0; }
+  .tile { position: absolute; overflow: hidden; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.07); }
+  .tile img { width: 100%; }
+  .chip { display: inline-block; padding: 14px 26px; border-radius: 999px; border: 1px solid rgba(139,92,246,.45); background: rgba(139,92,246,.12); font-size: 30px; font-weight: 600; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .term { font-size: 30px; line-height: 1.6; }
+  .k { color: #a78bfa; } .n { color: var(--color-warning); } .g { color: var(--color-success); } .d { color: var(--text-dimmed); }
+  .caret { display: inline-block; width: 14px; height: 1em; background: var(--color-primary); vertical-align: -0.12em; margin-left: 6px; border-radius: 2px; }
+  .stat { position: absolute; width: 400px; padding: 40px 34px; box-sizing: border-box; text-align: center; }
+  .stat .big { font-family: var(--font-heading); font-size: 78px; white-space: nowrap; font-weight: 800; letter-spacing: -3px; line-height: 1; }
+  .stat .lbl { font-size: 28px; color: var(--text-muted); margin-top: 16px; line-height: 1.25; font-weight: 500; }
+  .phone { position: absolute; width: 430px; height: 900px; border-radius: 64px; background: #0b0e15; box-shadow: 0 0 0 3px #2a2f3d, 0 0 0 14px #11141c, 0 50px 120px rgba(0,0,0,.7); overflow: hidden; }
+  .phone img { width: 100%; }
+  #brandmark { position: absolute; left: 56px; top: 40px; font-size: 32px; display: flex; gap: 10px; align-items: center; opacity: .9; }
+  #chapter { position: absolute; right: 60px; top: 46px; font-size: 22px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-dimmed); font-weight: 600; }
+  #progress { position: absolute; left: 0; bottom: 0; height: 5px; background: linear-gradient(90deg, #8b5cf6, #10b981); }
+  #cap { position: absolute; left: 0; right: 0; bottom: 34px; text-align: center; }
+  #capText { display: inline-block; max-width: 1500px; padding: 12px 30px; border-radius: 14px; background: rgba(8,11,17,.78); border: 1px solid rgba(255,255,255,.08); font-size: 36px; font-weight: 600; line-height: 1.25; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="bg">
+    <div class="glow" id="g1" style="width:900px;height:900px;background:rgba(139,92,246,.22)"></div>
+    <div class="glow" id="g2" style="width:700px;height:700px;background:rgba(16,185,129,.12)"></div>
+    <div class="glow" id="g3" style="width:600px;height:600px;background:rgba(255,126,95,.10)"></div>
+  </div>
+  <div class="grid"></div>
+  <div id="scenes"></div>
+  <div id="brandmark" class="h"><span>🔥</span><span class="brandname">fire</span></div>
+  <div id="chapter"></div>
+  <div id="cap"><span id="capText"></span></div>
+  <div id="progress"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const eInOut = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eBack = (x) => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+// **bold** in copy → <b>
+const rich = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+const el = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
+const CURSOR_SVG = '<svg width="44" height="54" viewBox="0 0 22 27"><path d="M2 2 L2 21 L7 16.5 L10.5 24.5 L13.5 23 L10 15.5 L17 15.5 Z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+
+const SPOT = window.SPOT;
+const TL = window.TIMELINE;
+window.DURATION = TL.duration;
+window.FPS = SPOT.fps || 30;
+$('chapter').textContent = SPOT.chapter || '';
+
+// Named points for clicks and camera focus, from the real capture geometry
+// (tour-boxes.json, proj-boxes.json, chaos.json). Returned in CSS px from
+// the crop's top-left, so they hold whatever the crop's final height.
+function pointPx(name) {
+  const P = window.PROMO;
+  if (P.tour && P.tour[name]) return P.tour[name];
+  const rel = (b, box) => ({ px: b.x + b.width / 2 - box.x, py: b.y + b.height / 2 - box.y });
+  if (name === 'proj:bear' || name === 'proj:bull' || name === 'proj:base') return rel(P.boxes.btns[name.slice(5)], P.boxes.box);
+  if (name === 'chaos') return rel(P.chaos.chaosBox, P.chaos.box);
+  if (name === 'chaos:hover') {
+    const c = P.chaos, pt = c.points[c.hoverIdx];
+    return { px: c.canvas.x + pt.x - c.box.x, py: c.canvas.y + pt.y - c.box.y };
+  }
+  throw new Error('unknown point ' + name);
+}
+// → image fractions for an image of W×H CSS px.
+const point = (name, W, H) => { const p = pointPx(name); return { x: p.px / W, y: p.py / H }; };
+
+// Fades a heading/bullet in at time st.
+function rise(node, t, st, dist = 26, d = 0.45) {
+  const x = eOut(seg(t, st, st + d));
+  node.style.opacity = x;
+  node.style.transform = `translateY(${(1 - x) * dist}px)`;
+  return x;
+}
+
+// Text column (kicker/title/sub/bullets) shared by several kinds.
+function textBlock(sc, parent, style) {
+  const box = el('div', 'abs', null, parent);
+  box.style.cssText += style;
+  const parts = [];
+  if (sc.kicker) parts.push(el('div', 'kicker', rich(sc.kicker), box));
+  if (sc.title) parts.push(el('div', 'h title', rich(sc.title), box));
+  if (sc.sub) parts.push(el('div', 'sub', rich(sc.sub), box));
+  let bullets = [];
+  if (sc.bullets) {
+    const ul = el('div', 'bullets', null, box);
+    bullets = sc.bullets.map((b) => el('div', 'bullet', `<span class="dot"></span><span>${rich(b)}</span>`, ul));
+  }
+  return { box, parts, bullets };
+}
+
+function animText(tb, t, S, delay = 0.1) {
+  tb.parts.forEach((p, i) => rise(p, t, S.start + delay + i * 0.16));
+  // Bullets land across the spoken line so they track the narration.
+  const n = tb.bullets.length;
+  tb.bullets.forEach((b, i) => {
+    const st = S.voStart + (S.voDur * 0.85) * (i / Math.max(1, n));
+    const x = eOut(seg(t, st, st + 0.4));
+    b.style.opacity = x;
+    b.style.transform = `translateX(${(1 - x) * -24}px)`;
+  });
+}
+
+// ── Kinds ─────────────────────────────────────────────────────────────
+// Each builder returns { draw(t, S) } where S = timeline scene.
+const KINDS = {
+  title(sc, root) {
+    const tb = textBlock(sc, root, 'left:160px;right:160px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;');
+    tb.parts.forEach((p) => { if (p.classList.contains('title')) { p.style.fontSize = (sc.size || 110) + 'px'; p.style.letterSpacing = '-3px'; } });
+    if (sc.emoji) { const e = el('div', 'h', sc.emoji, null); e.style.fontSize = '120px'; e.style.marginBottom = '20px'; tb.box.insertBefore(e, tb.box.firstChild); tb.parts.unshift(e); }
+    return { draw(t, S) {
+      tb.parts.forEach((p, i) => {
+        const st = S.start + 0.12 + i * 0.22;
+        const x = eBack(seg(t, st, st + 0.5));
+        p.style.opacity = clamp(seg(t, st, st + 0.25));
+        p.style.transform = `translateY(${(1 - x) * 30}px) scale(${lerp(.92, 1, x)})`;
+      });
+      tb.box.style.transform = `scale(${1 + 0.025 * seg(t, S.start, S.end)})`;
+    } };
+  },
+
+  // A real UI capture with a camera (pan/zoom keyframes in image fractions),
+  // optional image swaps, a cursor click and highlight boxes.
+  shot(sc, root) {
+    const layout = sc.layout || (sc.bullets ? 'right' : 'full');
+    let region, tb;
+    if (layout === 'full') {
+      tb = textBlock(sc, root, 'left:0;right:0;top:92px;text-align:center;');
+      const top = sc.sub ? 300 : 230;
+      region = { x: 150, y: top, w: 1620, h: 935 - top };
+    } else if (layout === 'left') {
+      tb = textBlock(sc, root, 'right:110px;top:0;bottom:120px;width:640px;display:flex;flex-direction:column;justify-content:center;');
+      region = { x: 90, y: 130, w: 1080, h: 800 };
+    } else {
+      tb = textBlock(sc, root, 'left:110px;top:0;bottom:120px;width:640px;display:flex;flex-direction:column;justify-content:center;');
+      region = { x: 790, y: 130, w: 1060, h: 800 };
+    }
+    const frame = el('div', 'frame', null, root);
+    const imgs = [sc.img, ...(sc.swap || []).map((s) => s.img)].map((src) => { const im = el('img', null, null, frame); im.src = `crops/${src}`; return im; });
+    const hls = (sc.hl || []).map(() => el('div', 'hl', null, frame));
+    const ripple = el('div', 'ripple', null, frame);
+    const cursor = el('div', 'cursor', CURSOR_SVG, root);
+    // Keyframes: [at(0..1 of scene), fx, fy, zoom]
+    // A keyframe may name a point instead: [at, "chaos:hover", dy, zoom].
+    let cam = null;
+    function camAt(p) {
+      let a = cam[0], b = cam[cam.length - 1];
+      for (let i = 0; i < cam.length - 1; i++) if (p >= cam[i][0] && p <= cam[i + 1][0]) { a = cam[i]; b = cam[i + 1]; break; }
+      const x = a === b ? 0 : eInOut(seg(p, a[0], b[0]));
+      return [lerp(a[1], b[1], x), lerp(a[2], b[2], x), lerp(a[3], b[3], x)];
+    }
+    // Map image fractions → stage px for the current camera.
+    let map = null;
+    return { draw(t, S) {
+      animText(tb, t, S);
+      const im = imgs[0];
+      const W = im.naturalWidth / 2, H = im.naturalHeight / 2; // 2x captures
+      cam = cam || (sc.cam || [[0, .5, .5, 1], [1, .5, .5, 1.04]]).map((k) => {
+        if (typeof k[1] !== 'string') return k;
+        const q = point(k[1], W, H);
+        return [k[0], q.x, q.y + (k[2] || 0), k[3]];
+      });
+      const p = seg(t, S.start, S.end);
+      const [fx, fy, z] = camAt(p);
+      const fit = Math.min(region.w / W, region.h / H);
+      const s = fit * z;
+      const dw = W * s, dh = H * s;
+      const bw = Math.min(region.w, dw), bh = Math.min(region.h, dh);
+      // Put (fx,fy) at the box centre, clamped so the image always fills it.
+      let ox = bw / 2 - fx * dw, oy = bh / 2 - fy * dh;
+      ox = clamp(ox, bw - dw, 0); oy = clamp(oy, bh - dh, 0);
+      const bx = region.x + (region.w - bw) / 2, by = region.y + (region.h - bh) / 2;
+      map = (u, v) => ({ x: ox + u * dw, y: oy + v * dh });
+      const ent = eOut(seg(t, S.start + 0.05, S.start + 0.75));
+      frame.style.left = bx + 'px'; frame.style.top = by + 'px';
+      frame.style.width = bw + 'px'; frame.style.height = bh + 'px';
+      frame.style.opacity = clamp(ent * 1.5);
+      const tilt = layout === 'right' ? -10 : layout === 'left' ? 10 : 0;
+      frame.style.transform = `perspective(2200px) translateY(${(1 - ent) * 50}px) rotateY(${tilt * (1 - ent)}deg) scale(${lerp(.95, 1, ent)})`;
+      imgs.forEach((img, i) => {
+        img.style.width = W + 'px';
+        img.style.transform = `translate(${ox}px, ${oy}px) scale(${s})`;
+        if (i === 0) return;
+        const at = S.start + sc.swap[i - 1].at * (S.end - S.start);
+        img.style.opacity = eOut(seg(t, at, at + 0.3));
+      });
+      (sc.hl || []).forEach(([u, v, w, h, at, until], i) => {
+        const a = map(u, v), b = map(u + w, v + h);
+        const st = S.start + at * (S.end - S.start);
+        const en = until != null ? S.start + until * (S.end - S.start) : S.end;
+        const x = eOut(seg(t, st, st + 0.35)) * (1 - seg(t, en - 0.25, en));
+        Object.assign(hls[i].style, { left: a.x - 8 + 'px', top: a.y - 8 + 'px', width: b.x - a.x + 16 + 'px', height: b.y - a.y + 16 + 'px', opacity: x, transform: `scale(${lerp(1.06, 1, x)})` });
+      });
+      // Cursor: glides in from below, clicks each point in turn.
+      const clicks = (sc.clicks || (sc.click ? [sc.click] : [])).map((c) => (c.box ? { ...point(c.box, W, H), at: c.at } : c));
+      if (clicks.length) {
+        const D = S.end - S.start;
+        const pts = clicks.map((c) => { const q = map(c.x, c.y); return { x: bx + q.x, y: by + q.y, t: S.start + c.at * D }; });
+        let pos = { x: bx + bw * 0.75, y: by + bh + 60 }, prevT = S.start + 0.3;
+        for (const c of pts) {
+          const k = eInOut(seg(t, Math.max(prevT, c.t - 0.7), c.t));
+          if (t < c.t) { pos = { x: lerp(pos.x, c.x, k), y: lerp(pos.y, c.y, k) }; break; }
+          pos = { x: c.x, y: c.y }; prevT = c.t + 0.15;
+        }
+        const press = pts.some((c) => t - c.t > 0 && t - c.t < 0.16) ? 0.82 : 1;
+        cursor.style.left = pos.x - 4 + 'px'; cursor.style.top = pos.y - 4 + 'px';
+        cursor.style.transform = `scale(${press})`;
+        cursor.style.opacity = clamp(seg(t, S.start + 0.3, S.start + 0.5)) * (1 - seg(t, S.end - 0.4, S.end - 0.2));
+        const last = [...pts].reverse().find((c) => t >= c.t && t - c.t < 0.5);
+        if (last) {
+          const d = (t - last.t) / 0.5;
+          Object.assign(ripple.style, { left: last.x - bx + 'px', top: last.y - by + 'px', opacity: (1 - d) * .9, transform: `scale(${lerp(.3, 1.6, eOut(d))})` });
+        } else ripple.style.opacity = 0;
+      }
+    } };
+  },
+
+  // Rows stacking in (holdings rows etc.).
+  stack(sc, root) {
+    const tb = textBlock(sc, root, 'left:200px;top:96px;');
+    const wrap = el('div', 'abs', null, root);
+    wrap.style.cssText += 'left:200px;top:' + (sc.sub ? 300 : 240) + 'px;width:1520px;';
+    const rows = sc.imgs.map((src) => { const r = el('div', 'tile', null, wrap); const im = el('img', null, null, r); im.src = `crops/${src}`; return r; });
+    const note = sc.note ? el('div', 'abs h', esc(sc.note), root) : null;
+    if (note) note.style.cssText += 'font-size:42px;color:var(--color-warning);font-weight:600;';
+    return { draw(t, S) {
+      animText(tb, t, S);
+      const width = sc.width || 1520;
+      let y = 0;
+      const span = Math.max(0.6, S.voDur * 0.75);
+      rows.forEach((r, i) => {
+        const im = r.firstChild;
+        const k = width / (im.naturalWidth / 2) * (sc.crop || 1);
+        const h = (im.naturalHeight / 2) * k;
+        im.style.width = (im.naturalWidth / 2) * k + 'px';
+        r.style.width = width + 'px'; r.style.height = h + 'px'; r.style.top = y + 'px';
+        const st = S.voStart + span * i / rows.length;
+        const x = eOut(seg(t, st, st + 0.4));
+        r.style.opacity = x; r.style.transform = `translateY(${(1 - x) * 30}px)`;
+        y += h + 12;
+      });
+      if (note) { note.style.left = '200px'; note.style.top = (sc.sub ? 300 : 240) + y + 18 + 'px'; rise(note, t, S.voStart + span + 0.2); note.style.transform += ' rotate(-1.5deg)'; }
+      wrap.style.transform = `scale(${1 + 0.02 * seg(t, S.start, S.end)})`;
+    } };
+  },
+
+  // A grid of cards popping in.
+  grid(sc, root) {
+    const tb = textBlock(sc, root, 'left:0;right:0;top:92px;text-align:center;');
+    const cols = sc.cols || 2;
+    const top = sc.sub ? 310 : 250, gap = 34, W = 1640;
+    const cw = (W - gap * (cols - 1)) / cols;
+    const tiles = sc.imgs.map((src) => { const r = el('div', 'tile', null, root); const im = el('img', null, null, r); im.src = `crops/${src}`; return r; });
+    return { draw(t, S) {
+      animText(tb, t, S);
+      const rowsH = [];
+      tiles.forEach((r, i) => { const im = r.firstChild; const h = cw * im.naturalHeight / im.naturalWidth; const row = Math.floor(i / cols); rowsH[row] = Math.max(rowsH[row] || 0, h); });
+      const avail = 940 - top, total = rowsH.reduce((a, b) => a + b, 0) + gap * (rowsH.length - 1);
+      const k = Math.min(1, avail / total);
+      const left0 = (1920 - (cw * k * cols + gap * (cols - 1))) / 2;
+      let y = top;
+      const span = Math.max(0.6, S.voDur * 0.7);
+      tiles.forEach((r, i) => {
+        const row = Math.floor(i / cols), col = i % cols;
+        if (col === 0 && row > 0) y += rowsH[row - 1] * k + gap;
+        r.style.left = left0 + col * (cw * k + gap) + 'px'; r.style.top = y + 'px'; r.style.width = cw * k + 'px';
+        const st = S.voStart + span * i / tiles.length;
+        const x = eBack(seg(t, st, st + 0.5));
+        r.style.opacity = clamp(seg(t, st, st + 0.25));
+        r.style.transform = `translateY(${(1 - x) * 40}px) scale(${lerp(.9, 1, x)})`;
+      });
+    } };
+  },
+
+  // Claude Code-style terminal with the real MCP output.
+  terminal(sc, root) {
+    const tb = textBlock(sc, root, 'left:0;right:0;top:92px;text-align:center;');
+    const term = el('div', 'abs card mono term', null, root);
+    term.style.cssText += `left:330px;top:${sc.sub ? 330 : 280}px;width:1260px;padding:44px 56px 48px;box-sizing:border-box;`;
+    const line = el('div', null, '<span class="k">&gt;</span> <span class="pr"></span><span class="caret"></span>', term);
+    const tool = el('div', null, `<span class="g">⏺</span> fire · <span class="k">${esc(sc.tool || 'fire_status_summary')}</span> <span class="d">(MCP)</span>`, term);
+    tool.style.marginTop = '22px';
+    const tname = sc.tool || 'fire_status_summary';
+    const src = tname === 'fire_status_summary' ? window.PROMO.mcpStatus : window.PROMO.mcp[tname];
+    if (!src) throw new Error('no captured MCP output for ' + tname);
+    const keys = sc.keys || ['fireNumber', 'currentNetWorth', 'progressPercent', 'yearsToFire', 'retireAge'];
+    const js = el('div', null, null, term); js.style.cssText = 'margin-top:8px;padding-left:38px;';
+    const val = (v) => { const j = JSON.stringify(v); return j.length > 46 ? j.slice(0, 44) + '…' : j; };
+    const jl = [el('div', 'd', '{', js), ...keys.map((k, i) => el('div', null, `<span style="padding-left:34px" class="k">"${k}"</span>: <span class="${k === 'progressPercent' ? 'g' : 'n'}">${esc(val(src[k]))}</span>${i < keys.length - 1 ? ',' : ''}`, js)), el('div', 'd', '}', js)];
+    const after = sc.after ? el('div', null, `<span class="g">⏺</span> ${rich(sc.after)}`, term) : null;
+    if (after) after.style.cssText += 'margin-top:20px;font-family:var(--font-body);font-size:32px;';
+    return { draw(t, S) {
+      animText(tb, t, S);
+      rise(term, t, S.start + 0.15, 40);
+      const P = sc.prompt || 'how close am I to FIRE?';
+      const t0 = S.start + 0.5;
+      const n = Math.floor(clamp((t - t0) / 0.035, 0, P.length));
+      line.querySelector('.pr').textContent = P.slice(0, n);
+      const tdone = t0 + P.length * 0.035;
+      line.querySelector('.caret').style.opacity = t < tdone + 0.3 && (n < P.length || Math.floor(t * 2.4) % 2 === 0) ? 1 : 0;
+      rise(tool, t, tdone + 0.25, 0, 0.3);
+      jl.forEach((e, i) => rise(e, t, tdone + 0.5 + i * 0.09, 10, 0.25));
+      if (after) rise(after, t, tdone + 0.6 + jl.length * 0.09 + 0.3, 14);
+    } };
+  },
+
+  stats(sc, root) {
+    const tb = textBlock(sc, root, 'left:0;right:0;top:120px;text-align:center;');
+    const n = sc.items.length, w = 400, gap = 36;
+    const left0 = (1920 - (n * w + (n - 1) * gap)) / 2;
+    const tiles = sc.items.map((it, i) => {
+      const s = el('div', 'stat card', `<div class="big" style="color:${it.color || 'var(--color-success)'}">${esc(it.big)}</div><div class="lbl">${rich(it.label)}</div>`, root);
+      s.style.left = left0 + i * (w + gap) + 'px'; s.style.top = (sc.sub ? 430 : 380) + 'px';
+      return s;
+    });
+    return { draw(t, S) {
+      animText(tb, t, S);
+      tiles.forEach((s, i) => {
+        const st = S.voStart + S.voDur * 0.8 * i / n;
+        const x = eBack(seg(t, st, st + 0.5));
+        s.style.opacity = clamp(seg(t, st, st + 0.2));
+        s.style.transform = `translateY(${(1 - x) * 40}px) scale(${lerp(.88, 1, x)})`;
+      });
+    } };
+  },
+
+  phone(sc, root) {
+    const tb = textBlock(sc, root, 'left:150px;top:0;bottom:120px;width:900px;display:flex;flex-direction:column;justify-content:center;');
+    const ph = el('div', 'phone', null, root);
+    ph.style.left = '1250px'; ph.style.top = '95px';
+    const im = el('img', null, null, ph); im.src = `crops/${sc.img}`;
+    return { draw(t, S) {
+      animText(tb, t, S);
+      const x = eOut(seg(t, S.start + 0.1, S.start + 0.8));
+      ph.style.opacity = clamp(x * 1.5);
+      ph.style.transform = `translateY(${(1 - x) * 80}px) rotate(${lerp(6, -2, x)}deg)`;
+      const h = im.naturalHeight / im.naturalWidth * 430;
+      im.style.transform = `translateY(${-Math.max(0, h - 900) * eInOut(seg(t, S.start + 1.2, S.end - 0.4)) * (sc.scroll ?? 0.5)}px)`;
+    } };
+  },
+
+  outro(sc, root) {
+    const box = el('div', 'abs', null, root);
+    box.style.cssText += 'left:0;right:0;top:150px;text-align:center;';
+    const logo = el('div', 'h', '<span class="ofire" style="display:inline-block">🔥</span><span class="brandname">fire</span>', box);
+    logo.style.cssText += 'font-size:150px;display:inline-flex;align-items:center;gap:30px;letter-spacing:-4px;';
+    const tag = el('div', 'h', rich(sc.title || 'Your money. Your machine.'), box);
+    tag.style.cssText += 'font-size:60px;margin-top:22px;';
+    const chips = el('div', null, '<span class="chip mono">github.com/nitsuah/fire</span><span class="chip mono" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.1)"><span class="g">$</span> docker compose up fire</span>', box);
+    chips.style.cssText += 'margin-top:44px;display:flex;justify-content:center;gap:24px;';
+    const url = el('div', null, '<div style="font-size:26px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted);">Try it live</div><div class="h" style="font-size:92px;font-weight:800;letter-spacing:-2.5px;margin-top:6px;line-height:1.05;"><span class="urlgrad">lifefire.netlify.app</span></div>', box);
+    url.style.marginTop = '78px';
+    return { draw(t, S) {
+      const l = eBack(seg(t, S.start + 0.05, S.start + 0.6));
+      logo.style.opacity = clamp(seg(t, S.start + 0.05, S.start + 0.3));
+      logo.style.transform = `scale(${lerp(.85, 1, l)})`;
+      logo.querySelector('.ofire').style.transform = `scale(${1 + .04 * Math.sin(t * 7)}) rotate(${2 * Math.sin(t * 5)}deg)`;
+      rise(tag, t, S.start + 0.4, 20);
+      rise(chips, t, S.start + 0.75, 20);
+      rise(url, t, S.start + 1.05, 26);
+    } };
+  },
+};
+
+const scenes = SPOT.scenes.map((sc, i) => {
+  const root = el('div', 'scene', null, $('scenes'));
+  const k = KINDS[sc.kind];
+  if (!k) throw new Error(`unknown scene kind ${sc.kind}`);
+  return { sc, root, S: TL.scenes[i], ...k(sc, root) };
+});
+
+window.render = function (t) {
+  $('g1').style.transform = `translate(${760 + Math.sin(t * .25) * 180}px, ${120 + Math.cos(t * .2) * 90}px)`;
+  $('g2').style.transform = `translate(${200 + Math.cos(t * .18) * 140}px, ${600 + Math.sin(t * .22) * 80}px)`;
+  $('g3').style.transform = `translate(${1500 + Math.sin(t * .15) * 120}px, ${700 + Math.cos(t * .3) * 60}px)`;
+  const last = scenes.length - 1;
+  scenes.forEach((s, i) => {
+    const { start, end } = s.S;
+    const fin = i === 0 ? 1 : eOut(seg(t, start, start + 0.35));
+    const fout = i === last ? 1 : 1 - seg(t, end - 0.3, end);
+    const a = t < start || t >= end + (i === last ? 1 : 0) ? 0 : fin * fout;
+    s.root.style.opacity = a;
+    s.root.style.visibility = a > 0 ? 'visible' : 'hidden';
+    if (a > 0) s.draw(t, s.S);
+  });
+  // Brand mark + chapter hide on title/outro scenes.
+  const cur = scenes.find((s) => t >= s.S.start && t < s.S.end) || scenes[last];
+  const chrome = cur.sc.kind === 'outro' || cur.sc.kind === 'title' ? 0 : 1;
+  $('brandmark').style.opacity = chrome * .9;
+  $('chapter').style.opacity = chrome;
+  $('progress').style.width = (100 * t / TL.duration) + '%';
+  // Captions
+  const c = SPOT.captions === false ? null : TL.captions.find((c) => t >= c.start - 0.05 && t < c.end + 0.12);
+  const cap = $('capText');
+  if (c) { cap.textContent = c.text; cap.parentElement.style.opacity = 1; } else cap.parentElement.style.opacity = 0;
+};
+
+window.ready = (async () => {
+  await document.fonts.ready;
+  await Promise.all(['700 40px Outfit', '800 40px Outfit', '500 40px Inter', '600 40px Inter', '400 30px "JetBrains Mono"'].map((f) => document.fonts.load(f)));
+  await Promise.all([...document.images].map((im) => im.decode().catch(() => { throw new Error('missing image ' + im.src); })));
+  render(0);
+  return true;
+})();
+</script>
+</body>
+</html>
