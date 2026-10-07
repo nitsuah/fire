@@ -35,6 +35,8 @@
     {
       "kind": "terminal", "title": "Ask Claude about your money.", "sub": "16 read-only MCP tools + the fire-coach skill",
       "prompt": "what happens if I lose my job?", "tool": "get_emergency_runway",
+      "keys": ["runwayMonths"],
+      "after": "You'd have **{runwayMonths} months** of runway at today's spending.",
       "say": "Connect Claude through sixteen read-only MCP tools, add the FIRE coach skill, and ask about your money in plain English."
     },
     {

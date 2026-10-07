@@ -41,8 +41,8 @@
       "say": "Scenario comparison lines up a raise, a crash and an inflation spike side by side, each with its own FIRE age."
     },
     {
-      "kind": "shot", "img": "card-cd-ladder.png", "title": "Every CD, on the timeline.",
-      "cam": [[0, 0.5, 0.5, 1], [1, 0.3, 0.5, 1.5]],
+      "kind": "shot", "img": "proj-base.png", "title": "Every CD, on the timeline.",
+      "cam": [[0, 0.5, 0.5, 1], [0.4, 0.18, 0.38, 2.3], [1, 0.2, 0.38, 2.5]],
       "say": "CDs get their own ladder, and every maturity is marked on the growth chart, so you know exactly when cash frees up."
     },
     {

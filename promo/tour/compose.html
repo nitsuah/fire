@@ -330,8 +330,12 @@ const KINDS = {
     const keys = sc.keys || ['fireNumber', 'currentNetWorth', 'progressPercent', 'yearsToFire', 'retireAge'];
     const js = el('div', null, null, term); js.style.cssText = 'margin-top:8px;padding-left:38px;';
     const val = (v) => { const j = JSON.stringify(v); return j.length > 46 ? j.slice(0, 44) + '…' : j; };
-    const jl = [el('div', 'd', '{', js), ...keys.map((k, i) => el('div', null, `<span style="padding-left:34px" class="k">"${k}"</span>: <span class="${k === 'progressPercent' ? 'g' : 'n'}">${esc(val(src[k]))}</span>${i < keys.length - 1 ? ',' : ''}`, js)), el('div', 'd', '}', js)];
-    const after = sc.after ? el('div', null, `<span class="g">⏺</span> ${rich(sc.after)}`, term) : null;
+    // Keys may be dotted paths into nested output ("business.net").
+    const get = (k) => k.split('.').reduce((o, p) => (o == null ? o : o[p]), src);
+    const jl = [el('div', 'd', '{', js), ...keys.map((k, i) => el('div', null, `<span style="padding-left:34px" class="k">"${k}"</span>: <span class="${k === 'progressPercent' ? 'g' : 'n'}">${esc(val(get(k)))}</span>${i < keys.length - 1 ? ',' : ''}`, js)), el('div', 'd', '}', js)];
+    // "after": Claude's reply; {path} pulls a value from the real output.
+    const afterText = sc.after && sc.after.replace(/\{([\w.]+)\}/g, (_, k) => String(get(k)));
+    const after = sc.after ? el('div', null, `<span class="g">⏺</span> ${rich(afterText)}`, term) : null;
     if (after) after.style.cssText += 'margin-top:20px;font-family:var(--font-body);font-size:32px;';
     return { draw(t, S) {
       animText(tb, t, S);

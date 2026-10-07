@@ -13,8 +13,8 @@
       "say": "fire doesn't just add up your money. It tells you what to look at next."
     },
     {
-      "kind": "shot", "img": "tab-insights.png", "title": "Portfolio insights",
-      "cam": [[0, 0.57, 0.42, 1.2], [1, 0.57, 0.42, 1.65]],
+      "kind": "shot", "img": "card-insights.png", "title": "Portfolio insights",
+      "cam": [[0, 0.5, 0, 1.55], [1, 0.5, 0, 1.65]],
       "say": "Insight tiles flag equity concentration, a single stock that's too big a slice, a missing asset class, and a CD that's about to mature."
     },
     {
@@ -25,12 +25,12 @@
     },
     {
       "kind": "shot", "img": "card-rebalance-trades.png", "title": "Rebalance in one click.",
-      "cam": [[0, 0.5, 0.5, 1], [1, 0.5, 0.6, 1.25]],
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.75, 0.6, 1.12]],
       "say": "Set a target mix, and the rebalancing tool lists the buys and sells that get you there."
     },
     {
       "kind": "shot", "img": "card-tlh.png", "title": "Harvest your losses.",
-      "cam": [[0, 0.5, 0.5, 1], [1, 0.45, 0.6, 1.3]],
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.4, 0.6, 1.08]],
       "say": "Tax-loss harvesting alerts find positions trading below what you paid, estimate the tax you could save, and count down to year end."
     },
     {
@@ -45,6 +45,8 @@
     {
       "kind": "terminal", "title": "Or just ask.", "tool": "get_concentration_risk",
       "prompt": "am I too concentrated in anything?",
+      "keys": ["risk", "total"],
+      "after": "**VTI** is {risk.0.percentage}% of everything you own. Worth diversifying new money.",
       "say": "Or just ask Claude, and it checks your concentration risk with the real numbers."
     },
     {

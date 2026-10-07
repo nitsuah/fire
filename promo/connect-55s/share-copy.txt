@@ -1,0 +1,1 @@
+Getting your money into fire: drop in a Fidelity, Chase or Capital One CSV (parsed locally), link Plaid, paste an ENS name for keyless multichain crypto, track gold at live spot, CDs, cars and property. github.com/nitsuah/fire · try it live at lifefire.netlify.app

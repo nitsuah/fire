@@ -69,7 +69,10 @@ module.exports = async function captureTour(page, C) {
     // Allocation drill-down: click the first category button.
     try {
         const alloc = card('dashboard', /Asset Allocation|›/);
-        const btn = alloc.locator('button').filter({ hasText: /Stocks|Equit|Invest/i }).first();
+        const btn = alloc
+            .locator('button')
+            .filter({ hasText: /Stocks|Equit|Invest/i })
+            .first();
         await btn.click({ timeout: 2000 });
         await sleep(900);
         await shoot(alloc, 'card-allocation-drill');
@@ -97,9 +100,9 @@ module.exports = async function captureTour(page, C) {
             await sleep(500);
             if (t === 'account') {
                 // Show the crypto identifier fields (ENS / 0x / ticker).
-                await page.selectOption('#acc-type', { label: /crypto/i }).catch(() =>
-                    page.selectOption('#acc-type', 'Crypto'),
-                );
+                await page
+                    .selectOption('#acc-type', { label: /crypto/i })
+                    .catch(() => page.selectOption('#acc-type', 'Crypto'));
                 await page.fill('#acc-name', 'Main wallet');
                 await page.fill('#acc-identifier', 'vitalik.eth');
                 await sleep(400);
@@ -131,13 +134,18 @@ module.exports = async function captureTour(page, C) {
     await tab('insights');
     await top();
     await tryShoot(
-        page.locator('#tab-insights .card', { hasText: 'Portfolio Insights' }).first(),
+        page
+            .locator('#tab-insights .card', { hasText: 'Portfolio Insights' })
+            .first(),
         'card-insights',
     );
     const reb = card('insights', 'Portfolio Rebalancing');
     await tryShoot(reb, 'card-rebalance');
     try {
-        await reb.getByRole('button', { name: /Recalculate|Calculate/i }).first().click({ timeout: 2000 });
+        await reb
+            .getByRole('button', { name: /Recalculate|Calculate/i })
+            .first()
+            .click({ timeout: 2000 });
         await sleep(900);
         await shoot(reb, 'card-rebalance-trades');
     } catch (e) {
@@ -162,7 +170,10 @@ module.exports = async function captureTour(page, C) {
             console.warn(`capture-tour: fee ${name}:`, e.message);
         }
     }
-    await fee.getByRole('button', { name: 'eBay', exact: true }).click().catch(() => {});
+    await fee
+        .getByRole('button', { name: 'eBay', exact: true })
+        .click()
+        .catch(() => {});
     for (const [title, name] of [
         ['Side Hustle Accelerators', 'accelerators'],
         ['eBay Sales Sync', 'ebay-sync'],
@@ -187,17 +198,25 @@ module.exports = async function captureTour(page, C) {
     // ── Projections: milestones, line toggles, growth presets ──
     await tab('projections');
     await top();
-    await tryShoot(card('projections', 'Milestone Predictions'), 'card-milestones');
+    await tryShoot(
+        card('projections', 'Milestone Predictions'),
+        'card-milestones',
+    );
     const chart = card('projections', 'Retirement Growth Path');
-    for (const line of ['coast', 'benchmark']) await chart.locator(`[data-line="${line}"]`).click();
+    for (const line of ['coast', 'benchmark'])
+        await chart.locator(`[data-line="${line}"]`).click();
     await sleep(1200);
     await shoot(chart, 'proj-lines');
     {
         const r = await chart.boundingBox();
         for (const line of ['coast', 'benchmark', 'lean', 'fat'])
-            boxes[`line-${line}`] = await frac(chart.locator(`[data-line="${line}"]`), r);
+            boxes[`line-${line}`] = await frac(
+                chart.locator(`[data-line="${line}"]`),
+                r,
+            );
     }
-    for (const line of ['coast', 'benchmark']) await chart.locator(`[data-line="${line}"]`).click();
+    for (const line of ['coast', 'benchmark'])
+        await chart.locator(`[data-line="${line}"]`).click();
     await sleep(600);
     // Growth Settings + the chart side by side, once per growth preset. The
     // layout manager moves cards into sections, so clip their union.
@@ -205,25 +224,31 @@ module.exports = async function captureTour(page, C) {
     const presets = page.locator('#proj-settings-presets button');
     const n = await presets.count();
     const names = [];
-    for (let i = 0; i < n; i++) names.push((await presets.nth(i).innerText()).trim());
+    for (let i = 0; i < n; i++)
+        names.push((await presets.nth(i).innerText()).trim());
     console.log('capture-tour: growth presets:', names.join(' | '));
     await top();
     await sleep(500);
     const heroShot = async (name) => {
         const a = await settings.boundingBox();
         const b = await chart.boundingBox();
-        const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
+        const x = Math.min(a.x, b.x),
+            y = Math.min(a.y, b.y);
         const clip = {
             x,
             y,
             width: Math.max(a.x + a.width, b.x + b.width) - x,
-            height: Math.min(1080 - y, Math.max(a.y + a.height, b.y + b.height) - y),
+            height: Math.min(
+                1080 - y,
+                Math.max(a.y + a.height, b.y + b.height) - y,
+            ),
         };
         await page.screenshot({ path: `${C}/${name}.png`, clip });
         return clip;
     };
     const heroClip = await heroShot('hero-seeded');
-    for (let i = 0; i < n; i++) boxes[`preset-${i}`] = await frac(presets.nth(i), heroClip);
+    for (let i = 0; i < n; i++)
+        boxes[`preset-${i}`] = await frac(presets.nth(i), heroClip);
     await shoot(settings, 'card-growth');
     for (let i = 0; i < n; i++) {
         await presets.nth(i).click();
@@ -232,6 +257,9 @@ module.exports = async function captureTour(page, C) {
         await sleep(300);
         await heroShot(`hero-preset-${i}`);
     }
-    require('fs').writeFileSync(`${C}/../tour-boxes.json`, JSON.stringify(boxes));
+    require('fs').writeFileSync(
+        `${C}/../tour-boxes.json`,
+        JSON.stringify(boxes),
+    );
     console.log('capture-tour: ok');
 };

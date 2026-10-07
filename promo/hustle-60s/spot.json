@@ -24,7 +24,7 @@
     },
     {
       "kind": "shot", "img": "card-ebay-sync.png", "title": "Sales import themselves.",
-      "cam": [[0, 0.5, 0.5, 1], [1, 0.5, 0.5, 1.2]],
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.5, 0.5, 1.04]],
       "say": "Connect eBay once, and completed orders flow into your ledger automatically. Or upload a Seller Hub report instead."
     },
     {
@@ -35,6 +35,8 @@
     {
       "kind": "terminal", "title": "What do I owe?", "tool": "get_side_gig_tax_summary",
       "prompt": "how much should I set aside for taxes on my side gig?",
+      "keys": ["business.revenue", "business.sellingCosts", "business.costBasis", "estimatedTaxableIncome", "personalSales.nonDeductibleLosses"],
+      "after": "About **${estimatedTaxableIncome}** of resale profit is taxable. The keyboard sold at a loss isn't deductible.",
       "say": "Claude can see it too, so asking what to set aside for taxes gets an answer from your actual sales."
     },
     {

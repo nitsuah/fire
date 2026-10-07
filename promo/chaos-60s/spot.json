@@ -20,7 +20,7 @@
     },
     {
       "kind": "shot", "img": "proj-tooltip.png", "title": "Every marker explains itself.",
-      "cam": [[0, 0.5, 0.5, 1], [0.35, "chaos:hover", 0.12, 1.9], [1, "chaos:hover", 0.12, 2.0]],
+      "cam": [[0, 0.5, 0.5, 1], [0.35, "chaos:hover", -0.02, 1.6], [1, "chaos:hover", -0.02, 1.7]],
       "say": "Hover any marker to see what happened, what led to it, and what it cost. Events chain together: a parent's care, then a funeral, then an inherited house."
     },
     {

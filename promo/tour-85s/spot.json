@@ -100,22 +100,9 @@
     },
     {
       "kind": "shot",
-      "img": "tab-insights.png",
+      "img": "card-insights.png",
       "title": "Insights that tell you what to fix.",
-      "cam": [
-        [
-          0,
-          0.57,
-          0.42,
-          1.25
-        ],
-        [
-          1,
-          0.57,
-          0.42,
-          1.55
-        ]
-      ],
+      "cam": [[0, 0.5, 0, 1.55], [1, 0.5, 0, 1.65]],
       "say": "Insights flags what you're over-exposed to, losses you can harvest before year end, and the trades that get you back to your target mix."
     },
     {
