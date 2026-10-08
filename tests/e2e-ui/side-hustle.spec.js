@@ -1,5 +1,5 @@
 // @ts-check
-/* global state, saveState, refreshAllUI */
+/* global state, saveState, refreshAllUI, logCalculatorSale */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -75,6 +75,41 @@ test.describe('Platform Fee Calculator', () => {
         // Opt-in 2.9% + $0.50 processing on the same $50.
         await page.locator('#mercari-processing').check();
         await expect(page.locator('#mercari-res-fees')).toHaveText('$6.95');
+    });
+
+    test('a failed calculator save keeps a sale logged meanwhile', async ({
+        page,
+    }) => {
+        const kept = await page.evaluate(async () => {
+            const realSave = saveState;
+            let failFirst;
+            let calls = 0;
+            // eslint-disable-next-line no-global-assign
+            saveState = () =>
+                ++calls === 1
+                    ? new Promise((_, reject) => (failFirst = reject))
+                    : Promise.resolve();
+            const sale = {
+                price: 10,
+                gross: 10,
+                fees: 1,
+                shipping: 0,
+                cost: 2,
+                net: 7,
+            };
+            const first = logCalculatorSale('Mercari', sale);
+            await logCalculatorSale('Poshmark', sale);
+            failFirst(new Error('disk full'));
+            await first;
+            // eslint-disable-next-line no-global-assign
+            saveState = realSave;
+            return state.sideGigLedger
+                .filter((e) =>
+                    /^(Mercari|Poshmark) Sale: \$10 Item$/.test(e.desc),
+                )
+                .map((e) => e.category);
+        });
+        expect(kept).toEqual(['Poshmark']);
     });
 
     test('Poshmark panel switches from $2.95 flat to 20% at $15', async ({
