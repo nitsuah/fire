@@ -189,7 +189,7 @@ Connect Claude Code to your live financial data. The project ships a `.mcp.json`
 
 **Claude skill:** [`skills/fire-coach`](skills/README.md) makes Claude a FIRE coach for this app. It maps questions to the right MCP tools, applies a FIRE playbook (the 4% rule, savings rate, order of operations, taxes, sequence risk, what to do when income stops) and points to the exact tab and button. Install it with `mkdir -p ~/.claude/skills && cp -r skills/fire-coach ~/.claude/skills/`.
 
-**Money-maker skills:** [`skills/reseller-autopilot`](skills/README.md#reseller-autopilot) prices and lists items with net-after-fees on eBay, Etsy, Mercari, Poshmark and FB Marketplace and runs a weekly low-touch selling routine. [`skills/passive-income-lab`](skills/README.md#passive-income-lab) sizes low-touch income streams against your runway and shows how far each moves your FIRE date.
+**Money-maker skills:** [`skills/reseller-autopilot`](skills/README.md#reseller-autopilot) prices items and drafts listings, with net-after-fees on eBay, Etsy, Mercari, Poshmark and FB Marketplace and runs a weekly low-touch selling routine. [`skills/passive-income-lab`](skills/README.md#passive-income-lab) sizes low-touch income streams against your runway and shows how far each moves your FIRE date.
 
 Smoke-test locally:
 ```bash

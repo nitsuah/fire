@@ -53,7 +53,6 @@ Workflow: change something, then check it with `--stills` at the times that matt
 
 Short custom cuts (social, landing page):
 
-- **`tour-85s`** also publishes to the landing page (`--audio --publish` → `site/assets/tour.mp4`, re-encoded at 720p).
 - **`brag-22s`**: the launch spot (landing-page hero, `site/assets/fire-tracker.mp4`), now narrated.
 - **`chaos-24s`**: 🌪️ Chaos mode and the customizable layout (`site/assets/chaos.mp4`), now narrated. Callout positions come from the real chart (`chaos.json`, written by `capture.js` with `CHAOS_SEED`), and slots are set in `spot.json` → `chaos.pops`.
 
@@ -68,6 +67,8 @@ Narrated tours (full product descriptions, built from `tour/compose.html`):
 | **`hustle-60s`** | ~60s | Side Hustle Hub: eBay/Etsy/FB fee calculators, eBay sync, tax-tagged ledger, side-gig taxes via MCP, accelerators |
 | **`connect-55s`** | ~57s | Getting data in: CSV imports, Plaid, ENS/multichain crypto, metals, vehicles, cash/CDs/property, live prices |
 | **`yours-60s`** | ~61s | Privacy and control: one file, encryption, read-only, security defaults, layout, MCP, export, mobile |
+
+`tour-85s` also publishes to the landing page (`--audio --publish` → `site/assets/tour.mp4`, re-encoded at 720p).
 
 ## Tour spots
 

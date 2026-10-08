@@ -10,12 +10,19 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 # Narration: Kokoro-82M (Apache-2.0) via kokoro-onnx, offline once built.
 # Its own venv because Debian's numpy can't be upgraded in place.
+# The model files are checksum-verified so a changed release asset can't
+# silently change the voice.
 ARG KOKORO_ONNX_VERSION=0.6.1
+ARG SOUNDFILE_VERSION=0.14.0
 RUN python3 -m venv /opt/tts \
- && /opt/tts/bin/pip install -q --no-cache-dir kokoro-onnx==${KOKORO_ONNX_VERSION} soundfile \
+ && /opt/tts/bin/pip install -q --no-cache-dir kokoro-onnx==${KOKORO_ONNX_VERSION} soundfile==${SOUNDFILE_VERSION} \
  && mkdir -p /models \
  && curl -fsSL -o /models/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx \
- && curl -fsSL -o /models/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+ && curl -fsSL -o /models/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin \
+ && printf '%s  %s\n' \
+      7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5 /models/kokoro-v1.0.onnx \
+      bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d /models/voices-v1.0.bin \
+    | sha256sum -c -
 WORKDIR /deps
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \

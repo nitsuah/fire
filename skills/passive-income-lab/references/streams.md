@@ -55,7 +55,7 @@ fees change, so check current ones before quoting.
 ## 5. Print-on-demand
 
 - Same storefront skills as #4. The supplier prints and ships. Margins are thin
-  ($3–$8 a shirt), so it's volume and design driven. Order a sample before
+  ($3–$8 a shirt), so it's volume- and design-driven. Order a sample before
   listing, use only original or properly licensed art, and avoid trademarked
   phrases (check USPTO's trademark search).
 
@@ -67,8 +67,10 @@ fees change, so check current ones before quoting.
 
 ## 7. Flipping
 
-- Only after #3 is working, and only items with sold comps at 3× or more your
-  cost that sell within 30 days. Track cost basis in the fire ledger. Cap
+- Only after #3 is working. Buy only when expected profit clears your hourly
+  floor (~$15/hr): `(sell-through × (comp median − fees − label) − cost) ÷ hours`,
+  using sold comps that move within 30 days (see the reseller-autopilot listing
+  playbook). Track cost basis in the fire ledger. As a second guard, cap
   inventory spend at a fixed monthly amount and never use emergency-fund money.
 
 ## 8. Content / affiliate / newsletter

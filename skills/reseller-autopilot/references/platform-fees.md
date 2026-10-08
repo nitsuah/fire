@@ -16,7 +16,7 @@ eBay, Etsy and Facebook rules below.
 
 ```
 net = list price + buyer shipping − platform fees − label cost − item cost
-fees (eBay)    ≈ (price + shipping) × category rate + ad rate + $0.30–$0.40
+fees (eBay)    ≈ (price + shipping) × (category rate + ad rate) + $0.30–$0.40
 fees (Etsy)    = $0.20 + (price + shipping) × 9.5% + $0.25 (+ offsite ads if attributed)
 fees (Mercari) ≈ (price + shipping) × 10% (+ processing if your dashboard shows it)
 fees (Poshmark) = price < $15 ? $2.95 : price × 20%

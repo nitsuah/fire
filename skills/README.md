@@ -22,7 +22,8 @@ dashboard?"*
 
 A low-touch reselling workflow built around the **Side Hustle Hub**. It prices
 items from sold comps, compares the net after fees on eBay, Etsy, Mercari,
-Poshmark and FB Marketplace, writes and cross-lists listings, triages a pile of
+Poshmark and FB Marketplace, drafts platform-specific listings for you to post
+and cross-list yourself, triages a pile of
 stuff into sell, bundle and donate, and sets up a weekly "list and forget" routine.
 It reads `get_side_gig_income` / `get_side_gig_tax_summary` for profit and tax
 checks.
@@ -67,7 +68,14 @@ mkdir -p .claude/skills && cp -r skills/fire-coach skills/reseller-autopilot ski
 Claude.ai / Claude Desktop: zip each skill folder and upload it under
 **Settings → Capabilities → Skills**.
 
-Connect the `fire-tracker` MCP server (`.mcp.json`) so the answers use your
-real data.
+**Live data (the `fire-tracker` MCP server)** depends on the client:
+
+- **Claude Code:** `.mcp.json` at the repo root connects it automatically when
+  you start Claude Code in this directory.
+- **Claude Desktop:** add a local server to `claude_desktop_config.json` that runs
+  `node app/mcp-server.mjs` from your fire checkout (see
+  [MCP Server](../README.md#mcp-server-claude-integration)).
+- **claude.ai:** the server runs locally over stdio, so claude.ai can't reach it.
+  The skills still work there and ask you for the numbers they need.
 
 The skills are educational, not personalized investment or tax advice.

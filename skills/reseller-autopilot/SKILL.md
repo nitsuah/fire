@@ -25,7 +25,7 @@ routine that runs with as little attention as possible. Three sources:
   the user posts it. Sales reach fire through **Side Hustle Hub → eBay Sales
   Sync**, the Seller Hub report upload, or a ledger row they add.
 - **Honest about effort.** "AFK" means batched and low-touch, not zero work.
-  Photos, packing and shipping are the real time cost; say so.
+  Photos, packing and shipping take most of the time; say so.
 - **Taxes are part of profit.** Resale profit is taxable, and a personal item
   sold below what you paid isn't a deductible loss. Point to the ledger's tax
   tags, and to a CPA for anything specific. This is planning help, not tax advice.
@@ -57,16 +57,18 @@ handmade, vintage 20+ years old, or craft supplies).
 the other listings the moment one sells, since a double sale means a cancellation
 and a seller-rating hit.
 
-**Is this flip worth it?** For an item they could *buy* to resell: comp median ×
-expected sell-through, minus fees, label and cost, divided by their hours.
+**Is this flip worth it?** For an item they could *buy* to resell:
+`(expected sell-through × (comp median − fees − label) − cost) ÷ hours`. Fees
+and the label are paid only when it sells; the cost is paid either way.
 Under ~$15/hr or a sell-through below ~30% means pass, unless they enjoy it.
 
 **Weekly autopilot.** Set up the routine in the playbook (one photo session, one
 listing session, ship twice a week, and a Sunday review of stale listings and price
 drops). If the host supports scheduled tasks, offer to schedule the Sunday review.
 If the `fire-tracker` MCP is connected, the review starts with
-`get_side_gig_income` and reports profit for the month, the best category and
-items listed over 60 days.
+`get_side_gig_income` (totals per platform and overall) and reports net so far
+and the best platform. The tool has no listing data, so ask which listings are
+older than 60 days.
 
 **Tax check.** `get_side_gig_tax_summary` → explain the business/personal split,
 untagged rows and rows that need a cost basis. Then say where to fix them:

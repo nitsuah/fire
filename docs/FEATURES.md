@@ -20,7 +20,7 @@
 - **Claude Code Integration** — `.mcp.json` at repo root auto-connects the server when Claude Code starts in this directory.
 - **Smoke Test** — `scripts/test-mcp.mjs` runs the full MCP handshake and validates all 16 registered read-only tools in `EXPECTED_TOOLS`.
 - **fire-coach Claude Skill** — `skills/fire-coach/` (SKILL.md + a FIRE financial playbook + an app guide) makes Claude a FIRE coach: it maps questions to the MCP tools, applies the playbook (4% rule, savings rate, order of operations, taxes, sequence risk, income-gap plan) and points to the exact tab/card/button. Install steps in `skills/README.md`.
-- **reseller-autopilot Claude Skill** — `skills/reseller-autopilot/` prices items from sold comps, compares the net after fees on eBay, Etsy, Mercari, Poshmark and FB Marketplace, writes and cross-lists listings, runs a weekly low-touch selling routine, and checks side-gig taxes via MCP.
+- **reseller-autopilot Claude Skill** — `skills/reseller-autopilot/` prices items from sold comps, compares the net after fees on eBay, Etsy, Mercari, Poshmark and FB Marketplace, drafts platform-specific listings for the user to post, runs a weekly low-touch selling routine, and checks side-gig taxes via MCP.
 - **passive-income-lab Claude Skill** — `skills/passive-income-lab/` sizes eight low-touch income streams against the user's runway and FIRE number (realistic ranges, red flags), shows how far each moves the FIRE date, and writes a 30-day launch plan.
 
 ## Net Worth Tracking

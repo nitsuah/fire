@@ -24,6 +24,11 @@ hand them a launch plan they can actually finish. Two references:
   has stopped, recommend only streams that need **no capital at risk** (cash
   yield on money they already hold, decluttering and reselling, renting what
   they own, digital products). Say plainly why.
+- **Unknown runway counts as short.** `get_emergency_runway` returns
+  `runwayMonths: null` with an `unavailableReason` (`no_monthly_expenses`,
+  `non_positive_net_worth`) when it can't compute one. Ask for the missing
+  numbers (monthly spending, cash on hand), and until you have them recommend
+  only the no-capital-at-risk streams above.
 - **No hype.** "Passive" means front-loaded work and small upkeep. Give ranges,
   including the common outcome of $0 for months, never best cases as promises.
   Most digital shops and content sites earn little in year one.

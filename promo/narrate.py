@@ -94,9 +94,10 @@ if SPOT.get('type') == 'tour':
         scenes.append({'i': i, 'start': round(t, 3), 'end': round(t + dur, 3),
                        'voStart': round(t + LEAD, 3), 'voDur': round(sdur, 3)})
         t += dur
-    ps = scenes[int(SPOT.get('posterScene', 1))]
+    ps = scenes[max(0, min(int(SPOT.get('posterScene', 1)), len(scenes) - 1))]
+    poster = min(ps['end'] - 0.4, ps['start'] + float(SPOT.get('posterAt', 2.0)))
     timeline = {'duration': round(t, 3), 'scenes': scenes,
-                'poster': round(min(ps['end'] - 0.4, ps['start'] + float(SPOT.get('posterAt', 2.0))), 3)}
+                'poster': round(max(ps['start'], poster), 3)}
 else:
     dur = float(SPOT['duration'])
     items = sorted(SPOT.get('narration', []), key=lambda x: x['t'])

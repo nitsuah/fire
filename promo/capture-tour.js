@@ -10,8 +10,10 @@ module.exports = async function captureTour(page, C) {
     // Click targets for the composer: centre of each target in CSS px from
     // the top-left of the crop it sits in (tour-boxes.json → PROMO.tour).
     const boxes = {};
+    // Returns null (and the named point is skipped) if either box is missing.
     const frac = async (loc, rect) => {
         const b = await loc.boundingBox();
+        if (!b || !rect) return null;
         return {
             px: b.x + b.width / 2 - rect.x,
             py: b.y + b.height / 2 - rect.y,
@@ -209,11 +211,11 @@ module.exports = async function captureTour(page, C) {
     await shoot(chart, 'proj-lines');
     {
         const r = await chart.boundingBox();
-        for (const line of ['coast', 'benchmark', 'lean', 'fat'])
-            boxes[`line-${line}`] = await frac(
-                chart.locator(`[data-line="${line}"]`),
-                r,
-            );
+        for (const line of ['coast', 'benchmark', 'lean', 'fat']) {
+            const p = await frac(chart.locator(`[data-line="${line}"]`), r);
+            if (p) boxes[`line-${line}`] = p;
+            else console.warn(`capture-tour: no box for line-${line}`);
+        }
     }
     for (const line of ['coast', 'benchmark'])
         await chart.locator(`[data-line="${line}"]`).click();
@@ -232,6 +234,10 @@ module.exports = async function captureTour(page, C) {
     const heroShot = async (name) => {
         const a = await settings.boundingBox();
         const b = await chart.boundingBox();
+        if (!a || !b)
+            throw new Error(
+                'Growth Settings or the growth chart is not visible',
+            );
         const x = Math.min(a.x, b.x),
             y = Math.min(a.y, b.y);
         const clip = {
@@ -246,16 +252,24 @@ module.exports = async function captureTour(page, C) {
         await page.screenshot({ path: `${C}/${name}.png`, clip });
         return clip;
     };
-    const heroClip = await heroShot('hero-seeded');
-    for (let i = 0; i < n; i++)
-        boxes[`preset-${i}`] = await frac(presets.nth(i), heroClip);
-    await shoot(settings, 'card-growth');
-    for (let i = 0; i < n; i++) {
-        await presets.nth(i).click();
-        await sleep(1400);
-        await top();
-        await sleep(300);
-        await heroShot(`hero-preset-${i}`);
+    // A layout change here skips the preset shots but keeps the run going,
+    // so tour-boxes.json and capture.js's MCP outputs are still written.
+    try {
+        const heroClip = await heroShot('hero-seeded');
+        for (let i = 0; i < n; i++) {
+            const p = await frac(presets.nth(i), heroClip);
+            if (p) boxes[`preset-${i}`] = p;
+        }
+        await shoot(settings, 'card-growth');
+        for (let i = 0; i < n; i++) {
+            await presets.nth(i).click();
+            await sleep(1400);
+            await top();
+            await sleep(300);
+            await heroShot(`hero-preset-${i}`);
+        }
+    } catch (e) {
+        console.warn('capture-tour: skipped growth presets:', e.message);
     }
     require('fs').writeFileSync(
         `${C}/../tour-boxes.json`,

@@ -54,5 +54,9 @@ automate messages that pretend a human is replying in real time.
 
 - Free or cheap: curb alerts, "free" Marketplace listings, garage-sale last hour,
   thrift half-price days, and liquidation bins for electronics with clear tested status.
-- Buy only what has **sold comps at 3× or more** your cost and moves within 30 days.
+- Buy only when the **expected profit per hour** clears your floor (~$15/hr):
+  `(sell-through × (comp median − fees − label) − cost) ÷ hours`, with
+  sell-through from sold vs. active comps and items that move within 30 days.
+  "3× your cost" is only a quick first filter; cheap items can pass it and still
+  lose money after fees and labels.
 - Track every buy's cost basis in the fire ledger (Item cost), so profit and taxes are right.

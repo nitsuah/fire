@@ -48,8 +48,13 @@ test.describe('Platform Fee Calculator', () => {
     test('Etsy panel computes a live profit', async ({ page }) => {
         await page.locator('.platform-tab-btn[data-platform="etsy"]').click();
         await page.fill('#etsy-price', '40');
+        await page.fill('#etsy-shipping-charged', '0');
+        await page.fill('#etsy-shipping-actual', '0');
         await page.fill('#etsy-cost', '10');
-        await expect(page.locator('#etsy-res-gross')).toContainText('$');
-        await expect(page.locator('#etsy-res-profit')).not.toHaveText('');
+        await page.fill('#etsy-ads-rate', '0');
+        // $0.20 listing + 6.5% transaction + 3% + $0.25 processing on $40.
+        await expect(page.locator('#etsy-res-gross')).toHaveText('$40.00');
+        await expect(page.locator('#etsy-res-fees')).toHaveText('$4.25');
+        await expect(page.locator('#etsy-res-profit')).toHaveText('$25.75');
     });
 });
