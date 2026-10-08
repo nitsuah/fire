@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The promo demo seed tags its side-gig sales (three resales and one personal item) and has one position below cost basis, so the tax summary and tax-loss harvesting cards show real numbers.
 
+### 2026-10-07 — Visual showcase
+
+- **Added:** Visual showcase ([standard](https://github.com/nitsuah/.github/blob/main/showcase/STANDARD.md)): `promo/spots.json` lists every shipped FEATURES.md entry and links the existing launch video(s) to the features they show (screenshot links get filled in as screenshot CI lands); the Pages site loads the shared expand kit (click-to-expand images, fullscreen button on videos). `<html data-no-expand="images">` keeps the page's own lightbox for images, so the kit only adds the video buttons.
+
 ### 2026-10 — Multichain crypto account value
 
 #### Added
