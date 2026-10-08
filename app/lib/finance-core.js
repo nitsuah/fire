@@ -5,7 +5,7 @@
    Split into:
      finance-parsing.js   — CSV parsers (Fidelity, Chase, CapOne)
      finance-calcs.js     — Projection data builders
-     finance-platforms.js — eBay / Etsy / Facebook fee calculators
+     finance-platforms.js — eBay / Etsy / Facebook / Mercari / Poshmark fees
    ========================================================================== */
 
 const parsing = require('./finance-parsing');
@@ -247,6 +247,10 @@ module.exports = {
     calculateEtsyNetProfit: platforms.calculateEtsyNetProfit,
     calculateFBFees: platforms.calculateFBFees,
     calculateFBNetProfit: platforms.calculateFBNetProfit,
+    calculateMercariFees: platforms.calculateMercariFees,
+    calculateMercariNetProfit: platforms.calculateMercariNetProfit,
+    calculatePoshmarkFees: platforms.calculatePoshmarkFees,
+    calculatePoshmarkNetProfit: platforms.calculatePoshmarkNetProfit,
 
     // inline helpers
     formatCurrency,

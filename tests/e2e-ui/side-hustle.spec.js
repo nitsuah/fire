@@ -1,4 +1,5 @@
 // @ts-check
+/* global state, saveState, refreshAllUI, logCalculatorSale */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -23,18 +24,18 @@ test.beforeEach(async ({ page }) => {
 test.describe('Platform Fee Calculator', () => {
     // The Etsy/FB panels start hidden by a CSS class; switching tabs must
     // actually show them (an empty inline display used to leave them hidden).
-    test('switches between eBay, Etsy and FB Marketplace panels', async ({
-        page,
-    }) => {
+    test('switches between every platform panel', async ({ page }) => {
         const panels = {
             ebay: page.locator('#calc-panel-ebay'),
             etsy: page.locator('#calc-panel-etsy'),
             fb: page.locator('#calc-panel-fb'),
+            mercari: page.locator('#calc-panel-mercari'),
+            poshmark: page.locator('#calc-panel-poshmark'),
         };
         await expect(panels.ebay).toBeVisible();
         await expect(panels.etsy).toBeHidden();
 
-        for (const name of ['etsy', 'fb', 'ebay']) {
+        for (const name of ['etsy', 'fb', 'mercari', 'poshmark', 'ebay']) {
             await page
                 .locator(`.platform-tab-btn[data-platform="${name}"]`)
                 .click();
@@ -56,5 +57,117 @@ test.describe('Platform Fee Calculator', () => {
         await expect(page.locator('#etsy-res-gross')).toHaveText('$40.00');
         await expect(page.locator('#etsy-res-fees')).toHaveText('$4.25');
         await expect(page.locator('#etsy-res-profit')).toHaveText('$25.75');
+    });
+
+    test('Mercari panel charges 10% of item + buyer shipping', async ({
+        page,
+    }) => {
+        await page
+            .locator('.platform-tab-btn[data-platform="mercari"]')
+            .click();
+        await page.fill('#mercari-price', '45');
+        await page.fill('#mercari-shipping-buyer', '5');
+        await page.fill('#mercari-shipping-actual', '6');
+        await page.fill('#mercari-cost', '10');
+        await expect(page.locator('#mercari-res-gross')).toHaveText('$50.00');
+        await expect(page.locator('#mercari-res-fees')).toHaveText('$5.00');
+        await expect(page.locator('#mercari-res-profit')).toHaveText('$29.00');
+        // Opt-in 2.9% + $0.50 processing on the same $50.
+        await page.locator('#mercari-processing').check();
+        await expect(page.locator('#mercari-res-fees')).toHaveText('$6.95');
+    });
+
+    test('a failed calculator save keeps a sale logged meanwhile', async ({
+        page,
+    }) => {
+        const kept = await page.evaluate(async () => {
+            const realSave = saveState;
+            let failFirst;
+            let calls = 0;
+            // eslint-disable-next-line no-global-assign
+            saveState = () =>
+                ++calls === 1
+                    ? new Promise((_, reject) => (failFirst = reject))
+                    : Promise.resolve();
+            const sale = {
+                price: 10,
+                gross: 10,
+                fees: 1,
+                shipping: 0,
+                cost: 2,
+                net: 7,
+            };
+            const first = logCalculatorSale('Mercari', sale);
+            await logCalculatorSale('Poshmark', sale);
+            failFirst(new Error('disk full'));
+            await first;
+            // eslint-disable-next-line no-global-assign
+            saveState = realSave;
+            return state.sideGigLedger
+                .filter((e) =>
+                    /^(Mercari|Poshmark) Sale: \$10 Item$/.test(e.desc),
+                )
+                .map((e) => e.category);
+        });
+        expect(kept).toEqual(['Poshmark']);
+    });
+
+    test('Poshmark panel switches from $2.95 flat to 20% at $15', async ({
+        page,
+    }) => {
+        await page
+            .locator('.platform-tab-btn[data-platform="poshmark"]')
+            .click();
+        await page.fill('#poshmark-price', '10');
+        await expect(page.locator('#poshmark-res-fees')).toHaveText('$2.95');
+        await page.fill('#poshmark-price', '30');
+        await expect(page.locator('#poshmark-res-fees')).toHaveText('$6.00');
+    });
+});
+
+test.describe('Marketplace connections', () => {
+    test('Etsy card starts disconnected with Connect showing', async ({
+        page,
+    }) => {
+        await expect(page.locator('#etsy-sync-status')).toHaveText(
+            'Status: Disconnected',
+        );
+        await expect(page.locator('#btn-etsy-connect')).toBeVisible();
+        await expect(page.locator('#btn-etsy-sync')).toBeHidden();
+        await expect(page.locator('#btn-etsy-disconnect')).toBeHidden();
+    });
+
+    test('imports a Mercari export into the ledger once', async ({ page }) => {
+        const dialogs = [];
+        page.on('dialog', async (d) => {
+            dialogs.push(d.message());
+            await d.accept();
+        });
+        const file = require('path').join(
+            __dirname,
+            '../unit/fixtures/marketplaces/mercari-sales.csv',
+        );
+        const ledger = page.locator('#table-sidegig-history');
+        // The temp DB outlives a local run; start without Mercari rows.
+        await page.evaluate(async () => {
+            state.sideGigLedger = state.sideGigLedger.filter(
+                (e) => e.category !== 'Mercari',
+            );
+            await saveState();
+            refreshAllUI();
+        });
+        await page.locator('#ebay-report-input').setInputFiles(file);
+        await expect(ledger).toContainText('Nintendo DS Lite, Cobalt');
+        await expect(ledger).toContainText('Pokemon Yellow cartridge');
+        await expect.poll(() => dialogs.at(-1)).toMatch(/Mercari.*2 added/);
+        // Same file again: nothing new.
+        await page.locator('#ebay-report-input').setInputFiles([]);
+        await page.locator('#ebay-report-input').setInputFiles(file);
+        await expect
+            .poll(() => dialogs.at(-1))
+            .toMatch(/0 added, 2 already imported/);
+        await expect(
+            ledger.locator('tr', { hasText: 'Nintendo DS Lite' }),
+        ).toHaveCount(1);
     });
 });

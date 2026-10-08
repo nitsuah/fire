@@ -623,7 +623,7 @@ test.describe('Summary bar — desktop keeps the full metrics', () => {
 });
 
 test.describe('Settings — card order and color-coded grouping', () => {
-    test('cards are ordered Projection Defaults, Notifications, Plaid, CoinTracker, Privacy, Data Management, Google Drive, Danger Zone', async ({
+    test('cards are ordered Projection Defaults, Notifications, Plaid, CoinTracker, Marketplace Connections, Privacy, Data Management, Google Drive, Danger Zone', async ({
         page,
     }) => {
         await page.locator('#btn-tab-settings').click();
@@ -636,6 +636,7 @@ test.describe('Settings — card order and color-coded grouping', () => {
             'Notifications & Alerts',
             'Plaid Transaction Sync',
             'CoinTracker Wallets',
+            'Marketplace Connections',
             'Privacy & Terms',
             'Data Management',
             'Google Drive Backup',

@@ -1,0 +1,4 @@
+Order Date,Order Id,Listing Title,Brand,Category,Size,Order Price,Seller Shipping Discount,Upgraded Shipping Label Fee,Net Earnings,Sales Tax (Paid by Buyer),Order Status
+2026-02-01,63f0aa11bb22cc33dd44ee55,Levi's 501 Jeans 32x30,Levi's,Men,32,$40.00,$0.00,$0.00,$32.00,$3.20,Sold
+2026-02-03,63f0aa11bb22cc33dd44ee66,Gap Graphic Tee,Gap,Women,M,$12.00,$0.00,$0.00,$9.05,$0.96,Sold
+2026-02-05,63f0aa11bb22cc33dd44ee77,Returned Jacket,North Face,Men,L,$80.00,$0.00,$0.00,$0.00,$6.40,Returned

@@ -82,6 +82,7 @@ const DEFAULT_BOARDS = {
             ],
         ],
         ['1', [['sidegig:ebay-sales-sync']]],
+        ['1', [['sidegig-etsy-card']]],
         ['1', [['sidegig:side-gig-ledger-manual-sales-income-hist']]],
     ],
     'tab-projections': [
@@ -103,7 +104,11 @@ const DEFAULT_BOARDS = {
             [
                 ['settings:projection-defaults'],
                 ['settings:notifications-alerts'],
-                ['settings:plaid-transaction-sync', 'cointracker-card'],
+                [
+                    'settings:plaid-transaction-sync',
+                    'cointracker-card',
+                    'settings-marketplaces-card',
+                ],
             ],
         ],
         [

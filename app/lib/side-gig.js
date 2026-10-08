@@ -977,6 +977,35 @@ async function importEbayReportText(text, fileName) {
     return true;
 }
 
+// Import a Mercari / Poshmark / FB Marketplace export into the ledger.
+// Returns true when the text was one of those reports.
+async function importMarketplaceReportText(text, fileName) {
+    const report = parseMarketplaceReport(parseCSVText(text));
+    if (!report) return false;
+    if (!report.entries.length) {
+        alert(`That ${report.category} file has no sales rows to import.`);
+        return true;
+    }
+    const before = state.sideGigLedger;
+    const merged = mergeMarketplaceEntries(before, report.entries);
+    state.sideGigLedger = merged.ledger;
+    try {
+        await saveState();
+    } catch (err) {
+        state.sideGigLedger = before;
+        console.error(`Failed to save ${report.category} import:`, err);
+        alert(`Could not save the ${report.category} import.`);
+        return true;
+    }
+    refreshAllUI();
+    const parts = [`${merged.added} added`];
+    if (merged.skipped) parts.push(`${merged.skipped} already imported`);
+    if (report.skipped)
+        parts.push(`${report.skipped} canceled/returned or blank rows skipped`);
+    alert(`${report.category} report ${fileName || ''}: ${parts.join(', ')}.`);
+    return true;
+}
+
 function initEbayReportUpload() {
     const btn = document.getElementById('btn-ebay-report-upload');
     const input = document.getElementById('ebay-report-input');
@@ -986,8 +1015,14 @@ function initEbayReportUpload() {
         const file = input.files && input.files[0];
         if (!file) return;
         try {
-            const ok = await importEbayReportText(await file.text(), file.name);
-            if (!ok) alert('That file is not an eBay listings sales report.');
+            const text = await file.text();
+            const ok =
+                (await importEbayReportText(text, file.name)) ||
+                (await importMarketplaceReportText(text, file.name));
+            if (!ok)
+                alert(
+                    'That file is not a recognised sales report (eBay listings report, Mercari sales history, Poshmark sales report, or the FB Marketplace template).',
+                );
         } catch (err) {
             console.error('Failed to read eBay report:', err);
             alert('Could not read that file.');
@@ -1012,7 +1047,7 @@ function initPlatformCalculators() {
             const panel = document.getElementById(
                 `calc-panel-${btn.dataset.platform}`,
             );
-            // 'block', not '': the Etsy/FB panels start hidden by a CSS
+            // 'block', not '': the non-eBay panels start hidden by a CSS
             // class (csp-i-001), which an empty inline style can't override.
             if (panel) panel.style.display = 'block';
         });
@@ -1103,8 +1138,146 @@ function initPlatformCalculators() {
             alert('FB Marketplace sale logged to Side Income history!');
         });
 
+    // Mercari / Poshmark live calculation
+    [
+        'mercari-price',
+        'mercari-cost',
+        'mercari-shipping-buyer',
+        'mercari-shipping-actual',
+        'mercari-processing',
+    ].forEach((id) => {
+        const el = document.getElementById(id);
+        el?.addEventListener('input', calculateMercariProfit);
+        el?.addEventListener('change', calculateMercariProfit);
+    });
+    ['poshmark-price', 'poshmark-cost', 'poshmark-shipping-discount'].forEach(
+        (id) => {
+            document
+                .getElementById(id)
+                ?.addEventListener('input', calculatePoshmarkProfit);
+        },
+    );
+    document
+        .getElementById('btn-save-mercari-sale')
+        ?.addEventListener('click', () =>
+            logCalculatorSale('Mercari', readMercariInputs()),
+        );
+    document
+        .getElementById('btn-save-poshmark-sale')
+        ?.addEventListener('click', () =>
+            logCalculatorSale('Poshmark', readPoshmarkInputs()),
+        );
+
     calculateEtsyProfit();
     calculateFBProfit();
+    calculateMercariProfit();
+    calculatePoshmarkProfit();
+}
+
+const calcNum = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+
+// Calculator rows keep the item cost in costBasis (not expenses), so the
+// tax summary and the "missing cost" totals treat them like synced sales.
+async function logCalculatorSale(platform, r) {
+    const sale = {
+        id: Date.now().toString(),
+        date: localIsoDate(),
+        desc: `${platform} Sale: $${r.price} Item`,
+        category: platform,
+        revenue: Math.round(r.gross * 100) / 100,
+        expenses: Math.round((r.fees + r.shipping) * 100) / 100,
+        costBasis: r.cost,
+        net: Math.round(r.net * 100) / 100,
+    };
+    state.sideGigLedger = [...state.sideGigLedger, sale];
+    try {
+        await saveState();
+    } catch (err) {
+        // Remove only this sale: another one may have been logged while
+        // this save was in flight.
+        state.sideGigLedger = state.sideGigLedger.filter((e) => e !== sale);
+        console.error(`Failed to save ${platform} sale:`, err);
+        showSideGigToast(`Could not save the ${platform} sale.`, 'error');
+        return;
+    }
+    refreshAllUI();
+    showSideGigToast(`${platform} sale logged to the Side Gig Ledger.`);
+}
+
+// Mercari: 10% of item price + buyer-paid shipping. The 2.9% + $0.50
+// payment processing fee has been charged to sellers at some times and to
+// buyers at others, so it's an opt-in checkbox.
+function calculateMercariFeesTotal(price, buyerShipping, sellerPaysProcessing) {
+    const base = (price || 0) + (buyerShipping || 0);
+    if (base <= 0) return 0;
+    const selling = base * 0.1;
+    const processing = sellerPaysProcessing ? base * 0.029 + 0.5 : 0;
+    return selling + processing;
+}
+
+function readMercariInputs() {
+    const price = calcNum('mercari-price');
+    const buyerShipping = calcNum('mercari-shipping-buyer');
+    const shipping = calcNum('mercari-shipping-actual');
+    const cost = calcNum('mercari-cost');
+    const processing = Boolean(
+        document.getElementById('mercari-processing')?.checked,
+    );
+    const gross = price + buyerShipping;
+    const fees = calculateMercariFeesTotal(price, buyerShipping, processing);
+    return {
+        price,
+        gross,
+        fees,
+        shipping,
+        cost,
+        net: gross - fees - shipping - cost,
+    };
+}
+
+// Poshmark: $2.95 flat under $15, 20% at $15+; the buyer pays the label.
+function calculatePoshmarkFeesTotal(price) {
+    const p = price || 0;
+    if (p <= 0) return 0;
+    return p < 15 ? 2.95 : p * 0.2;
+}
+
+function readPoshmarkInputs() {
+    const price = calcNum('poshmark-price');
+    const shipping = calcNum('poshmark-shipping-discount');
+    const cost = calcNum('poshmark-cost');
+    const fees = calculatePoshmarkFeesTotal(price);
+    return {
+        price,
+        gross: price,
+        fees,
+        shipping,
+        cost,
+        net: price - fees - shipping - cost,
+    };
+}
+
+function renderCalcResults(prefix, r) {
+    const roi = r.cost > 0 ? (r.net / r.cost) * 100 : 0;
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+    set(`${prefix}-res-gross`, formatCurrency(r.gross));
+    set(`${prefix}-res-fees`, formatCurrency(r.fees));
+    set(`${prefix}-res-profit`, formatCurrency(r.net));
+    set(`${prefix}-res-roi`, `${roi.toFixed(1)}%`);
+    const profitEl = document.getElementById(`${prefix}-res-profit`);
+    if (profitEl)
+        profitEl.className = `result-value ${r.net < 0 ? 'text-coral' : 'text-emerald'}`;
+}
+
+function calculateMercariProfit() {
+    renderCalcResults('mercari', readMercariInputs());
+}
+
+function calculatePoshmarkProfit() {
+    renderCalcResults('poshmark', readPoshmarkInputs());
 }
 
 function calculateEtsyFeesTotal(price, shipping, adsRate) {

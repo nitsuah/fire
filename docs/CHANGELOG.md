@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-08 — Marketplace hookups beyond eBay
+
+#### Added
+
+- **Etsy order sync.** Etsy Open API v3 OAuth 2.0 with PKCE (read-only `transactions_r shops_r`) pulls paid shop receipts into the Side Gig Ledger as `etsy-<receipt_id>` rows (category Etsy). Revenue excludes the sales tax Etsy remits and partial refunds; fees are estimated from Etsy's fee schedule and flagged `feesEstimated`; the tax tag is left for you. Self-hosted keeps the tokens encrypted in `tokens-etsy.json` (like eBay) and merges server-side (`/api/sync/etsy/{authorize,callback,status,toggle,sync,disconnect}`); the hosted deploy serves authorize/callback/sync from a new Netlify v2 Function (`netlify/functions/etsy.mjs`) and keeps a `SYNC_MASTER_KEY`-sealed blob in the browser, with status/toggle/disconnect handled browser-side. A revoked grant removes only the API-synced rows. New env: `ETSY_CLIENT_ID`, optional `ETSY_SHARED_SECRET`, `ETSY_REDIRECT_URI`.
+- **Etsy connection cards** in the Side Hustle Hub and in Settings → **Marketplace Connections**: connected/disconnected state, last sync, Sync Now, Disconnect and an on/off toggle.
+- **Mercari, Poshmark and FB Marketplace CSV import.** The ledger's upload button (now **Upload sales report (CSV)**) also reads Mercari sales history and Poshmark sales report exports and a new fill-in FB Marketplace template (`app/templates/fb-marketplace-sales.csv`, linked next to the button). Header sniffing with column aliases; canceled/returned rows skipped; dedupe by order id or a stable content hash, so re-uploads are skipped. Assumed columns are documented in `docs/integrations.md`.
+- **Mercari and Poshmark fee calculators** next to eBay/Etsy/FB: Mercari 10% of item + buyer shipping with an opt-in 2.9% + $0.50 processing fee (Mercari has charged it to sellers and to buyers at different times); Poshmark $2.95 under $15, 20% at $15+. Logged sales keep the item cost as cost basis.
+- The manual ledger form's category list gains Etsy, Mercari, Poshmark and FB Marketplace.
+
+#### Changed
+
+- `reseller-autopilot` skill and the `hustle-60s` promo (spot, share copy, capture list) cover Etsy sync, the CSV imports and the new calculator tabs.
+- Connector status reads (`GET /api/sync/<provider>/status`) no longer count against the 30/min sync rate limit (the general 300/min limit still applies). Each page load reads every connector's status, so quick reloads used to 429 the status cards.
+
 ### 2026-10 — Narrated promo spots + money-maker skills
 
 #### Added

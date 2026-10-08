@@ -1024,6 +1024,8 @@
                                     <button class="platform-tab-btn active" data-platform="ebay">eBay</button>
                                     <button class="platform-tab-btn" data-platform="etsy">Etsy</button>
                                     <button class="platform-tab-btn" data-platform="fb">FB Marketplace</button>
+                                    <button class="platform-tab-btn" data-platform="mercari">Mercari</button>
+                                    <button class="platform-tab-btn" data-platform="poshmark">Poshmark</button>
                                 </div>
                             </div>
                             <p class="card-subtitle">Estimate your exact margins before listing. Switch platforms to compare fee structures.</p>
@@ -1155,6 +1157,70 @@
                             </div>
                             </div><!-- /calc-panel-fb -->
 
+                            <!-- Mercari Panel -->
+                            <div id="calc-panel-mercari" class="platform-calc-panel csp-i-001">
+                            <div class="mt-2 csp-i-019" id="mercari-fee-note">Rates: 10% selling fee on item price + buyer-paid shipping. Mercari has moved its payment processing fee between buyer and seller over the years — tick the box if your sales still show one.</div>
+                            <div class="grid-2-col mt-3">
+                                <div class="form-group">
+                                    <label for="mercari-price">Item Sale Price ($)</label>
+                                    <input type="number" id="mercari-price" min="0" step="0.01" value="40.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mercari-cost">Your Item Cost ($)</label>
+                                    <input type="number" id="mercari-cost" min="0" step="0.01" value="10.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mercari-shipping-buyer">Shipping Paid by Buyer ($)</label>
+                                    <input type="number" id="mercari-shipping-buyer" min="0" step="0.01" value="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mercari-shipping-actual">Shipping You Pay ($)</label>
+                                    <input type="number" id="mercari-shipping-actual" min="0" step="0.01" value="6.00">
+                                </div>
+                                <div class="form-group csp-i-020">
+                                    <input type="checkbox" id="mercari-processing" class="csp-i-021">
+                                    <label for="mercari-processing" class="csp-i-022">Seller pays processing (2.9% + $0.50)</label>
+                                </div>
+                            </div>
+                            <div class="calculator-results-box mt-4">
+                                <div class="results-grid">
+                                    <div class="result-box"><span class="result-label">Gross Revenue</span><span class="result-value text-white" id="mercari-res-gross">$40.00</span></div>
+                                    <div class="result-box"><span class="result-label">Est. Mercari Fees</span><span class="result-value text-coral" id="mercari-res-fees">$0.00</span></div>
+                                    <div class="result-box"><span class="result-label">Net Profit</span><span class="result-value text-emerald" id="mercari-res-profit">$0.00</span></div>
+                                    <div class="result-box"><span class="result-label">ROI Margin</span><span class="result-value text-amber" id="mercari-res-roi">0%</span></div>
+                                </div>
+                                <button type="button" class="primary-btn mt-3 w-full" id="btn-save-mercari-sale">Log Mercari Sale</button>
+                            </div>
+                            </div><!-- /calc-panel-mercari -->
+
+                            <!-- Poshmark Panel -->
+                            <div id="calc-panel-poshmark" class="platform-calc-panel csp-i-001">
+                            <div class="mt-2 csp-i-019" id="poshmark-fee-note">Rates: $2.95 flat under $15, 20% at $15 and up. The buyer pays the shipping label.</div>
+                            <div class="grid-2-col mt-3">
+                                <div class="form-group">
+                                    <label for="poshmark-price">Sale Price ($)</label>
+                                    <input type="number" id="poshmark-price" min="0" step="0.01" value="30.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="poshmark-cost">Your Item Cost ($)</label>
+                                    <input type="number" id="poshmark-cost" min="0" step="0.01" value="8.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="poshmark-shipping-discount">Seller Shipping Discount ($)</label>
+                                    <input type="number" id="poshmark-shipping-discount" min="0" step="0.01" value="0.00">
+                                </div>
+                            </div>
+                            <div class="calculator-results-box mt-4">
+                                <div class="results-grid">
+                                    <div class="result-box"><span class="result-label">Gross Revenue</span><span class="result-value text-white" id="poshmark-res-gross">$30.00</span></div>
+                                    <div class="result-box"><span class="result-label">Poshmark Fee</span><span class="result-value text-coral" id="poshmark-res-fees">$0.00</span></div>
+                                    <div class="result-box"><span class="result-label">Net Profit</span><span class="result-value text-emerald" id="poshmark-res-profit">$0.00</span></div>
+                                    <div class="result-box"><span class="result-label">ROI Margin</span><span class="result-value text-amber" id="poshmark-res-roi">0%</span></div>
+                                </div>
+                                <button type="button" class="primary-btn mt-3 w-full" id="btn-save-poshmark-sale">Log Poshmark Sale</button>
+                            </div>
+                            </div><!-- /calc-panel-poshmark -->
+
                         </div>
 
                         <!-- Side Hustle Ideas / Suggestions -->
@@ -1190,13 +1256,41 @@
                             </label>
                         </div>
 
+                        <!-- Etsy Connector -->
+                        <div class="card glass-card span-3 sidegig-ebay-card sidegig-etsy-card" id="sidegig-etsy-card">
+                            <div class="card-title-row">
+                                <div>
+                                    <h2 class="card-title">Etsy Sales Sync</h2>
+                                    <p class="card-subtitle">Connect your Etsy shop (read-only) and pull paid orders into this ledger. Fees are estimated from Etsy's fee schedule; tag each sale yourself.</p>
+                                </div>
+                                <span class="badge-type badge-cd sidegig-ebay-badge">Open API v3</span>
+                            </div>
+                            <div class="sidegig-ebay-row">
+                                <div>
+                                    <div class="sidegig-ebay-status etsy-status" id="etsy-sync-status">Status: Disconnected</div>
+                                    <p class="text-muted sidegig-ebay-help">Read-only access (receipts and shop). Orders are deduplicated by Etsy receipt ID; disconnecting keeps the sales already synced.</p>
+                                </div>
+                                <div class="sidegig-ebay-actions">
+                                    <button type="button" class="action-btn" id="btn-etsy-connect" data-etsy-action="connect">Connect Etsy</button>
+                                    <button type="button" class="backup-btn" id="btn-etsy-sync" data-etsy-action="sync" hidden>↻ Sync Now</button>
+                                    <button type="button" class="backup-btn" id="btn-etsy-disconnect" data-etsy-action="disconnect" hidden>Disconnect</button>
+                                </div>
+                            </div>
+                            <label class="checkbox-label sidegig-ebay-toggle">
+                                <input type="checkbox" id="setting-etsy-sync-enabled" class="etsy-sync-toggle" checked>
+                                <span class="checkmark"></span>
+                                Enable Etsy order sync
+                            </label>
+                        </div>
+
                         <!-- Side Gig Ledger -->
                         <div class="card glass-card span-3">
                             <div class="card-title-row">
                                 <h2 class="card-title">Side Gig Ledger (Manual Sales / Income History)</h2>
                                 <div>
-                                    <button type="button" class="action-btn" id="btn-ebay-report-upload">⬆ Upload eBay sales report (CSV)</button>
+                                    <button type="button" class="action-btn" id="btn-ebay-report-upload" title="eBay Seller Hub listings report, Mercari sales history, Poshmark sales report, or the FB Marketplace template">⬆ Upload sales report (CSV)</button>
                                     <input type="file" id="ebay-report-input" accept=".csv" class="csp-i-001">
+                                    <a class="action-btn" id="link-fb-template" href="templates/fb-marketplace-sales.csv" download>FB CSV template</a>
                                 </div>
                             </div>
                             <div class="sg-totals" id="sidegig-totals"></div>
@@ -1246,6 +1340,10 @@
                                 <div class="form-group">
                                     <select id="sg-cat">
                                         <option value="eBay">eBay Sale</option>
+                                        <option value="Etsy">Etsy Sale</option>
+                                        <option value="Mercari">Mercari Sale</option>
+                                        <option value="Poshmark">Poshmark Sale</option>
+                                        <option value="FB Marketplace">FB Marketplace Sale</option>
                                         <option value="Arbitrage">Arbitrage / Flipping</option>
                                         <option value="Consulting">Consulting / Tutoring</option>
                                         <option value="Service">Service Work</option>
@@ -1564,6 +1662,29 @@
                             <div id="cointracker-inspect" class="text-muted mt-2"></div>
                         </div>
 
+                        <!-- Marketplace connections -->
+                        <div class="card glass-card settings-card--marketplaces" id="settings-marketplaces-card">
+                            <h2 class="card-title">Marketplace Connections</h2>
+                            <p class="card-subtitle">Etsy syncs through its Open API (read-only). Mercari, Poshmark and FB Marketplace have no public seller API: upload their sales exports from the Side Gig Ledger instead.</p>
+                            <div class="api-connector-panel mt-3">
+                                <div class="connector-header">
+                                    <h3 class="csp-i-012">🧶 Etsy</h3>
+                                    <span class="badge-type badge-cd">Read-only</span>
+                                </div>
+                                <p class="text-muted mt-2 csp-i-015 etsy-status" id="settings-etsy-status">Status: Disconnected</p>
+                                <div class="grid-organic-2 mt-2">
+                                    <button type="button" class="backup-btn" id="btn-settings-etsy-connect" data-etsy-action="connect">Connect Etsy</button>
+                                    <button type="button" class="backup-btn" id="btn-settings-etsy-sync" data-etsy-action="sync" hidden>🔄 Sync Now</button>
+                                    <button type="button" class="backup-btn" id="btn-settings-etsy-disconnect" data-etsy-action="disconnect" hidden>Disconnect</button>
+                                </div>
+                                <label class="checkbox-label mt-2">
+                                    <input type="checkbox" id="settings-etsy-sync-enabled" class="etsy-sync-toggle" checked>
+                                    <span class="checkmark"></span>
+                                    Enable Etsy order sync
+                                </label>
+                            </div>
+                        </div>
+
                         <!-- Privacy & Terms -->
                         <div class="card glass-card settings-card--privacy">
                             <h2 class="card-title">Privacy & Terms</h2>
@@ -1650,10 +1771,12 @@
     <script src="lib/state.js"></script>
     <script src="lib/prices.js"></script>
     <script src="lib/ebay-report.js"></script>
+    <script src="lib/marketplace-reports.js"></script>
     <script src="lib/side-gig-tax.js"></script>
     <script src="lib/csv-import.js"></script>
     <script src="lib/expenses.js"></script>
     <script src="lib/side-gig.js"></script>
+    <script src="lib/etsy-sync.js"></script>
     <script src="lib/cointracker-merge.js"></script>
     <script src="lib/cointracker.js"></script>
     <script src="lib/chaos-events.js"></script>

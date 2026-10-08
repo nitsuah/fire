@@ -6,6 +6,10 @@ import {
     calculateEtsyNetProfit,
     calculateFBFees,
     calculateFBNetProfit,
+    calculateMercariFees,
+    calculateMercariNetProfit,
+    calculatePoshmarkFees,
+    calculatePoshmarkNetProfit,
     US_MEDIAN_SAVINGS,
 } from '../../app/lib/finance-core.js';
 
@@ -165,5 +169,47 @@ describe('calculateFBNetProfit', () => {
         // price=100, cost=30, shipping=8, 5% fee=5
         const profit = calculateFBNetProfit(100, 8, 30, true);
         expect(profit).toBeCloseTo(57, 1);
+    });
+});
+
+describe('calculateMercariFees / calculateMercariNetProfit', () => {
+    it('charges 10% of item price plus buyer-paid shipping', () => {
+        const fees = calculateMercariFees(40, 5, false);
+        expect(fees.sellingFee).toBeCloseTo(4.5, 2);
+        expect(fees.processingFee).toBe(0);
+        expect(fees.total).toBeCloseTo(4.5, 2);
+    });
+
+    it('adds the 2.9% + $0.50 processing fee only when the seller pays it', () => {
+        expect(calculateMercariFees(40, 5, true).total).toBeCloseTo(
+            4.5 + 45 * 0.029 + 0.5,
+            2,
+        );
+    });
+
+    it('is zero for a zero sale and nets out shipping and cost', () => {
+        expect(calculateMercariFees(0, 0, true).total).toBe(0);
+        // 45 gross − 4.50 fee − 6 label − 10 cost
+        expect(calculateMercariNetProfit(40, 5, 6, 10, false)).toBeCloseTo(
+            24.5,
+            2,
+        );
+    });
+});
+
+describe('calculatePoshmarkFees / calculatePoshmarkNetProfit', () => {
+    it('charges a flat $2.95 under $15', () => {
+        expect(calculatePoshmarkFees(14.99).total).toBe(2.95);
+    });
+
+    it('charges 20% at $15 and up', () => {
+        expect(calculatePoshmarkFees(15).total).toBeCloseTo(3, 2);
+        expect(calculatePoshmarkFees(100).total).toBeCloseTo(20, 2);
+    });
+
+    it('nets out a seller shipping discount and the item cost', () => {
+        expect(calculatePoshmarkFees(0).total).toBe(0);
+        // 30 − 6 fee − 2 discount − 8 cost
+        expect(calculatePoshmarkNetProfit(30, 2, 8)).toBeCloseTo(14, 2);
     });
 });

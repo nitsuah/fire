@@ -149,6 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSideGigManager();
     if (typeof initCoinTracker === 'function') initCoinTracker();
     initPlatformCalculators();
+    if (typeof initEtsySync === 'function') initEtsySync();
     initProjectionsManager();
     initCashFlowToggles();
     initCompactFireBar();
@@ -676,6 +677,7 @@ window.loadSettingsTab = function() {
     loadNotificationSettings();
     loadProjectionDefaults();
     if (typeof loadEbaySettingsPanel === 'function') loadEbaySettingsPanel();
+    if (typeof renderEtsyStatus === 'function') renderEtsyStatus();
     if (typeof loadPlaidSettingsPanel === 'function') loadPlaidSettingsPanel();
     if (typeof loadGDriveBackupPanel === 'function') loadGDriveBackupPanel();
 };

@@ -18,14 +18,15 @@
       "say": "The fee calculator works out eBay's final value fee, promoted listing ads and real postage, then shows your net profit and return before you list."
     },
     {
-      "kind": "shot", "img": "card-fee-etsy.png", "title": "Etsy and FB Marketplace, too.",
-      "swap": [{ "img": "card-fee-fb.png", "at": 0.55 }],
-      "say": "Switch to Etsy or Facebook Marketplace to compare fee structures on the same item, then log the sale in one click."
+      "kind": "shot", "img": "card-fee-etsy.png", "title": "Etsy, FB, Mercari, Poshmark.",
+      "swap": [{ "img": "card-fee-fb.png", "at": 0.3 }, { "img": "card-fee-mercari.png", "at": 0.55 }, { "img": "card-fee-poshmark.png", "at": 0.8 }],
+      "say": "Switch to Etsy, Facebook Marketplace, Mercari or Poshmark to compare fee structures on the same item, then log the sale in one click."
     },
     {
       "kind": "shot", "img": "card-ebay-sync.png", "title": "Sales import themselves.",
+      "swap": [{ "img": "card-etsy-sync.png", "at": 0.5 }],
       "cam": [[0, 0.5, 0.5, 1], [1, 0.5, 0.5, 1.04]],
-      "say": "Connect eBay once, and completed orders flow into your ledger automatically. Or upload a Seller Hub report instead."
+      "say": "Connect eBay or your Etsy shop once, and orders flow into your ledger automatically. For Mercari, Poshmark and Facebook, upload the sales export instead."
     },
     {
       "kind": "shot", "img": "card-ledger.png", "title": "One ledger. Tax-ready.",

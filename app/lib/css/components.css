@@ -1530,6 +1530,10 @@
 .sidegig-ebay-toggle {
     margin-top: var(--space-sm);
 }
+/* Etsy buttons swap with the connection state; beat .action-btn display. */
+[data-etsy-action][hidden] {
+    display: none !important;
+}
 .sg-toolbar select,
 .sg-basis-select,
 .sg-cost-input {

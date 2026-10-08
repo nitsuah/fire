@@ -9,6 +9,7 @@ const router = express.Router();
 const ebayRouter = require('./ebay');
 const plaidRouter = require('./plaid');
 const coinTrackerRouter = require('./cointracker');
+const etsyRouter = require('./etsy');
 const SUPPORTED_WEBHOOK_TYPES = [
     'accounts',
     'cds',
@@ -294,5 +295,6 @@ router.post('/webhook/:templateId', async (req, res) => {
 router.use(ebayRouter);
 router.use(plaidRouter);
 router.use(coinTrackerRouter);
+router.use(etsyRouter);
 
 module.exports = router;

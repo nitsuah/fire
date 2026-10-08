@@ -84,8 +84,10 @@
 - **Income Logs** — Manual entries for Etsy, FB Marketplace, Craigslist, eBay, and custom platforms; category-tagged.
 - **eBay Sales-Report Upload** — Seller Hub listings report → ledger rows (revenue = item sales + buyer shipping; expenses = selling costs + shipping labels); re-uploads skipped, later cumulative reports supersede older ranges.
 - **eBay Order Sync & Compliance** — OAuth order sync plus the Marketplace Account Deletion endpoint (challenge handshake, token purge).
+- **Etsy Order Sync** — Open API v3 OAuth 2.0 with PKCE (`transactions_r shops_r`). Paid shop receipts become ledger rows keyed `etsy-<receipt_id>` (category Etsy; revenue excludes remitted sales tax and partial refunds; fees estimated from Etsy's schedule and flagged; tax tag left to the user). Tokens are encrypted in the token store self-hosted, or sealed in the browser on the hosted deploy (`netlify/functions/etsy.mjs`). Connection cards in the Side Hustle Hub and Settings show state, last sync, Sync Now, Disconnect and a toggle; a revoked grant removes only the API-synced rows.
+- **Mercari / Poshmark / FB Marketplace CSV import** — The ledger's sales-report upload also reads Mercari sales history and Poshmark sales report exports and a fill-in FB Marketplace template (`app/templates/fb-marketplace-sales.csv`). Header sniffing with column aliases, canceled/returned rows skipped, dedupe by order id (or a stable content hash), unit-tested with fixture files.
 - **Side Hustle Accelerators** — Seven rotating ideas with video/guide links; dismissible with a positive empty state.
-- **Fee Calculator** — Built-in eBay/platform fee and shipping margin calculator to compute net income per sale.
+- **Fee Calculator** — eBay, Etsy, FB Marketplace, Mercari (10% of item + buyer shipping, opt-in 2.9% + $0.50 processing) and Poshmark ($2.95 under $15, 20% at $15+) tabs compute fees, net and ROI per sale, and log the sale with its item cost.
 - **Webhook Deduplication** — Incoming side-gig ledger entries deduplicated by stable upstream ID or content fingerprint.
 
 ## Prices
@@ -117,7 +119,7 @@
 - **Financial Overview Tab** — Unified Accounts + CDs & Fixed Income tab with Monthly Cash Flow section (income vs. expenses, savings rate, annual surplus/deficit).
 - **Mobile-Responsive Layout** — Adaptive layout for tablet and phone viewports.
 - **Metric Tooltips** — Inline explanation indicators for SWR, FIRE number, Coast FIRE, etc.
-- **Settings Page** — Projection defaults, notifications, eBay/Plaid/CoinTracker connectors and sync toggles, privacy/terms, data management, Google Drive backup and danger zone, with colour-coded groups.
+- **Settings Page** — Projection defaults, notifications, eBay/Plaid/CoinTracker/Etsy (Marketplace Connections) connectors and sync toggles, privacy/terms, data management, Google Drive backup and danger zone, with colour-coded groups.
 - **Customizable Layout (sections)** — Every tab is a board of sections. Each section picks a column layout (1, 2, 2 wide-left, 2 wide-right, 3, 3 wide-center, 4), and its cells stack cards. Empty cells collapse outside Customize mode, so a card alone in a section spans the full width; the old fixed per-tab grids are gone. Sections drop to 2 columns on narrow boards and to 1 on phones, using container queries.
   - **✎ Customize** is a builder canvas: dotted grid, outlined sections with a layout picker and ↑/↓/🗑, a highlighted target cell, a pulsing drop placeholder, a floating drag chip (mouse and touch), and "＋ New section" drop gaps. Cards also move with ↑/↓.
   - Click a title to collapse a card. Dashboard ＋ Add widget pins cards from other tabs (keyboard-trapped picker that restores focus), ✕ removes cards, ↺ Reset restores a tab.
