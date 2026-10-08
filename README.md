@@ -244,7 +244,7 @@ Every tab is a set of **sections**. Each section picks a column layout: full wid
 ## Data & Privacy
 
 - All financial data is stored in `data/db.json` inside the project directory (Docker volume-mounted).
-- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain lookups (crypto account refresh: ENS via ensdata.net, balances via Blockscout and publicnode.com RPCs; the wallet tracker: Etherscan, BscScan, Blockstream, etc.), CoinTracker (read-only wallet balances), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance / Alpha Vantage / Polygon). All are opt-in with user-provided credentials.
+- External network calls occur only when you explicitly enable integrations: eBay OAuth (order sync), Plaid (brokerage/bank positions), blockchain lookups (crypto account refresh: ENS via ensdata.net, balances via Blockscout and publicnode.com RPCs — these two need no API key; the wallet tracker: Etherscan, BscScan, Blockstream, etc., which do), CoinTracker (read-only wallet balances), Google Drive backup, vehicle VIN lookup (NHTSA), and price providers (Yahoo Finance needs none; Alpha Vantage / Polygon need keys). Each integration is opt-in independently of the others; beyond being enabled, an integration needs user-provided credentials only where its provider issues them.
 - Optionally encrypt `db.json` at rest with `SYNC_MASTER_KEY` (AES-256-GCM).
 - Export/restore a full JSON backup any time from the dashboard.
 
@@ -345,7 +345,7 @@ docker run --rm fire-playwright-e2e
 
 ## Planned Integrations
 
-The system is being productionized toward real-time, API-driven data in four phases. All planned connections are opt-in with user-provided credentials and read-only with respect to external accounts.
+The system is being productionized toward real-time, API-driven data in four phases. All planned connections are opt-in, need user-provided credentials only where the provider issues them, and are read-only with respect to external accounts.
 
 | Integration | Phase | Status |
 |---|---|---|
@@ -356,7 +356,7 @@ The system is being productionized toward real-time, API-driven data in four pha
 | Google Drive encrypted backup | Phase 1 | Implemented self-hosted via Google OAuth; live round-trip verification pending |
 | Vehicle value API (NHTSA VIN free; paid providers via `VEHICLE_VALUE_PROVIDER`) | Phase 1 | Live |
 | Fidelity / Plaid positions + balance sync | Phase 2 | Live (user-provided credentials; sandbox ready) |
-| Plaid on Netlify (hosted) | Phase 2 | **Hosted only** — Netlify Functions serve Plaid endpoints at `/api/sync/plaid/*` (see [docs/integrations.md](docs/integrations.md#plaid-on-netlify)) |
+| Plaid on Netlify (hosted) | Phase 2 | **Hosted only** — endpoints route to `netlify/functions/plaid.mjs` at `/api/sync/plaid/*` (see [docs/integrations.md](docs/integrations.md#browser-only-deploy-netlify-function)); unit- and route-tested, live Link → sync run against the hosted deploy still pending |
 | Stable stock quote API (Alpha Vantage / Polygon.io) | Phase 2 | Live (fallback: Yahoo Finance) |
 | Rate limiting (300/min general, 30/min sync) | Phase 3 | Live |
 | Security headers (CSP, X-Frame-Options, Referrer-Policy) | Phase 3 | Live |
