@@ -1,0 +1,700 @@
+{
+  "product": "fire",
+  "live": "https://lifefire.netlify.app/",
+  "page": "https://nitsuah.github.io/fire/",
+  "pagesDir": "site",
+  "features": [
+    {
+      "id": "express-server",
+      "title": "Express Server",
+      "category": "Core Infrastructure",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "db-json-persistence",
+      "title": "db.json Persistence",
+      "category": "Core Infrastructure",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "optional-encryption",
+      "title": "Optional Encryption",
+      "category": "Core Infrastructure",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "api-key-middleware",
+      "title": "API Key Middleware",
+      "category": "Core Infrastructure",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "https-headers",
+      "title": "HTTPS & Headers",
+      "category": "Core Infrastructure",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "json-api-errors",
+      "title": "JSON API Errors",
+      "category": "Core Infrastructure",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "session-security",
+      "title": "Session Security",
+      "category": "Core Infrastructure",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "16-read-only-tools",
+      "title": "16 Read-Only Tools",
+      "category": "MCP Server",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "claude-code-integration",
+      "title": "Claude Code Integration",
+      "category": "MCP Server",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "smoke-test",
+      "title": "Smoke Test",
+      "category": "MCP Server",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "fire-coach-claude-skill",
+      "title": "fire-coach Claude Skill",
+      "category": "MCP Server",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "unified-add-form",
+      "title": "Unified Add Form",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "custom-accounts",
+      "title": "Custom Accounts",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "precious-metals",
+      "title": "Precious Metals",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "crypto-accounts",
+      "title": "Crypto Accounts",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "native-balance-only-no-priced-tokens",
+      "title": "Native balance only (no priced tokens)",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "priced-tokens-supported",
+      "title": "Priced tokens supported",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "cointracker-wallets-optional",
+      "title": "CoinTracker Wallets (optional)",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "fidelity-csv-import",
+      "title": "Fidelity CSV Import",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "chase-capital-one-csv-import",
+      "title": "Chase / Capital One CSV Import",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "spending-upload",
+      "title": "Spending Upload",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "plaid-transaction-sync",
+      "title": "Plaid Transaction Sync",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "real-estate-tracker",
+      "title": "Real Estate Tracker",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "vehicle-tracker",
+      "title": "Vehicle Tracker",
+      "category": "Net Worth Tracking",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "p-l-table",
+      "title": "P&L Table",
+      "category": "Investments Dashboard",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "risk-concentration-badges",
+      "title": "Risk Concentration Badges",
+      "category": "Investments Dashboard",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "diversification-suggestion-block",
+      "title": "Diversification Suggestion Block",
+      "category": "Investments Dashboard",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "collapse-all-toggle",
+      "title": "Collapse-All Toggle",
+      "category": "Investments Dashboard",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "phone-width-positions",
+      "title": "Phone-Width Positions",
+      "category": "Investments Dashboard",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "asset-allocation-drill-down",
+      "title": "Asset Allocation Drill-Down",
+      "category": "Investments Dashboard",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "allocation-filter-reset",
+      "title": "Allocation Filter Reset",
+      "category": "Investments Dashboard",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "projection-engine",
+      "title": "Projection Engine",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "growth-presets",
+      "title": "Growth Presets",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "growth-milestone-panel",
+      "title": "Growth + Milestone Panel",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "swr-curves",
+      "title": "SWR Curves",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "bull-bear-scenario-bands",
+      "title": "Bull/Bear Scenario Bands",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "time-period-filters",
+      "title": "Time-Period Filters",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "chart-line-toggles",
+      "title": "Chart Line Toggles",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "cd-maturity-markers",
+      "title": "CD Maturity Markers",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "multi-scenario-fire-comparison",
+      "title": "Multi-Scenario FIRE Comparison",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "chaos-mode",
+      "title": "🌪️ Chaos Mode",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "sequences",
+      "title": "Sequences",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "good-events",
+      "title": "Good events",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "accounting-in-today-s-dollars",
+      "title": "Accounting, in today's dollars",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "mitigations",
+      "title": "🛡️ Mitigations",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "ui",
+      "title": "UI",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "money-run-out-detection",
+      "title": "Money Run-Out Detection",
+      "category": "Retirement Projections",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "cd-tracker",
+      "title": "CD Tracker",
+      "category": "CD & Fixed Income",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "cd-ladder-visualizer",
+      "title": "CD Ladder Visualizer",
+      "category": "CD & Fixed Income",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "next-maturity",
+      "title": "Next Maturity",
+      "category": "CD & Fixed Income",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "income-logs",
+      "title": "Income Logs",
+      "category": "Side Hustle Tracker",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "ebay-sales-report-upload",
+      "title": "eBay Sales-Report Upload",
+      "category": "Side Hustle Tracker",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "ebay-order-sync-compliance",
+      "title": "eBay Order Sync & Compliance",
+      "category": "Side Hustle Tracker",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "side-hustle-accelerators",
+      "title": "Side Hustle Accelerators",
+      "category": "Side Hustle Tracker",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "fee-calculator",
+      "title": "Fee Calculator",
+      "category": "Side Hustle Tracker",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "webhook-deduplication",
+      "title": "Webhook Deduplication",
+      "category": "Side Hustle Tracker",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "yahoo-finance-integration",
+      "title": "Yahoo Finance Integration",
+      "category": "Prices",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "crumb-validation",
+      "title": "Crumb Validation",
+      "category": "Prices",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "price-cache",
+      "title": "Price Cache",
+      "category": "Prices",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "jsonata-mapping-templates",
+      "title": "JSONata Mapping Templates",
+      "category": "Webhook / Sync Framework",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "hmac-verification",
+      "title": "HMAC Verification",
+      "category": "Webhook / Sync Framework",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "payload-type-guards",
+      "title": "Payload Type Guards",
+      "category": "Webhook / Sync Framework",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "oauth-stub",
+      "title": "OAuth Stub",
+      "category": "Webhook / Sync Framework",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "privacy-modal",
+      "title": "Privacy Modal",
+      "category": "Privacy",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "xss-hardening",
+      "title": "XSS Hardening",
+      "category": "Privacy",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "glassmorphic-dark-theme",
+      "title": "Glassmorphic Dark Theme",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "header-summary-bar",
+      "title": "Header Summary Bar",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "responsive-navigation",
+      "title": "Responsive Navigation",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "wide-screen-layouts",
+      "title": "Wide-Screen Layouts",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "financial-overview",
+      "title": "Financial Overview",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "insights-tab",
+      "title": "Insights Tab",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "financial-overview-tab",
+      "title": "Financial Overview Tab",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "mobile-responsive-layout",
+      "title": "Mobile-Responsive Layout",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "metric-tooltips",
+      "title": "Metric Tooltips",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "settings-page",
+      "title": "Settings Page",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "customizable-layout-sections",
+      "title": "Customizable Layout (sections)",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "customize",
+      "title": "✎ Customize",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "milestone-preset-selector",
+      "title": "Milestone Preset Selector",
+      "category": "Dashboard & UX",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "ebay-oauth-status",
+      "title": "eBay OAuth Status",
+      "category": "Integrations (UI Ready)",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "plaid-link-integration",
+      "title": "Plaid Link Integration",
+      "category": "Integrations (UI Ready)",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "vehicle-value-estimates",
+      "title": "Vehicle Value Estimates",
+      "category": "Integrations (UI Ready)",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "diversification-tip-tiles",
+      "title": "Diversification Tip Tiles",
+      "category": "Diversification Intelligence",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "localstorage-persistence",
+      "title": "LocalStorage Persistence",
+      "category": "Diversification Intelligence",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "smart-triggers",
+      "title": "Smart Triggers",
+      "category": "Diversification Intelligence",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "modular-spa",
+      "title": "Modular SPA",
+      "category": "Architecture",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "dual-projection-copies",
+      "title": "Dual Projection Copies",
+      "category": "Architecture",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "input-validation",
+      "title": "Input Validation",
+      "category": "Architecture",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "vitest-suite",
+      "title": "Vitest Suite",
+      "category": "Testing",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "playwright-ui-suite",
+      "title": "Playwright UI Suite",
+      "category": "Testing",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "mcp-smoke-test",
+      "title": "MCP Smoke Test",
+      "category": "Testing",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "netlify-plaid-backend",
+      "title": "Netlify Plaid backend",
+      "category": "Planned",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "tax-drag-estimation-engine",
+      "title": "Tax Drag Estimation Engine",
+      "category": "Planned",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "pwa-packaging",
+      "title": "PWA Packaging",
+      "category": "Planned",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "netlify-functions-blobs-backend",
+      "title": "Netlify Functions + Blobs Backend",
+      "category": "Planned",
+      "screenshots": [],
+      "spots": []
+    }
+  ],
+  "spots": [
+    {
+      "id": "brag-22s",
+      "seconds": 22,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [],
+      "published": "site/assets/fire-tracker.mp4",
+      "rendered": "2026-09-27"
+    },
+    {
+      "id": "chaos-24s",
+      "seconds": 24,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [],
+      "published": "site/assets/chaos.mp4",
+      "rendered": "2026-10-01"
+    }
+  ],
+  "reels": [
+    {
+      "id": "hero",
+      "spots": [
+        "brag-22s"
+      ],
+      "published": "site/assets/fire-tracker.mp4"
+    }
+  ],
+  "brand": {
+    "source": null,
+    "derived": [],
+    "manual": []
+  }
+}
