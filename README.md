@@ -41,7 +41,7 @@
 - **Side Hustle Tracker** — income logs, built-in eBay/Etsy/FB Marketplace/Mercari/Poshmark fee calculators, one sales-report CSV upload for eBay Seller Hub, Mercari, Poshmark and an FB Marketplace template (deduplicated against earlier imports), and rotating, dismissible side-hustle ideas with guide/video links
 - **CSV Imports** — one unified add form (Import CSV is the default option) for Fidelity positions, Chase and Capital One statements, and eBay sales reports, plus Expenses-tab spending upload with auto-categorization (all processed locally)
 - **Precious metals** — Gold/Silver account type valued by weight × live spot (metals.dev with a free Yahoo futures fallback)
-- **Crypto accounts** — enter an ENS name, 0x address or ticker in either Name or Identifier. ⟳ Refresh on an ENS/0x account totals native coins plus priced tokens across Ethereum, Base, Optimism, Arbitrum, Polygon, BNB Chain and Avalanche, with no API keys, and shows the per-chain breakdown under the row. A ticker account is valued as quantity × live price. Wallet tracking appears under the form when Type = Cryptocurrency
+- **Crypto accounts** — enter an ENS name, 0x address or ticker in either Name or Identifier. ⟳ Refresh on an ENS/0x account totals native coins plus priced tokens across Ethereum, Base, Optimism, Arbitrum and Polygon, plus native BNB and AVAX balances on BNB Chain and Avalanche (native only, no tokens), with no API keys, and shows the per-chain breakdown under the row. A ticker account is valued as quantity × live price. Wallet tracking appears under the form when Type = Cryptocurrency
 - **REST API** — full CRUD for accounts, CDs, wallets, vehicles, sync templates, state; `FIRE_API_KEY` header auth required by default (opt out with `FIRE_AUTH_DISABLED=true` for local-only use); `FIRE_ADMIN_KEY`-gated key-rotation endpoint
 - **MCP Server** — 16 read-only tools for Claude/LLM integration via `app/mcp-server.mjs`
 - **Yahoo Finance prices** — live portfolio valuation with crumb-based auth, stale-data fallback, and SSE (`GET /api/prices/stream`) for live push; configurable via `ALPHA_VANTAGE_API_KEY` or `POLYGON_API_KEY` as stable alternatives
@@ -312,7 +312,7 @@ fire/
 │       └── cointracker.js      # /api/sync/cointracker/* (authorize, callback, sync, inspect, disconnect)
 ├── netlify/
 │   ├── functions/              # Hosted (lifefire.netlify.app) API: fire-api (metals, ENS lookup, crypto refresh),
-│   │                           #   ebay-*, etsy, plaid, cointracker — same handlers as the Express routes
+│   │                           #   ebay-*, etsy, cointracker share the Express handlers; plaid still duplicates them
 │   └── lib/http.mjs            # Shared Function helpers
 ├── config/
 │   ├── docker-compose.yml      # fire + Caddy (HTTPS)
@@ -420,6 +420,10 @@ Every committed Markdown doc in this repo (other than this README, `.github/` an
 **`promo/brag-22s/`**
 
 - [brag-22s — storyboard](./promo/brag-22s/storyboard.md) — `promo/brag-22s/storyboard.md`
+
+**`promo/chaos-24s/`**
+
+- [chaos-24s — storyboard](./promo/chaos-24s/storyboard.md) — `promo/chaos-24s/storyboard.md`
 
 **`promo/`**
 
