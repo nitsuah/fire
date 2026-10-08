@@ -16,7 +16,10 @@
       "title": "db.json Persistence",
       "category": "Core Infrastructure",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s",
+        "chaos-24s"
+      ]
     },
     {
       "id": "optional-encryption",
@@ -58,7 +61,9 @@
       "title": "16 Read-Only Tools",
       "category": "MCP Server",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s"
+      ]
     },
     {
       "id": "claude-code-integration",
@@ -93,21 +98,27 @@
       "title": "Custom Accounts",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s"
+      ]
     },
     {
       "id": "precious-metals",
       "title": "Precious Metals",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s"
+      ]
     },
     {
       "id": "crypto-accounts",
       "title": "Crypto Accounts",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s"
+      ]
     },
     {
       "id": "native-balance-only-no-priced-tokens",
@@ -170,7 +181,9 @@
       "title": "Vehicle Tracker",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s"
+      ]
     },
     {
       "id": "p-l-table",
@@ -226,7 +239,9 @@
       "title": "Projection Engine",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s"
+      ]
     },
     {
       "id": "growth-presets",
@@ -254,7 +269,9 @@
       "title": "Bull/Bear Scenario Bands",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s"
+      ]
     },
     {
       "id": "time-period-filters",
@@ -289,14 +306,18 @@
       "title": "🌪️ Chaos Mode",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "chaos-24s"
+      ]
     },
     {
       "id": "sequences",
       "title": "Sequences",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "chaos-24s"
+      ]
     },
     {
       "id": "good-events",
@@ -317,7 +338,9 @@
       "title": "🛡️ Mitigations",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "chaos-24s"
+      ]
     },
     {
       "id": "ui",
@@ -492,7 +515,9 @@
       "title": "Financial Overview",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "brag-22s"
+      ]
     },
     {
       "id": "insights-tab",
@@ -513,7 +538,9 @@
       "title": "Mobile-Responsive Layout",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "chaos-24s"
+      ]
     },
     {
       "id": "metric-tooltips",
@@ -534,7 +561,9 @@
       "title": "Customizable Layout (sections)",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "chaos-24s"
+      ]
     },
     {
       "id": "customize",
@@ -633,34 +662,6 @@
       "category": "Testing",
       "screenshots": [],
       "spots": []
-    },
-    {
-      "id": "netlify-plaid-backend",
-      "title": "Netlify Plaid backend",
-      "category": "Planned",
-      "screenshots": [],
-      "spots": []
-    },
-    {
-      "id": "tax-drag-estimation-engine",
-      "title": "Tax Drag Estimation Engine",
-      "category": "Planned",
-      "screenshots": [],
-      "spots": []
-    },
-    {
-      "id": "pwa-packaging",
-      "title": "PWA Packaging",
-      "category": "Planned",
-      "screenshots": [],
-      "spots": []
-    },
-    {
-      "id": "netlify-functions-blobs-backend",
-      "title": "Netlify Functions + Blobs Backend",
-      "category": "Planned",
-      "screenshots": [],
-      "spots": []
     }
   ],
   "spots": [
@@ -669,7 +670,17 @@
       "seconds": 22,
       "format": "landscape",
       "tool": "promo/build.sh",
-      "features": [],
+      "features": [
+        "projection-engine",
+        "financial-overview",
+        "db-json-persistence",
+        "custom-accounts",
+        "precious-metals",
+        "crypto-accounts",
+        "vehicle-tracker",
+        "bull-bear-scenario-bands",
+        "16-read-only-tools"
+      ],
       "published": "site/assets/fire-tracker.mp4",
       "rendered": "2026-09-27"
     },
@@ -678,7 +689,14 @@
       "seconds": 24,
       "format": "landscape",
       "tool": "promo/build.sh",
-      "features": [],
+      "features": [
+        "chaos-mode",
+        "sequences",
+        "mitigations",
+        "mobile-responsive-layout",
+        "customizable-layout-sections",
+        "db-json-persistence"
+      ],
       "published": "site/assets/chaos.mp4",
       "rendered": "2026-10-01"
     }
