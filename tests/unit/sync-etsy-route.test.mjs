@@ -108,6 +108,13 @@ describe('GET /api/sync/etsy/status', () => {
         });
     });
 
+    it('is not counted against the 30/min sync limiter', async () => {
+        for (let i = 0; i < 35; i++) {
+            const res = await request(app).get('/api/sync/etsy/status');
+            expect(res.status).toBe(200);
+        }
+    });
+
     it('reports a stored connection and its last sync', async () => {
         connect({ lastSyncedAt: '2026-05-01T00:00:00.000Z' });
         const res = await request(app).get('/api/sync/etsy/status');

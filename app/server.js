@@ -83,7 +83,7 @@ try {
     rateLimitFn = null;
 }
 
-function makeRateLimiter(limit, windowMs, message) {
+function makeRateLimiter(limit, windowMs, message, skip) {
     if (!rateLimitFn) return (req, res, next) => next();
     return rateLimitFn({
         windowMs,
@@ -91,6 +91,7 @@ function makeRateLimiter(limit, windowMs, message) {
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: message },
+        ...(skip ? { skip } : {}),
     });
 }
 
@@ -99,10 +100,15 @@ const generalLimiter = makeRateLimiter(
     60 * 1000,
     'Too many requests. Slow down.',
 );
+// Connector status reads (GET /api/sync/<provider>/status) only read local
+// state and make no upstream call. Every page load fires one per connector,
+// so they stay under the general limiter only; counting them here made
+// quick reloads 429 the status cards.
 const syncLimiter = makeRateLimiter(
     30,
     60 * 1000,
     'Too many sync requests. Slow down.',
+    (req) => req.method === 'GET' && /^\/[a-z]+\/status\/?$/.test(req.path),
 );
 
 // ─── App setup ───────────────────────────────────────────────────────────────

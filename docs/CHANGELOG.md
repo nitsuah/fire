@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Changed
 
 - `reseller-autopilot` skill and the `hustle-60s` promo (spot, share copy, capture list) cover Etsy sync, the CSV imports and the new calculator tabs.
+- Connector status reads (`GET /api/sync/<provider>/status`) no longer count against the 30/min sync rate limit (the general 300/min limit still applies). Each page load reads every connector's status, so quick reloads used to 429 the status cards.
 
 ### 2026-10 — Narrated promo spots + money-maker skills
 
