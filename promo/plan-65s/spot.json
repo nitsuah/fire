@@ -1,0 +1,54 @@
+{
+  "type": "tour",
+  "title": "fire — Projections, narrated",
+  "chapter": "Projections",
+  "fps": 30,
+  "voice": "af_heart",
+  "speed": 1.05,
+  "posterScene": 1,
+  "posterAt": 4.5,
+  "scenes": [
+    {
+      "kind": "title", "emoji": "📈", "kicker": "Projections", "title": "Plan the date. Then poke it.", "size": 96, "min": 4,
+      "say": "Projections is where fire turns your net worth into a retirement date, and then lets you argue with it."
+    },
+    {
+      "kind": "shot", "img": "hero-seeded.png", "title": "One click, four strategies.",
+      "swap": [{ "img": "hero-preset-0.png", "at": 0.31 }, { "img": "hero-preset-2.png", "at": 0.51 }, { "img": "hero-preset-3.png", "at": 0.71 }],
+      "clicks": [{ "box": "preset-0", "at": 0.3 }, { "box": "preset-2", "at": 0.5 }, { "box": "preset-3", "at": 0.7 }],
+      "say": "Pick a growth preset: conservative, standard, aggressive, or early retiree. One click sets your return, inflation and withdrawal rate, and the whole projection redraws."
+    },
+    {
+      "kind": "shot", "img": "proj-base.png", "title": "Every flavor of FIRE.",
+      "swap": [{ "img": "proj-lines.png", "at": 0.5 }],
+      "clicks": [{ "box": "line-coast", "at": 0.33 }, { "box": "line-benchmark", "at": 0.49 }],
+      "say": "Lean, regular and fat FIRE targets, a Coast FIRE line, and the U.S. median for context. Toggle any of them right on the chart."
+    },
+    {
+      "kind": "shot", "img": "card-milestones.png", "title": "Milestones, with dates.",
+      "bullets": ["Emergency fund", "**Coast FIRE** age", "Lean, full and Fat FIRE", "When money would run out"],
+      "say": "Milestone predictions put an age on every step, from your emergency fund to Coast FIRE to the full number. If the money would ever run out, they tell you when."
+    },
+    {
+      "kind": "shot", "img": "proj-base.png", "title": "Bear. Base. Bull.",
+      "swap": [{ "img": "proj-bear.png", "at": 0.33 }, { "img": "proj-bull.png", "at": 0.63 }],
+      "clicks": [{ "box": "proj:bear", "at": 0.32 }, { "box": "proj:bull", "at": 0.62 }],
+      "say": "Shift returns two points either way to see your worst and best case, and watch how far your retire age moves."
+    },
+    {
+      "kind": "shot", "img": "scenarios.png", "title": "What if?",
+      "bullets": ["A raise", "A market crash", "An inflation spike"],
+      "say": "Scenario comparison lines up a raise, a crash and an inflation spike side by side, each with its own FIRE age."
+    },
+    {
+      "kind": "shot", "img": "proj-base.png", "title": "Every CD, on the timeline.",
+      "cam": [[0, 0.5, 0.5, 1], [0.4, 0.18, 0.38, 2.3], [1, 0.2, 0.38, 2.5]],
+      "say": "CDs get their own ladder, and every maturity is marked on the growth chart, so you know exactly when cash frees up."
+    },
+    {
+      "kind": "outro", "title": "Know your date. And how sturdy it is.", "min": 5,
+      "say": "fire. Try it live at lifefire dot netlify dot app.",
+      "caption": "fire. Try it live at lifefire.netlify.app"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+Your money. Your machine. fire keeps everything in one JSON file you own, AES-256 encrypted at rest, read-only to your real accounts, locked down by default, and open source (MIT). Customize every tab, ask Claude through 16 read-only MCP tools, export everything. `docker compose up fire` → github.com/nitsuah/fire

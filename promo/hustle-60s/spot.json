@@ -1,0 +1,53 @@
+{
+  "type": "tour",
+  "title": "fire — Side Hustle Hub, narrated",
+  "chapter": "Side Hustle Hub",
+  "fps": 30,
+  "voice": "af_heart",
+  "speed": 1.05,
+  "posterScene": 1,
+  "posterAt": 3.0,
+  "scenes": [
+    {
+      "kind": "title", "emoji": "🛍️", "kicker": "Side Hustle Hub", "title": "Side hustle money is FIRE money.", "size": 92, "min": 4,
+      "say": "Every flip, every craft sale, every side gig moves your retire date. fire counts all of it."
+    },
+    {
+      "kind": "shot", "img": "card-fee-ebay.png", "title": "Know your margin before you list.",
+      "bullets": ["Final value + ad fees", "Postage you actually pay", "Net profit and ROI"],
+      "say": "The fee calculator works out eBay's final value fee, promoted listing ads and real postage, then shows your net profit and return before you list."
+    },
+    {
+      "kind": "shot", "img": "card-fee-etsy.png", "title": "Etsy and FB Marketplace, too.",
+      "swap": [{ "img": "card-fee-fb.png", "at": 0.55 }],
+      "say": "Switch to Etsy or Facebook Marketplace to compare fee structures on the same item, then log the sale in one click."
+    },
+    {
+      "kind": "shot", "img": "card-ebay-sync.png", "title": "Sales import themselves.",
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.5, 0.5, 1.04]],
+      "say": "Connect eBay once, and completed orders flow into your ledger automatically. Or upload a Seller Hub report instead."
+    },
+    {
+      "kind": "shot", "img": "card-ledger.png", "title": "One ledger. Tax-ready.",
+      "cam": [[0, 0.5, 0.4, 1], [1, 0.4, 0.35, 1.35]],
+      "say": "The side gig ledger tracks revenue, fees and item cost for every sale, tags each one for taxes, and skips duplicates."
+    },
+    {
+      "kind": "terminal", "title": "What do I owe?", "tool": "get_side_gig_tax_summary",
+      "prompt": "how much should I set aside for taxes on my side gig?",
+      "keys": ["business.revenue", "business.sellingCosts", "business.costBasis", "estimatedTaxableIncome", "personalSales.nonDeductibleLosses"],
+      "after": "About **${estimatedTaxableIncome}** of resale profit is taxable. The keyboard sold at a loss isn't deductible.",
+      "say": "Claude can see it too, so asking what to set aside for taxes gets an answer from your actual sales."
+    },
+    {
+      "kind": "shot", "img": "card-accelerators.png", "title": "Need a new stream?",
+      "bullets": ["Seven rotating ideas", "Guides and videos", "Dismiss what isn't you"],
+      "say": "And when you want a new income stream, Side Hustle Accelerators rotates ideas with guides and videos to get started."
+    },
+    {
+      "kind": "outro", "title": "Every dollar moves the date.", "min": 5,
+      "say": "fire. Try it live at lifefire dot netlify dot app.",
+      "caption": "fire. Try it live at lifefire.netlify.app"
+    }
+  ]
+}

@@ -83,5 +83,37 @@
   "mitigate": {
     "click": 15.45,
     "after": 16.3
-  }
+  },
+  "voice": "af_heart",
+  "speed": 1.1,
+  "narration": [
+    {
+      "t": 0.2,
+      "say": "Every retirement plan assumes nothing goes wrong."
+    },
+    {
+      "t": 3.7,
+      "say": "Chaos mode rolls real life onto your plan. Surgery, a baby, a windfall."
+    },
+    {
+      "t": 8.6,
+      "say": "Hover any marker to see what it cost."
+    },
+    {
+      "t": 11.6,
+      "say": "It works on your phone. Reroll for a different life."
+    },
+    {
+      "t": 14.6,
+      "say": "Tick the coverage you have, and the hits shrink."
+    },
+    {
+      "t": 18.1,
+      "say": "Collapse, reorder, or pin any card."
+    },
+    {
+      "t": 21.1,
+      "say": "Plan for the life you'll actually live."
+    }
+  ]
 }

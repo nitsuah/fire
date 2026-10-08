@@ -1,0 +1,58 @@
+{
+  "type": "tour",
+  "title": "fire — Insights, narrated",
+  "chapter": "Insights",
+  "fps": 30,
+  "voice": "af_heart",
+  "speed": 1.05,
+  "posterScene": 1,
+  "posterAt": 3.0,
+  "scenes": [
+    {
+      "kind": "title", "emoji": "💡", "kicker": "Insights", "title": "Know what your money is doing.", "size": 96, "min": 4,
+      "say": "fire doesn't just add up your money. It tells you what to look at next."
+    },
+    {
+      "kind": "shot", "img": "card-insights.png", "title": "Portfolio insights",
+      "cam": [[0, 0.5, 0, 1.55], [1, 0.5, 0, 1.65]],
+      "say": "Insight tiles flag equity concentration, a single stock that's too big a slice, a missing asset class, and a CD that's about to mature."
+    },
+    {
+      "kind": "shot", "img": "card-allocation.png", "title": "Drill into any slice.",
+      "swap": [{ "img": "card-allocation-drill.png", "at": 0.45 }],
+      "bullets": ["Every asset class", "Click to see what's behind it", "Accounts, positions, CDs, cars"],
+      "say": "Click any slice of your allocation to see exactly which accounts and positions sit behind it."
+    },
+    {
+      "kind": "shot", "img": "card-rebalance-trades.png", "title": "Rebalance in one click.",
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.75, 0.6, 1.12]],
+      "say": "Set a target mix, and the rebalancing tool lists the buys and sells that get you there."
+    },
+    {
+      "kind": "shot", "img": "card-tlh.png", "title": "Harvest your losses.",
+      "cam": [[0, 0.5, 0.5, 1], [1, 0.4, 0.6, 1.08]],
+      "say": "Tax-loss harvesting alerts find positions trading below what you paid, estimate the tax you could save, and count down to year end."
+    },
+    {
+      "kind": "shot", "img": "card-cashflow.png", "title": "Where the money goes.",
+      "bullets": ["Monthly surplus", "Savings rate", "Annual surplus or deficit"],
+      "say": "Cash flow shows your monthly surplus and savings rate, the number that moves your retire date most."
+    },
+    {
+      "kind": "grid", "cols": 2, "imgs": ["card-budget.png", "card-tax.png"], "title": "Budget and tax drag.",
+      "say": "Your budget sets your FIRE number, card statements are categorized automatically, and the tax estimator shows how much of your spending is really tax."
+    },
+    {
+      "kind": "terminal", "title": "Or just ask.", "tool": "get_concentration_risk",
+      "prompt": "am I too concentrated in anything?",
+      "keys": ["risk", "total"],
+      "after": "**VTI** is {risk.0.percentage}% of everything you own. Worth diversifying new money.",
+      "say": "Or just ask Claude, and it checks your concentration risk with the real numbers."
+    },
+    {
+      "kind": "outro", "title": "Know what to fix next.", "min": 5,
+      "say": "fire. Try it live at lifefire dot netlify dot app.",
+      "caption": "fire. Try it live at lifefire.netlify.app"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "type": "tour",
+  "title": "fire — narrated product tour",
+  "chapter": "The tour",
+  "fps": 30,
+  "voice": "af_heart",
+  "speed": 1.05,
+  "posterScene": 1,
+  "posterAt": 2.4,
+  "scenes": [
+    {
+      "kind": "title",
+      "title": "When can I retire?",
+      "min": 4,
+      "say": "When can you actually retire? Not someday. A real age, worked out from your real numbers.",
+      "emoji": "🔥"
+    },
+    {
+      "kind": "shot",
+      "img": "dash.png",
+      "title": "Your whole net worth. One dashboard.",
+      "cam": [
+        [
+          0,
+          0.5,
+          0.5,
+          1
+        ],
+        [
+          0.5,
+          0.5,
+          0.5,
+          1.02
+        ],
+        [
+          1,
+          0.82,
+          0.08,
+          1.9
+        ]
+      ],
+      "say": "fire is a self-hosted FIRE tracker. Every account you own lands on one dashboard: net worth, income, spending, and how close you are to financial independence."
+    },
+    {
+      "kind": "stack",
+      "title": "Everything counts.",
+      "crop": 1.3,
+      "imgs": [
+        "hrow-1.png",
+        "hrow-3.png",
+        "hrow-4.png",
+        "hrow-5.png",
+        "hrow-6.png",
+        "vrow-1.png"
+      ],
+      "note": "yes, even the Malibu.",
+      "say": "Brokerage and Roth accounts, high-yield savings, an ENS wallet, gold by the ounce, CDs. And yes, even the 2014 Malibu."
+    },
+    {
+      "kind": "shot",
+      "img": "proj-base.png",
+      "title": "Stress-test your retire date.",
+      "swap": [
+        {
+          "img": "proj-bear.png",
+          "at": 0.36
+        },
+        {
+          "img": "proj-bull.png",
+          "at": 0.66
+        }
+      ],
+      "clicks": [
+        {
+          "box": "proj:bear",
+          "at": 0.35
+        },
+        {
+          "box": "proj:bull",
+          "at": 0.65
+        }
+      ],
+      "say": "Projections turn that into a retirement date. Then stress-test it. A bear market pushes it out, a bull market pulls it in."
+    },
+    {
+      "kind": "shot",
+      "img": "proj-calm.png",
+      "title": "🌪️ Chaos mode",
+      "swap": [
+        {
+          "img": "proj-chaos.png",
+          "at": 0.22
+        }
+      ],
+      "click": {
+        "box": "chaos",
+        "at": 0.2
+      },
+      "say": "Chaos mode rolls real life onto the plan. A layoff, a vet bill, an inheritance. So the date you plan around survives surprises."
+    },
+    {
+      "kind": "shot",
+      "img": "card-insights.png",
+      "title": "Insights that tell you what to fix.",
+      "cam": [[0, 0.5, 0, 1.55], [1, 0.5, 0, 1.65]],
+      "say": "Insights flags what you're over-exposed to, losses you can harvest before year end, and the trades that get you back to your target mix."
+    },
+    {
+      "kind": "shot",
+      "img": "card-fee-ebay.png",
+      "title": "Side hustles count too.",
+      "bullets": [
+        "**eBay, Etsy, FB** fee calculators",
+        "eBay sales **import themselves**",
+        "Tax-tagged side gig ledger"
+      ],
+      "say": "The Side Hustle Hub works out your real margin after platform fees, and connected eBay sales flow straight into your ledger."
+    },
+    {
+      "kind": "terminal",
+      "title": "Ask Claude about your money.",
+      "sub": "16 read-only MCP tools + the fire-coach skill",
+      "prompt": "how close am I to FIRE?",
+      "say": "And Claude can read all of it. Sixteen read-only MCP tools and a FIRE coach skill answer with your actual numbers."
+    },
+    {
+      "kind": "stats",
+      "title": "Your money. Your machine.",
+      "items": [
+        {
+          "big": "1 file",
+          "label": "your whole profile, on **your** disk"
+        },
+        {
+          "big": "AES-256",
+          "label": "encryption at rest",
+          "color": "#a78bfa"
+        },
+        {
+          "big": "$0",
+          "label": "ever moved: fire is **read-only**",
+          "color": "#f59e0b"
+        },
+        {
+          "big": "MIT",
+          "label": "open source",
+          "color": "#f3f4f6"
+        }
+      ],
+      "say": "Your data lives in one file on your own machine, encrypted at rest. fire is read-only, so it never moves a cent. And it's open source."
+    },
+    {
+      "kind": "outro",
+      "title": "Your money. Your machine.",
+      "min": 5,
+      "say": "fire. Try it live at lifefire dot netlify dot app.",
+      "caption": "fire. Try it live at lifefire.netlify.app"
+    }
+  ]
+}

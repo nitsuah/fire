@@ -1,0 +1,1 @@
+fire doesn't just add up your money, it tells you what to look at: concentration and diversification tiles, allocation drill-down, one-click rebalancing trades, tax-loss harvesting alerts, cash flow and tax drag. Or just ask Claude. github.com/nitsuah/fire · try it live at lifefire.netlify.app

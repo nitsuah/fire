@@ -3,6 +3,71 @@
   "duration": 22,
   "fps": 30,
   "poster": 6.2,
-  "scenes": [["s1", 0, 3], ["s2", 3, 7], ["s3", 7, 11], ["s4", 11, 15], ["s5", 15, 18.5], ["s6", 18.5, 22]],
-  "hook": { "countStart": 1.3, "countEnd": 2.2, "from": 30, "to": 67 }
+  "scenes": [
+    [
+      "s1",
+      0,
+      3
+    ],
+    [
+      "s2",
+      3,
+      7
+    ],
+    [
+      "s3",
+      7,
+      11
+    ],
+    [
+      "s4",
+      11,
+      15
+    ],
+    [
+      "s5",
+      15,
+      18.5
+    ],
+    [
+      "s6",
+      18.5,
+      22
+    ]
+  ],
+  "hook": {
+    "countStart": 1.3,
+    "countEnd": 2.2,
+    "from": 30,
+    "to": 67
+  },
+  "voice": "af_heart",
+  "speed": 1.1,
+  "narration": [
+    {
+      "t": 0.3,
+      "say": "When can I retire?"
+    },
+    {
+      "t": 3.2,
+      "say": "Your whole net worth, on one dashboard, on your machine."
+    },
+    {
+      "t": 7.2,
+      "say": "Stocks, crypto, gold, CDs. Everything counts. Even the Malibu."
+    },
+    {
+      "t": 11.2,
+      "say": "Then stress-test your retire date against bear and bull markets."
+    },
+    {
+      "t": 15.2,
+      "say": "Ask Claude about your money, with sixteen read-only tools."
+    },
+    {
+      "t": 18.7,
+      "say": "fire. Try it live.",
+      "caption": "fire. Try it live at lifefire.netlify.app"
+    }
+  ]
 }

@@ -33,7 +33,8 @@ const SEED = {
         pos('VXUS', 'VANGUARD TOTAL INTL STOCK ETF', 420, 68.1, 25100),
         pos('NVDA', 'NVIDIA CORP', 60, 181.2, 4300),
         pos('AAPL', 'APPLE INC', 45, 241.5, 8200),
-        pos('SCHD', 'SCHWAB US DIVIDEND EQUITY ETF', 380, 28.4, 10100),
+        // Bought high: the one losing position, for the Tax-Loss Harvesting card.
+        pos('SCHD', 'SCHWAB US DIVIDEND EQUITY ETF', 380, 28.4, 12900),
         {
             id: 'p-spaxx',
             account: 'Fidelity Brokerage',
@@ -111,6 +112,8 @@ const SEED = {
             mileage: 128000,
         },
     ],
+    // Tagged by how each item was acquired, so the tax summary (UI + MCP)
+    // has real numbers: three resales and one personal item sold at a loss.
     sideGigLedger: [
         {
             id: 'sg1',
@@ -119,7 +122,9 @@ const SEED = {
             category: 'eBay',
             revenue: 265,
             expenses: 38,
-            net: 227,
+            basisType: 'business',
+            costBasis: 120,
+            net: 107,
         },
         {
             id: 'sg2',
@@ -128,7 +133,9 @@ const SEED = {
             category: 'eBay',
             revenue: 72,
             expenses: 11,
-            net: 61,
+            basisType: 'business',
+            costBasis: 8,
+            net: 53,
         },
         {
             id: 'sg3',
@@ -137,7 +144,9 @@ const SEED = {
             category: 'Facebook',
             revenue: 90,
             expenses: 0,
-            net: 90,
+            basisType: 'personal',
+            costBasis: 150,
+            net: -60,
         },
         {
             id: 'sg4',
@@ -146,7 +155,9 @@ const SEED = {
             category: 'eBay',
             revenue: 140,
             expenses: 21,
-            net: 119,
+            basisType: 'business',
+            costBasis: 40,
+            net: 79,
         },
     ],
     expenses: {

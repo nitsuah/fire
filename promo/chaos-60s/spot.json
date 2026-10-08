@@ -1,0 +1,46 @@
+{
+  "type": "tour",
+  "title": "fire — Chaos mode, narrated",
+  "chapter": "Chaos mode",
+  "fps": 30,
+  "voice": "af_heart",
+  "speed": 1.05,
+  "posterScene": 1,
+  "posterAt": 5.0,
+  "scenes": [
+    {
+      "kind": "title", "emoji": "🌪️", "title": "Every retirement plan assumes nothing goes wrong.", "size": 84, "min": 4,
+      "say": "Every retirement plan assumes nothing goes wrong. Real life doesn't work like that."
+    },
+    {
+      "kind": "shot", "img": "proj-calm.png", "title": "🌪️ Chaos mode",
+      "swap": [{ "img": "proj-chaos.png", "at": 0.2 }],
+      "click": { "box": "chaos", "at": 0.18 },
+      "say": "Chaos mode rolls realistic life events onto your projection. Surgery, a new baby, a layoff, a windfall. Thirty-seven events in eight categories, each with real odds for your age."
+    },
+    {
+      "kind": "shot", "img": "proj-tooltip.png", "title": "Every marker explains itself.",
+      "cam": [[0, 0.5, 0.5, 1], [0.35, "chaos:hover", -0.02, 1.6], [1, "chaos:hover", -0.02, 1.7]],
+      "say": "Hover any marker to see what happened, what led to it, and what it cost. Events chain together: a parent's care, then a funeral, then an inherited house."
+    },
+    {
+      "kind": "shot", "img": "chaos-chips.png", "title": "A whole life, in one timeline.",
+      "say": "Every event lands in a timeline that follows the chart window. Costs that outrun inflation, like medical bills and rent, keep climbing. Don't like this life? Reroll it."
+    },
+    {
+      "kind": "shot", "img": "mitigations.png", "title": "🛡️ Mitigate the hits.",
+      "cam": [[0, 0.5, 0.45, 1], [1, 0.3, 0.3, 1.35]],
+      "say": "Then tick the coverage you already have: pet insurance, an HSA, disability, umbrella liability. Chaos applies it, charges the premium every year, and shows what it saved."
+    },
+    {
+      "kind": "phone", "img": "phone-dash.png", "title": "On your phone, too.",
+      "bullets": ["One-column dashboard", "Chaos on the growth chart", "Same seed, same life"],
+      "say": "And it all works on your phone, chaos included, with the same life on every screen."
+    },
+    {
+      "kind": "outro", "title": "Plan for the life you'll actually live.", "min": 5,
+      "say": "fire. Plan for the life you'll actually live. Try it at lifefire dot netlify dot app.",
+      "caption": "fire. Plan for the life you'll actually live. Try it at lifefire.netlify.app"
+    }
+  ]
+}

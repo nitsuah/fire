@@ -18,7 +18,9 @@
       "screenshots": [],
       "spots": [
         "brag-22s",
-        "chaos-24s"
+        "chaos-24s",
+        "tour-85s",
+        "yours-60s"
       ]
     },
     {
@@ -26,21 +28,28 @@
       "title": "Optional Encryption",
       "category": "Core Infrastructure",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "tour-85s",
+        "yours-60s"
+      ]
     },
     {
       "id": "api-key-middleware",
       "title": "API Key Middleware",
       "category": "Core Infrastructure",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "yours-60s"
+      ]
     },
     {
       "id": "https-headers",
       "title": "HTTPS & Headers",
       "category": "Core Infrastructure",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "yours-60s"
+      ]
     },
     {
       "id": "json-api-errors",
@@ -62,7 +71,11 @@
       "category": "MCP Server",
       "screenshots": [],
       "spots": [
-        "brag-22s"
+        "brag-22s",
+        "tour-85s",
+        "insights-60s",
+        "hustle-60s",
+        "yours-60s"
       ]
     },
     {
@@ -84,6 +97,23 @@
       "title": "fire-coach Claude Skill",
       "category": "MCP Server",
       "screenshots": [],
+      "spots": [
+        "tour-85s",
+        "yours-60s"
+      ]
+    },
+    {
+      "id": "reseller-autopilot-claude-skill",
+      "title": "reseller-autopilot Claude Skill",
+      "category": "MCP Server",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "passive-income-lab-claude-skill",
+      "title": "passive-income-lab Claude Skill",
+      "category": "MCP Server",
+      "screenshots": [],
       "spots": []
     },
     {
@@ -91,7 +121,9 @@
       "title": "Unified Add Form",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "custom-accounts",
@@ -99,7 +131,8 @@
       "category": "Net Worth Tracking",
       "screenshots": [],
       "spots": [
-        "brag-22s"
+        "brag-22s",
+        "tour-85s"
       ]
     },
     {
@@ -108,7 +141,9 @@
       "category": "Net Worth Tracking",
       "screenshots": [],
       "spots": [
-        "brag-22s"
+        "brag-22s",
+        "tour-85s",
+        "connect-55s"
       ]
     },
     {
@@ -117,7 +152,9 @@
       "category": "Net Worth Tracking",
       "screenshots": [],
       "spots": [
-        "brag-22s"
+        "brag-22s",
+        "tour-85s",
+        "connect-55s"
       ]
     },
     {
@@ -132,49 +169,63 @@
       "title": "Priced tokens supported",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "cointracker-wallets-optional",
       "title": "CoinTracker Wallets (optional)",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "fidelity-csv-import",
       "title": "Fidelity CSV Import",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "chase-capital-one-csv-import",
       "title": "Chase / Capital One CSV Import",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "spending-upload",
       "title": "Spending Upload",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "insights-60s"
+      ]
     },
     {
       "id": "plaid-transaction-sync",
       "title": "Plaid Transaction Sync",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "real-estate-tracker",
       "title": "Real Estate Tracker",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "vehicle-tracker",
@@ -182,7 +233,9 @@
       "category": "Net Worth Tracking",
       "screenshots": [],
       "spots": [
-        "brag-22s"
+        "brag-22s",
+        "tour-85s",
+        "connect-55s"
       ]
     },
     {
@@ -197,7 +250,9 @@
       "title": "Risk Concentration Badges",
       "category": "Investments Dashboard",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "insights-60s"
+      ]
     },
     {
       "id": "diversification-suggestion-block",
@@ -225,7 +280,9 @@
       "title": "Asset Allocation Drill-Down",
       "category": "Investments Dashboard",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "insights-60s"
+      ]
     },
     {
       "id": "allocation-filter-reset",
@@ -240,7 +297,9 @@
       "category": "Retirement Projections",
       "screenshots": [],
       "spots": [
-        "brag-22s"
+        "brag-22s",
+        "tour-85s",
+        "plan-65s"
       ]
     },
     {
@@ -248,14 +307,18 @@
       "title": "Growth Presets",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "plan-65s"
+      ]
     },
     {
       "id": "growth-milestone-panel",
       "title": "Growth + Milestone Panel",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "plan-65s"
+      ]
     },
     {
       "id": "swr-curves",
@@ -270,7 +333,9 @@
       "category": "Retirement Projections",
       "screenshots": [],
       "spots": [
-        "brag-22s"
+        "brag-22s",
+        "tour-85s",
+        "plan-65s"
       ]
     },
     {
@@ -285,21 +350,27 @@
       "title": "Chart Line Toggles",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "plan-65s"
+      ]
     },
     {
       "id": "cd-maturity-markers",
       "title": "CD Maturity Markers",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "plan-65s"
+      ]
     },
     {
       "id": "multi-scenario-fire-comparison",
       "title": "Multi-Scenario FIRE Comparison",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "plan-65s"
+      ]
     },
     {
       "id": "chaos-mode",
@@ -307,7 +378,9 @@
       "category": "Retirement Projections",
       "screenshots": [],
       "spots": [
-        "chaos-24s"
+        "chaos-24s",
+        "tour-85s",
+        "chaos-60s"
       ]
     },
     {
@@ -316,7 +389,8 @@
       "category": "Retirement Projections",
       "screenshots": [],
       "spots": [
-        "chaos-24s"
+        "chaos-24s",
+        "chaos-60s"
       ]
     },
     {
@@ -324,14 +398,18 @@
       "title": "Good events",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "chaos-60s"
+      ]
     },
     {
       "id": "accounting-in-today-s-dollars",
       "title": "Accounting, in today's dollars",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "chaos-60s"
+      ]
     },
     {
       "id": "mitigations",
@@ -339,7 +417,8 @@
       "category": "Retirement Projections",
       "screenshots": [],
       "spots": [
-        "chaos-24s"
+        "chaos-24s",
+        "chaos-60s"
       ]
     },
     {
@@ -347,21 +426,28 @@
       "title": "UI",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "chaos-60s"
+      ]
     },
     {
       "id": "money-run-out-detection",
       "title": "Money Run-Out Detection",
       "category": "Retirement Projections",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "plan-65s"
+      ]
     },
     {
       "id": "cd-tracker",
       "title": "CD Tracker",
       "category": "CD & Fixed Income",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "tour-85s",
+        "connect-55s"
+      ]
     },
     {
       "id": "cd-ladder-visualizer",
@@ -382,49 +468,66 @@
       "title": "Income Logs",
       "category": "Side Hustle Tracker",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "tour-85s",
+        "hustle-60s"
+      ]
     },
     {
       "id": "ebay-sales-report-upload",
       "title": "eBay Sales-Report Upload",
       "category": "Side Hustle Tracker",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "hustle-60s"
+      ]
     },
     {
       "id": "ebay-order-sync-compliance",
       "title": "eBay Order Sync & Compliance",
       "category": "Side Hustle Tracker",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "tour-85s",
+        "hustle-60s"
+      ]
     },
     {
       "id": "side-hustle-accelerators",
       "title": "Side Hustle Accelerators",
       "category": "Side Hustle Tracker",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "hustle-60s"
+      ]
     },
     {
       "id": "fee-calculator",
       "title": "Fee Calculator",
       "category": "Side Hustle Tracker",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "tour-85s",
+        "hustle-60s"
+      ]
     },
     {
       "id": "webhook-deduplication",
       "title": "Webhook Deduplication",
       "category": "Side Hustle Tracker",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "hustle-60s"
+      ]
     },
     {
       "id": "yahoo-finance-integration",
       "title": "Yahoo Finance Integration",
       "category": "Prices",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "crumb-validation",
@@ -473,7 +576,9 @@
       "title": "Privacy Modal",
       "category": "Privacy",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "yours-60s"
+      ]
     },
     {
       "id": "xss-hardening",
@@ -494,7 +599,9 @@
       "title": "Header Summary Bar",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "tour-85s"
+      ]
     },
     {
       "id": "responsive-navigation",
@@ -516,7 +623,8 @@
       "category": "Dashboard & UX",
       "screenshots": [],
       "spots": [
-        "brag-22s"
+        "brag-22s",
+        "tour-85s"
       ]
     },
     {
@@ -524,14 +632,19 @@
       "title": "Insights Tab",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "tour-85s",
+        "insights-60s"
+      ]
     },
     {
       "id": "financial-overview-tab",
       "title": "Financial Overview Tab",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "insights-60s"
+      ]
     },
     {
       "id": "mobile-responsive-layout",
@@ -539,7 +652,9 @@
       "category": "Dashboard & UX",
       "screenshots": [],
       "spots": [
-        "chaos-24s"
+        "chaos-24s",
+        "chaos-60s",
+        "yours-60s"
       ]
     },
     {
@@ -554,7 +669,9 @@
       "title": "Settings Page",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "yours-60s"
+      ]
     },
     {
       "id": "customizable-layout-sections",
@@ -562,7 +679,8 @@
       "category": "Dashboard & UX",
       "screenshots": [],
       "spots": [
-        "chaos-24s"
+        "chaos-24s",
+        "yours-60s"
       ]
     },
     {
@@ -570,14 +688,18 @@
       "title": "✎ Customize",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "yours-60s"
+      ]
     },
     {
       "id": "milestone-preset-selector",
       "title": "Milestone Preset Selector",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "plan-65s"
+      ]
     },
     {
       "id": "ebay-oauth-status",
@@ -591,7 +713,9 @@
       "title": "Plaid Link Integration",
       "category": "Integrations (UI Ready)",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "vehicle-value-estimates",
@@ -605,7 +729,10 @@
       "title": "Diversification Tip Tiles",
       "category": "Diversification Intelligence",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "tour-85s",
+        "insights-60s"
+      ]
     },
     {
       "id": "localstorage-persistence",
@@ -619,7 +746,9 @@
       "title": "Smart Triggers",
       "category": "Diversification Intelligence",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "insights-60s"
+      ]
     },
     {
       "id": "modular-spa",
@@ -682,7 +811,7 @@
         "16-read-only-tools"
       ],
       "published": "site/assets/fire-tracker.mp4",
-      "rendered": "2026-09-27"
+      "rendered": "2026-10-07"
     },
     {
       "id": "chaos-24s",
@@ -698,7 +827,151 @@
         "db-json-persistence"
       ],
       "published": "site/assets/chaos.mp4",
-      "rendered": "2026-10-01"
+      "rendered": "2026-10-07"
+    },
+    {
+      "id": "tour-85s",
+      "seconds": 83,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [
+        "projection-engine",
+        "financial-overview",
+        "header-summary-bar",
+        "db-json-persistence",
+        "custom-accounts",
+        "precious-metals",
+        "crypto-accounts",
+        "vehicle-tracker",
+        "cd-tracker",
+        "bull-bear-scenario-bands",
+        "chaos-mode",
+        "insights-tab",
+        "diversification-tip-tiles",
+        "fee-calculator",
+        "ebay-order-sync-compliance",
+        "income-logs",
+        "16-read-only-tools",
+        "fire-coach-claude-skill",
+        "optional-encryption"
+      ],
+      "published": "site/assets/tour.mp4",
+      "rendered": "2026-10-07"
+    },
+    {
+      "id": "plan-65s",
+      "seconds": 65,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [
+        "projection-engine",
+        "growth-presets",
+        "growth-milestone-panel",
+        "chart-line-toggles",
+        "milestone-preset-selector",
+        "money-run-out-detection",
+        "bull-bear-scenario-bands",
+        "multi-scenario-fire-comparison",
+        "cd-maturity-markers"
+      ],
+      "published": null,
+      "rendered": "2026-10-07"
+    },
+    {
+      "id": "chaos-60s",
+      "seconds": 62,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [
+        "chaos-mode",
+        "sequences",
+        "good-events",
+        "accounting-in-today-s-dollars",
+        "ui",
+        "mitigations",
+        "mobile-responsive-layout"
+      ],
+      "published": null,
+      "rendered": "2026-10-07"
+    },
+    {
+      "id": "insights-60s",
+      "seconds": 60,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [
+        "insights-tab",
+        "diversification-tip-tiles",
+        "smart-triggers",
+        "asset-allocation-drill-down",
+        "financial-overview-tab",
+        "spending-upload",
+        "risk-concentration-badges",
+        "16-read-only-tools"
+      ],
+      "published": null,
+      "rendered": "2026-10-07"
+    },
+    {
+      "id": "hustle-60s",
+      "seconds": 60,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [
+        "fee-calculator",
+        "ebay-order-sync-compliance",
+        "ebay-sales-report-upload",
+        "income-logs",
+        "webhook-deduplication",
+        "side-hustle-accelerators",
+        "16-read-only-tools"
+      ],
+      "published": null,
+      "rendered": "2026-10-07"
+    },
+    {
+      "id": "connect-55s",
+      "seconds": 57,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [
+        "unified-add-form",
+        "fidelity-csv-import",
+        "chase-capital-one-csv-import",
+        "plaid-transaction-sync",
+        "plaid-link-integration",
+        "crypto-accounts",
+        "priced-tokens-supported",
+        "cointracker-wallets-optional",
+        "precious-metals",
+        "vehicle-tracker",
+        "real-estate-tracker",
+        "cd-tracker",
+        "yahoo-finance-integration"
+      ],
+      "published": null,
+      "rendered": "2026-10-07"
+    },
+    {
+      "id": "yours-60s",
+      "seconds": 61,
+      "format": "landscape",
+      "tool": "promo/build.sh",
+      "features": [
+        "db-json-persistence",
+        "optional-encryption",
+        "api-key-middleware",
+        "https-headers",
+        "privacy-modal",
+        "customizable-layout-sections",
+        "customize",
+        "16-read-only-tools",
+        "fire-coach-claude-skill",
+        "settings-page",
+        "mobile-responsive-layout"
+      ],
+      "published": null,
+      "rendered": "2026-10-07"
     }
   ],
   "reels": [
@@ -708,6 +981,13 @@
         "brag-22s"
       ],
       "published": "site/assets/fire-tracker.mp4"
+    },
+    {
+      "id": "tour",
+      "spots": [
+        "tour-85s"
+      ],
+      "published": "site/assets/tour.mp4"
     }
   ],
   "brand": {
