@@ -35,8 +35,10 @@ one tappable summary bar.
   ENS/0x account totals coins and priced tokens on Ethereum, Base, Optimism,
   Arbitrum and Polygon, plus native BNB and AVAX balances, and shows the
   per-chain split. CoinTracker (Settings) can import every wallet, but its MCP
-  is paid early access: an account that isn't enrolled connects but gets no
-  permissions, so nothing imports until CoinTracker enables it.
+  is paid early access. For an account that isn't enrolled, sign-in completes,
+  but the first sync fails (401), the stored connection is dropped and no
+  wallets import. Once CoinTracker enables MCP access, reconnect in Settings
+  and sync again.
 - **Synced (self-hosted, opt-in):** Plaid (Settings), eBay (Side Hustle Hub →
   eBay Sales Sync), wallets (Crypto Wallets).
 - **Google Drive Backup (Settings → Data Management):** self-hosted only — encrypts db.json with `SYNC_MASTER_KEY` before uploading to your personal Drive; the hosted demo does not offer this.
