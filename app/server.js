@@ -169,6 +169,11 @@ if (!AUTH_DISABLED) {
         if (req.path === '/sync/cointracker/callback') {
             return next();
         }
+        // Etsy's OAuth redirect: the sealed state/PKCE cookie set by the
+        // (key-gated) authorize step is this endpoint's trust boundary.
+        if (req.path === '/sync/etsy/callback') {
+            return next();
+        }
         // eBay's own servers call this directly (both the GET challenge-
         // response verification and the POST deletion notification) — they
         // can't send our x-api-key. The verification token / endpoint-URL

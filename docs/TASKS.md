@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · **Tasks** · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-10-07
+updated: 2026-10-08
 
 ---
 
@@ -102,10 +102,19 @@ These items came from the current browser/production pass. **P0** items are corr
   - Their panels start hidden by a CSS class, and the tab switch cleared only the inline style. Playwright coverage added (`tests/e2e-ui/side-hustle.spec.js`).
 - [x] **Money-maker SKILLS: low-touch ("AFK") income**
   - Shipped: `skills/reseller-autopilot/` (comps-based pricing, eBay/Etsy/Mercari/Poshmark/FB net-after-fees, listing templates, cross-listing, weekly routine, tax check via MCP) and `skills/passive-income-lab/` (8 low-touch streams with realistic ranges and red flags, runway-first rules, income → FIRE-date math, 30-day launch plans). fire-coach hands off to both.
-- [ ] **Marketplace hookups beyond eBay (Etsy, Mercari, Poshmark, FB Marketplace)**
-  - Priority: P1. Next worktree.
+- [x] **Marketplace hookups beyond eBay (Etsy, Mercari, Poshmark, FB Marketplace)**
+  - Priority: P1.
   - Scope: an Etsy Open API v3 OAuth (PKCE) receipts sync into the Side Gig Ledger, with the same dedupe, tax-tag and cost-basis model as eBay; CSV/report import for platforms with no seller API (Mercari, Poshmark, FB Marketplace); Mercari and Poshmark fee calculators next to eBay/Etsy/FB.
   - Acceptance Criteria: each connector has hosted Netlify parity (or a documented browser-only fallback), unit tests for parsing/dedupe, a Settings/Side Hustle Hub connection state, and docs in `docs/integrations.md`; the `reseller-autopilot` skill and the `hustle-60s` promo are updated to match.
+  - Shipped 2026-10-08: Etsy PKCE receipts sync (`app/lib/etsy-connector.js`, `etsy-handlers.js`, `app/routes/etsy.js`, `netlify/functions/etsy.mjs`, `app/lib/etsy-sync.js`), browser-side Mercari/Poshmark/FB CSV import (`app/lib/marketplace-reports.js`, fixtures in `tests/unit/fixtures/marketplaces/`), Mercari/Poshmark calculator tabs, cards in Side Hustle Hub + Settings, docs, skill and promo.
+- [ ] **Etsy: exact fees instead of estimates**
+  - Priority: P2.
+  - Receipts carry no fee data, so synced rows use Etsy's published schedule (`feesEstimated: true`). Reading the shop's payment-account ledger entries (`/shops/{id}/payment-account/ledger-entries`, also `transactions_r`) and matching them to receipts would give real transaction, processing, Etsy Ads and Offsite Ads fees.
+  - Acceptance Criteria: synced rows carry actual fees when the ledger entries can be matched, fall back to the estimate otherwise, and the flag says which.
+- [ ] **Verify Mercari/Poshmark export headers against real files**
+  - Priority: P2.
+  - The parsers use assumed column names with aliases (`docs/integrations.md`). Confirm against a current Mercari sales history and Poshmark sales report download, add any missing aliases and replace the fixtures with anonymized real headers.
+- [ ] **Etsy live run against a real shop** (self-hosted and lifefire.netlify.app) once an Etsy app keystring is approved; record the result in `docs/integrations.md`.
 
 ### P1 — GitHub README / promo parity
 

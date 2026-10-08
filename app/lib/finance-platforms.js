@@ -1,7 +1,8 @@
 'use strict';
 
 /* ==========================================================================
-   finance-platforms.js — Platform fee calculators (eBay, Etsy, Facebook)
+   finance-platforms.js — Platform fee calculators (eBay, Etsy, Facebook,
+   Mercari, Poshmark)
    CommonJS module — require()'d by finance-core.js
    ========================================================================== */
 
@@ -74,7 +75,57 @@ function calculateFBNetProfit(price, shippingActual, cost, isShipped) {
     return p - fees.total - (shippingActual || 0) - (cost || 0);
 }
 
+// Mercari: 10% selling fee on item price + buyer-paid shipping. Its 2.9% +
+// $0.50 payment processing fee has been charged to sellers at some times
+// and to buyers at others, so it's opt-in.
+function calculateMercariFees(price, buyerShipping, sellerPaysProcessing) {
+    const base = (price || 0) + (buyerShipping || 0);
+    if (base <= 0) return { sellingFee: 0, processingFee: 0, total: 0 };
+    const sellingFee = base * 0.1;
+    const processingFee = sellerPaysProcessing ? base * 0.029 + 0.5 : 0;
+    return { sellingFee, processingFee, total: sellingFee + processingFee };
+}
+
+function calculateMercariNetProfit(
+    price,
+    buyerShipping,
+    shippingActual,
+    cost,
+    sellerPaysProcessing,
+) {
+    const gross = (price || 0) + (buyerShipping || 0);
+    const fees = calculateMercariFees(
+        price,
+        buyerShipping,
+        sellerPaysProcessing,
+    );
+    return gross - fees.total - (shippingActual || 0) - (cost || 0);
+}
+
+// Poshmark: $2.95 flat under $15, 20% at $15 and up. The buyer pays the
+// shipping label; a seller shipping discount comes out of earnings.
+function calculatePoshmarkFees(price) {
+    const p = price || 0;
+    if (p <= 0) return { commission: 0, total: 0 };
+    const commission = p < 15 ? 2.95 : p * 0.2;
+    return { commission, total: commission };
+}
+
+function calculatePoshmarkNetProfit(price, shippingDiscount, cost) {
+    const p = price || 0;
+    return (
+        p -
+        calculatePoshmarkFees(p).total -
+        (shippingDiscount || 0) -
+        (cost || 0)
+    );
+}
+
 module.exports = {
+    calculateMercariFees,
+    calculateMercariNetProfit,
+    calculatePoshmarkFees,
+    calculatePoshmarkNetProfit,
     calculateEbayFees,
     calculateEbayNetProfit,
     calculateEtsyFees,

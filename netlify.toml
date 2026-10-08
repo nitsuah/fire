@@ -40,6 +40,14 @@
   status = 200
   force = true
 
+# Etsy OAuth (PKCE) + receipts sync. Tokens go back to the browser sealed
+# with SYNC_MASTER_KEY; status/toggle/disconnect are browser-side here.
+[[redirects]]
+  from = "/api/sync/etsy/*"
+  to = "/.netlify/functions/etsy/:splat"
+  status = 200
+  force = true
+
 # CoinTracker OAuth + read-only MCP sync (tokens stay sealed in the browser).
 [[redirects]]
   from = "/api/sync/cointracker/*"

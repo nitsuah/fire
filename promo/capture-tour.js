@@ -163,6 +163,8 @@ module.exports = async function captureTour(page, C) {
     for (const [label, name] of [
         ['Etsy', 'etsy'],
         ['FB Marketplace', 'fb'],
+        ['Mercari', 'mercari'],
+        ['Poshmark', 'poshmark'],
     ]) {
         try {
             await fee.getByRole('button', { name: label, exact: true }).click();
@@ -179,6 +181,7 @@ module.exports = async function captureTour(page, C) {
     for (const [title, name] of [
         ['Side Hustle Accelerators', 'accelerators'],
         ['eBay Sales Sync', 'ebay-sync'],
+        ['Etsy Sales Sync', 'etsy-sync'],
         ['Side Gig Ledger', 'ledger'],
     ])
         await tryShoot(card('sidegig', title), `card-${name}`);
@@ -191,6 +194,7 @@ module.exports = async function captureTour(page, C) {
         ['Notifications & Alerts', 'alerts'],
         ['Plaid Transaction Sync', 'plaid'],
         ['CoinTracker Wallets', 'cointracker'],
+        ['Marketplace Connections', 'marketplaces'],
         ['Data Management', 'data'],
         ['Google Drive Backup', 'drive'],
         ['Privacy & Terms', 'privacy'],

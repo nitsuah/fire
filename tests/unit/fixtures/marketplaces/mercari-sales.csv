@@ -1,0 +1,4 @@
+Item Id,Sold Date,Canceled Date,Completed Date,Item Title,Order Status,Shipped to State,Item price,Buyer shipping fee,Seller shipping fee,Mercari Selling Fee,Payment Processing Fee Charged To Seller,Shipping Adjustment Fee,Penalty Fee,Net Seller Proceeds,Sales Tax Charged to Buyer
+m11111111111,03/02/2026,,03/06/2026,"Nintendo DS Lite, Cobalt",Completed,CA,$45.00,$0.00,$7.49,$4.50,$0.00,$0.00,$0.00,$33.01,$3.94
+m22222222222,03/10/2026,,03/14/2026,Pokemon Yellow cartridge,Completed,NY,$30.00,$5.99,$0.00,$3.60,$0.00,$0.00,$0.00,$32.39,$2.40
+m33333333333,03/12/2026,03/13/2026,,Game Boy link cable,Canceled,TX,$12.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
