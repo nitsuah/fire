@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-08 — Docs accuracy pass (CodeRabbit review of the stash vault mirror)
+
+- Docs now say BNB Chain and Avalanche refresh native balances only (priced tokens come from the five Blockscout chains), the hosted Plaid function still duplicates the Express handlers, and dev dependencies do ship in the Docker image (H-13). The fire-coach skill fetches financial data only for questions that need it, qualifies the HSA reimbursement rule, notes the CoinTracker MCP early-access gate and gives the current Customize → Skills upload path. The chaos-24s storyboard is in the Docs Index.
+
 ### 2026-10-08 — Marketplace hookups beyond eBay
 
 #### Added
@@ -48,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 2026-10 — Multichain crypto account value
 
 #### Added
-- **Multichain value for ENS/0x crypto accounts.** ⟳ Refresh now totals native coins plus priced ERC-20 tokens across Ethereum, Base, Optimism, Arbitrum, Polygon, BNB Chain and Avalanche (`app/lib/multichain-balance.js`). It uses keyless Blockscout explorers and publicnode.com RPCs, and filters spam tokens: unpriced, flagged as scam, few holders, or absurd values. The row shows a per-chain breakdown, plus ⚠ when a chain couldn't be read. The ENS lookup card uses the same source, with top tokens per chain. Previously only mainnet ETH counted.
+- **Multichain value for ENS/0x crypto accounts.** ⟳ Refresh now totals native coins plus priced ERC-20 tokens across Ethereum, Base, Optimism, Arbitrum and Polygon, plus native BNB and AVAX balances on BNB Chain and Avalanche (native only, no tokens) (`app/lib/multichain-balance.js`). It uses keyless Blockscout explorers and publicnode.com RPCs, and filters spam tokens: unpriced, flagged as scam, few holders, or absurd values. The row shows a per-chain breakdown, plus ⚠ when a chain couldn't be read. The ENS lookup card uses the same source, with top tokens per chain. Previously only mainnet ETH counted.
 
 #### Changed
 
