@@ -197,6 +197,10 @@ main { padding: 0 var(--gutter); }
 /* Chaos mode + layout customization sections */
 .emph-chaos { background: linear-gradient(90deg, #ec4899, #f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .chaos-media { display: grid; gap: 16px; }
+.tour { max-width: var(--max); margin: clamp(80px, 11vw, 140px) auto 0; text-align: center; }
+.tour .hero-video { margin-top: 28px; }
+.tour-more { color: #94a3b8; margin-top: 18px; font-size: 0.95rem; }
+.tour-more a { color: var(--violet-2); }
 .chaos-video { box-shadow: 0 40px 100px rgba(0,0,0,.6), 0 0 0 1px rgba(236,72,153,.25); }
 .customize-shots img { width: 100%; height: auto; display: block; }
 .customize-shots { position: relative; padding-bottom: 48px; }

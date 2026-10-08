@@ -96,7 +96,7 @@ These items came from the current browser/production pass. **P0** items are corr
 ### Narrated brags + money-maker skills — Oct 7, 2026
 
 - [x] **Narrate every brag; 30s–1min+ spots that cover every feature**
-  - Shipped: offline Kokoro TTS narration in the promo pipeline (`promo/narrate.py`, music ducked under the voice, `captions.srt` per spot); `brag-22s` and `chaos-24s` are now narrated; seven narrated tours built from a shared data-driven composer (`promo/tour/`): `tour-85s`, `plan-65s`, `chaos-60s`, `insights-60s`, `hustle-60s`, `connect-55s`, `yours-60s`. `promo/features.md` maps every feature to a spot.
+  - Shipped: offline Kokoro TTS narration in the promo pipeline (`promo/narrate.py`, music ducked under the voice, `captions.srt` per spot); `brag-22s` and `chaos-24s` are now narrated; seven narrated tours built from a shared data-driven composer (`promo/tour/`): `tour-85s`, `plan-65s`, `chaos-60s`, `insights-60s`, `hustle-60s`, `connect-55s`, `yours-60s`. `promo/features.md` maps every feature to a spot. The landing page has a new full-tour section (`site/assets/tour.mp4`), and its hero and Chaos videos are narrated.
   - Also fixed: promo capture failed outside a checkout with `data/` and `node_modules/` (worktrees).
 - [x] **Fix: Etsy and FB Marketplace fee calculators never opened**
   - Their panels start hidden by a CSS class, and the tab switch cleared only the inline style. Playwright coverage added (`tests/e2e-ui/side-hustle.spec.js`).

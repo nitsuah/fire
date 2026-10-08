@@ -49,10 +49,11 @@ else
 fi
 LOUD="loudnorm=I=-14:TP=-1.5:LRA=11:linear=true"
 if [ -f "$W/vo.wav" ]; then
-  # Voice on top; music ducks under it (sidechain) and sits lower overall.
+  # Voice on top: the bed sits ~10 dB under it and ducks further while
+  # someone is talking (sidechain keyed on the voice).
   ffmpeg -hide_banner -loglevel error -y -i "$W/audio-raw.wav" -i "$W/vo.wav" -filter_complex \
     "[1:a]aresample=44100,highpass=f=80,pan=stereo|c0=c0|c1=c0,volume=1.6,asplit=2[vo][key];\
-     [0:a]volume=0.55[m];[m][key]sidechaincompress=threshold=0.025:ratio=8:attack=15:release=380[duck];\
+     [0:a]volume=0.3[m];[m][key]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=400[duck];\
      [duck][vo]amix=inputs=2:duration=first:normalize=0,$LOUD[out]" \
     -map "[out]" -ar 44100 "$W/audio.wav"
 else

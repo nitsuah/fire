@@ -53,6 +53,7 @@ Workflow: change something, then check it with `--stills` at the times that matt
 
 Short custom cuts (social, landing page):
 
+- **`tour-85s`** also publishes to the landing page (`--audio --publish` → `site/assets/tour.mp4`, re-encoded at 720p).
 - **`brag-22s`**: the launch spot (landing-page hero, `site/assets/fire-tracker.mp4`), now narrated.
 - **`chaos-24s`**: 🌪️ Chaos mode and the customizable layout (`site/assets/chaos.mp4`), now narrated. Callout positions come from the real chart (`chaos.json`, written by `capture.js` with `CHAOS_SEED`), and slots are set in `spot.json` → `chaos.pops`.
 
