@@ -13,6 +13,11 @@
 const ETSY_TOKEN_KEY = 'fire_tracker_etsy_token';
 const ETSY_LAST_SYNC_KEY = 'fire_tracker_etsy_last_sync';
 const ETSY_CONNECT_PENDING_KEY = 'fire_tracker_etsy_connect_pending';
+// Set when a sync stopped at its page cap; the next sync starts here.
+const ETSY_RESUME_KEY = 'fire_tracker_etsy_resume_from';
+// Only these mean the grant is gone; other 401s (e.g. a rejected app key)
+// keep the connection and any refreshed tokens.
+const ETSY_DEAD_GRANT_CODES = new Set(['etsy_revoked', 'etsy_token_invalid']);
 // Later syncs re-read a week before the last one; dedupe drops repeats.
 const ETSY_RESYNC_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -135,6 +140,7 @@ async function consumeEtsyOauthFragment() {
     if (isBrowserOnlyMode() && value !== 'stored') {
         etsyWrite(ETSY_TOKEN_KEY, value);
         etsyWrite(ETSY_LAST_SYNC_KEY, null);
+        etsyWrite(ETSY_RESUME_KEY, null);
     }
     showSideGigToast('Etsy connected — syncing your sales…');
     await runEtsySyncNow({ silent: true, toastOnDone: true });
@@ -146,6 +152,7 @@ async function consumeEtsyOauthFragment() {
 async function handleEtsyConnectionLost(code, message) {
     etsyWrite(ETSY_TOKEN_KEY, null);
     etsyWrite(ETSY_LAST_SYNC_KEY, null);
+    etsyWrite(ETSY_RESUME_KEY, null);
     let removed = 0;
     if (code === 'etsy_revoked') {
         if (isBrowserOnlyMode()) {
@@ -170,7 +177,7 @@ async function handleEtsyConnectionLost(code, message) {
 async function syncEtsyViaServer() {
     const res = await fetch('/api/sync/etsy/sync', { method: 'POST' });
     const data = await res.json().catch(() => ({}));
-    if (res.status === 401 && data.code) {
+    if (res.status === 401 && ETSY_DEAD_GRANT_CODES.has(data.code)) {
         await handleEtsyConnectionLost(data.code, data.error);
         return null;
     }
@@ -186,9 +193,11 @@ async function syncEtsyViaFunction() {
     const blob = etsyRead(ETSY_TOKEN_KEY);
     if (!blob) throw new Error('Etsy is not connected.');
     const last = Date.parse(etsyRead(ETSY_LAST_SYNC_KEY) || '');
-    const since = Number.isNaN(last)
-        ? undefined
-        : new Date(last - ETSY_RESYNC_LOOKBACK_MS).toISOString();
+    const since =
+        etsyRead(ETSY_RESUME_KEY) ||
+        (Number.isNaN(last)
+            ? undefined
+            : new Date(last - ETSY_RESYNC_LOOKBACK_MS).toISOString());
     const res = await fetch('/api/sync/etsy/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,7 +205,7 @@ async function syncEtsyViaFunction() {
     });
     const data = await res.json().catch(() => ({}));
     if (data.tokens) etsyWrite(ETSY_TOKEN_KEY, data.tokens);
-    if (res.status === 401 && data.code) {
+    if (res.status === 401 && ETSY_DEAD_GRANT_CODES.has(data.code)) {
         await handleEtsyConnectionLost(data.code, data.error);
         return null;
     }
@@ -211,6 +220,7 @@ async function syncEtsyViaFunction() {
     }
     if (added) await saveState();
     etsyWrite(ETSY_LAST_SYNC_KEY, data.syncedAt);
+    etsyWrite(ETSY_RESUME_KEY, data.truncated ? data.resumeFrom : null);
     return { ...data, added };
 }
 
@@ -227,7 +237,9 @@ async function runEtsySyncNow({ silent = false, toastOnDone = false } = {}) {
             ? await syncEtsyViaFunction()
             : await syncEtsyViaServer();
         if (!data) return;
-        const msg = `Etsy sync complete — ${data.added} new sale${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
+        const msg = data.truncated
+            ? `Etsy sync: ${data.added} new sale${data.added === 1 ? '' : 's'} of ${data.fetched} fetched. More orders remain — click Sync Now again to continue.`
+            : `Etsy sync complete — ${data.added} new sale${data.added === 1 ? '' : 's'} of ${data.fetched} fetched.`;
         note = {
             text: `Status: Connected · ${msg}`,
             color: 'var(--color-success)',
@@ -272,6 +284,7 @@ async function disconnectEtsy() {
     }
     etsyWrite(ETSY_TOKEN_KEY, null);
     etsyWrite(ETSY_LAST_SYNC_KEY, null);
+    etsyWrite(ETSY_RESUME_KEY, null);
     showSideGigToast('Etsy disconnected.');
     renderEtsyStatus();
 }

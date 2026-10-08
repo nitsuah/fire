@@ -132,11 +132,13 @@ router.post('/etsy/sync', async (req, res) => {
         return res.status(401).json({
             error: 'Etsy is not connected. Connect Etsy first.',
         });
-    const since = tokens.lastSyncedAt
-        ? new Date(
-              Date.parse(tokens.lastSyncedAt) - RESYNC_LOOKBACK_MS,
-          ).toISOString()
-        : undefined;
+    const since =
+        tokens.resumeFrom ||
+        (tokens.lastSyncedAt
+            ? new Date(
+                  Date.parse(tokens.lastSyncedAt) - RESYNC_LOOKBACK_MS,
+              ).toISOString()
+            : undefined);
 
     let result;
     try {
@@ -179,12 +181,17 @@ router.post('/etsy/sync', async (req, res) => {
     });
     if (!ok) return res.status(500).json({ error: 'Failed to save receipts.' });
     const syncedAt = new Date().toISOString();
-    saveTokens('etsy', { ...result.tokens, lastSyncedAt: syncedAt });
+    saveTokens('etsy', {
+        ...result.tokens,
+        lastSyncedAt: syncedAt,
+        resumeFrom: result.truncated ? result.resumeFrom : undefined,
+    });
     res.json({
         status: 'success',
         fetched: result.entries.length,
         added,
         syncedAt,
+        truncated: result.truncated,
     });
 });
 

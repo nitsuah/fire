@@ -294,10 +294,19 @@ function mrParseRows(platform, dataRows, idx) {
         // Rows without an order id are told apart by content; identical
         // rows in one file get an occurrence number so re-importing the
         // same file still maps every row to the same id.
-        const key = `${get('date')}|${get('title')}|${priceCell}`;
-        const occurrence = (seen.get(key) || 0) + 1;
-        seen.set(key, occurrence);
-        entries.push(mrBuildEntry(platform, get, get('id'), occurrence));
+        // The key is the hash-based id itself (normalized date, title and
+        // revenue), so "3/2/26" and "03/02/2026" count as the same row.
+        const draft = mrBuildEntry(platform, get, get('id'), 0);
+        if (draft.marketplaceOrderId) {
+            entries.push(draft);
+            continue;
+        }
+        const occurrence = (seen.get(draft.id) || 0) + 1;
+        seen.set(draft.id, occurrence);
+        entries.push({
+            ...draft,
+            id: draft.id.replace(/-0$/, `-${occurrence}`),
+        });
     }
     return { platform, category: cfg.category, entries, skipped };
 }

@@ -89,11 +89,7 @@ async function callback(
 // Maps a sync failure to {status, body}. Dead/unreadable grants are 401
 // with a `code` that tells the client to drop the connection.
 function syncErrorResult(err) {
-    if (
-        err.code === 'etsy_revoked' ||
-        err.code === 'etsy_token_invalid' ||
-        (err.status === 401 && err.code === 'unauthorized')
-    ) {
+    if (err.code === 'etsy_revoked' || err.code === 'etsy_token_invalid') {
         return {
             status: 401,
             body: {
@@ -105,6 +101,17 @@ function syncErrorResult(err) {
                     err.code === 'etsy_token_invalid'
                         ? 'etsy_token_invalid'
                         : 'etsy_revoked',
+            },
+        };
+    }
+    // Etsy rejected a token that refreshed fine (scope or app-key problem).
+    // The grant itself is alive, so the connection and synced rows stay.
+    if (err.status === 401 && err.code === 'unauthorized') {
+        return {
+            status: 401,
+            body: {
+                error: 'Etsy rejected the request. Check the app keystring/shared secret, or reconnect Etsy.',
+                code: 'etsy_unauthorized',
             },
         };
     }

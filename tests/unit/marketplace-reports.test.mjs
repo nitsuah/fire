@@ -152,6 +152,20 @@ describe('FB Marketplace template', () => {
         expect(helmet.costBasis).toBeUndefined();
     });
 
+    it('treats differently formatted but equal dates as the same row', () => {
+        const rows = parseCSVText(
+            [
+                'Date,Item,Sale Price',
+                '3/2/26,Lamp,20.00',
+                '03/02/2026,Lamp,$20',
+            ].join('\n'),
+        );
+        const ids = parseMarketplaceReport(rows).entries.map((e) => e.id);
+        expect(new Set(ids).size).toBe(2);
+        expect(ids[0]).toMatch(/-1$/);
+        expect(ids[1]).toMatch(/-2$/);
+    });
+
     it('keeps identical rows apart with stable occurrence ids', () => {
         const [, , a, b] = report.entries;
         expect(a.id).not.toBe(b.id);

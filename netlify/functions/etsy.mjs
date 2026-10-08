@@ -47,6 +47,8 @@ async function sync(req) {
             entries: result.entries,
             fetched: result.entries.length,
             syncedAt: new Date().toISOString(),
+            truncated: result.truncated,
+            resumeFrom: result.resumeFrom,
             ...(result.changed
                 ? { tokens: etsy.sealTokens(result.tokens) }
                 : {}),

@@ -236,6 +236,60 @@ describe('POST /api/sync/etsy/sync', () => {
         ]);
     });
 
+    it('keeps tokens and synced rows when Etsy rejects a refreshed token', async () => {
+        connect();
+        await mutateState((state) => {
+            state.sideGigLedger = [{ id: 'etsy-5', etsyReceiptId: '5' }];
+        });
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) =>
+                String(url).includes('/oauth/token')
+                    ? jsonRes(200, {
+                          access_token: '1.new',
+                          refresh_token: 'rt2',
+                          expires_in: 3600,
+                      })
+                    : jsonRes(401, {}),
+            ),
+        );
+        const res = await request(app).post('/api/sync/etsy/sync');
+        expect(res.status).toBe(401);
+        expect(res.body.code).toBe('etsy_unauthorized');
+        expect(loadTokens('etsy').refresh_token).toBe('rt2');
+        expect(readState().sideGigLedger).toHaveLength(1);
+    });
+
+    it('resumes from where a capped sync stopped', async () => {
+        connect();
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) => {
+                const offset = Number(new URL(url).searchParams.get('offset'));
+                return jsonRes(200, {
+                    results: Array.from({ length: 100 }, (_, i) => ({
+                        ...receipt(offset + i + 1),
+                        create_timestamp: 1_700_000_000 + offset + i,
+                    })),
+                });
+            }),
+        );
+        const first = await request(app).post('/api/sync/etsy/sync');
+        expect(first.body).toMatchObject({ added: 1000, truncated: true });
+        const resumeFrom = new Date((1_700_000_000 + 999) * 1000).toISOString();
+        expect(loadTokens('etsy').resumeFrom).toBe(resumeFrom);
+        fetch.mockClear();
+        fetch.mockImplementation(async () =>
+            jsonRes(200, { results: [receipt(5000)] }),
+        );
+        const second = await request(app).post('/api/sync/etsy/sync');
+        expect(second.body).toMatchObject({ added: 1, truncated: false });
+        expect(
+            new URL(fetch.mock.calls[0][0]).searchParams.get('min_created'),
+        ).toBe(String(1_700_000_000 + 999));
+        expect(loadTokens('etsy').resumeFrom).toBeUndefined();
+    });
+
     it('disconnect forgets the grant but keeps synced sales', async () => {
         connect();
         await mutateState((state) => {

@@ -183,7 +183,8 @@ The SPA only accepts an `#etsy-connected=` / `#etsy-error=` result when this tab
 ### What's Fetched
 
 - `GET /v3/application/users/me` once, for the `shop_id` (stored with the tokens).
-- `GET /v3/application/shops/{shop_id}/receipts?was_paid=true` (100 per page, at most 10 pages per sync). Later syncs pass `min_created` = last sync − 7 days; dedupe drops the overlap.
+- `GET /v3/application/shops/{shop_id}/receipts?was_paid=true&sort_on=created&sort_order=asc` (100 per page, at most 10 pages per sync). Later syncs pass `min_created` = last sync − 7 days; dedupe drops the overlap. A sync that hits the 10-page cap reports `truncated` and stores a resume point (the newest receipt it read, `resumeFrom` in the token store or `fire_tracker_etsy_resume_from` in the browser); the next sync starts there, so a large backlog is read across several syncs instead of being skipped.
+- A 401 from the API after a successful refresh (e.g. a wrong keystring/shared secret) returns `etsy_unauthorized` and keeps the connection, the refreshed tokens and the synced rows; only `invalid_grant` (`etsy_revoked`) or an unreadable blob (`etsy_token_invalid`) drops them.
 - Access tokens last an hour and are refreshed ahead of expiry or once on a 401; Etsy rotates refresh tokens, so a refreshed grant is always saved (or handed back to the browser) even when the sync then fails.
 
 ### Ledger mapping

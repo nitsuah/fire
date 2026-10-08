@@ -345,7 +345,8 @@ function needsRefresh(tokens) {
 
 // Pulls paid receipts (optionally only those created at/after `since`, an
 // ISO date) and maps them to ledger entries. Refreshes the access token
-// when it's expired or rejected once. Returns {entries, tokens, changed}.
+// when it's expired or rejected once. Returns {entries, tokens, changed,
+// truncated, resumeFrom}.
 // Throws code 'etsy_revoked' (status 401) when the grant is dead.
 async function syncReceipts(tokens, { since } = {}, fetchImpl = fetch) {
     let current = { ...tokens };
@@ -380,12 +381,17 @@ async function syncReceipts(tokens, { since } = {}, fetchImpl = fetch) {
             current.user_id = String(me.user_id || current.user_id || '');
         }
         const minCreated = since ? Math.floor(Date.parse(since) / 1000) : NaN;
+        // Oldest first, so a sync that stops at MAX_PAGES can resume from
+        // the newest receipt it saw instead of skipping the rest.
         const receipts = [];
+        let truncated = false;
         for (let page = 0; page < MAX_PAGES; page++) {
             const params = new URLSearchParams({
                 limit: String(PAGE_LIMIT),
                 offset: String(page * PAGE_LIMIT),
                 was_paid: 'true',
+                sort_on: 'created',
+                sort_order: 'asc',
             });
             if (Number.isFinite(minCreated))
                 params.set('min_created', String(minCreated));
@@ -395,9 +401,23 @@ async function syncReceipts(tokens, { since } = {}, fetchImpl = fetch) {
             const results = body.results || [];
             receipts.push(...results);
             if (results.length < PAGE_LIMIT) break;
+            if (page === MAX_PAGES - 1) truncated = true;
         }
+        const newest = Math.max(
+            0,
+            ...receipts.map(
+                (r) => Number(r.create_timestamp ?? r.created_timestamp) || 0,
+            ),
+        );
         return {
             entries: receiptsToLedgerEntries(receipts),
+            // More receipts remain: the next sync must start at `resumeFrom`
+            // (not at "last sync − lookback"), or the rest are never read.
+            truncated,
+            resumeFrom:
+                truncated && newest
+                    ? new Date(newest * 1000).toISOString()
+                    : null,
             tokens: current,
             // True when the caller must persist `tokens` (refreshed, or the
             // shop id was looked up for the first time).

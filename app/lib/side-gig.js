@@ -1179,17 +1179,28 @@ const calcNum = (id) => parseFloat(document.getElementById(id)?.value) || 0;
 // Calculator rows keep the item cost in costBasis (not expenses), so the
 // tax summary and the "missing cost" totals treat them like synced sales.
 async function logCalculatorSale(platform, r) {
-    state.sideGigLedger.push({
-        id: Date.now().toString(),
-        date: localIsoDate(),
-        desc: `${platform} Sale: $${r.price} Item`,
-        category: platform,
-        revenue: Math.round(r.gross * 100) / 100,
-        expenses: Math.round((r.fees + r.shipping) * 100) / 100,
-        costBasis: r.cost,
-        net: Math.round(r.net * 100) / 100,
-    });
-    await saveState();
+    const before = state.sideGigLedger;
+    state.sideGigLedger = [
+        ...before,
+        {
+            id: Date.now().toString(),
+            date: localIsoDate(),
+            desc: `${platform} Sale: $${r.price} Item`,
+            category: platform,
+            revenue: Math.round(r.gross * 100) / 100,
+            expenses: Math.round((r.fees + r.shipping) * 100) / 100,
+            costBasis: r.cost,
+            net: Math.round(r.net * 100) / 100,
+        },
+    ];
+    try {
+        await saveState();
+    } catch (err) {
+        state.sideGigLedger = before;
+        console.error(`Failed to save ${platform} sale:`, err);
+        showSideGigToast(`Could not save the ${platform} sale.`, 'error');
+        return;
+    }
     refreshAllUI();
     showSideGigToast(`${platform} sale logged to the Side Gig Ledger.`);
 }

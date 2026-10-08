@@ -258,6 +258,66 @@ describe('syncReceipts', () => {
         expect(result.tokens.refresh_token).toBe('r2');
     });
 
+    it('reads oldest first and reports a resume point when it hits the page cap', async () => {
+        const urls = [];
+        const fetchMock = vi.fn(async (url) => {
+            urls.push(new URL(url));
+            const offset = Number(new URL(url).searchParams.get('offset'));
+            return jsonRes(200, {
+                results: Array.from({ length: 100 }, (_, i) =>
+                    receipt({
+                        receipt_id: offset + i + 1,
+                        create_timestamp: 1_700_000_000 + offset + i,
+                    }),
+                ),
+            });
+        });
+        const result = await etsy.syncReceipts(
+            { ...tokens, shop_id: '777' },
+            {},
+            fetchMock,
+        );
+        expect(urls).toHaveLength(10);
+        expect(urls[0].searchParams.get('sort_on')).toBe('created');
+        expect(urls[0].searchParams.get('sort_order')).toBe('asc');
+        expect(result.truncated).toBe(true);
+        expect(result.resumeFrom).toBe(
+            new Date((1_700_000_000 + 999) * 1000).toISOString(),
+        );
+    });
+
+    it('is not truncated when the last page is short', async () => {
+        const fetchMock = vi.fn(async () =>
+            jsonRes(200, { results: [receipt()] }),
+        );
+        const result = await etsy.syncReceipts(
+            { ...tokens, shop_id: '777' },
+            {},
+            fetchMock,
+        );
+        expect(result).toMatchObject({ truncated: false, resumeFrom: null });
+    });
+
+    it('keeps the grant when a refreshed token is still rejected', async () => {
+        const fetchMock = vi.fn(async (url) =>
+            String(url).includes('/oauth/token')
+                ? jsonRes(200, {
+                      access_token: '1.n',
+                      refresh_token: 'r2',
+                      expires_in: 3600,
+                  })
+                : jsonRes(401, {}),
+        );
+        const err = await etsy
+            .syncReceipts({ ...tokens, shop_id: '777' }, {}, fetchMock)
+            .catch((e) => e);
+        expect(err.tokens.refresh_token).toBe('r2');
+        expect(handlers.syncErrorResult(err)).toMatchObject({
+            status: 401,
+            body: { code: 'etsy_unauthorized' },
+        });
+    });
+
     it('throws etsy_revoked when the refresh token is rejected', async () => {
         const fetchMock = vi.fn(async (url) =>
             String(url).includes('/oauth/token')
