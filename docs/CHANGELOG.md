@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-09 — prices-provider tests
+
+#### Added
+
+- `tests/unit/prices-provider.test.mjs`: 26 unit tests for `app/lib/prices-provider.js` with all HTTP mocked. They cover provider selection (`PRICE_PROVIDER`, Alpha Vantage and Polygon keys), both providers' success and failure paths (429, HTTP errors, empty and malformed bodies, network errors), the Yahoo fallback and crumb refresh, and `fetchYahooChart`.
+
 ### 2026-10-08 — Docs accuracy pass (CodeRabbit review of the stash vault mirror)
 
 - Docs now say BNB Chain and Avalanche refresh native balances only (priced tokens come from the five Blockscout chains), the hosted Plaid function still duplicates the Express handlers, and dev dependencies do ship in the Docker image (H-13). The fire-coach skill fetches financial data only for questions that need it, qualifies the HSA reimbursement rule, notes the CoinTracker MCP early-access gate and gives the current Customize → Skills upload path. The chaos-24s storyboard is in the Docs Index.

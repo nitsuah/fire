@@ -36,12 +36,13 @@ These items came from the current browser/production pass. **P0** items are corr
   - Rule going forward (from the PR #111 follow-up, merged here on 2026-10-01): any new `/api/*` route the SPA calls needs a Netlify Function, or a documented browser-only fallback, in the same PR.
   - `docs/integrations.md` already documents the hosted function (`netlify.toml` rewrite, browser-held AES-256-GCM token, `PLAID_HOSTED_ACCESS_KEY`). The privacy-policy update from the same follow-up still needs checking.
 
-- [ ] **Split app/routes/sync.js (942 LOC): separate eBay and Plaid routes, extract the transactions handler (F-20260916-05)**
-  - Priority: P1. The route grew with the eBay/Plaid work and should be decomposed before another integration lands.
-  - Scope: separate eBay and Plaid route modules, extract the Plaid transactions handler, keep webhook/template routes isolated, and move shared provider logic into transport-agnostic modules where practical.
+- [x] **Split app/routes/sync.js (942 LOC): separate eBay and Plaid routes, extract the transactions handler (F-20260916-05)**
+  - Done 2026-09-30 in fire#146: split into `app/routes/ebay.js` and `app/routes/plaid.js`, with token helpers in `app/lib/token-store.js`; `app/routes/sync.js` is now ~300 LOC. Paths and cursor semantics are unchanged and the tests pass. Accounts/positions responses gained `syncedItemIds`/`warning`.
   - Findings ledger: F-20260916-05 · BV 5 · TC 3 · RR 5 · size 3.
-  - Acceptance Criteria: existing Express route paths and response contracts remain unchanged; Plaid and eBay tests pass; transaction pagination/cursor semantics remain unchanged; hosted Netlify Plaid functions can reuse the extracted Plaid operations without importing the Express router.
-  - Progress 2026-09-30 (PR #146): split into `app/routes/ebay.js` and `app/routes/plaid.js`, with token helpers in `app/lib/token-store.js`. Paths and cursor semantics are unchanged, and the tests pass. Accounts/positions responses gained `syncedItemIds`/`warning`. Remaining: the hosted function still duplicates the Plaid operations instead of sharing a transport-agnostic module.
+
+- [ ] **Share Plaid operations between Express and the hosted Netlify function**
+  - Priority: P2. Left over from the sync.js split (F-20260916-05, fire#146): `netlify/functions/plaid.mjs` still duplicates the Plaid operations instead of importing a transport-agnostic module.
+  - Acceptance Criteria: Express and Netlify share one Plaid operations module with no Express router import; existing route contracts and unit tests stay unchanged.
 
 - [ ] **CoinTracker MCP integration for wallet discovery/investigation** _(blocked on CoinTracker: the test account isn't enrolled in MCP early access)_
   - Priority: P1.
@@ -190,7 +191,8 @@ test confirms the disabled Fidelity CSV drop-zone is actually inert while
 Plaid sync is active (only the underlying status the gate reads is covered).
 
 ### Real-Time Price Improvements
-- [ ] Write tests for `app/lib/prices-provider.js` (Alpha Vantage + Polygon paths)
+- [x] Write tests for `app/lib/prices-provider.js` (Alpha Vantage + Polygon paths)
+  - Done 2026-10-09: `tests/unit/prices-provider.test.mjs` (26 tests, all HTTP mocked) covers provider selection, Alpha Vantage and Polygon success paths, 429/HTTP-error/empty/malformed responses, Yahoo fallback, crumb refresh and `fetchYahooChart`.
   - Priority: P2
   - Type: Tech debt
 
