@@ -131,6 +131,10 @@ async function fetchPrices(symbols) {
     if (!symbols || symbols.length === 0) return {};
     const provider = getProvider();
 
+    // Unknown PRICE_PROVIDER values also run Yahoo, so only the named
+    // non-Yahoo providers can need a Yahoo fallback.
+    const usedYahoo = provider !== 'alphavantage' && provider !== 'polygon';
+
     let results = {};
     if (provider === 'alphavantage') {
         results = await fetchAlphaVantage(symbols);
@@ -142,7 +146,7 @@ async function fetchPrices(symbols) {
 
     // For any symbols that failed, fall back to Yahoo if we used a different provider
     const missing = symbols.filter((s) => results[s] == null);
-    if (missing.length > 0 && provider !== 'yahoo') {
+    if (missing.length > 0 && !usedYahoo) {
         const fallback = await fetchYahoo(missing);
         Object.assign(results, fallback);
     }
