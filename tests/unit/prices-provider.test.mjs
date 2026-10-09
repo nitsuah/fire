@@ -224,9 +224,9 @@ describe('fetchPrices', () => {
                 'api.polygon.io': json({ results: { p: 1 } }),
             });
             await fetchPrices(['A']);
-            expect(f.mock.calls.every(([u]) => !String(u).includes('yahoo'))).toBe(
-                true,
-            );
+            expect(
+                f.mock.calls.every(([u]) => !String(u).includes('yahoo')),
+            ).toBe(true);
         });
     });
 
@@ -274,7 +274,9 @@ describe('fetchPrices', () => {
             });
             expect(await fetchPrices(['AAPL'])).toEqual({});
             expect(
-                f.mock.calls.some(([u]) => String(u).includes('v7/finance/quote')),
+                f.mock.calls.some(([u]) =>
+                    String(u).includes('v7/finance/quote'),
+                ),
             ).toBe(false);
         });
 
@@ -322,7 +324,12 @@ describe('fetchYahooChart', () => {
         json({
             chart: {
                 result: [
-                    { meta: { regularMarketPrice: price, chartPreviousClose: prev } },
+                    {
+                        meta: {
+                            regularMarketPrice: price,
+                            chartPreviousClose: prev,
+                        },
+                    },
                 ],
             },
         });
@@ -339,7 +346,12 @@ describe('fetchYahooChart', () => {
             'chart/A?': json({
                 chart: {
                     result: [
-                        { meta: { regularMarketPrice: 50, previousClose: 100 } },
+                        {
+                            meta: {
+                                regularMarketPrice: 50,
+                                previousClose: 100,
+                            },
+                        },
                     ],
                 },
             }),
