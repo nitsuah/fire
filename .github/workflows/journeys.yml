@@ -1,0 +1,40 @@
+name: Journeys
+
+# Nightly "AI user": the happy paths in tests/journeys, run in Docker with
+# visual baselines. Failures become deduplicated `bot:journey` issues (no AI)
+# via the shared harness in nitsuah/.github (journeys/STANDARD.md); fix PRs
+# are verified by the following nights, and issues auto-close after 3 green
+# runs. BUGS.md and metrics live on the bot/journeys branch.
+
+on:
+  schedule:
+    - cron: '17 7 * * *' # 07:17 UTC nightly
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/journeys/**'
+      - 'config/playwright.journeys.config.js'
+      - 'promo/demo-seed.js'
+      - 'promo/demo-mocks.js'
+      - '.github/workflows/journeys.yml'
+
+permissions:
+  contents: write # bot/journeys branch only
+  issues: write
+
+concurrency:
+  group: journeys-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  journeys:
+    uses: nitsuah/.github/.github/workflows/journeys.yml@main
+    with:
+      # Keep in step with @playwright/test in package.json.
+      image: mcr.microsoft.com/playwright:v1.63.0-jammy
+      command: npm run test:journeys
+      features: promo/spots.json
+      repro: |
+        docker build -f config/Dockerfile.playwright -t fire-playwright-e2e .
+        docker run --rm -e CI=true fire-playwright-e2e npm run test:journeys

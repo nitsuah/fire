@@ -106,7 +106,13 @@ export default [
     // Playwright config + specs — node globals for the config/test runner,
     // browser globals too since page.evaluate() callbacks run in-browser
     {
-        files: ['config/playwright.config.js', 'tests/e2e-ui/**/*.spec.js'],
+        files: [
+            'config/playwright.config.js',
+            'config/playwright.journeys.config.js',
+            'tests/e2e-ui/**/*.spec.js',
+            'tests/journeys/**/*.js',
+            'promo/demo-mocks.js',
+        ],
         languageOptions: {
             globals: {
                 ...globals.node,
@@ -178,6 +184,7 @@ export default [
             'out/',
             '.claude/',
             'promo/out/',
+            'journeys-report/',
             'brag-output/',
             'app/app.js',
         ],

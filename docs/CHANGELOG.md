@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-09 — Nightly "AI user" journeys + review pass
+
+- **Added:** `tests/journeys/`: 7 Playwright journeys over the demo seed with mocked prices, a frozen clock and Chart.js animation off, and one visual baseline per step (19). `npm run test:journeys`, `config/playwright.journeys.config.js`, and `.github/workflows/journeys.yml`, which runs nightly through the shared nitsuah/.github harness: failures become fingerprint-deduplicated `bot:journey` issues, and BUGS.md and metrics live on the `bot/journeys` branch. Soak: 70/70 green.
+- **Changed:** the promo price mocks moved to `promo/demo-mocks.js`, shared by `capture.js` and the journeys.
+- **Review pass:** one AI pass over the app, the Pages site and the promo materials filed #166–#175 (`bot:review`).
+
 ### 2026-10-08 — Docs accuracy pass (CodeRabbit review of the stash vault mirror)
 
 - Docs now say BNB Chain and Avalanche refresh native balances only (priced tokens come from the five Blockscout chains), the hosted Plaid function still duplicates the Express handlers, and dev dependencies do ship in the Docker image (H-13). The fire-coach skill fetches financial data only for questions that need it, qualifies the HSA reimbursement rule, notes the CoinTracker MCP early-access gate and gives the current Customize → Skills upload path. The chaos-24s storyboard is in the Docs Index.

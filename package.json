@@ -10,7 +10,8 @@
     "test:coverage": "vitest run --coverage --config config/vitest.config.ts",
     "test:e2e-ui": "playwright test --config config/playwright.config.js",
     "build": "echo 'No build step required for this project' && exit 0",
-    "mcp": "node app/mcp-server.mjs"
+    "mcp": "node app/mcp-server.mjs",
+    "test:journeys": "playwright test --config config/playwright.journeys.config.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.1",
