@@ -106,7 +106,7 @@ module.exports = async function captureTour(page, C) {
                     .selectOption('#acc-type', { label: /crypto/i })
                     .catch(() => page.selectOption('#acc-type', 'Crypto'));
                 await page.fill('#acc-name', 'Main wallet');
-                await page.fill('#acc-identifier', 'vitalik.eth');
+                await page.fill('#acc-identifier', 'fire-demo-wallet.eth');
                 await sleep(400);
             }
             if (t === 'vehicle') {

@@ -10,3 +10,4 @@ test-results/
 
 # Promo render output (frames, crops, videos)
 promo/out/
+journeys-report/

@@ -24,39 +24,18 @@ const BASE = `http://localhost:${PORT}`;
 const CHAOS_SEED = 23;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Prices/metals are mocked so captures never depend on Yahoo being up.
-const PRICES = Object.fromEntries(
-    SEED.importedPositions
-        .filter((p) => p.lastPrice)
-        .map((p) => [p.symbol, p.lastPrice]),
-);
-
-// Same mocked quotes for every page so desktop and phone captures agree.
-async function mockPrices(pg) {
-    await pg.route('**/api/prices?*', (route) =>
-        route.fulfill({
-            json: Object.fromEntries(
-                Object.entries(PRICES).map(([k, p]) => [
-                    k,
-                    { price: p, changePercent: 0.8, fetchedAt: Date.now() },
-                ]),
-            ),
-        }),
-    );
-    await pg.route('**/api/prices/stream*', (route) => route.abort());
-    await pg.route('**/api/metals', (route) =>
-        route.fulfill({
-            json: {
-                gold: { price: 3800, payoutPct: 0.95, meltPrice: 3610 },
-                silver: { price: 44, payoutPct: 0.88, meltPrice: 39 },
-            },
-        }),
-    );
-}
+// Prices/metals are mocked so captures never depend on Yahoo being up
+// (promo/demo-mocks.js, shared with the nightly journeys).
+const { mockPrices } = require('./demo-mocks.js');
 
 (async () => {
     fs.mkdirSync(C, { recursive: true });
-    fs.writeFileSync('/tmp/demo-db.json', '{}');
+    // POST /api/state drops netWorthHistory (server-owned) but keeps what's
+    // already on disk, so the seed's year of history goes into the file first.
+    fs.writeFileSync(
+        '/tmp/demo-db.json',
+        JSON.stringify({ netWorthHistory: SEED.netWorthHistory }),
+    );
     const server = spawn('node', ['app/server.js'], {
         cwd: '/repo',
         stdio: ['ignore', 'ignore', 'inherit'],

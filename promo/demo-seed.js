@@ -62,7 +62,13 @@ const SEED = {
             value: 41500,
             apy: 0,
         },
-        { id: 'eth', name: 'vitalik.eth', type: 'Crypto', value: 5200, apy: 0 },
+        {
+            id: 'eth',
+            name: 'fire-demo-wallet.eth',
+            type: 'Crypto',
+            value: 5200,
+            apy: 0,
+        },
         {
             id: 'gold',
             name: 'Gold Eagles',
