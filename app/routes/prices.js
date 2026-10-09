@@ -84,8 +84,9 @@ router.get('/', async (req, res) => {
 
     const provider = getProvider();
 
-    if (provider !== 'yahoo') {
-        // Use the multi-provider abstraction
+    // Only the named non-Yahoo providers use the abstraction; unknown values
+    // already resolve to Yahoo, so they take the Yahoo path below once.
+    if (provider === 'alphavantage' || provider === 'polygon') {
         try {
             const results = await fetchPrices(uniqueSymbols);
             const now = Date.now();
