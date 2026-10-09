@@ -306,15 +306,14 @@ describe('fetchPrices', () => {
             expect(f).toHaveBeenCalledTimes(1);
         });
 
-        it('an unknown PRICE_PROVIDER uses Yahoo, then retries it once for missing symbols', async () => {
+        it('an unknown PRICE_PROVIDER uses Yahoo once and does not retry for missing symbols', async () => {
             process.env.PRICE_PROVIDER = 'bogus';
             const f = mockFetch({
                 'v7/finance/quote': json({ quoteResponse: { result: [] } }),
             });
-            await fetchPrices(['AAPL']);
-            // Current behavior: the missing-symbol fallback runs for any
-            // provider other than the literal 'yahoo'.
-            expect(f).toHaveBeenCalledTimes(2);
+            expect(await fetchPrices(['AAPL'])).toEqual({});
+            expect(f).toHaveBeenCalledTimes(1);
+            expect(f.mock.calls[0][0]).toContain('v7/finance/quote');
         });
     });
 });
