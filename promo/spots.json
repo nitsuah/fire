@@ -9,7 +9,8 @@
       "title": "Express Server",
       "category": "Core Infrastructure",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "db-json-persistence",
@@ -21,7 +22,8 @@
         "chaos-24s",
         "tour-85s",
         "yours-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "optional-encryption",
@@ -31,7 +33,8 @@
       "spots": [
         "tour-85s",
         "yours-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "api-key-middleware",
@@ -40,7 +43,8 @@
       "screenshots": [],
       "spots": [
         "yours-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "https-headers",
@@ -49,21 +53,24 @@
       "screenshots": [],
       "spots": [
         "yours-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "json-api-errors",
       "title": "JSON API Errors",
       "category": "Core Infrastructure",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "session-security",
       "title": "Session Security",
       "category": "Core Infrastructure",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "16-read-only-tools",
@@ -90,7 +97,8 @@
       "title": "Smoke Test",
       "category": "MCP Server",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "fire-coach-claude-skill",
@@ -162,7 +170,8 @@
       "title": "Native balance only (no priced tokens)",
       "category": "Net Worth Tracking",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "priced-tokens-supported",
@@ -171,7 +180,8 @@
       "screenshots": [],
       "spots": [
         "connect-55s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "cointracker-wallets-optional",
@@ -242,7 +252,9 @@
       "id": "p-l-table",
       "title": "P&L Table",
       "category": "Investments Dashboard",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/p-l-table.png"
+      ],
       "spots": []
     },
     {
@@ -279,7 +291,9 @@
       "id": "asset-allocation-drill-down",
       "title": "Asset Allocation Drill-Down",
       "category": "Investments Dashboard",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/asset-allocation-drill-down.png"
+      ],
       "spots": [
         "insights-60s"
       ]
@@ -289,13 +303,16 @@
       "title": "Allocation Filter Reset",
       "category": "Investments Dashboard",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "projection-engine",
       "title": "Projection Engine",
       "category": "Retirement Projections",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/projection-engine.png"
+      ],
       "spots": [
         "brag-22s",
         "tour-85s",
@@ -306,7 +323,9 @@
       "id": "growth-presets",
       "title": "Growth Presets",
       "category": "Retirement Projections",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/growth-presets.png"
+      ],
       "spots": [
         "plan-65s"
       ]
@@ -331,7 +350,9 @@
       "id": "bull-bear-scenario-bands",
       "title": "Bull/Bear Scenario Bands",
       "category": "Retirement Projections",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/bull-bear-scenario-bands.png"
+      ],
       "spots": [
         "brag-22s",
         "tour-85s",
@@ -391,7 +412,8 @@
       "spots": [
         "chaos-24s",
         "chaos-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "good-events",
@@ -400,7 +422,8 @@
       "screenshots": [],
       "spots": [
         "chaos-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "accounting-in-today-s-dollars",
@@ -409,7 +432,8 @@
       "screenshots": [],
       "spots": [
         "chaos-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "mitigations",
@@ -428,7 +452,8 @@
       "screenshots": [],
       "spots": [
         "chaos-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "money-run-out-detection",
@@ -467,7 +492,9 @@
       "id": "income-logs",
       "title": "Income Logs",
       "category": "Side Hustle Tracker",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/income-logs.png"
+      ],
       "spots": [
         "tour-85s",
         "hustle-60s"
@@ -505,7 +532,9 @@
       "id": "fee-calculator",
       "title": "Fee Calculator",
       "category": "Side Hustle Tracker",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/fee-calculator.png"
+      ],
       "spots": [
         "tour-85s",
         "hustle-60s"
@@ -518,7 +547,8 @@
       "screenshots": [],
       "spots": [
         "hustle-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "yahoo-finance-integration",
@@ -527,55 +557,64 @@
       "screenshots": [],
       "spots": [
         "connect-55s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "crumb-validation",
       "title": "Crumb Validation",
       "category": "Prices",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "price-cache",
       "title": "Price Cache",
       "category": "Prices",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "jsonata-mapping-templates",
       "title": "JSONata Mapping Templates",
       "category": "Webhook / Sync Framework",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "hmac-verification",
       "title": "HMAC Verification",
       "category": "Webhook / Sync Framework",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "payload-type-guards",
       "title": "Payload Type Guards",
       "category": "Webhook / Sync Framework",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "oauth-stub",
       "title": "OAuth Stub",
       "category": "Webhook / Sync Framework",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "privacy-modal",
       "title": "Privacy Modal",
       "category": "Privacy",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/privacy-modal.png"
+      ],
       "spots": [
         "yours-60s"
       ]
@@ -585,20 +624,24 @@
       "title": "XSS Hardening",
       "category": "Privacy",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "glassmorphic-dark-theme",
       "title": "Glassmorphic Dark Theme",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "header-summary-bar",
       "title": "Header Summary Bar",
       "category": "Dashboard & UX",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/header-summary-bar.png"
+      ],
       "spots": [
         "tour-85s"
       ]
@@ -607,7 +650,9 @@
       "id": "responsive-navigation",
       "title": "Responsive Navigation",
       "category": "Dashboard & UX",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/responsive-navigation.png"
+      ],
       "spots": []
     },
     {
@@ -615,7 +660,8 @@
       "title": "Wide-Screen Layouts",
       "category": "Dashboard & UX",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "financial-overview",
@@ -625,13 +671,16 @@
       "spots": [
         "brag-22s",
         "tour-85s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "insights-tab",
       "title": "Insights Tab",
       "category": "Dashboard & UX",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/insights-tab.png"
+      ],
       "spots": [
         "tour-85s",
         "insights-60s"
@@ -641,7 +690,9 @@
       "id": "financial-overview-tab",
       "title": "Financial Overview Tab",
       "category": "Dashboard & UX",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/financial-overview-tab.png"
+      ],
       "spots": [
         "insights-60s"
       ]
@@ -650,7 +701,9 @@
       "id": "mobile-responsive-layout",
       "title": "Mobile-Responsive Layout",
       "category": "Dashboard & UX",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/mobile-responsive-layout.png"
+      ],
       "spots": [
         "chaos-24s",
         "chaos-60s",
@@ -681,7 +734,8 @@
       "spots": [
         "chaos-24s",
         "yours-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "customize",
@@ -706,7 +760,8 @@
       "title": "eBay OAuth Status",
       "category": "Integrations (UI Ready)",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "plaid-link-integration",
@@ -739,7 +794,8 @@
       "title": "LocalStorage Persistence",
       "category": "Diversification Intelligence",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "smart-triggers",
@@ -748,49 +804,78 @@
       "screenshots": [],
       "spots": [
         "insights-60s"
-      ]
+      ],
+      "visual": "none"
     },
     {
       "id": "modular-spa",
       "title": "Modular SPA",
       "category": "Architecture",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "dual-projection-copies",
       "title": "Dual Projection Copies",
       "category": "Architecture",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "input-validation",
       "title": "Input Validation",
       "category": "Architecture",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "vitest-suite",
       "title": "Vitest Suite",
       "category": "Testing",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "playwright-ui-suite",
       "title": "Playwright UI Suite",
       "category": "Testing",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "mcp-smoke-test",
       "title": "MCP Smoke Test",
       "category": "Testing",
       "screenshots": [],
+      "spots": [],
+      "visual": "none"
+    },
+    {
+      "id": "etsy-order-sync",
+      "title": "Etsy Order Sync",
+      "category": "Side Hustle Tracker",
+      "screenshots": [],
       "spots": []
+    },
+    {
+      "id": "mercari-poshmark-fb-marketplace-csv-import",
+      "title": "Mercari / Poshmark / FB Marketplace CSV import",
+      "category": "Side Hustle Tracker",
+      "screenshots": [],
+      "spots": []
+    },
+    {
+      "id": "nightly-journeys",
+      "title": "Nightly Journeys",
+      "category": "Testing",
+      "screenshots": [],
+      "spots": [],
+      "visual": "none"
     }
   ],
   "spots": [
@@ -811,7 +896,7 @@
         "16-read-only-tools"
       ],
       "published": "site/assets/fire-tracker.mp4",
-      "rendered": "2026-10-07"
+      "rendered": "2026-10-09"
     },
     {
       "id": "chaos-24s",
@@ -827,7 +912,7 @@
         "db-json-persistence"
       ],
       "published": "site/assets/chaos.mp4",
-      "rendered": "2026-10-07"
+      "rendered": "2026-10-09"
     },
     {
       "id": "tour-85s",
@@ -856,7 +941,7 @@
         "optional-encryption"
       ],
       "published": "site/assets/tour.mp4",
-      "rendered": "2026-10-07"
+      "rendered": "2026-10-09"
     },
     {
       "id": "plan-65s",

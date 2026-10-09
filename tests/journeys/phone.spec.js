@@ -17,15 +17,25 @@ test(
         ],
     },
     async ({ page }) => {
-        await step(page, 'open the app on a phone', async () => {
-            await openApp(page);
-            await expect(page.locator('#btn-tab-sidegig')).toBeHidden();
-        });
+        await step(
+            page,
+            'open the app on a phone',
+            async () => {
+                await openApp(page);
+                await expect(page.locator('#btn-tab-sidegig')).toBeHidden();
+            },
+            { docs: 'mobile-responsive-layout' },
+        );
 
-        await step(page, 'open the menu', async () => {
-            await page.locator('#sidebar-collapse-btn').click();
-            await expect(page.locator('#btn-tab-sidegig')).toBeVisible();
-        });
+        await step(
+            page,
+            'open the menu',
+            async () => {
+                await page.locator('#sidebar-collapse-btn').click();
+                await expect(page.locator('#btn-tab-sidegig')).toBeVisible();
+            },
+            { docs: 'responsive-navigation' },
+        );
 
         await step(page, 'go to Side Hustle Hub', async () => {
             await page.locator('#btn-tab-sidegig').click();

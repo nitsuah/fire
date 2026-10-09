@@ -54,14 +54,26 @@ async function openApp(page) {
     await page.goto('/');
     await page.getByRole('button', { name: /I Understand.*Continue/i }).click();
     await expect(page.locator('#banner-networth')).not.toHaveText(/^\s*$/);
-    // Startup fetches (prices, status checks, live-value saves) re-render
-    // cards; screenshot only once they're done.
+    await settle(page);
+}
+
+// Startup fetches (prices, status checks, live-value saves) re-render cards,
+// and charts drawn before the web fonts load keep fallback-font canvas text.
+// Wait for both, then redraw every chart. (The CD-maturity labels' emoji
+// still render one of two ways, ~650px; the config's maxDiffPixels covers it.)
+async function settle(page) {
     await page.waitForLoadState('networkidle');
+    await page.evaluate(async () => {
+        await document.fonts.ready;
+        for (const c of Object.values(window.Chart?.instances || {}))
+            c.update('none');
+    });
 }
 
 async function openTab(page, name) {
     await page.locator(`#btn-tab-${name}`).click();
     await expect(page.locator(`#tab-${name}`)).toBeVisible();
+    await settle(page);
 }
 
-module.exports = { test, expect, step, openApp, openTab, SEED };
+module.exports = { test, expect, step, openApp, openTab, settle, SEED };

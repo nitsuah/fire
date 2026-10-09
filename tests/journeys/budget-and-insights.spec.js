@@ -36,14 +36,19 @@ test(
             .locator('#tab-insights')
             .getByText('Missing Real Estate');
 
-        await step(page, 'open Insights', async () => {
-            await openApp(page);
-            await openTab(page, 'insights');
-            await expect(page.locator('#tab-insights')).toContainText(
-                'Equity Concentration Risk',
-            );
-            await expect(tile).toBeVisible();
-        });
+        await step(
+            page,
+            'open Insights',
+            async () => {
+                await openApp(page);
+                await openTab(page, 'insights');
+                await expect(page.locator('#tab-insights')).toContainText(
+                    'Equity Concentration Risk',
+                );
+                await expect(tile).toBeVisible();
+            },
+            { docs: 'insights-tab' },
+        );
 
         await step(page, 'dismiss a tip', async () => {
             const card = page.locator('#tab-insights .divs-tile', {

@@ -30,7 +30,12 @@ const { mockPrices } = require('./demo-mocks.js');
 
 (async () => {
     fs.mkdirSync(C, { recursive: true });
-    fs.writeFileSync('/tmp/demo-db.json', '{}');
+    // POST /api/state drops netWorthHistory (server-owned) but keeps what's
+    // already on disk, so the seed's year of history goes into the file first.
+    fs.writeFileSync(
+        '/tmp/demo-db.json',
+        JSON.stringify({ netWorthHistory: SEED.netWorthHistory }),
+    );
     const server = spawn('node', ['app/server.js'], {
         cwd: '/repo',
         stdio: ['ignore', 'ignore', 'inherit'],

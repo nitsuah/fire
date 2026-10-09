@@ -1,0 +1,64 @@
+name: Visual docs
+
+# Regenerates docs/screenshots/<feature-id>.png from the journeys
+# (tests/journeys, steps tagged { docs: '<id>' }) — same demo seed, mocked
+# prices and frozen clock, so there is one Playwright suite, not two — and
+# opens/updates a PR on bot/visual-docs. Never pushes to main. Recipe:
+# nitsuah/vigil docs/VISUAL_DOCS.md; promo/spots.json links the images by id.
+#
+# One-time repo setting: Settings -> Actions -> General -> "Allow GitHub
+# Actions to create and approve pull requests".
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'tests/journeys/**'
+      - 'promo/demo-seed.js'
+      - '.github/workflows/visual-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: visual-docs
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture screenshots
+        run: mkdir -p docs/screenshots && npm run capture:screenshots
+        env:
+          CI: true
+
+      - name: Open or update PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: bot/visual-docs
+          delete-branch: true
+          add-paths: docs/screenshots/*.png
+          commit-message: 'docs: regenerate feature screenshots'
+          title: 'docs: regenerate feature screenshots'
+          body: |
+            Regenerated from the journeys by `.github/workflows/visual-docs.yml` after ${{ github.sha }}.
+            Review the images, then merge. No code changes.

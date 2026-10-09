@@ -16,12 +16,17 @@ test(
     async ({ page }) => {
         const positions = page.locator('#table-dashboard-positions');
 
-        await step(page, 'see top positions with P&L', async () => {
-            await openApp(page);
-            await positions.scrollIntoViewIfNeeded();
-            await expect(positions).toContainText('VTI');
-            await expect(positions).toContainText('NVDA');
-        });
+        await step(
+            page,
+            'see top positions with P&L',
+            async () => {
+                await openApp(page);
+                await positions.scrollIntoViewIfNeeded();
+                await expect(positions).toContainText('VTI');
+                await expect(positions).toContainText('NVDA');
+            },
+            { docs: 'p-l-table' },
+        );
 
         await step(page, 'collapse all position groups', async () => {
             await page.getByRole('button', { name: 'Collapse All' }).click();
@@ -45,6 +50,7 @@ test(
                 ])
                     await expect(holdings).toContainText(name);
             },
+            { docs: 'financial-overview-tab' },
         );
     },
 );
