@@ -2,7 +2,7 @@
 # Kokoro TTS for narration, and the app's production deps in /deps so
 # capture.js can boot the real server.
 # Build from the repo root: docker build -f promo/Dockerfile .
-ARG PLAYWRIGHT_VERSION=1.63.0
+ARG PLAYWRIGHT_VERSION=1.64.0
 FROM mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
 ARG PLAYWRIGHT_VERSION
 RUN apt-get update \
