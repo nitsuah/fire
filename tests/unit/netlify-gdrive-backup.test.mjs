@@ -440,6 +440,36 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
         expect(unsealTokens(body.tokens).access_token).toBe('ya29.r2');
     });
 
+    it("surfaces Google's reason, e.g. a disabled Drive API, instead of a generic error", async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const googleMessage =
+            'Google Drive API has not been used in project 123 before or it is disabled.';
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                jsonRes(403, {
+                    error: {
+                        code: 403,
+                        message: googleMessage,
+                        errors: [{ reason: 'accessNotConfigured' }],
+                        status: 'PERMISSION_DENIED',
+                    },
+                }),
+            ),
+        );
+        delete process.env.GDRIVE_BACKUP_FOLDER_ID;
+        const res = await listReq(sealTokens(freshTokens()));
+        expect(res.status).toBe(403);
+        const body = await res.json();
+        expect(body).toMatchObject({
+            code: 'gdrive_api_failed',
+            reason: 'accessNotConfigured',
+        });
+        expect(body.error).toBe(
+            `Drive folder search failed (403): ${googleMessage}`,
+        );
+    });
+
     it('rejects wrong methods and unknown actions with JSON', async () => {
         const unknown = await handler(new Request(`${BASE}/nope`));
         expect(unknown.status).toBe(404);

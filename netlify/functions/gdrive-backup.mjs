@@ -151,11 +151,17 @@ function errorResponse(err, fallback, extra = {}) {
         return json(422, { error: err.message, code: err.code, ...extra });
     const timedOut = err.name === 'TimeoutError' || err.name === 'AbortError';
     console.error(`[Backup] ${fallback}:`, err.message);
+    // Drive errors carry Google's explanation (see driveError in the lib);
+    // anything else stays generic.
+    const fromDrive = err.status >= 400 && 'driveReason' in err;
+    let message = `${fallback}. Try again later.`;
+    if (timedOut)
+        message = 'Google Drive did not respond in time. Try again shortly.';
+    else if (fromDrive) message = err.message;
     return json(timedOut ? 504 : err.status >= 400 ? err.status : 502, {
-        error: timedOut
-            ? 'Google Drive did not respond in time. Try again shortly.'
-            : `${fallback}. Try again later.`,
+        error: message,
         code: timedOut ? 'timeout' : 'gdrive_api_failed',
+        ...(fromDrive && err.driveReason ? { reason: err.driveReason } : {}),
         ...extra,
     });
 }
