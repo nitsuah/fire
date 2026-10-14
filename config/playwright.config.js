@@ -53,8 +53,9 @@ module.exports = defineConfig({
             FIRE_AUTH_DISABLED: 'true',
             // The suite runs ~70 tests a minute against this one server
             // (~600 /api requests/min in CI), past the 300/min general
-            // limit, so late tests got 429s. Test server only; ignored when
-            // NODE_ENV=production.
+            // limit, so late tests got 429s. Test server only; the server
+            // honours it only with NODE_ENV test/development.
+            NODE_ENV: 'test',
             FIRE_RATE_LIMIT_DISABLED: 'true',
         },
     },

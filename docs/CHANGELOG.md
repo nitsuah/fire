@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Fixed
 
-- The e2e-ui job on #192 failed `data-integrity.spec.js` › "live price refresh" at its seed `POST /api/state`, and then passed on rerun. Cause, measured with a per-minute request counter on the e2e server: the suite sends more than 225 `/api` requests per minute even at the slower local pace, and about 600 per minute at CI speed. The general limit is 300 per minute per client, so late tests got 429s. `config/playwright.config.js` now sets `FIRE_RATE_LIMIT_DISABLED=true` for its own server, and the journeys config inherits it. `app/server.js` honours the flag only outside `NODE_ENV=production` and logs a warning either way. A failed seed now prints the response status and body.
+- The e2e-ui job on #192 failed `data-integrity.spec.js` › "live price refresh" at its seed `POST /api/state`, and then passed on rerun. Cause, measured with a per-minute request counter on the e2e server: the suite sends more than 225 `/api` requests per minute even at the slower local pace, and about 600 per minute at CI speed. The general limit is 300 per minute per client, so late tests got 429s. `config/playwright.config.js` now sets `FIRE_RATE_LIMIT_DISABLED=true` for its own server, and the journeys config inherits it. `app/server.js` honours the flag only when `NODE_ENV` is explicitly `test` or `development` (the Playwright server sets `NODE_ENV=test`). If `NODE_ENV` is unset, misspelled or `production`, the server keeps its limits, and it logs a warning either way. A failed seed now prints the response status and body.
 
 #### Added
 
-- `tests/unit/server-ratelimit-flag.test.mjs`: the limiter still returns 429 after 301 requests when the flag is unset, when it's set to anything other than `true`, and when `NODE_ENV=production`. With the flag set outside production, all 301 requests succeed.
+- `tests/unit/server-ratelimit-flag.test.mjs`: the limiter still returns 429 after 301 requests when the flag is unset, when it's set to anything other than `true`, and when `NODE_ENV` is unset, `production`, misspelled or `staging`. With the flag set and `NODE_ENV` `test` or `development`, all 301 requests succeed.
+
+### 2026-10-14 — `.env.example` matches the code
+
+#### Changed
+
+- `.env.example`: documents `FIRE_ADMIN_KEY` (required in production for key rotation) and adds the optional Etsy block (`ETSY_CLIENT_ID`, `ETSY_SHARED_SECRET`, `ETSY_REDIRECT_URI`). Removes `SECRET_KEY` and `DATABASE_URL`, which nothing in `app/`, `netlify/`, `scripts/` or `config/` reads.
 
 ### 2026-10-14 — CoinTracker asset-level portfolios
 

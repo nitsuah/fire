@@ -6,8 +6,9 @@ import request from 'supertest';
 
 // FIRE_RATE_LIMIT_DISABLED turns the /api limiters off for the Playwright
 // UI suite's own server (config/playwright.config.js), which outruns the
-// 300/min general limit. It must not switch them off by default or in
-// production. app/server.js reads env at load, so each case re-imports it.
+// 300/min general limit. It only works with NODE_ENV explicitly test or
+// development: unset, production or anything else keeps the limits.
+// app/server.js reads env at load, so each case re-imports it.
 const TEST_DB = path.join(
     os.tmpdir(),
     `fire-ratelimit-flag-test-${process.pid}.json`,
@@ -59,23 +60,33 @@ describe('FIRE_RATE_LIMIT_DISABLED', () => {
         expect(last).toBe(429);
     });
 
-    it('turns the limiter off (with a warning) when set outside production', async () => {
-        process.env.FIRE_RATE_LIMIT_DISABLED = 'true';
-        const { last, warned } = await statusesAfterBurst();
-        expect(last).toBe(200);
-        expect(warned.join(' ')).toMatch(/rate limiting is off/);
-    });
+    it.each(['test', 'development'])(
+        'turns the limiter off (with a warning) when NODE_ENV=%s',
+        async (env) => {
+            process.env.FIRE_RATE_LIMIT_DISABLED = 'true';
+            process.env.NODE_ENV = env;
+            const { last, warned } = await statusesAfterBurst();
+            expect(last).toBe(200);
+            expect(warned.join(' ')).toMatch(/rate limiting is off/);
+        },
+    );
 
-    it('is ignored when NODE_ENV=production', async () => {
+    it.each([
+        ['unset', undefined],
+        ['production', 'production'],
+        ['misspelled', 'prodution'],
+        ['staging', 'staging'],
+    ])('is ignored when NODE_ENV is %s', async (_label, env) => {
         process.env.FIRE_RATE_LIMIT_DISABLED = 'true';
-        process.env.NODE_ENV = 'production';
-        process.env.FIRE_ADMIN_KEY = 'test-admin-key';
+        if (env) process.env.NODE_ENV = env;
+        if (env === 'production') process.env.FIRE_ADMIN_KEY = 'test-admin-key';
         const { last, warned } = await statusesAfterBurst();
         expect(last).toBe(429);
-        expect(warned.join(' ')).toMatch(/ignored when NODE_ENV=production/);
+        expect(warned.join(' ')).toMatch(/ignored unless NODE_ENV is test/);
     });
 
     it('only the exact value "true" disables it', async () => {
+        process.env.NODE_ENV = 'test';
         process.env.FIRE_RATE_LIMIT_DISABLED = '1';
         const { last } = await statusesAfterBurst();
         expect(last).toBe(429);
