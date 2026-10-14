@@ -100,7 +100,11 @@ const SEED = {
 async function seed(request) {
     // No baseRevision → last-write-wins, so seeding always lands.
     const res = await request.post('/api/state', { data: SEED });
-    expect(res.ok()).toBeTruthy();
+    // Name the status and body so a failed seed explains itself.
+    expect(
+        res.ok(),
+        `seed POST /api/state → ${res.status()} ${await res.text()}`,
+    ).toBeTruthy();
 }
 
 async function mockMarket(page, { price = 120, changePercent = 7 } = {}) {

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-14 — e2e rate-limit flake
+
+#### Fixed
+
+- The e2e-ui job on #192 failed `data-integrity.spec.js` › "live price refresh" at its seed `POST /api/state`, and then passed on rerun. Cause, measured with a per-minute request counter on the e2e server: the suite sends more than 225 `/api` requests per minute even at the slower local pace, and about 600 per minute at CI speed. The general limit is 300 per minute per client, so late tests got 429s. `config/playwright.config.js` now sets `FIRE_RATE_LIMIT_DISABLED=true` for its own server, and the journeys config inherits it. `app/server.js` honours the flag only outside `NODE_ENV=production` and logs a warning either way. A failed seed now prints the response status and body.
+
+#### Added
+
+- `tests/unit/server-ratelimit-flag.test.mjs`: the limiter still returns 429 after 301 requests when the flag is unset, when it's set to anything other than `true`, and when `NODE_ENV=production`. With the flag set outside production, all 301 requests succeed.
+
 ### 2026-10-14 — CoinTracker asset-level portfolios
 
 #### Fixed

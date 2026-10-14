@@ -51,6 +51,11 @@ module.exports = defineConfig({
             // API auth is required by default as of PROD Phase 3 — this UI
             // suite drives the app unauthenticated, so opt out explicitly.
             FIRE_AUTH_DISABLED: 'true',
+            // The suite runs ~70 tests a minute against this one server
+            // (~600 /api requests/min in CI), past the 300/min general
+            // limit, so late tests got 429s. Test server only; ignored when
+            // NODE_ENV=production.
+            FIRE_RATE_LIMIT_DISABLED: 'true',
         },
     },
 });
