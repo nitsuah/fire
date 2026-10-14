@@ -17,6 +17,7 @@
 ## MCP Server
 
 - **16 Read-Only Tools** — `fire_status_summary`, `get_net_worth`, `get_net_worth_trend`, `get_accounts`, `get_portfolio`, `get_cds`, `get_expenses`, `get_projection_settings`, `get_side_gig_income`, `get_side_gig_tax_summary`, `get_wallets`, `get_concentration_risk`, `get_diversification_score`, `get_swr_sensitivity`, `simulate_rebalance`, `get_emergency_runway`. No stubs: tools with nothing behind them were removed. A test asserts no write tools exist.
+- **Data Freshness** — `fire_status_summary`, `get_net_worth` and `get_portfolio` return `dataFreshness`: oldest/newest price timestamp, `daysStale` (stale after 3 days), last CSV import, positions with no price source and vehicle valuation age. Each net-worth snapshot records `pricesAsOf`/`stale`, and `get_net_worth_trend` counts `stalePoints`.
 - **Claude Code Integration** — `.mcp.json` at repo root auto-connects the server when Claude Code starts in this directory.
 - **Smoke Test** — `scripts/test-mcp.mjs` runs the full MCP handshake and validates all 16 registered read-only tools in `EXPECTED_TOOLS`.
 - **fire-coach Claude Skill** — `skills/fire-coach/` (SKILL.md + a FIRE financial playbook + an app guide) makes Claude a FIRE coach: it maps questions to the MCP tools, applies the playbook (4% rule, savings rate, order of operations, taxes, sequence risk, income-gap plan) and points to the exact tab/card/button. Install steps in `skills/README.md`.
@@ -93,6 +94,7 @@
 ## Prices
 
 - **Yahoo Finance Integration** — Live portfolio valuation via crumb-based auth with stale-data fallback; `AbortSignal.timeout(10 s)` on all fetch calls.
+- **Server-Side Re-Price** — The server re-prices imported positions and gold/silver accounts hourly, before each net-worth snapshot, so prices stay current with no dashboard tab open (`app/lib/server-reprice.js`). CUSIP-only holdings such as 401k collective trusts have no quote source and update only on CSV import.
 - **Crumb Validation** — Rejects empty, HTML, or oversized responses before caching.
 - **Price Cache** — Per-symbol freshness tracking; stale entries refetched on next request.
 

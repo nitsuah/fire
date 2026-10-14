@@ -9,9 +9,12 @@ const {
     DB_FILE,
     initDatabase,
     rotateMasterKey,
+    readState,
     mutateState,
 } = require('./lib/db');
 const { recordNetWorthSnapshot } = require('./lib/net-worth-history');
+const { collectLiveQuotes } = require('./lib/server-reprice');
+const { applyLiveValues } = require('./lib/live-values');
 const { runDailyBackup } = require('./lib/local-backup');
 const { findAvailablePort } = require('./lib/server-utils');
 const { refreshYahooCrumb } = require('./lib/yahoo-prices');
@@ -251,19 +254,33 @@ app.use((err, req, res, _next) => {
     res.status(500).json({ error: 'Internal server error.' });
 });
 
-// Record today's net-worth snapshot now and hourly (today's entry is
-// updated in place), so the dashboard/MCP have real history to chart.
-// Only started when the server actually listens — never on a bare
-// require() (tests, tooling).
+// Re-price holdings, then record today's net-worth snapshot — now and
+// hourly (today's entry is updated in place), so the dashboard/MCP have
+// real history to chart. Prices used to refresh only while a dashboard tab
+// was open, so with none open every snapshot repeated the last total; the
+// server now fetches quotes itself (app/lib/server-reprice.js). Only started
+// when the server actually listens — never on a bare require() (tests,
+// tooling).
 function scheduleNetWorthSnapshots() {
-    const record = () =>
-        mutateState((db) => {
+    const record = async () => {
+        let quotes = { positions: [], metals: [] };
+        try {
+            quotes = await collectLiveQuotes(readState());
+        } catch (err) {
+            console.warn('[Reprice] Failed:', err.message);
+        }
+        await mutateState((db) => {
+            const n = applyLiveValues(db, quotes);
+            if (n) console.log(`[Reprice] Updated ${n} holding(s).`);
             recordNetWorthSnapshot(db);
-        }).catch((err) =>
+        });
+    };
+    const run = () =>
+        record().catch((err) =>
             console.warn('[NetWorth] Snapshot failed:', err.message),
         );
-    record();
-    setInterval(record, 60 * 60 * 1000).unref();
+    run();
+    setInterval(run, 60 * 60 * 1000).unref();
 }
 
 // Daily rotated local copy of db.json (data/backups/, newest 14 kept).
