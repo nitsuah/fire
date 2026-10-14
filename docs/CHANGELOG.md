@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-14 — Drive backup errors explain themselves
+
+#### Fixed
+
+- On the hosted deploy, a failed Drive call showed only "Drive list failed. Try again later.", and Netlify's function logs don't keep the detail. `app/lib/gdrive-backup.js` now builds every Drive error from Google's response body: the status, Google's message, and its reason code (for example, "Google Drive API has not been used in project … or it is disabled" / `accessNotConfigured`). `netlify/functions/gdrive-backup.mjs` returns that message plus a `reason` field, so the Settings panel shows it. Errors that don't come from Drive keep the generic text. Covered by a new test in `tests/unit/netlify-gdrive-backup.test.mjs`.
+
 ### 2026-10-14 — Google Drive backup on the hosted deploy
 
 #### Fixed
