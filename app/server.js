@@ -86,8 +86,26 @@ try {
     rateLimitFn = null;
 }
 
+// The Playwright UI suite (config/playwright.config.js) drives one local
+// server at ~600 /api requests a minute from one IP, past the general
+// limit, so late tests got 429s. It sets FIRE_RATE_LIMIT_DISABLED=true for
+// its own server (with NODE_ENV=test). The flag only takes effect when
+// NODE_ENV is explicitly test or development, so a deploy with NODE_ENV
+// unset or misspelled keeps its limits.
+const RATE_LIMIT_BYPASS_ENVS = new Set(['test', 'development']);
+const RATE_LIMIT_DISABLED =
+    process.env.FIRE_RATE_LIMIT_DISABLED === 'true' &&
+    RATE_LIMIT_BYPASS_ENVS.has(process.env.NODE_ENV);
+if (process.env.FIRE_RATE_LIMIT_DISABLED === 'true') {
+    console.warn(
+        RATE_LIMIT_DISABLED
+            ? '[Server] WARNING: FIRE_RATE_LIMIT_DISABLED=true — /api rate limiting is off (test use only).'
+            : `[Server] WARNING: FIRE_RATE_LIMIT_DISABLED is ignored unless NODE_ENV is test or development (NODE_ENV=${process.env.NODE_ENV || 'unset'}).`,
+    );
+}
+
 function makeRateLimiter(limit, windowMs, message, skip) {
-    if (!rateLimitFn) return (req, res, next) => next();
+    if (!rateLimitFn || RATE_LIMIT_DISABLED) return (req, res, next) => next();
     return rateLimitFn({
         windowMs,
         limit,
