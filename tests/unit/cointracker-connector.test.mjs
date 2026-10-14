@@ -308,6 +308,107 @@ describe('normalizeWallets', () => {
         expect(wallets).toEqual([]);
         expect(warnings[0]).toMatch(/no wallets/);
     });
+
+    it('reads an asset-level portfolio as one portfolio account, not one wallet per asset', () => {
+        const payload = {
+            portfolio: {
+                assets: [
+                    {
+                        name: 'Ethereum',
+                        symbol: 'ETH',
+                        quantity: '8.05847714',
+                        value: { amount: '19528.99', currency: 'USD' },
+                    },
+                    {
+                        name: 'Polygon (prev. MATIC)',
+                        symbol: 'POL',
+                        quantity: 28211.422,
+                        value: 2699.71,
+                    },
+                    {
+                        asset: { name: 'Bitcoin', symbol: 'btc' },
+                        amount: 0.00844119,
+                        usd_value: '$688.65',
+                    },
+                ],
+            },
+        };
+        const { wallets, warnings, partial } = ct.normalizeWallets(payload);
+        expect(partial).toBe(false);
+        expect(warnings).toEqual([]);
+        expect(wallets).toHaveLength(1);
+        expect(wallets[0]).toMatchObject({
+            providerId: 'cointracker-portfolio',
+            name: 'CoinTracker portfolio',
+            kind: 'portfolio',
+            usdValue: 22917.35,
+        });
+        expect(wallets[0].holdings.map((h) => h.symbol)).toEqual([
+            'ETH',
+            'POL',
+            'BTC',
+        ]);
+        expect(wallets[0].holdings[0]).toEqual({
+            symbol: 'ETH',
+            quantity: 8.05847714,
+            usdValue: 19528.99,
+        });
+    });
+
+    it('reads holdings keyed by ticker and prefers a reported total', () => {
+        const { wallets } = ct.normalizeWallets({
+            total_value: '2,500.00',
+            balances: {
+                AVAX: { amount: 250, usd_value: 2455.06 },
+                PIXL: { amount: 100000, usd_value: 419.7 },
+            },
+        });
+        expect(wallets).toHaveLength(1);
+        expect(wallets[0].usdValue).toBe(2500);
+        expect(wallets[0].holdings.map((h) => h.symbol)).toEqual([
+            'AVAX',
+            'PIXL',
+        ]);
+    });
+
+    it('still reads wallets that hold assets (assets do not shadow wallets)', () => {
+        const { wallets } = ct.normalizeWallets(BALANCES);
+        expect(wallets.map((w) => w.providerId)).toEqual(['w1', 'w2']);
+    });
+
+    it('returns a value-free outline of an unreadable payload', () => {
+        const payload = {
+            result: {
+                summary: { networth: 25791.41, currency: 'USD' },
+                byAddress: {
+                    '0xAbC0000000000000000000000000000000000001': {
+                        label: 'My Ledger',
+                        amount: 3,
+                    },
+                },
+                notes: ['private note', 'another'],
+            },
+        };
+        const r = ct.normalizeWallets(payload);
+        expect(r.partial).toBe(true);
+        expect(r.wallets).toEqual([]);
+        expect(r.payloadShape).toEqual({
+            result: {
+                summary: { networth: 'number', currency: 'string' },
+                byAddress: {
+                    '<address>': { label: 'string', amount: 'number' },
+                },
+                notes: ['string', '…2 items'],
+            },
+        });
+        const text = JSON.stringify(r.payloadShape);
+        for (const secret of ['25791', 'My Ledger', '0xAbC', 'private'])
+            expect(text).not.toContain(secret);
+    });
+
+    it('omits the outline when wallets were read', () => {
+        expect(ct.normalizeWallets(BALANCES).payloadShape).toBeUndefined();
+    });
 });
 
 describe('syncWallets', () => {

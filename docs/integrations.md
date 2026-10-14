@@ -284,6 +284,8 @@ Live result (2026-10-01): with `audience`, Auth0 issues a correct MCP-audience J
 
 CoinTracker doesn't publish its MCP tool catalog, so the connector picks the balance tool by name and description. The tool must be about wallets or accounts **and** balances or holdings, take no required arguments, and not be about transactions, tax, gains or history. The output is read from `structuredContent` or JSON text, and normalized defensively (common key spellings for name, address, chain, USD value and holdings). After connecting a real account, use **Inspect CoinTracker tools** in the card. If the connector picks the wrong tool, pin the right one with `COINTRACKER_BALANCE_TOOL`.
 
+If the tool returns holdings by asset rather than by wallet (an array of `{symbol, quantity, value}` rows, or an object keyed by ticker), they become a single **CoinTracker portfolio** account. Its value is the reported total, or else the sum of the assets' USD values, and the per-asset holdings are kept. Because that account has no addresses, it can't adopt manual crypto rows; manual rows covering the same coins are listed as possible duplicates. If nothing in the response is readable, the sync is treated as partial (no rows change), and the card shows a `payloadShape`. That is the response's structure with every value replaced by its type, and address-like keys masked. It is safe to share when reporting the problem.
+
 ### Env vars
 
 ```dotenv

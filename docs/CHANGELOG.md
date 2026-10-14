@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-14 — CoinTracker asset-level portfolios
+
+#### Fixed
+
+- CoinTracker sync on the hosted deploy reported "0 wallets · CoinTracker returned no wallets or accounts fire could recognize" for an account holding ETH, POL, AVAX, BTC and PIXL. `app/lib/cointracker-connector.js` now reads holdings by asset (an array of asset rows, or an object keyed by ticker) as one **CoinTracker portfolio** account, using the reported total or the sum of USD values. Asset rows are no longer mistaken for wallets. More USD-value key spellings are recognized.
+
+#### Added
+
+- When CoinTracker's response still can't be read, the sync returns `payloadShape`: the structure with every value replaced by its type and address-like keys masked. The CoinTracker card shows it in a collapsible block so it can be shared. 6 new tests in `tests/unit/cointracker-connector.test.mjs`, including one that checks no amounts, labels, addresses or strings leak into the outline.
+
 ### 2026-10-14 — Google Drive backup on the hosted deploy
 
 #### Fixed
