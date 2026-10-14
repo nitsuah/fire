@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-14 — `.env.example` matches the code
+
+#### Changed
+
+- `.env.example`: documents `FIRE_ADMIN_KEY` (required in production for key rotation) and adds the optional Etsy block (`ETSY_CLIENT_ID`, `ETSY_SHARED_SECRET`, `ETSY_REDIRECT_URI`). Removes `SECRET_KEY` and `DATABASE_URL`, which nothing in `app/`, `netlify/`, `scripts/` or `config/` reads.
+
 ### 2026-10-14 — Drive backup errors explain themselves
 
 #### Fixed
