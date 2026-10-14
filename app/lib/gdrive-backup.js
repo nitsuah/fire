@@ -284,6 +284,32 @@ function decryptBackup(raw) {
 
 // ─── Drive operations ─────────────────────────────────────────────────────────
 
+// Builds an Error from a failed Drive response, carrying Google's own
+// explanation (e.g. "Google Drive API has not been used in project … or it
+// is disabled") so callers can show why, not just the status code. Google's
+// error bodies hold no credentials. `driveReason` is Google's reason code.
+async function driveError(res, label) {
+    let message = '';
+    let reason;
+    try {
+        const text = await res.text();
+        try {
+            const err = JSON.parse(text).error;
+            message = typeof err === 'string' ? err : err?.message || '';
+            reason = err?.errors?.[0]?.reason || err?.status;
+        } catch {
+            message = text;
+        }
+    } catch {
+        /* body unreadable */
+    }
+    message = String(message).replace(/\s+/g, ' ').trim().slice(0, 300);
+    return Object.assign(
+        new Error(`${label} (${res.status})${message ? `: ${message}` : ''}`),
+        { status: res.status, driveReason: reason },
+    );
+}
+
 async function getOrCreateFolder(token) {
     if (process.env.GDRIVE_BACKUP_FOLDER_ID) {
         return process.env.GDRIVE_BACKUP_FOLDER_ID;
@@ -299,10 +325,7 @@ async function getOrCreateFolder(token) {
         },
     );
     if (!listRes.ok)
-        throw Object.assign(
-            new Error(`Drive folder search failed (${listRes.status})`),
-            { status: listRes.status },
-        );
+        throw await driveError(listRes, 'Drive folder search failed');
     const { files } = await listRes.json();
     if (files?.length) return files[0].id;
 
@@ -319,10 +342,7 @@ async function getOrCreateFolder(token) {
         signal: AbortSignal.timeout(10000),
     });
     if (!createRes.ok)
-        throw Object.assign(
-            new Error(`Drive folder creation failed (${createRes.status})`),
-            { status: createRes.status },
-        );
+        throw await driveError(createRes, 'Drive folder creation failed');
     const folder = await createRes.json();
     return folder.id;
 }
@@ -356,13 +376,7 @@ async function uploadBackupWithToken(token, dbJson) {
         body,
         signal: AbortSignal.timeout(30000),
     });
-    if (!res.ok) {
-        const text = await res.text();
-        throw Object.assign(
-            new Error(`Drive upload failed (${res.status}): ${text}`),
-            { status: res.status },
-        );
-    }
+    if (!res.ok) throw await driveError(res, 'Drive upload failed');
     const file = await res.json();
     return { fileId: file.id, fileName, folderId };
 }
@@ -379,10 +393,7 @@ async function listBackupsWithToken(token) {
             signal: AbortSignal.timeout(10000),
         },
     );
-    if (!res.ok)
-        throw Object.assign(new Error(`Drive list failed (${res.status})`), {
-            status: res.status,
-        });
+    if (!res.ok) throw await driveError(res, 'Drive list failed');
     const { files } = await res.json();
     return files || [];
 }
@@ -400,11 +411,7 @@ async function downloadBackupWithToken(token, fileId) {
             signal: AbortSignal.timeout(30000),
         },
     );
-    if (!res.ok)
-        throw Object.assign(
-            new Error(`Drive download failed (${res.status})`),
-            { status: res.status },
-        );
+    if (!res.ok) throw await driveError(res, 'Drive download failed');
     return res.text();
 }
 
