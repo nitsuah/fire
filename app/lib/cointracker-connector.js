@@ -533,6 +533,12 @@ const VALUE_KEYS = [
     'balance_usd',
     'current_value',
     'currentValue',
+    'fiat_balance',
+    'fiatBalance',
+    'balance_in_usd',
+    'value_in_usd',
+    'valueInUsd',
+    'usd',
     'value',
 ];
 const NAME_KEYS = [
@@ -610,18 +616,45 @@ function collectStrings(obj, keys) {
 
 function normalizeHolding(h) {
     if (!h || typeof h !== 'object') return null;
-    const symbol =
-        firstString(h, ['symbol', 'ticker', 'currency', 'asset_symbol']) ||
-        firstString(h.asset || h.currency || {}, ['symbol', 'ticker']) ||
-        null;
+    const symbol = assetSymbol(h) || null;
     const quantity = firstNumber(h, ['amount', 'quantity', 'balance', 'units']);
     const usdValue = firstNumber(h, VALUE_KEYS);
     if (!symbol && usdValue === null) return null;
     return { symbol: symbol ? symbol.toUpperCase() : null, quantity, usdValue };
 }
 
+const SYMBOL_KEYS = ['symbol', 'ticker', 'asset_symbol', 'assetSymbol'];
+
+function assetSymbol(item) {
+    return (
+        firstString(item, SYMBOL_KEYS) ||
+        firstString(item?.asset || {}, SYMBOL_KEYS) ||
+        (typeof item?.currency === 'string' ? item.currency.trim() : null) ||
+        firstString(
+            item?.currency && typeof item.currency === 'object'
+                ? item.currency
+                : {},
+            SYMBOL_KEYS,
+        )
+    );
+}
+
+// A per-asset row ("8.05 ETH, $19,528") rather than a wallet: it names an
+// asset and has no addresses or nested holdings of its own.
+function looksLikeAsset(item) {
+    return (
+        Boolean(item) &&
+        typeof item === 'object' &&
+        !Array.isArray(item) &&
+        Boolean(assetSymbol(item)) &&
+        !collectStrings(item, ADDRESS_KEYS).length &&
+        !HOLDING_KEYS.some((k) => Array.isArray(item[k]))
+    );
+}
+
 function looksLikeWallet(item) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return 0;
+    if (looksLikeAsset(item)) return 0;
     let score = 0;
     if (firstString(item, NAME_KEYS)) score++;
     if (collectStrings(item, ADDRESS_KEYS).length) score += 2;
@@ -658,6 +691,87 @@ function findWalletArray(payload, depth = 0) {
         if (hit) return hit;
     }
     return null;
+}
+
+const TICKER_KEY_RE = /^[A-Za-z0-9.$-]{1,12}$/;
+
+// An asset-level portfolio: an array of asset rows, or an object keyed by
+// ticker ({ETH: {amount, value}, ...}). Returns normalized holdings or null.
+function findAssetHoldings(payload, depth = 0) {
+    if (depth > 4 || payload == null || typeof payload !== 'object')
+        return null;
+    if (Array.isArray(payload)) {
+        const objs = payload.filter((x) => x && typeof x === 'object');
+        if (!objs.length || !objs.every(looksLikeAsset)) return null;
+        const holdings = objs.map(normalizeHolding).filter(Boolean);
+        return holdings.length ? holdings : null;
+    }
+    const entries = Object.entries(payload);
+    const keyedByTicker =
+        entries.length > 0 &&
+        entries.every(
+            ([k, v]) =>
+                TICKER_KEY_RE.test(k) &&
+                v &&
+                typeof v === 'object' &&
+                !Array.isArray(v) &&
+                (firstNumber(v, VALUE_KEYS) !== null ||
+                    firstNumber(v, ['amount', 'quantity', 'balance']) !== null),
+        );
+    if (keyedByTicker) {
+        const holdings = entries
+            .map(([k, v]) => normalizeHolding({ symbol: k, ...v }))
+            .filter(Boolean);
+        if (holdings.length) return holdings;
+    }
+    for (const key of [
+        'assets',
+        'holdings',
+        'balances',
+        'positions',
+        'tokens',
+        'portfolio',
+        'data',
+        'items',
+        'results',
+    ]) {
+        const hit = findAssetHoldings(payload[key], depth + 1);
+        if (hit) return hit;
+    }
+    for (const value of Object.values(payload)) {
+        const hit = findAssetHoldings(value, depth + 1);
+        if (hit) return hit;
+    }
+    return null;
+}
+
+// Keys that are themselves data (wallet addresses, long ids) are masked so
+// the outline below never carries an identifier.
+function maskKey(key) {
+    if (/^(0x[0-9a-f]{8,}|bc1|[13][1-9A-HJ-NP-Za-km-z]{25,})/i.test(key))
+        return '<address>';
+    return key.length > 40 ? '<key>' : key;
+}
+
+// The structure of a payload with every value replaced by its type, so a
+// response fire can't read can be shared to fix the parser without exposing
+// balances, names or addresses.
+function payloadShape(value, depth = 0) {
+    if (value === null) return 'null';
+    if (Array.isArray(value)) {
+        if (!value.length) return [];
+        return depth >= 5
+            ? [`array(${value.length})`]
+            : [payloadShape(value[0], depth + 1), `…${value.length} items`];
+    }
+    if (typeof value !== 'object') return typeof value;
+    if (depth >= 5) return 'object';
+    const out = {};
+    const keys = Object.keys(value);
+    for (const key of keys.slice(0, 40))
+        out[maskKey(key)] = payloadShape(value[key], depth + 1);
+    if (keys.length > 40) out['…'] = `${keys.length - 40} more keys`;
+    return out;
 }
 
 function stableId(name, addresses) {
@@ -724,12 +838,51 @@ function normalizeWallets(payload) {
         });
     }
     if (!items.length) {
+        const holdings = findAssetHoldings(payload);
+        const valued = holdings?.filter((h) => h.usdValue !== null) || [];
+        if (valued.length) {
+            // Holdings by asset, not by wallet: one portfolio account for the
+            // whole CoinTracker balance. A payload-level total wins over the
+            // sum when CoinTracker reports one.
+            const total =
+                firstNumber(payload, VALUE_KEYS) ??
+                firstNumber(payload, [
+                    'total',
+                    'portfolio_value',
+                    'net_worth',
+                ]) ??
+                valued.reduce((sum, h) => sum + h.usdValue, 0);
+            wallets.push({
+                providerId: 'cointracker-portfolio',
+                name: 'CoinTracker portfolio',
+                kind: 'portfolio',
+                chains: [],
+                addresses: [],
+                usdValue: Math.round(total * 100) / 100,
+                holdings,
+            });
+            if (valued.length < holdings.length)
+                warnings.push(
+                    `${holdings.length - valued.length} asset(s) had no USD value and are not counted.`,
+                );
+            return { wallets, warnings, skippedProviderIds, partial: false };
+        }
         warnings.push(
-            'CoinTracker returned no wallets or accounts fire could recognize.',
+            holdings
+                ? 'CoinTracker returned assets without USD values.'
+                : 'CoinTracker returned no wallets or accounts fire could recognize.',
         );
+        // partial: nothing was recognized, so absence proves nothing. The
+        // shape (no values) lets the user share what CoinTracker sent.
+        return {
+            wallets,
+            warnings,
+            skippedProviderIds,
+            partial: true,
+            payloadShape: payloadShape(payload),
+        };
     }
-    // partial: nothing was recognized, so absence proves nothing.
-    return { wallets, warnings, skippedProviderIds, partial: !items.length };
+    return { wallets, warnings, skippedProviderIds, partial: false };
 }
 
 function summarizeTools(tools) {
@@ -857,6 +1010,7 @@ module.exports = {
     extractPayload,
     toNumber,
     normalizeWallets,
+    payloadShape,
     summarizeTools,
     syncWallets,
     inspectTools,

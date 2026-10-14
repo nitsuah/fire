@@ -150,6 +150,7 @@ async function runCoinTrackerSync({ silent = false } = {}) {
         );
         if (typeof refreshAllUI === 'function') refreshAllUI();
         renderCoinTrackerCard();
+        renderCoinTrackerShape(data);
         return merged;
     } catch (err) {
         ctSetStatus(`Sync failed: ${err.message}`, 'var(--color-danger)');
@@ -181,6 +182,15 @@ async function disconnectCoinTracker() {
     await saveState();
     if (typeof refreshAllUI === 'function') refreshAllUI();
     renderCoinTrackerCard();
+}
+
+// When fire couldn't read CoinTracker's answer, show its structure (field
+// names and types only; the server strips every value) so it can be shared
+// to fix the parser.
+function renderCoinTrackerShape(data) {
+    const out = document.getElementById('cointracker-inspect');
+    if (!out || !data?.payloadShape) return;
+    out.innerHTML = `<details open><summary class="csp-text-12">What <code>${escHtml(data.tool || 'the balance tool')}</code> returned: structure only, no amounts, names or addresses</summary><pre class="csp-text-11">${escHtml(JSON.stringify(data.payloadShape, null, 2))}</pre></details>`;
 }
 
 async function inspectCoinTrackerTools() {

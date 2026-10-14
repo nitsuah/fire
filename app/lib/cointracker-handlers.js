@@ -172,6 +172,9 @@ async function sync({ body }, fetchImpl = fetch) {
                 warnings: result.warnings,
                 skippedProviderIds: result.skippedProviderIds,
                 partial: result.partial,
+                ...(result.payloadShape
+                    ? { payloadShape: result.payloadShape }
+                    : {}),
                 syncedAt: new Date().toISOString(),
                 ...(result.refreshed
                     ? { token: ct.sealTokens(result.tokens) }
