@@ -475,7 +475,7 @@ COINGECKO_API_KEY=    # Optional; increases rate limit
 
 ## Google Drive (Encrypted Backup)
 
-**Purpose:** Store an AES-256-GCM encrypted copy of db.json in the user's personal Google Drive.  
+**Purpose:** Store an AES-256-GCM encrypted copy of the user's data (db.json self-hosted, the browser's state on the hosted deploy) in the user's personal Google Drive.  
 **Phase:** PROD Phase 1  
 **Auth type:** User OAuth 2.0 (the only mode the code supports; there is no service-account option)
 
@@ -495,10 +495,24 @@ COINGECKO_API_KEY=    # Optional; increases rate limit
 ```dotenv
 GDRIVE_CLIENT_ID=                                    # Google OAuth 2.0 Web application client ID
 GDRIVE_CLIENT_SECRET=                                # Google OAuth 2.0 Web application client secret
-GDRIVE_REDIRECT_URI=                                  # Optional; defaults to the local callback URL
+GDRIVE_REDIRECT_URI=                                  # Optional; defaults to the local callback URL (self-hosted) or the request origin (hosted)
 GDRIVE_BACKUP_FOLDER_ID=                              # Optional: Drive folder ID (auto-created if blank)
 SYNC_MASTER_KEY=                                      # Required: 64 hex chars (openssl rand -hex 32); encrypts backups and the Drive token
 ```
+
+### Hosted deploy (lifefire.netlify.app)
+
+`netlify/functions/gdrive-backup.mjs` serves `/api/backup/drive` and `/api/backup/drive/*` (two `netlify.toml` rewrites placed before the `/api/*` catch-all). It reuses the Drive API and AES-256-GCM helpers in `app/lib/gdrive-backup.js`. It is stateless, like the Etsy function:
+
+- **Connect:** `GET /authorize` puts the OAuth state in a sealed HttpOnly cookie and redirects to Google. `GET /callback` exchanges the code and redirects to `/#gdrive-connected=<blob>`, where the blob is the tokens sealed with `SYNC_MASTER_KEY`. Failures redirect to `/#gdrive-error=<code>`. The browser keeps the blob under the `fire_tracker_gdrive_token` localStorage key, which is never part of `fire_tracker_state` or its backups. It only accepts a fragment from a connect that this tab started.
+- **Back up:** `POST /api/backup/drive` with `{tokens, state}`. There is no db.json on this deploy, so the browser sends its own state. The function encrypts it and uploads only ciphertext.
+- **List:** `GET /list` with the blob in an `X-GDrive-Tokens` header.
+- **Restore:** `POST /restore` with `{tokens, fileId}` returns `{state}` decrypted. The browser applies it through `sanitizeState` and `saveState`, then reloads.
+- **Status:** `GET /status` reports whether the client and key are configured. The browser decides "connected" from its blob.
+- **Token refresh:** when the access token is refreshed, the response carries a resealed `tokens` blob, even if the Drive call then failed.
+- **Errors:** every response is JSON. An unreadable blob returns `401 gdrive_token_invalid` and a revoked grant returns `401 gdrive_revoked`; in both cases the browser drops the blob. A backup encrypted with a different `SYNC_MASTER_KEY`, or a corrupted file, returns `422 gdrive_backup_unreadable`.
+
+Netlify env: `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET` and `SYNC_MASTER_KEY`, plus optional `GDRIVE_REDIRECT_URI` and `GDRIVE_BACKUP_FOLDER_ID`. **Manual step:** add `https://lifefire.netlify.app/api/backup/drive/callback` as an authorized redirect URI on the GCP OAuth client. Without it, Google rejects the connect with `redirect_uri_mismatch`. Backups are encrypted with the deploy's `SYNC_MASTER_KEY`, so a hosted backup can only be restored where that same key is set.
 
 ### Security Note
 
@@ -650,7 +664,7 @@ VEHICLE_VALUE_PROVIDER=dataone
 | Blockstream (Bitcoin) | ❌ Phase 1 | None |
 | Solana RPC | ❌ Phase 1 | None |
 | CoinGecko prices | ❌ Phase 1 | None (optional key) |
-| Google Drive backup | 🟡 Implemented; round-trip verification pending | `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `SYNC_MASTER_KEY` |
+| Google Drive backup | 🟡 Implemented self-hosted and on the hosted deploy (`netlify/functions/gdrive-backup.mjs`, `/api/backup/drive/*`); live round-trip verification pending | `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `SYNC_MASTER_KEY` |
 | NHTSA VIN decode | ❌ Phase 1 | None |
 | Vehicle value API | ❌ Phase 1 | `VEHICLE_VALUE_API_KEY` |
 | Plaid (Fidelity/bank sync) | ✅ Live on the hosted deploy — `netlify/functions/plaid.mjs`, reached at `/api/sync/plaid/*` via the `netlify.toml` redirects. No `app/api/sync/plaid` route exists, so self-hosted Express does not serve it. | `PLAID_CLIENT_ID`, `PLAID_SECRET` |

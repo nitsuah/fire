@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-14 — Google Drive backup on the hosted deploy
+
+#### Fixed
+
+- On lifefire.netlify.app, Connect / Back up / Restore for Google Drive returned `{"error":"This API endpoint is not available in the hosted browser deployment."}` because no function served `/api/backup/drive/*`. New `netlify/functions/gdrive-backup.mjs` serves status, authorize, callback, back up, list and restore. Two new `netlify.toml` rewrites (`/api/backup/drive` and `/api/backup/drive/*`) are placed before the catch-all.
+
+#### Changed
+
+- `app/lib/gdrive-backup.js`: split into store-free primitives (`requestTokens`, `refreshTokens`, `uploadBackupWithToken`, `listBackupsWithToken`, `downloadBackupWithToken`, plus the existing AES-256-GCM helpers) that the hosted function reuses. The Express wrappers keep the encrypted token file and behave as before. `db.js` is now loaded lazily.
+- `app/lib/managers/gdrive-backup.js`: on the hosted deploy, the Settings panel keeps a sealed token blob in its own localStorage key and sends it with each call. It backs up the browser's state, applies a restored state locally, and drops the blob when the grant is revoked or unreadable. `/#gdrive-connected=` results are only accepted from a connect that this tab started.
+
+#### Added
+
+- `tests/unit/netlify-gdrive-backup.test.mjs` (19 tests, Google HTTP mocked): authorize redirect, callback to a sealed blob, ciphertext-only upload, token refresh and reseal, list, restore round trip, wrong-key and corrupted backups (`422`, JSON), dead grants (`401`, JSON), and Drive outages (JSON). `tests/unit/netlify-api.test.mjs` asserts the new rewrites come before the `/api/*` catch-all.
+- Docs: hosted setup in `docs/integrations.md` and `.env.example`. Manual step: add `https://lifefire.netlify.app/api/backup/drive/callback` to the GCP OAuth client's redirect URIs.
+
 ### 2026-10-14 — Price freshness: server-side re-price + stale flags
 
 #### Fixed
