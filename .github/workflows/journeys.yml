@@ -32,7 +32,7 @@ jobs:
     uses: nitsuah/.github/.github/workflows/journeys.yml@main
     with:
       # Keep in step with @playwright/test in package.json.
-      image: mcr.microsoft.com/playwright:v1.63.0-jammy
+      image: mcr.microsoft.com/playwright:v1.64.0-jammy
       command: npm run test:journeys
       features: promo/spots.json
       repro: |
