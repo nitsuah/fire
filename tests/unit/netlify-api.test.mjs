@@ -36,6 +36,33 @@ describe('hosted fire API', () => {
             'to = "/.netlify/functions/plaid/:splat"',
         );
     });
+
+    it('routes /api/backup/drive and /api/backup/drive/* to the Drive backup function, not the catch-all', () => {
+        // The hosted Drive backup used to fall through to fire-api.mjs and
+        // return "not available in the hosted browser deployment".
+        const toml = fs.readFileSync(
+            path.join(process.cwd(), 'netlify.toml'),
+            'utf8',
+        );
+        const fallbackRule = toml.indexOf('from = "/api/*"');
+        for (const [from, to] of [
+            ['/api/backup/drive', '/.netlify/functions/gdrive-backup'],
+            ['/api/backup/drive/*', '/.netlify/functions/gdrive-backup/:splat'],
+        ]) {
+            const rule = toml.indexOf(`from = "${from}"`);
+            expect(rule).toBeGreaterThan(-1);
+            expect(fallbackRule).toBeGreaterThan(rule);
+            const block = toml.slice(rule, toml.indexOf('[[redirects]]', rule));
+            expect(block).toContain(`to = "${to}"`);
+            expect(block).toContain('status = 200');
+            expect(block).toContain('force = true');
+        }
+        expect(
+            fs.existsSync(
+                path.join(process.cwd(), 'netlify/functions/gdrive-backup.mjs'),
+            ),
+        ).toBe(true);
+    });
 });
 
 describe('hosted fire API — account refreshes', () => {

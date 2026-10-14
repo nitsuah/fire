@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof initCoinTracker === 'function') initCoinTracker();
     initPlatformCalculators();
     if (typeof initEtsySync === 'function') initEtsySync();
+    if (typeof initGDriveBackup === 'function') initGDriveBackup();
     initProjectionsManager();
     initCashFlowToggles();
     initCompactFireBar();

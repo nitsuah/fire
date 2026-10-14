@@ -4,7 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const { DATA_DIR } = require('./db');
+// Transport-agnostic Drive helpers shared by the Express routes
+// (app/routes/backup.js, tokens kept in an encrypted file under DATA_DIR) and
+// the Netlify Function (netlify/functions/gdrive-backup.mjs, tokens handed to
+// the browser as a SYNC_MASTER_KEY-sealed blob). The *WithToken / requestTokens
+// / refreshTokens primitives never touch the file store; the un-suffixed
+// wrappers below them are the Express path.
 
 const BACKUP_FOLDER_NAME = 'fire-tracker-backups';
 const GDRIVE_API = 'https://www.googleapis.com';
@@ -15,7 +20,8 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILE_ID_RE = /^[A-Za-z0-9_-]+$/;
 
 function tokenFilePath() {
-    return path.join(DATA_DIR, 'tokens-gdrive.json');
+    // Lazy: the hosted function has no data dir and never loads db.js.
+    return path.join(require('./db').DATA_DIR, 'tokens-gdrive.json');
 }
 
 function isOAuthConfigured() {
@@ -115,10 +121,10 @@ function getRedirectUri() {
     );
 }
 
-function generateAuthUrl(state) {
+function generateAuthUrl(state, redirectUri = getRedirectUri()) {
     const params = new URLSearchParams({
         client_id: process.env.GDRIVE_CLIENT_ID,
-        redirect_uri: getRedirectUri(),
+        redirect_uri: redirectUri,
         response_type: 'code',
         scope: DRIVE_SCOPE,
         access_type: 'offline',
@@ -128,7 +134,9 @@ function generateAuthUrl(state) {
     return `${GDRIVE_AUTH_ENDPOINT}?${params}`;
 }
 
-async function exchangeCodeForTokens(code) {
+// Exchanges an authorization code for {access_token, refresh_token, expiry}
+// without storing anything.
+async function requestTokens(code, redirectUri = getRedirectUri()) {
     const res = await fetch(GDRIVE_TOKEN_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -136,7 +144,7 @@ async function exchangeCodeForTokens(code) {
             code,
             client_id: process.env.GDRIVE_CLIENT_ID,
             client_secret: process.env.GDRIVE_CLIENT_SECRET,
-            redirect_uri: getRedirectUri(),
+            redirect_uri: redirectUri,
             grant_type: 'authorization_code',
         }).toString(),
         signal: AbortSignal.timeout(10000),
@@ -151,24 +159,32 @@ async function exchangeCodeForTokens(code) {
             'Google did not return a refresh token. Ensure the app was authorized with access_type=offline and prompt=consent.',
         );
     }
-    saveTokens({
+    return {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         expiry: Date.now() + (tokens.expires_in || 3600) * 1000,
-    });
+    };
+}
+
+async function exchangeCodeForTokens(code) {
+    const tokens = await requestTokens(code);
+    saveTokens(tokens);
     return tokens;
 }
 
-async function getOAuthAccessToken() {
-    const stored = loadTokens();
-    if (
-        stored.access_token &&
-        stored.expiry &&
-        stored.expiry > Date.now() + 60_000
-    ) {
-        return stored.access_token;
-    }
-    // Refresh
+function isAccessTokenFresh(tokens) {
+    return Boolean(
+        tokens.access_token &&
+        tokens.expiry &&
+        tokens.expiry > Date.now() + 60_000,
+    );
+}
+
+// Returns {tokens, changed}: the stored grant as-is while its access token
+// is fresh, otherwise refreshed. A dead refresh token throws
+// {status: 401, code: 'gdrive_revoked'}.
+async function refreshTokens(stored) {
+    if (isAccessTokenFresh(stored)) return { tokens: stored, changed: false };
     const res = await fetch(GDRIVE_TOKEN_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -183,16 +199,11 @@ async function getOAuthAccessToken() {
     if (!res.ok) {
         const text = await res.text();
         if (res.status === 400 || res.status === 401) {
-            try {
-                fs.unlinkSync(tokenFilePath());
-            } catch {
-                /* already gone */
-            }
             throw Object.assign(
                 new Error(
                     `Drive token revoked or expired. Re-authorize at /api/backup/drive/authorize`,
                 ),
-                { status: 401 },
+                { status: 401, code: 'gdrive_revoked' },
             );
         }
         throw Object.assign(
@@ -201,13 +212,33 @@ async function getOAuthAccessToken() {
         );
     }
     const data = await res.json();
-    const updated = {
-        ...stored,
-        access_token: data.access_token,
-        expiry: Date.now() + (data.expires_in || 3600) * 1000,
+    return {
+        tokens: {
+            ...stored,
+            access_token: data.access_token,
+            expiry: Date.now() + (data.expires_in || 3600) * 1000,
+        },
+        changed: true,
     };
-    saveTokens(updated);
-    return updated.access_token;
+}
+
+async function getOAuthAccessToken() {
+    const stored = loadTokens();
+    let result;
+    try {
+        result = await refreshTokens(stored);
+    } catch (err) {
+        if (err.code === 'gdrive_revoked') {
+            try {
+                fs.unlinkSync(tokenFilePath());
+            } catch {
+                /* already gone */
+            }
+        }
+        throw err;
+    }
+    if (result.changed) saveTokens(result.tokens);
+    return result.tokens.access_token;
 }
 
 // ─── Backup encryption ────────────────────────────────────────────────────────
@@ -296,8 +327,7 @@ async function getOrCreateFolder(token) {
     return folder.id;
 }
 
-async function uploadBackup(dbJson) {
-    const token = await getOAuthAccessToken();
+async function uploadBackupWithToken(token, dbJson) {
     const folderId = await getOrCreateFolder(token);
     const encrypted = encryptForBackup(dbJson);
     const date = new Date().toISOString().split('T')[0];
@@ -337,8 +367,7 @@ async function uploadBackup(dbJson) {
     return { fileId: file.id, fileName, folderId };
 }
 
-async function listBackups() {
-    const token = await getOAuthAccessToken();
+async function listBackupsWithToken(token) {
     const folderId = await getOrCreateFolder(token);
     const q = encodeURIComponent(
         `'${folderId}' in parents and name contains 'fire-backup-' and trashed=false`,
@@ -358,11 +387,11 @@ async function listBackups() {
     return files || [];
 }
 
-async function downloadAndDecryptBackup(fileId) {
+// Returns the backup file as stored (ciphertext).
+async function downloadBackupWithToken(token, fileId) {
     if (typeof fileId !== 'string' || !DRIVE_FILE_ID_RE.test(fileId)) {
         throw new Error('Invalid Google Drive file ID.');
     }
-    const token = await getOAuthAccessToken();
     const encodedFileId = encodeURIComponent(fileId);
     const res = await fetch(
         `${GDRIVE_API}/drive/v3/files/${encodedFileId}?alt=media`,
@@ -376,11 +405,33 @@ async function downloadAndDecryptBackup(fileId) {
             new Error(`Drive download failed (${res.status})`),
             { status: res.status },
         );
-    const encrypted = await res.text();
-    return decryptBackup(encrypted);
+    return res.text();
+}
+
+async function downloadAndDecryptBackupWithToken(token, fileId) {
+    return decryptBackup(await downloadBackupWithToken(token, fileId));
+}
+
+async function uploadBackup(dbJson) {
+    return uploadBackupWithToken(await getOAuthAccessToken(), dbJson);
+}
+
+async function listBackups() {
+    return listBackupsWithToken(await getOAuthAccessToken());
+}
+
+async function downloadAndDecryptBackup(fileId) {
+    if (typeof fileId !== 'string' || !DRIVE_FILE_ID_RE.test(fileId)) {
+        throw new Error('Invalid Google Drive file ID.');
+    }
+    return downloadAndDecryptBackupWithToken(
+        await getOAuthAccessToken(),
+        fileId,
+    );
 }
 
 module.exports = {
+    DRIVE_FILE_ID_RE,
     isConfigured,
     isOAuthConfigured,
     generateAuthUrl,
@@ -388,4 +439,12 @@ module.exports = {
     uploadBackup,
     listBackups,
     downloadAndDecryptBackup,
+    // Store-free primitives for the hosted function.
+    requestTokens,
+    refreshTokens,
+    encryptForBackup,
+    decryptBackup,
+    uploadBackupWithToken,
+    listBackupsWithToken,
+    downloadBackupWithToken,
 };

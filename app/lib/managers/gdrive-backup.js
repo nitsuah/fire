@@ -8,7 +8,76 @@
    so restore buttons carry only the escaped file id via data-file-id and are
    wired through a single delegated click listener rather than an inline
    onclick="...('${id}')" string.
+
+   Self-hosted: the server keeps the Drive tokens and backs up db.json.
+   Browser-only (Netlify, netlify/functions/gdrive-backup.mjs): the browser
+   holds a SYNC_MASTER_KEY-sealed token blob under its own localStorage key
+   (never in fire_tracker_state or its backups) and sends it with each call,
+   backs up its own `state`, and applies the decrypted state on restore.
    ========================================================================== */
+
+const GDRIVE_TOKEN_KEY = 'fire_tracker_gdrive_token';
+const GDRIVE_CONNECT_PENDING_KEY = 'fire_tracker_gdrive_connect_pending';
+// Only these mean the grant is gone and the blob should be dropped.
+const GDRIVE_DEAD_GRANT_CODES = new Set([
+    'gdrive_revoked',
+    'gdrive_token_invalid',
+]);
+
+function gdriveHosted() {
+    return typeof isBrowserOnlyMode === 'function' && isBrowserOnlyMode();
+}
+
+function gdriveRead(key, storage = localStorage) {
+    try {
+        return storage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function gdriveWrite(key, value, storage = localStorage) {
+    try {
+        if (value === null) storage.removeItem(key);
+        else storage.setItem(key, value);
+    } catch {
+        /* storage unavailable — nothing to persist */
+    }
+}
+
+function gdriveToast(message, type) {
+    if (typeof showSideGigToast === 'function') showSideGigToast(message, type);
+}
+
+// Calls a Drive endpoint. On the hosted deploy, attaches the sealed blob
+// (JSON body for POST, header for GET), keeps a refreshed blob the function
+// hands back, and drops the blob when the grant is dead.
+async function gdriveFetch(path, { method = 'GET', body } = {}) {
+    const hosted = gdriveHosted();
+    const blob = hosted ? gdriveRead(GDRIVE_TOKEN_KEY) : null;
+    if (hosted && !blob) throw new Error('Google Drive is not connected.');
+    const headers = {};
+    let payload;
+    if (method === 'POST') {
+        headers['Content-Type'] = 'application/json';
+        payload = JSON.stringify(hosted ? { ...body, tokens: blob } : body);
+    } else if (hosted) {
+        headers['X-GDrive-Tokens'] = blob;
+    }
+    const res = await fetch(path, { method, headers, body: payload });
+    const data = await res.json().catch(() => ({}));
+    if (hosted && data.tokens) gdriveWrite(GDRIVE_TOKEN_KEY, data.tokens);
+    if (
+        hosted &&
+        res.status === 401 &&
+        GDRIVE_DEAD_GRANT_CODES.has(data.code)
+    ) {
+        gdriveWrite(GDRIVE_TOKEN_KEY, null);
+        loadGDriveBackupPanel();
+    }
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+}
 
 async function loadGDriveBackupPanel() {
     const statusEl = document.getElementById('gdrive-status');
@@ -44,7 +113,10 @@ async function loadGDriveBackupPanel() {
         }
         if (connectBtn) connectBtn.disabled = false;
 
-        if (data.authorized) {
+        const authorized = gdriveHosted()
+            ? Boolean(gdriveRead(GDRIVE_TOKEN_KEY))
+            : data.authorized;
+        if (authorized) {
             statusEl.textContent = 'Connected to Google Drive.';
             statusEl.style.color = 'var(--color-success)';
             if (connectBtn) connectBtn.style.display = 'none';
@@ -63,7 +135,43 @@ async function loadGDriveBackupPanel() {
 }
 
 function connectGoogleDrive() {
+    // The OAuth state cookie protects Google → callback; this marker protects
+    // callback → SPA, so a crafted /#gdrive-connected=<blob> link can't
+    // silently connect someone else's Drive in this browser.
+    gdriveWrite(GDRIVE_CONNECT_PENDING_KEY, '1', sessionStorage);
     window.location.assign('/api/backup/drive/authorize');
+}
+
+// The hosted callback returns to /#gdrive-connected=<blob> or
+// /#gdrive-error=<code>. Runs on page load (see app.js).
+function initGDriveBackup() {
+    const match = (window.location.hash || '').match(
+        /^#gdrive-(connected|error)=(.*)$/,
+    );
+    if (!match) return;
+    history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search,
+    );
+    const pending =
+        gdriveRead(GDRIVE_CONNECT_PENDING_KEY, sessionStorage) === '1';
+    gdriveWrite(GDRIVE_CONNECT_PENDING_KEY, null, sessionStorage);
+    if (!pending) {
+        console.warn('[Drive] Ignored an OAuth result this tab did not start.');
+        return;
+    }
+    if (match[1] === 'error') {
+        gdriveToast(
+            `Google Drive connection failed (${decodeURIComponent(match[2])}). Please try again.`,
+            'error',
+        );
+        return;
+    }
+    gdriveWrite(GDRIVE_TOKEN_KEY, decodeURIComponent(match[2]));
+    gdriveToast(
+        'Google Drive connected. Use Settings → Google Drive Backup to back up.',
+    );
 }
 
 async function runGDriveBackupNow() {
@@ -74,9 +182,11 @@ async function runGDriveBackupNow() {
     const original = btn.textContent;
     btn.textContent = 'Backing up…';
     try {
-        const res = await fetch('/api/backup/drive', { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Backup failed.');
+        // Self-hosted backs up db.json; hosted sends this browser's state.
+        const data = await gdriveFetch('/api/backup/drive', {
+            method: 'POST',
+            body: gdriveHosted() ? { state } : undefined,
+        });
         if (statusEl) {
             statusEl.textContent = `Backup saved: ${data.fileName}`;
             statusEl.style.color = 'var(--color-success)';
@@ -98,9 +208,7 @@ async function loadGDriveBackupList() {
     if (!listEl) return;
     listEl.innerHTML = '<p class="text-muted csp-text-12">Loading backups…</p>';
     try {
-        const res = await fetch('/api/backup/drive/list');
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to list backups.');
+        const data = await gdriveFetch('/api/backup/drive/list');
         const files = Array.isArray(data.files) ? data.files : [];
         if (files.length === 0) {
             listEl.innerHTML =
@@ -142,13 +250,16 @@ document.addEventListener('click', async (e) => {
     const original = btn.textContent;
     btn.textContent = 'Restoring…';
     try {
-        const res = await fetch('/api/backup/drive/restore', {
+        const data = await gdriveFetch('/api/backup/drive/restore', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileId }),
+            body: { fileId },
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Restore failed.');
+        if (gdriveHosted()) {
+            if (!data.state || typeof data.state !== 'object')
+                throw new Error('Restore returned no data.');
+            state = sanitizeState(data.state);
+            await saveState();
+        }
         alert('Backup restored. Reloading…');
         window.location.reload();
     } catch (err) {
