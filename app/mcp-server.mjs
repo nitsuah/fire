@@ -29,6 +29,7 @@ const {
 } = require('./lib/aggregates.js');
 const { summarizeNetWorthHistory } = require('./lib/net-worth-history.js');
 const { coinTrackerAddresses } = require('./lib/cointracker-merge.js');
+const { summarizeDataFreshness } = require('./lib/data-freshness.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
 
@@ -50,13 +51,13 @@ const TOOLS = [
     {
         name: 'fire_status_summary',
         description:
-            'High-level FIRE status: FIRE number, current net worth, progress %, years to FIRE, and Coast FIRE status. Start here.',
+            'High-level FIRE status: FIRE number, current net worth, progress %, years to FIRE, and Coast FIRE status. Start here. dataFreshness says how old the prices behind net worth are — check it before trusting the numbers.',
         inputSchema: { type: 'object', properties: {} },
     },
     {
         name: 'get_net_worth',
         description:
-            'Net worth broken down by category: equities, cash, CDs, real estate, vehicles, and crypto wallets.',
+            'Net worth broken down by category: equities, cash, CDs, real estate, vehicles, and crypto wallets, plus dataFreshness (price age, last import, positions with no price source).',
         inputSchema: { type: 'object', properties: {} },
     },
     {
@@ -68,7 +69,7 @@ const TOOLS = [
     {
         name: 'get_portfolio',
         description:
-            'Imported Fidelity / Plaid brokerage positions with symbol, value, cost basis, and unrealized P&L.',
+            'Imported Fidelity / Plaid brokerage positions with symbol, value, cost basis, unrealized P&L and priceUpdatedAt, plus dataFreshness (price age, last import, positions with no price source).',
         inputSchema: { type: 'object', properties: {} },
     },
     {
@@ -187,7 +188,7 @@ const TOOLS = [
     {
         name: 'get_net_worth_trend',
         description:
-            'Actual net worth over time from daily snapshots: latest value, change over 7/30/365 days and since tracking began, plus the daily points (optionally limited to the last N days).',
+            'Actual net worth over time from daily snapshots: latest value, change over 7/30/365 days and since tracking began, plus the daily points (optionally limited to the last N days). Each point carries pricesAsOf/stale (null on snapshots recorded before this was tracked); stalePoints counts snapshots taken on stale prices.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -321,6 +322,7 @@ function handleTool(name, state, toolArgs = {}) {
                     bull: null,
                     bear: null,
                 },
+                dataFreshness: summarizeDataFreshness(state),
             };
         }
 
@@ -337,6 +339,7 @@ function handleTool(name, state, toolArgs = {}) {
                     vehicles: Math.round(b.vehicles),
                     cryptoWallets: Math.round(b.cryptoWallets),
                 },
+                dataFreshness: summarizeDataFreshness(state),
             };
         }
 
@@ -394,6 +397,7 @@ function handleTool(name, state, toolArgs = {}) {
                     costBasis: p.costBasis,
                     pl,
                     plPercent,
+                    priceUpdatedAt: p.priceUpdatedAt || null,
                 };
             });
             return {
@@ -406,6 +410,7 @@ function handleTool(name, state, toolArgs = {}) {
                         positions.reduce((s, p) => s + (p.pl || 0), 0) * 100,
                     ) / 100,
                 count: positions.length,
+                dataFreshness: summarizeDataFreshness(state),
             };
         }
 
@@ -643,7 +648,12 @@ function handleTool(name, state, toolArgs = {}) {
                     ? toolArgs.days
                     : null;
             const points = (days ? s.points.slice(-days) : s.points).map(
-                (p) => ({ date: p.date, total: Math.round(p.total) }),
+                (p) => ({
+                    date: p.date,
+                    total: Math.round(p.total),
+                    pricesAsOf: p.pricesAsOf ?? null,
+                    stale: typeof p.stale === 'boolean' ? p.stale : null,
+                }),
             );
             return {
                 latest: {
@@ -653,6 +663,7 @@ function handleTool(name, state, toolArgs = {}) {
                 changes: s.changes,
                 trackingSince: s.points[0].date,
                 count: s.points.length,
+                stalePoints: s.points.filter((p) => p.stale === true).length,
                 points,
             };
         }

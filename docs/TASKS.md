@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · **Tasks** · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-10-08
+updated: 2026-10-14
 
 ---
 
@@ -25,6 +25,11 @@ These items came from the current browser/production pass. **P0** items are corr
   - Scope: browser-first Google login/connect flow; link the Drive account before exposing backup actions; encrypt locally/server-side with the existing AES-256-GCM design; add an explicit test fixture that uploads an encrypted backup, downloads it, decrypts it, and byte/structure-compares the restored payload.
   - Acceptance Criteria: Google OAuth connect works from the browser; Drive only receives ciphertext; a fresh restore succeeds against a real or deterministic mocked Drive round trip; corrupted/wrong-key backups fail cleanly; UI cannot report a successful backup until the round-trip verification succeeds.
   - Rollout gate: do not change the README/marketing copy to imply backup safety beyond the tested guarantees until this passes.
+
+- [x] **Prices and net-worth history went stale with no dashboard tab open**
+  - Found by the 2026-10-14 weekly check-in: `priceUpdatedAt` stuck at 2026-09-26, the Vanguard CITs never re-priced, and 8 snapshots all equal to $1,040,480.27.
+  - Done 2026-10-14: the server re-prices hourly before each snapshot; MCP tools report `dataFreshness`; snapshots record `pricesAsOf`/`stale`; the weekly check-in prints "prices are N days old" when N > 3.
+  - Follow-up: the CIT CUSIPs still update only on a CSV import. Pricing them needs a fund-NAV source, or a Plaid holdings sync for the 401k.
 
 ### P1 — Integration & workflow improvements
 

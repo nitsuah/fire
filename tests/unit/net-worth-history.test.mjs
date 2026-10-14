@@ -145,8 +145,8 @@ describe('MCP get_net_worth_trend', () => {
         expect(r.trackingSince).toBe('2026-09-23');
         expect(r.count).toBe(3);
         expect(r.points).toEqual([
-            { date: '2026-09-24', total: 950 },
-            { date: '2026-09-25', total: 1000 },
+            { date: '2026-09-24', total: 950, pricesAsOf: null, stale: null },
+            { date: '2026-09-25', total: 1000, pricesAsOf: null, stale: null },
         ]);
     });
 });
