@@ -155,7 +155,7 @@ These items came from the current browser/production pass. **P0** items are corr
 ### Nightly journeys + review-pass findings — Oct 9, 2026
 
 - [x] **Nightly "AI user" journeys (pilot for the cross-repo loop)**
-  - Done 2026-10-09: 7 journeys, 19 baselines, nightly caller on the shared nitsuah/.github harness (needs nitsuah/.github#19 merged first). After merge, run `gh workflow run journeys.yml` once to create `bot/journeys`.
+  - Done 2026-10-09: 7 journeys, 19 baselines, nightly caller on the shared nitsuah/.github harness. nitsuah/.github#19 is merged, the manual `journeys.yml` run completed successfully, `bot/journeys` exists, and the nightly schedule is running.
 - [ ] **Fix the review-pass findings** (label `bot:review`). Fixing one may change a baseline: regenerate it in Docker in the same PR.
   - Priority: P1: #169 insights equity % counts crypto, #170 single-stock warning on broad ETFs (wrong advice). #178 MCP fire_status_summary disagrees with the dashboard (Claude gives different numbers than the UI).
   - Priority: P2: #166 privacy-modal nav links 404, #167 allocation legend clipped, #168 expense label/hint collisions, #171 settings toggles misaligned, #172 truncated selects, #173 ledger add-row on phones (with "Normalize Side Gig Ledger form controls" above).
