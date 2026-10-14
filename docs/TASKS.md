@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · **Tasks** · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
-updated: 2026-10-08
+updated: 2026-10-14
 
 ---
 
@@ -28,6 +28,11 @@ These items came from the current browser/production pass. **P0** items are corr
   - Progress 2026-10-14: on lifefire.netlify.app the Drive button returned the fire-api catch-all 404 ("not available in the hosted browser deployment"). `netlify/functions/gdrive-backup.mjs` now serves every `/api/backup/drive*` route on the hosted deploy. Tokens are sealed in the browser as Etsy's are; the browser sends its state and applies the restored state. The Drive and crypto code is shared with Express through store-free helpers in `app/lib/gdrive-backup.js`. `tests/unit/netlify-gdrive-backup.test.mjs` covers the following against a deterministic mocked Drive: authorize, callback to a sealed blob, ciphertext-only upload, list, and restore round trip (structure-compared). It also checks that wrong-key and corrupted backups and dead or unreadable grants fail with JSON. The toml routing test covers the new rewrites.
     - Remaining (needs the user): add `https://lifefire.netlify.app/api/backup/drive/callback` to the GCP OAuth client's redirect URIs, then do a live connect → back up → restore on lifefire.netlify.app and on self-hosted.
     - Remaining (code): the UI still reports success after the upload, not after a verified round trip.
+
+- [x] **Prices and net-worth history went stale with no dashboard tab open**
+  - Found by the 2026-10-14 weekly check-in: `priceUpdatedAt` stuck at 2026-09-26, the Vanguard CITs never re-priced, and 8 snapshots all equal to $1,040,480.27.
+  - Done 2026-10-14: the server re-prices hourly before each snapshot; MCP tools report `dataFreshness`; snapshots record `pricesAsOf`/`stale`; the weekly check-in prints "prices are N days old" when N > 3.
+  - Follow-up: the CIT CUSIPs still update only on a CSV import. Pricing them needs a fund-NAV source, or a Plaid holdings sync for the 401k.
 
 ### P1 — Integration & workflow improvements
 

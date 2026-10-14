@@ -25,6 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/unit/netlify-gdrive-backup.test.mjs` (19 tests, Google HTTP mocked): authorize redirect, callback to a sealed blob, ciphertext-only upload, token refresh and reseal, list, restore round trip, wrong-key and corrupted backups (`422`, JSON), dead grants (`401`, JSON), and Drive outages (JSON). `tests/unit/netlify-api.test.mjs` asserts the new rewrites come before the `/api/*` catch-all.
 - Docs: hosted setup in `docs/integrations.md` and `.env.example`. Manual step: add `https://lifefire.netlify.app/api/backup/drive/callback` to the GCP OAuth client's redirect URIs.
 
+### 2026-10-14 — Price freshness: server-side re-price + stale flags
+
+#### Fixed
+
+- **Prices stopped refreshing after 2026-09-26.** Positions and metals were re-priced only by `app/lib/prices.js` in an open dashboard tab, and the server's hourly net-worth snapshot just copied the stored values forward. With no tab open, every snapshot from 09-26 to 10-14 read exactly $1,040,480.27. The server now fetches quotes before each hourly snapshot (`app/lib/server-reprice.js`: Alpha Vantage/Polygon when configured, otherwise Yahoo's crumb-free chart endpoint; gold/silver via `metals-prices.js`). It applies them through the same merge rules as `PATCH /api/state/live-values`, which moved to `app/lib/live-values.js`. A dry run against the live DB priced 14/14 tickers and both metals.
+
+#### Added
+
+- `app/lib/data-freshness.js`: `dataFreshness` on the MCP `fire_status_summary`, `get_net_worth` and `get_portfolio`. It reports oldest/newest price, `daysStale`, `stale` (more than 3 days), last import, `positionsWithoutPriceSource` (e.g. the Vanguard CIT CUSIPs 92202V344/92202V476, which have no ticker) and vehicle valuation age. `get_portfolio` positions carry `priceUpdatedAt`.
+- `netWorthHistory` entries record `pricesAsOf` and `stale`. `get_net_worth_trend` returns both per point (`null` on older snapshots) and a `stalePoints` count.
+- `docs/weekly-checkin-prompt.md`: the check-in opens with "Prices are N days old" when `daysStale` > 3 and lists positions with no price source. The fire-coach skill follows the same rule.
+
 ### 2026-10-09 — Price provider fallback fix
 
 #### Fixed

@@ -18,6 +18,7 @@ const {
     getAggregateRealEstate,
     getAggregateVehicles,
 } = require('./finance-core');
+const { pricesAsOf } = require('./data-freshness');
 
 // ~10 years of daily points; the oldest are dropped beyond this.
 const MAX_HISTORY_DAYS = 3650;
@@ -52,7 +53,9 @@ function snapshotNetWorth(state) {
 
 // Upserts today's snapshot into db.netWorthHistory (mutates db). Returns
 // the entry. Skips an empty database so a fresh install doesn't start its
-// history with a $0 point.
+// history with a $0 point. Each entry records pricesAsOf (oldest market
+// price behind it) and stale (older than STALE_AFTER_DAYS), so a flat run
+// of snapshots taken on unrefreshed prices isn't mistaken for tracking.
 function recordNetWorthSnapshot(db, now = new Date()) {
     const snap = snapshotNetWorth(db);
     const hasData =
@@ -64,7 +67,12 @@ function recordNetWorthSnapshot(db, now = new Date()) {
     if (!hasData) return null;
 
     const date = dayKey(now);
-    const entry = { date, ...snap, recordedAt: now.toISOString() };
+    const entry = {
+        date,
+        ...snap,
+        ...pricesAsOf(db, now),
+        recordedAt: now.toISOString(),
+    };
     const history = Array.isArray(db.netWorthHistory)
         ? db.netWorthHistory.filter((e) => e && e.date !== date)
         : [];
