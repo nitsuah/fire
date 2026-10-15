@@ -17,6 +17,7 @@ on:
       - 'app/**'
       - 'tests/journeys/**'
       - 'promo/demo-seed.js'
+      - 'docs/screenshots/**' # an added or removed screenshot refreshes the README list
       - 'docs/diagrams/*.mmd'
       - 'docs/diagrams/mermaid.config.json'
       - 'scripts/visual-docs-readme.mjs'
