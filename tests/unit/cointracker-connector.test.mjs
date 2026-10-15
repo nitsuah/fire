@@ -406,6 +406,154 @@ describe('normalizeWallets', () => {
             expect(text).not.toContain(secret);
     });
 
+    // Shape taken from a live get_connected_accounts response (values are
+    // made up): fiat value in `balance`/`calculated_balance` strings, keyed
+    // by connected_account_handle, no addresses or holdings.
+    const CONNECTED = () => ({
+        context: { base_currency: 'USD', as_of_timestamp: '2026-10-14T23:46Z' },
+        result_guidance: 'Use connected_account_handle to drill in.',
+        applied_filters: { limit: 50, include_idle_accounts: false },
+        connected_accounts: [
+            {
+                connected_account_handle: 'ca_ledger',
+                connected_account_type: 'on_chain_wallet',
+                name: 'Ledger ETH',
+                platform: 'Ethereum',
+                balance: '19528.99',
+                calculated_balance: '19530.10',
+                value_difference: '1.11',
+                asset_count: 4,
+                values_unavailable: false,
+                transaction_count: null,
+                sync_status: 'idle',
+            },
+            {
+                connected_account_handle: 'ca_coinbase',
+                connected_account_type: 'exchange',
+                name: 'Coinbase',
+                platform: 'Coinbase',
+                balance: '$2,455.06',
+                calculated_balance: '2455.06',
+                asset_count: 2,
+                values_unavailable: false,
+                sync_status: 'idle',
+            },
+            {
+                connected_account_handle: 'ca_manual',
+                connected_account_type: 'manual_wallet',
+                name: 'Paper wallet',
+                platform: 'Bitcoin',
+                balance: null,
+                calculated_balance: '688.65 USD',
+                asset_count: 1,
+                values_unavailable: false,
+                sync_status: 'not_applicable',
+            },
+            {
+                connected_account_handle: 'ca_broken',
+                connected_account_type: 'exchange',
+                name: 'Broken exchange',
+                platform: 'Kraken',
+                balance: '0',
+                calculated_balance: '0',
+                asset_count: 0,
+                values_unavailable: true,
+                sync_status: 'failed',
+            },
+        ],
+        other_transactions_bucket: {
+            id: 'otb',
+            value: null,
+            asset_count: null,
+        },
+        returned_count: 4,
+        total_count: 4,
+        truncated: false,
+        counts_by_type: { on_chain_wallet: 1, exchange: 2, manual_wallet: 1 },
+        app_links: [
+            { link_type: 'x', label: 'Open', url: 'https://x', reason: 'r' },
+        ],
+    });
+
+    it('reads get_connected_accounts: balance as the value, handle as the id', () => {
+        const { wallets, warnings, skippedProviderIds, partial, payloadShape } =
+            ct.normalizeWallets(CONNECTED());
+        expect(partial).toBe(false);
+        expect(payloadShape).toBeUndefined();
+        expect(
+            wallets.map((w) => [w.providerId, w.name, w.kind, w.usdValue]),
+        ).toEqual([
+            ['ca_ledger', 'Ledger ETH', 'on_chain_wallet', 19528.99],
+            ['ca_coinbase', 'Coinbase', 'exchange', 2455.06],
+            // No reported balance: falls back to calculated_balance.
+            ['ca_manual', 'Paper wallet', 'manual_wallet', 688.65],
+        ]);
+        // values_unavailable: kept as-is, not valued at $0.
+        expect(skippedProviderIds).toEqual(['ca_broken']);
+        expect(warnings).toEqual([
+            'Skipped "Broken exchange": no USD value in CoinTracker\'s response.',
+        ]);
+    });
+
+    it('treats a truncated account list as partial so missing accounts are kept', () => {
+        const payload = CONNECTED();
+        payload.total_count = 12;
+        payload.truncated = true;
+        const { partial, warnings } = ct.normalizeWallets(payload);
+        expect(partial).toBe(true);
+        expect(warnings.join(' ')).toMatch(/returned 4 of 12 accounts/);
+    });
+
+    it('never stores non-USD balances as USD: skips every account and keeps rows', () => {
+        const payload = CONNECTED();
+        payload.context.base_currency = 'EUR';
+        const r = ct.normalizeWallets(payload);
+        expect(r.wallets).toEqual([]);
+        expect(r.partial).toBe(true);
+        expect(r.skippedProviderIds.sort()).toEqual(
+            ['ca_broken', 'ca_coinbase', 'ca_ledger', 'ca_manual'].sort(),
+        );
+        expect(r.warnings).toHaveLength(1);
+        expect(r.warnings[0]).toMatch(/values in EUR, and fire only reads USD/);
+    });
+
+    it('still treats `balance` on a holding row as a quantity', () => {
+        const { wallets } = ct.normalizeWallets({
+            wallets: [
+                {
+                    id: 'w9',
+                    name: 'Ledger',
+                    address: '0x1',
+                    holdings: [
+                        { symbol: 'ETH', balance: '2', usd_value: 5000 },
+                    ],
+                },
+            ],
+        });
+        expect(wallets[0].holdings[0]).toEqual({
+            symbol: 'ETH',
+            quantity: 2,
+            usdValue: 5000,
+        });
+        expect(wallets[0].usdValue).toBe(5000);
+    });
+
+    it('requests the largest page the balance tool allows, and nothing it does not publish', () => {
+        expect(
+            ct.balanceToolArgs({
+                inputSchema: {
+                    properties: { limit: { type: 'integer', maximum: 200 } },
+                },
+            }),
+        ).toEqual({ limit: 200 });
+        expect(
+            ct.balanceToolArgs({
+                inputSchema: { properties: { limit: { type: 'integer' } } },
+            }),
+        ).toEqual({});
+        expect(ct.balanceToolArgs({ inputSchema: {} })).toEqual({});
+    });
+
     it('omits the outline when wallets were read', () => {
         expect(ct.normalizeWallets(BALANCES).payloadShape).toBeUndefined();
     });

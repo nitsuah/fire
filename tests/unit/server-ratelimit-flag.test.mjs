@@ -46,18 +46,39 @@ afterAll(() => {
 });
 
 // One past the general limit (300 requests per minute per client).
-async function statusesAfterBurst() {
+// Loads app/server.js with the current env and runs `fn(agent)` against a
+// single listener (request(app) would start a server per request).
+async function withServer(fn) {
     const { default: app } = await import('../../app/server.js');
-    const agent = request(app);
-    let last;
-    for (let i = 0; i < 301; i++) last = await agent.get('/api/state');
-    return { last: last.status, warned: console.warn.mock.calls.flat() };
+    const server = app.listen(0);
+    try {
+        return await fn(request(server));
+    } finally {
+        await new Promise((resolve) => server.close(resolve));
+    }
 }
 
-describe('FIRE_RATE_LIMIT_DISABLED', () => {
-    it('rate limiting applies when the flag is unset', async () => {
-        const { last } = await statusesAfterBurst();
-        expect(last).toBe(429);
+// The limiter (standardHeaders: true) stamps RateLimit-* headers on every
+// response it counts, so one request shows whether it is active.
+async function limiterState() {
+    return withServer(async (agent) => {
+        const res = await agent.get('/api/state');
+        return {
+            active: Boolean(res.headers['ratelimit-limit']),
+            warned: console.warn.mock.calls.flat(),
+        };
+    });
+}
+
+describe('FIRE_RATE_LIMIT_DISABLED', { timeout: 30_000 }, () => {
+    it('rate limiting applies when the flag is unset (301st request is a 429)', async () => {
+        const last = await withServer(async (agent) => {
+            let res;
+            for (let i = 0; i < 301; i++) res = await agent.get('/api/state');
+            return res;
+        });
+        expect(last.status).toBe(429);
+        expect(last.headers['ratelimit-limit']).toBe('300');
     });
 
     it.each(['test', 'development'])(
@@ -65,8 +86,8 @@ describe('FIRE_RATE_LIMIT_DISABLED', () => {
         async (env) => {
             process.env.FIRE_RATE_LIMIT_DISABLED = 'true';
             process.env.NODE_ENV = env;
-            const { last, warned } = await statusesAfterBurst();
-            expect(last).toBe(200);
+            const { active, warned } = await limiterState();
+            expect(active).toBe(false);
             expect(warned.join(' ')).toMatch(/rate limiting is off/);
         },
     );
@@ -80,15 +101,14 @@ describe('FIRE_RATE_LIMIT_DISABLED', () => {
         process.env.FIRE_RATE_LIMIT_DISABLED = 'true';
         if (env) process.env.NODE_ENV = env;
         if (env === 'production') process.env.FIRE_ADMIN_KEY = 'test-admin-key';
-        const { last, warned } = await statusesAfterBurst();
-        expect(last).toBe(429);
+        const { active, warned } = await limiterState();
+        expect(active).toBe(true);
         expect(warned.join(' ')).toMatch(/ignored unless NODE_ENV is test/);
     });
 
     it('only the exact value "true" disables it', async () => {
         process.env.NODE_ENV = 'test';
         process.env.FIRE_RATE_LIMIT_DISABLED = '1';
-        const { last } = await statusesAfterBurst();
-        expect(last).toBe(429);
+        expect((await limiterState()).active).toBe(true);
     });
 });

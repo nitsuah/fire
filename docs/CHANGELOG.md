@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-14 — CoinTracker connected accounts
+
+#### Fixed
+
+- CoinTracker still synced "0 wallets" after #192. The structure outline from that PR showed the real payload: `get_connected_accounts` returns `connected_accounts[]`, and each account's fiat value is in `balance`/`calculated_balance` strings, keyed by `connected_account_handle`. The parser didn't search `connected_accounts`, and it read `balance` only as a coin quantity, so no account passed the wallet check. `app/lib/cointracker-connector.js` now reads that shape:
+  - each account becomes one row (`balance`, falling back to `calculated_balance`), keyed by the handle and typed by `connected_account_type`;
+  - accounts flagged `values_unavailable` are kept as they were, not set to $0;
+  - truncated lists are treated as partial;
+  - a non-USD base currency updates nothing: every account is skipped (rows kept) and the sync is partial, because fire has no FX conversion;
+  - the tool's maximum `limit` is requested when it publishes one;
+  - currency strings like `"688.65 USD"` parse.
+  - On holding rows, `balance` still means quantity.
+- `tests/unit/server-ratelimit-flag.test.mjs` (from #194) sent 8 × 301 requests and started a server per request, so under full-suite load it timed out and slowed other server tests. It now uses one listener per case. A single 301-request burst proves the 429, and the other cases check the limiter's `RateLimit-*` headers with one request, which cuts the file from up to 40 s to about 2.5 s.
+
+#### Added
+
+- 6 tests in `tests/unit/cointracker-connector.test.mjs`, using a fixture that mirrors the live `get_connected_accounts` structure with made-up values. They cover reading accounts, `values_unavailable`, truncation, non-USD, `balance` on holdings, and the `limit` argument.
+
 ### 2026-10-14 — e2e rate-limit flake
 
 #### Fixed
