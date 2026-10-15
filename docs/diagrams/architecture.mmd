@@ -1,0 +1,32 @@
+%% fire architecture — rendered to architecture.svg by .github/workflows/visual-docs.yml
+flowchart LR
+  user[Owner in browser]
+  claude[Claude Code / MCP client<br/>fire-coach and other skills]
+
+  subgraph App[fire - Express on port 3001]
+    spa[Single-page app<br/>app/index.html + app/lib<br/>Chart.js projections]
+    api[Express API<br/>/api/state · accounts · cds<br/>wallets · prices · vehicles<br/>API key + rate limits]
+    sync[Sync routes<br/>/api/sync eBay · Etsy<br/>Plaid · CoinTracker · webhooks]
+    cron[Hourly timers<br/>reprice + net worth snapshot<br/>daily local backup]
+  end
+
+  mcp[MCP server<br/>app/mcp-server.mjs<br/>16 read-only tools, stdio]
+  db[(data/db.json<br/>atomic write, optional AES-256-GCM)]
+  backups[(data/backups<br/>14 daily copies)]
+  ext[External APIs<br/>Yahoo / Alpha Vantage / Polygon<br/>metals.dev · Blockscout RPCs]
+  mk[Marketplaces and banks<br/>eBay · Etsy · Plaid · CoinTracker]
+  gdrive[Google Drive<br/>encrypted backup]
+  ls[(Browser localStorage<br/>fallback when API is down)]
+
+  user --> spa
+  spa -- GET / POST /api/state --> api
+  spa -.-> ls
+  api --> db
+  sync --> db
+  mk -- OAuth + orders / transactions --> sync
+  cron -- quotes --> ext
+  cron --> db
+  cron --> backups
+  api -- backup / restore --> gdrive
+  claude -- stdio --> mcp
+  mcp -- readState only --> db

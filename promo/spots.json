@@ -90,7 +90,8 @@
       "title": "Claude Code Integration",
       "category": "MCP Server",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "smoke-test",
@@ -115,14 +116,16 @@
       "title": "reseller-autopilot Claude Skill",
       "category": "MCP Server",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "passive-income-lab-claude-skill",
       "title": "passive-income-lab Claude Skill",
       "category": "MCP Server",
       "screenshots": [],
-      "spots": []
+      "spots": [],
+      "visual": "none"
     },
     {
       "id": "unified-add-form",
@@ -363,7 +366,9 @@
       "id": "time-period-filters",
       "title": "Time-Period Filters",
       "category": "Retirement Projections",
-      "screenshots": [],
+      "screenshots": [
+        "docs/screenshots/projection-engine.png"
+      ],
       "spots": []
     },
     {
@@ -479,14 +484,18 @@
       "title": "CD Ladder Visualizer",
       "category": "CD & Fixed Income",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "plan-65s"
+      ]
     },
     {
       "id": "next-maturity",
       "title": "Next Maturity",
       "category": "CD & Fixed Income",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "connect-55s"
+      ]
     },
     {
       "id": "income-logs",
@@ -860,14 +869,18 @@
       "title": "Etsy Order Sync",
       "category": "Side Hustle Tracker",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "hustle-60s"
+      ]
     },
     {
       "id": "mercari-poshmark-fb-marketplace-csv-import",
       "title": "Mercari / Poshmark / FB Marketplace CSV import",
       "category": "Side Hustle Tracker",
       "screenshots": [],
-      "spots": []
+      "spots": [
+        "hustle-60s"
+      ]
     },
     {
       "id": "nightly-journeys",
@@ -957,7 +970,8 @@
         "money-run-out-detection",
         "bull-bear-scenario-bands",
         "multi-scenario-fire-comparison",
-        "cd-maturity-markers"
+        "cd-maturity-markers",
+        "cd-ladder-visualizer"
       ],
       "published": null,
       "rendered": "2026-10-07"
@@ -1009,7 +1023,9 @@
         "income-logs",
         "webhook-deduplication",
         "side-hustle-accelerators",
-        "16-read-only-tools"
+        "16-read-only-tools",
+        "etsy-order-sync",
+        "mercari-poshmark-fb-marketplace-csv-import"
       ],
       "published": null,
       "rendered": "2026-10-07"
@@ -1032,7 +1048,8 @@
         "vehicle-tracker",
         "real-estate-tracker",
         "cd-tracker",
-        "yahoo-finance-integration"
+        "yahoo-finance-integration",
+        "next-maturity"
       ],
       "published": null,
       "rendered": "2026-10-07"

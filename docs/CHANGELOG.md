@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-14 — Diagrams and feature links (showcase board)
+
+#### Added
+
+- `docs/diagrams/architecture.mmd` (app, API, sync routes, hourly timers, MCP server, db.json) and `docs/diagrams/projection-dataflow.mmd` (one db.json feeding the browser projection and the MCP tools). `visual-docs.yml` renders them to SVG with mermaid-cli and rewrites the README's `visual-docs` block via `scripts/visual-docs-readme.mjs`.
+- `promo/spots.json`: five more features linked to a spot or screenshot; three non-visual features marked `"visual": "none"`.
+
 ### 2026-10-14 — CoinTracker connected accounts
 
 #### Fixed
