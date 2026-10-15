@@ -541,6 +541,24 @@ const VALUE_KEYS = [
     'usd',
     'value',
 ];
+// get_connected_accounts reports each account's fiat value as `balance`
+// (CoinTracker's reported figure) and `calculated_balance` (derived from its
+// transactions). On a holding row `balance` means a coin quantity, so these
+// are only read at account level.
+const ACCOUNT_VALUE_KEYS = [
+    ...VALUE_KEYS,
+    'balance',
+    'calculated_balance',
+    'current_balance',
+];
+const ID_KEYS = [
+    'id',
+    'wallet_id',
+    'account_id',
+    'uuid',
+    'connected_account_handle',
+    'handle',
+];
 const NAME_KEYS = [
     'name',
     'label',
@@ -571,8 +589,11 @@ function toNumber(value) {
     if (value == null) return null;
     if (typeof value === 'number') return Number.isFinite(value) ? value : null;
     if (typeof value === 'string') {
-        const n = Number(value.replace(/[$,\s]/g, ''));
-        return value.trim() && Number.isFinite(n) ? n : null;
+        const cleaned = value
+            .replace(/[$€£,\s]/g, '')
+            .replace(/[A-Za-z]{3}$/, '');
+        const n = Number(cleaned);
+        return cleaned && Number.isFinite(n) ? n : null;
     }
     if (typeof value === 'object') {
         return toNumber(value.amount ?? value.value ?? value.usd);
@@ -584,6 +605,15 @@ function firstNumber(obj, keys) {
     for (const key of keys) {
         const n = toNumber(obj?.[key]);
         if (n !== null) return n;
+    }
+    return null;
+}
+
+function firstId(obj) {
+    for (const key of ID_KEYS) {
+        const v = obj?.[key];
+        if ((typeof v === 'string' && v.trim()) || typeof v === 'number')
+            return String(v).trim();
     }
     return null;
 }
@@ -657,8 +687,9 @@ function looksLikeWallet(item) {
     if (looksLikeAsset(item)) return 0;
     let score = 0;
     if (firstString(item, NAME_KEYS)) score++;
+    if (firstId(item)) score++;
     if (collectStrings(item, ADDRESS_KEYS).length) score += 2;
-    if (firstNumber(item, VALUE_KEYS) !== null) score++;
+    if (firstNumber(item, ACCOUNT_VALUE_KEYS) !== null) score++;
     if (HOLDING_KEYS.some((k) => Array.isArray(item[k]))) score += 2;
     if (collectStrings(item, CHAIN_KEYS).length) score++;
     return score;
@@ -675,6 +706,7 @@ function findWalletArray(payload, depth = 0) {
     }
     if (typeof payload !== 'object') return null;
     for (const key of [
+        'connected_accounts',
         'wallets',
         'accounts',
         'connections',
@@ -806,14 +838,13 @@ function normalizeWallets(payload) {
         const holdingsTotal = holdings.some((h) => h.usdValue !== null)
             ? holdings.reduce((s, h) => s + (h.usdValue || 0), 0)
             : null;
-        const usdValue = firstNumber(item, VALUE_KEYS) ?? holdingsTotal;
-        const providerId = String(
-            item.id ??
-                item.wallet_id ??
-                item.account_id ??
-                item.uuid ??
-                stableId(name, addresses),
-        );
+        // CoinTracker flags accounts it can't value right now; their balance
+        // field isn't trustworthy then.
+        const usdValue =
+            item.values_unavailable === true
+                ? null
+                : (firstNumber(item, ACCOUNT_VALUE_KEYS) ?? holdingsTotal);
+        const providerId = firstId(item) || stableId(name, addresses);
         if (usdValue === null) {
             // Still in CoinTracker, so its existing row is kept, not dropped.
             skippedProviderIds.push(providerId);
@@ -826,6 +857,8 @@ function normalizeWallets(payload) {
             providerId,
             name,
             kind: firstString(item, [
+                'connected_account_type',
+                'account_type',
                 'type',
                 'kind',
                 'source_type',
@@ -837,6 +870,24 @@ function normalizeWallets(payload) {
             holdings,
         });
     }
+    const currency = payload?.context?.base_currency;
+    if (items.length && typeof currency === 'string' && currency !== 'USD')
+        warnings.push(
+            `CoinTracker reports values in ${currency}; fire shows them as USD without converting. Set CoinTracker's base currency to USD.`,
+        );
+    const returned = Number(payload?.returned_count);
+    const total = Number(payload?.total_count);
+    const truncated =
+        payload?.truncated === true ||
+        (Number.isFinite(returned) &&
+            Number.isFinite(total) &&
+            total > returned);
+    if (items.length && truncated)
+        warnings.push(
+            Number.isFinite(total)
+                ? `CoinTracker returned ${items.length} of ${total} accounts; the rest are kept as they were.`
+                : 'CoinTracker truncated the account list; accounts not returned are kept as they were.',
+        );
     if (!items.length) {
         const holdings = findAssetHoldings(payload);
         const valued = holdings?.filter((h) => h.usdValue !== null) || [];
@@ -882,7 +933,9 @@ function normalizeWallets(payload) {
             payloadShape: payloadShape(payload),
         };
     }
-    return { wallets, warnings, skippedProviderIds, partial: false };
+    // partial when truncated: accounts CoinTracker didn't return this time
+    // must be kept, not removed.
+    return { wallets, warnings, skippedProviderIds, partial: truncated };
 }
 
 function summarizeTools(tools) {
@@ -936,6 +989,14 @@ async function withSession(tokens, fn, fetchImpl = fetch) {
     return { result, tokens: current, refreshed };
 }
 
+// Ask for as many accounts as the tool allows. get_connected_accounts pages
+// with `limit`; only a published maximum is sent, so a tool without one is
+// called exactly as before.
+function balanceToolArgs(tool) {
+    const max = tool?.inputSchema?.properties?.limit?.maximum;
+    return Number.isInteger(max) && max > 0 ? { limit: max } : {};
+}
+
 async function syncWallets(tokens, fetchImpl = fetch) {
     const {
         result,
@@ -954,7 +1015,7 @@ async function syncWallets(tokens, fetchImpl = fetch) {
                 );
             }
             const payload = extractPayload(
-                await session.callTool(tool.name, {}),
+                await session.callTool(tool.name, balanceToolArgs(tool)),
             );
             return { tool: tool.name, ...normalizeWallets(payload) };
         },
@@ -1011,6 +1072,7 @@ module.exports = {
     toNumber,
     normalizeWallets,
     payloadShape,
+    balanceToolArgs,
     summarizeTools,
     syncWallets,
     inspectTools,
