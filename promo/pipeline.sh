@@ -45,7 +45,8 @@ echo "== audio"
 if [ "$TYPE" = tour ]; then
   python3 /repo/promo/tour/bed.py "$DIR/spot.json" "$W/timeline.json" "$W/audio-raw.wav"
 else
-  python3 "$DIR/synth.py" "$DIR/spot.json" "$W/audio-raw.wav"
+  SYNTH="$DIR/synth.py"; [ -f "$SYNTH" ] || SYNTH="/repo/promo/$(node -p "require('$DIR/spot.json').synth")/synth.py"
+  python3 "$SYNTH" "$DIR/spot.json" "$W/audio-raw.wav"
 fi
 LOUD="loudnorm=I=-14:TP=-1.5:LRA=11:linear=true"
 if [ -f "$W/vo.wav" ]; then

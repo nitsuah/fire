@@ -1074,6 +1074,25 @@
       ],
       "published": null,
       "rendered": "2026-10-07"
+    },
+    {
+      "id": "brag-22s-vert",
+      "seconds": 22,
+      "format": "vertical",
+      "tool": "promo/build.sh",
+      "features": [
+        "projection-engine",
+        "financial-overview",
+        "db-json-persistence",
+        "custom-accounts",
+        "precious-metals",
+        "crypto-accounts",
+        "vehicle-tracker",
+        "bull-bear-scenario-bands",
+        "16-read-only-tools"
+      ],
+      "published": "site/assets/brag-22s-vert.mp4",
+      "rendered": "2026-10-14"
     }
   ],
   "reels": [

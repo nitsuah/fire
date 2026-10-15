@@ -55,7 +55,10 @@ const WORK = `/out/${spot}`;
     // several pages (RENDER_WORKERS, default 4) and rendered in parallel.
     const openPage = async () => {
         const page = await browser.newPage({
-            viewport: { width: 1920, height: 1080 },
+            viewport: {
+                width: (spotCfg.size || [1920, 1080])[0],
+                height: (spotCfg.size || [1920, 1080])[1],
+            },
         });
         page.on('console', (m) => console.log('[page]', m.text()));
         page.on('pageerror', (e) => {
