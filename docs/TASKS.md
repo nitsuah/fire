@@ -128,6 +128,7 @@ These items came from the current browser/production pass. **P0** items are corr
   - Priority: P2.
   - The parsers use assumed column names with aliases (`docs/integrations.md`). Confirm against a current Mercari sales history and Poshmark sales report download, add any missing aliases and replace the fixtures with anonymized real headers.
 - [ ] **Etsy live run against a real shop** (self-hosted and lifefire.netlify.app) once an Etsy app keystring is approved; record the result in `docs/integrations.md`.
+  - Hosted setup (found in the 2026-10-14 auth audit): `/api/sync/etsy/authorize` on lifefire.netlify.app currently redirects to `#etsy-error=not_configured`. Register an Etsy app at https://www.etsy.com/developers/register, add the callback `https://lifefire.netlify.app/api/sync/etsy/callback`, set `ETSY_CLIENT_ID` (and optionally `ETSY_SHARED_SECRET`) on the Netlify site `lifefire`, redeploy, then run a live connect.
 
 ### P1 — GitHub README / promo parity
 
