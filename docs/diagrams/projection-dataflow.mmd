@@ -1,0 +1,23 @@
+%% How one set of inputs becomes a projection in the UI and in MCP tools
+flowchart TD
+  db[(data/db.json<br/>accounts · positions · CDs · wallets<br/>expenses · projectionSettings)]
+
+  subgraph Browser[Browser dashboard]
+    st[app/lib/state.js<br/>GET /api/state]
+    bp[projections.js buildProjectionData<br/>base · bull · bear offsets<br/>Chaos Mode events]
+    ch[Chart.js lines<br/>FIRE number · milestones<br/>run-out age]
+  end
+
+  subgraph MCP[MCP server - read only]
+    rs[readState from db.js]
+    fc[finance-calcs.js buildProjectionData<br/>same maths, no DOM]
+    tools[fire_status_summary<br/>get_swr_sensitivity<br/>get_emergency_runway]
+  end
+
+  fresh[Hourly reprice + snapshot<br/>server-reprice.js]
+  claude[Claude answers<br/>with dataFreshness]
+
+  fresh --> db
+  db --> st --> bp --> ch
+  db --> rs --> fc --> tools --> claude
+  bp -. kept in sync, see Dual Projection Copies .- fc

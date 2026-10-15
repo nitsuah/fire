@@ -136,6 +136,7 @@ These items came from the current browser/production pass. **P0** items are corr
   - Add/verify the user-facing story for: Side Gig tax tagging + cost basis, automatic eBay order sync, encrypted Google Drive backup, vehicle valuation, local-first/privacy model, browser demo, MCP/LLM workflow, diversification/rebalancing/harvesting insights, notifications/alerts, and CSV/Plaid ingestion.
   - Remove or qualify claims that depend on rollout-gated work (especially Google Drive).
   - Add a compact architecture/privacy diagram or equivalent visual explanation and a clearer “Try it / Run it / Ask Claude” path.
+    - Progress 2026-10-14: the architecture diagram is done (`docs/diagrams/architecture.mmd`, plus `projection-dataflow.mmd`, rendered in CI and embedded in the README). The privacy diagram and the "Try it / Run it / Ask Claude" path are still open.
   - Acceptance Criteria: every prominent README feature is either demonstrably shipped or explicitly labeled planned; no stale environment/setup instructions remain; links to the live demo, docs, security model, and integration setup are easy to find.
 
 - [ ] **Promo ledger audit**

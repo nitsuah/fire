@@ -3,7 +3,8 @@ name: Visual docs
 # Regenerates docs/screenshots/<feature-id>.png from the journeys
 # (tests/journeys, steps tagged { docs: '<id>' }) — same demo seed, mocked
 # prices and frozen clock, so there is one Playwright suite, not two — and
-# opens/updates a PR on bot/visual-docs. Never pushes to main. Recipe:
+# renders docs/diagrams/*.mmd to .svg (README block rewritten by
+# scripts/visual-docs-readme.mjs), and opens/updates a PR on bot/visual-docs. Never pushes to main. Recipe:
 # nitsuah/vigil docs/VISUAL_DOCS.md; promo/spots.json links the images by id.
 #
 # One-time repo setting: Settings -> Actions -> General -> "Allow GitHub
@@ -16,6 +17,10 @@ on:
       - 'app/**'
       - 'tests/journeys/**'
       - 'promo/demo-seed.js'
+      - 'docs/screenshots/**' # an added or removed screenshot refreshes the README list
+      - 'docs/diagrams/*.mmd'
+      - 'docs/diagrams/mermaid.config.json'
+      - 'scripts/visual-docs-readme.mjs'
       - '.github/workflows/visual-docs.yml'
   workflow_dispatch:
 
@@ -51,14 +56,33 @@ jobs:
         env:
           CI: true
 
+      - name: Render diagrams
+        run: |
+          # ubuntu-latest ships Google Chrome; point mermaid-cli's Puppeteer at it.
+          CHROME=$(command -v google-chrome || command -v chromium || true)
+          if [ -n "$CHROME" ]; then
+            printf '{"executablePath":"%s","args":["--no-sandbox"]}' "$CHROME" > "$RUNNER_TEMP/puppeteer.json"
+            PUPPETEER="-p $RUNNER_TEMP/puppeteer.json"
+          fi
+          CONFIG=""; [ -f docs/diagrams/mermaid.config.json ] && CONFIG="-c docs/diagrams/mermaid.config.json"
+          for f in docs/diagrams/*.mmd; do
+            npx -y @mermaid-js/mermaid-cli@12.0.0 $PUPPETEER $CONFIG -b white -i "$f" -o "${f%.mmd}.svg"
+          done
+
+      - name: Update README block
+        run: node scripts/visual-docs-readme.mjs
+
       - name: Open or update PR
         uses: peter-evans/create-pull-request@v8
         with:
           branch: bot/visual-docs
           delete-branch: true
-          add-paths: docs/screenshots/*.png
-          commit-message: 'docs: regenerate feature screenshots'
-          title: 'docs: regenerate feature screenshots'
+          add-paths: |
+            docs/diagrams/*.svg
+            docs/screenshots/*.png
+            README.md
+          commit-message: 'docs: regenerate screenshots and diagrams'
+          title: 'docs: regenerate screenshots and diagrams'
           body: |
-            Regenerated from the journeys by `.github/workflows/visual-docs.yml` after ${{ github.sha }}.
+            Regenerated from the journeys and docs/diagrams by `.github/workflows/visual-docs.yml` after ${{ github.sha }}.
             Review the images, then merge. No code changes.
