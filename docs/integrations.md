@@ -287,7 +287,7 @@ CoinTracker doesn't publish its MCP tool catalog, so the connector picks the bal
 **Live shape (2026-10-14):** the balance tool is `get_connected_accounts`. Each entry in `connected_accounts[]` becomes one Crypto row:
 - `connected_account_handle` is the id, and `name` is the row name.
 - `connected_account_type` (`on_chain_wallet`, `exchange` or `manual_wallet`) is the kind.
-- The value is `balance`, or `calculated_balance` when `balance` is empty. Both are fiat strings in CoinTracker's base currency, and fire warns if that isn't USD.
+- The value is `balance`, or `calculated_balance` when `balance` is empty. Both are fiat strings in CoinTracker's base currency. If that isn't USD, fire updates nothing: every account keeps its row, the sync is partial, and the card asks you to switch CoinTracker to USD.
 - An account flagged `values_unavailable` is skipped and its existing row is kept.
 - A response marked `truncated`, or one where `returned_count` < `total_count`, is treated as partial, so accounts that weren't returned aren't removed.
 - If the tool publishes a `limit` maximum, fire requests that many accounts.

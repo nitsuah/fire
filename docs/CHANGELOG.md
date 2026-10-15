@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - each account becomes one row (`balance`, falling back to `calculated_balance`), keyed by the handle and typed by `connected_account_type`;
   - accounts flagged `values_unavailable` are kept as they were, not set to $0;
   - truncated lists are treated as partial;
-  - a non-USD base currency is flagged;
+  - a non-USD base currency updates nothing: every account is skipped (rows kept) and the sync is partial, because fire has no FX conversion;
   - the tool's maximum `limit` is requested when it publishes one;
   - currency strings like `"688.65 USD"` parse.
   - On holding rows, `balance` still means quantity.

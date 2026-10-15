@@ -504,12 +504,17 @@ describe('normalizeWallets', () => {
         expect(warnings.join(' ')).toMatch(/returned 4 of 12 accounts/);
     });
 
-    it('warns when CoinTracker values are not in USD', () => {
+    it('never stores non-USD balances as USD: skips every account and keeps rows', () => {
         const payload = CONNECTED();
         payload.context.base_currency = 'EUR';
-        expect(ct.normalizeWallets(payload).warnings.join(' ')).toMatch(
-            /values in EUR/,
+        const r = ct.normalizeWallets(payload);
+        expect(r.wallets).toEqual([]);
+        expect(r.partial).toBe(true);
+        expect(r.skippedProviderIds.sort()).toEqual(
+            ['ca_broken', 'ca_coinbase', 'ca_ledger', 'ca_manual'].sort(),
         );
+        expect(r.warnings).toHaveLength(1);
+        expect(r.warnings[0]).toMatch(/values in EUR, and fire only reads USD/);
     });
 
     it('still treats `balance` on a holding row as a quantity', () => {

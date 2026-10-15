@@ -870,11 +870,24 @@ function normalizeWallets(payload) {
             holdings,
         });
     }
+    // fire has no FX conversion, so balances in another base currency are
+    // never stored as USD: every account is skipped (its row kept as-is)
+    // and the sync is partial, so nothing is removed either.
     const currency = payload?.context?.base_currency;
-    if (items.length && typeof currency === 'string' && currency !== 'USD')
-        warnings.push(
-            `CoinTracker reports values in ${currency}; fire shows them as USD without converting. Set CoinTracker's base currency to USD.`,
-        );
+    if (items.length && typeof currency === 'string' && currency !== 'USD') {
+        const ids = [
+            ...skippedProviderIds,
+            ...wallets.map((w) => w.providerId),
+        ];
+        return {
+            wallets: [],
+            warnings: [
+                `CoinTracker reports values in ${currency}, and fire only reads USD. Nothing was updated; set CoinTracker's base currency to USD and sync again.`,
+            ],
+            skippedProviderIds: ids,
+            partial: true,
+        };
+    }
     const returned = Number(payload?.returned_count);
     const total = Number(payload?.total_count);
     const truncated =
