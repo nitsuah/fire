@@ -20,7 +20,7 @@ These items came from the current browser/production pass. **P0** items are corr
   - Completed in PR #138: hosted ENS resolution fans out across supported EVM chains, aggregates successful USD values, and returns JSON-safe errors while preserving partial results.
   - Done 2026-09-28: PR #138 merged
 
-- [ ] **Google Drive backup round-trip verification before rollout**
+- [x] **Google Drive backup round-trip verification before rollout**
   - Priority: P0. Backup is financial data and must not be considered production-safe until encryption, upload, download, and decryption have been proven end-to-end.
   - Scope: browser-first Google login/connect flow; link the Drive account before exposing backup actions; encrypt locally/server-side with the existing AES-256-GCM design; add an explicit test fixture that uploads an encrypted backup, downloads it, decrypts it, and byte/structure-compares the restored payload.
   - Acceptance Criteria: Google OAuth connect works from the browser; Drive only receives ciphertext; a fresh restore succeeds against a real or deterministic mocked Drive round trip; corrupted/wrong-key backups fail cleanly; UI cannot report a successful backup until the round-trip verification succeeds.
@@ -30,6 +30,7 @@ These items came from the current browser/production pass. **P0** items are corr
     - Remaining (code): the UI still reports success after the upload, not after a verified round trip.
     - 2026-10-14, first live run on lifefire.netlify.app: the OAuth connect worked once the Google account was added as a test user. Listing backups then failed with only "Drive list failed. Try again later." Drive errors now carry Google's own message and reason code (for example `accessNotConfigured` when the Drive API is disabled for the project), both in the panel and in the Express responses.
     - 2026-10-14, live round trip **verified on lifefire.netlify.app**: once the Drive API was enabled in the GCP project, connect → Backup Now → Restore worked end to end. Follow-up (with the CoinTracker/web3 account work): after a restore, trigger the account refreshes (price/crypto/CoinTracker) so restored rows don't show stale values until the next scheduled refresh.
+  - Done 2026-10-14: live round trip verified on the hosted deploy (PRs #188, #191, #201). The self-hosted live run and success-after-round-trip reporting moved to the P1 follow-up below.
 
 - [x] **Prices and net-worth history went stale with no dashboard tab open**
   - Found by the 2026-10-14 weekly check-in: `priceUpdatedAt` stuck at 2026-09-26, the Vanguard CITs never re-priced, and 8 snapshots all equal to $1,040,480.27.
@@ -37,6 +38,11 @@ These items came from the current browser/production pass. **P0** items are corr
   - Follow-up: the CIT CUSIPs still update only on a CSV import. Pricing them needs a fund-NAV source, or a Plaid holdings sync for the 401k.
 
 ### P1 — Integration & workflow improvements
+
+- [ ] **Google Drive backup follow-ups: self-hosted round trip + verified-success reporting**
+  - Priority: P1. Split from the closed P0 above on 2026-10-15.
+  - Scope: run a live connect → Backup Now → Restore on the self-hosted (Express) deploy; change the backup UI so it reports success only after the round trip verifies, not after the upload.
+  - Acceptance Criteria: a self-hosted live round trip is recorded here; the UI cannot show a successful backup until the restore check passes (unit test covers the failed-verify path).
 
 - [ ] **Serve Plaid on the Netlify deploy (lifefire.netlify.app)**
   - Priority: P1. Hosted browser deployment must support the same Plaid Link → exchange → accounts → positions → transactions workflow as Express; a JSON-safe 404/status stub is not sufficient.
