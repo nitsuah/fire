@@ -39,10 +39,11 @@ These items came from the current browser/production pass. **P0** items are corr
 
 ### P1 — Integration & workflow improvements
 
-- [ ] **Google Drive backup follow-ups: self-hosted round trip + verified-success reporting**
+- [ ] **Google Drive backup: report success only after a verified round trip**
   - Priority: P1. Split from the closed P0 above on 2026-10-15.
-  - Scope: run a live connect → Backup Now → Restore on the self-hosted (Express) deploy; change the backup UI so it reports success only after the round trip verifies, not after the upload.
-  - Acceptance Criteria: a self-hosted live round trip is recorded here; the UI cannot show a successful backup until the restore check passes (unit test covers the failed-verify path).
+  - Done 2026-10-15: live backup and restore through Google Drive confirmed by the owner (self-hosted and lifefire.netlify.app).
+  - Remaining: `runGDriveBackupNow()` in `app/lib/managers/gdrive-backup.js` shows "Backup saved" as soon as the upload returns. Download and decrypt the new file (or check its digest) before showing success.
+  - Acceptance Criteria: the UI cannot show a successful backup until the restore check passes (unit test covers the failed-verify path).
 
 - [ ] **Serve Plaid on the Netlify deploy (lifefire.netlify.app)**
   - Priority: P1. Hosted browser deployment must support the same Plaid Link → exchange → accounts → positions → transactions workflow as Express; a JSON-safe 404/status stub is not sufficient.
@@ -83,16 +84,18 @@ These items came from the current browser/production pass. **P0** items are corr
 - [x] **Move eBay connector into the Side Hustle Hub**
   - Completed in PR #138: eBay is now a compact Side Hustle Hub integration with connection state and manual/automatic sync controls.
 
-- [ ] **Make eBay connection completion a toast + automatic sync**
+- [x] **Make eBay connection completion a toast + automatic sync**
   - Priority: P1.
   - Current behavior: browser callback shows `eBay connected. Use Settings → eBay Order Sync → Sync Now.`
   - Scope: replace the alert with the site's toast system; immediately start a sync after a successful connection; show progress/success/failure without requiring navigation to Settings.
   - Acceptance Criteria: successful OAuth returns to the Side Hustle Hub, a non-blocking toast appears, sync starts automatically, and the ledger refreshes when complete. Failure leaves the connector connected and gives an actionable retry state.
+  - Done 2026-09-28 (#138): the OAuth return shows the app toast and starts the first order sync; a failed first sync keeps the connector and says so.
 
-- [ ] **Normalize Side Gig Ledger form controls to the site theme**
+- [x] **Normalize Side Gig Ledger form controls to the site theme**
   - Priority: P1.
   - Scope: style `Tag all`, tax-tag selects, and item-cost inputs using the existing CSS tokens/components rather than browser/default white controls.
   - Acceptance Criteria: controls match dark/glass theme in desktop and mobile, retain accessible focus/contrast states, and have Playwright coverage at the Side Hustle Hub viewport sizes.
+  - Done 2026-09-28 (#138): tax-tag, bulk-tag and item-cost controls use the theme tokens.
 
 ### Chaos mode, layout customization, Claude skill — Oct 1, 2026
 
@@ -275,9 +278,10 @@ _Coverage: 84.31% stmts / 77.16% branch / 84.66% funcs / 84.97% lines (715 tests
 - [ ] Income vs. expense 12-month rolling trend view
   - Priority: P2
   - Type: Feature
-- [ ] PWA: `manifest.json` + service worker for installable offline mode
+- [x] PWA: `manifest.json` + service worker for installable offline mode
   - Priority: P2
   - Type: Feature
+  - Done (#81, 2026-08-23): `app/manifest.json` is linked from `index.html` and `app/sw.js` is registered by `lib/service-worker-registration.js`.
 - [~] CD maturity and FIRE milestone notification system — in-app alerts bell + browser-notification settings shipped; push/outbound delivery pending
 - [ ] Optional multi-user mode (separate encrypted db.json per user, HTTP Basic auth gate)
   - Priority: P3
