@@ -1,6 +1,6 @@
 # Bugs
 
-> Generated from open `bot:journey` / `bot:review` issues in [nitsuah/fire](https://github.com/nitsuah/fire/issues). Don’t edit this file by hand: fix or close the issue. Updated 2026-10-16 by [the nightly journey run](https://github.com/nitsuah/fire/actions/runs/38867869407).
+> Generated from open `bot:journey` / `bot:review` issues in [nitsuah/fire](https://github.com/nitsuah/fire/issues). Don’t edit this file by hand: fix or close the issue. Updated 2026-10-17 by [the nightly journey run](https://github.com/nitsuah/fire/actions/runs/39013733007).
 
 ## app
 
