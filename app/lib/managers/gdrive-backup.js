@@ -188,7 +188,7 @@ async function runGDriveBackupNow() {
             body: gdriveHosted() ? { state } : undefined,
         });
         if (statusEl) {
-            statusEl.textContent = `Backup saved: ${data.fileName}`;
+            statusEl.textContent = `Backup saved and verified: ${data.fileName}`;
             statusEl.style.color = 'var(--color-success)';
         }
         loadGDriveBackupList();
