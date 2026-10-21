@@ -378,7 +378,33 @@ async function uploadBackupWithToken(token, dbJson) {
     });
     if (!res.ok) throw await driveError(res, 'Drive upload failed');
     const file = await res.json();
-    return { fileId: file.id, fileName, folderId };
+    // Round trip: fetch the stored file back and decrypt it. Success is only
+    // reported when it matches what was sent, so an upload that Drive accepted
+    // but stored wrong (or that this key can't decrypt) is never "saved".
+    await verifyUploadedBackup(token, file.id, dbJson);
+    return { fileId: file.id, fileName, folderId, verified: true };
+}
+
+async function verifyUploadedBackup(token, fileId, expectedJson) {
+    let restored;
+    try {
+        restored = decryptBackup(await downloadBackupWithToken(token, fileId));
+    } catch (err) {
+        throw Object.assign(
+            new Error(
+                `Backup verification failed: the uploaded file could not be read back (${err.message})`,
+            ),
+            { status: err.status || 502, code: 'gdrive_verify_failed' },
+        );
+    }
+    if (restored !== expectedJson) {
+        throw Object.assign(
+            new Error(
+                'Backup verification failed: the file read back from Drive does not match the data sent.',
+            ),
+            { status: 502, code: 'gdrive_verify_failed' },
+        );
+    }
 }
 
 async function listBackupsWithToken(token) {

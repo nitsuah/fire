@@ -39,12 +39,6 @@ These items came from the current browser/production pass. **P0** items are corr
 
 ### P1 — Integration & workflow improvements
 
-- [ ] **Google Drive backup: report success only after a verified round trip**
-  - Priority: P1. Split from the closed P0 above on 2026-10-15.
-  - Done 2026-10-15: live backup and restore through Google Drive confirmed by the owner (self-hosted and lifefire.netlify.app).
-  - Remaining: `runGDriveBackupNow()` in `app/lib/managers/gdrive-backup.js` shows "Backup saved" as soon as the upload returns. Download and decrypt the new file (or check its digest) before showing success.
-  - Acceptance Criteria: the UI cannot show a successful backup until the restore check passes (unit test covers the failed-verify path).
-
 - [ ] **Serve Plaid on the Netlify deploy (lifefire.netlify.app)**
   - Priority: P1. Hosted browser deployment must support the same Plaid Link → exchange → accounts → positions → transactions workflow as Express; a JSON-safe 404/status stub is not sufficient.
   - Scope: split Plaid from app/routes/sync.js, extract transport-agnostic Plaid operations, expose the required Netlify Functions/rewrites, preserve encrypted browser/local-first token handling, and keep Express behavior unchanged.
