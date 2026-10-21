@@ -239,6 +239,55 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
         );
     });
 
+    it('rejects a plaintext read-back and deletes the unverified file', async () => {
+        await connectAccount();
+        const deleted = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url, opts) => {
+                const u = String(url);
+                if (opts?.method === 'DELETE') {
+                    deleted.push(u);
+                    return { ok: true, status: 204 };
+                }
+                if (u.includes('/upload/drive/v3/files')) {
+                    return { ok: true, json: async () => ({ id: 'file-123' }) };
+                }
+                if (u.includes('/drive/v3/files/file-123')) {
+                    return { ok: true, text: async () => '{"a":1}' };
+                }
+                throw new Error(`Unexpected fetch: ${u}`);
+            }),
+        );
+        await expect(gdrive.uploadBackup('{"a":1}')).rejects.toMatchObject({
+            code: 'gdrive_verify_failed',
+        });
+        expect(deleted).toHaveLength(1);
+        expect(deleted[0]).toContain('/drive/v3/files/file-123');
+    });
+
+    it('says so when the unverified file cannot be deleted', async () => {
+        await connectAccount();
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url, opts) => {
+                const u = String(url);
+                if (opts?.method === 'DELETE')
+                    return { ok: false, status: 403 };
+                if (u.includes('/upload/drive/v3/files')) {
+                    return { ok: true, json: async () => ({ id: 'file-123' }) };
+                }
+                if (u.includes('/drive/v3/files/file-123')) {
+                    return { ok: true, text: async () => 'not-json' };
+                }
+                throw new Error(`Unexpected fetch: ${u}`);
+            }),
+        );
+        await expect(gdrive.uploadBackup('{"a":1}')).rejects.toThrow(
+            /could not be removed from Drive/,
+        );
+    });
+
     it('lists backups from the configured folder', async () => {
         await connectAccount();
         vi.stubGlobal(

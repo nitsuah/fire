@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 2026-10-21 — Drive backup verifies its round trip
 
-- **Changed:** a Google Drive backup now reads the uploaded file back, decrypts it and compares it to what was sent before reporting success (`uploadBackupWithToken`, so self-hosted and the Netlify function both get it). A mismatch or unreadable file fails the backup with `gdrive_verify_failed` and the UI shows "Backup failed", not "Backup saved and verified". The response includes `verified: true`. A file that fails verification is left in the Drive folder.
+- **Changed:** a Google Drive backup now reads the uploaded file back, decrypts it and compares it to what was sent before reporting success (`uploadBackupWithToken`, so self-hosted and the Netlify function both get it). A mismatch or unreadable file fails the backup with `gdrive_verify_failed` and the UI shows "Backup failed", not "Backup saved and verified". The response includes `verified: true`. A file that fails verification (including a plaintext copy) is deleted from Drive so list and restore never offer it.
 
 ### 2026-10-15 — Drive backup status docs
 

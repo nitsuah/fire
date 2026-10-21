@@ -381,28 +381,61 @@ async function uploadBackupWithToken(token, dbJson) {
     // Round trip: fetch the stored file back and decrypt it. Success is only
     // reported when it matches what was sent, so an upload that Drive accepted
     // but stored wrong (or that this key can't decrypt) is never "saved".
-    await verifyUploadedBackup(token, file.id, dbJson);
+    try {
+        await verifyUploadedBackup(token, file.id, dbJson);
+    } catch (err) {
+        // Don't leave an unverified file for list/restore to offer later.
+        const removed = await deleteDriveFile(token, file.id);
+        if (!removed)
+            err.message +=
+                ' The unverified file could not be removed from Drive; delete it by hand.';
+        throw err;
+    }
     return { fileId: file.id, fileName, folderId, verified: true };
 }
 
+// Best effort; returns whether the file is gone. drive.file scope covers
+// files this app created.
+async function deleteDriveFile(token, fileId) {
+    try {
+        const res = await fetch(
+            `${GDRIVE_API}/drive/v3/files/${encodeURIComponent(fileId)}`,
+            {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+                signal: AbortSignal.timeout(10000),
+            },
+        );
+        return res.ok || res.status === 404;
+    } catch {
+        return false;
+    }
+}
+
 async function verifyUploadedBackup(token, fileId, expectedJson) {
+    const fail = (message, status = 502) =>
+        Object.assign(new Error(`Backup verification failed: ${message}`), {
+            status,
+            code: 'gdrive_verify_failed',
+        });
     let restored;
     try {
-        restored = decryptBackup(await downloadBackupWithToken(token, fileId));
+        const raw = await downloadBackupWithToken(token, fileId);
+        // decryptBackup passes plaintext through (legacy restores), so
+        // require the encrypted envelope here: a plaintext copy is not verified.
+        if (JSON.parse(raw)?.enc !== true) {
+            throw new Error('the stored file is not encrypted');
+        }
+        restored = decryptBackup(raw);
     } catch (err) {
-        throw Object.assign(
-            new Error(
-                `Backup verification failed: the uploaded file could not be read back (${err.message})`,
-            ),
-            { status: err.status || 502, code: 'gdrive_verify_failed' },
+        throw fail(
+            `the uploaded file could not be read back (${err.message})`,
+            err.status,
         );
     }
     if (restored !== expectedJson) {
-        throw Object.assign(
-            new Error(
-                'Backup verification failed: the file read back from Drive does not match the data sent.',
-            ),
-            { status: 502, code: 'gdrive_verify_failed' },
+        throw fail(
+            'the file read back from Drive does not match the data sent.',
         );
     }
 }
