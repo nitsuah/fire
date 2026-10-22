@@ -22,24 +22,11 @@ test(
             async () => {
                 await page.goto('/');
                 await expect(accept).toBeVisible();
-            },
-            { docs: 'privacy-modal' },
-        );
-
-        await step(
-            page,
-            'privacy modal has no relative doc links',
-            async () => {
-                const btnNav = page.getByRole('button', {
-                    name: /Privacy\s*&\s*Terms/i,
-                });
-                if ((await btnNav.count()) === 0) return;
-                await btnNav.click();
-                const body = page.locator('#privacy-modal-body');
-                await expect(body).toBeVisible();
+                const privacyBody = page.locator('#privacy-modal-body');
+                await expect(privacyBody).toBeVisible();
                 await expect(
-                    body.locator('a[href^="./"]'),
-                    'privacy modal renders ./ links that 404 in-app',
+                    privacyBody.locator('a[href^="./"]'),
+                    'privacy modal renders relative docs links that 404 in-app',
                 ).toHaveCount(0);
             },
             { docs: 'privacy-modal' },
