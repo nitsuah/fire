@@ -32,6 +32,7 @@ export default [
             'app/lib/metals-prices.js',
             'app/lib/net-worth-history.js',
             'app/lib/data-freshness.js',
+            'app/lib/rebalance-sweep.js',
             'app/lib/live-values.js',
             'app/lib/server-reprice.js',
             'app/lib/local-backup.js',

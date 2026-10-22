@@ -27,6 +27,7 @@ const {
     getAllocationAmounts,
     scoreDiversification,
 } = require('./lib/aggregates.js');
+const { sweepRebalances } = require('./lib/rebalance-sweep.js');
 const { summarizeNetWorthHistory } = require('./lib/net-worth-history.js');
 const { coinTrackerAddresses } = require('./lib/cointracker-merge.js');
 const { summarizeDataFreshness } = require('./lib/data-freshness.js');
@@ -124,7 +125,7 @@ const TOOLS = [
     {
         name: 'simulate_rebalance',
         description:
-            'What-if: move an amount from one asset class to another (e.g. sell $20k of equities into cds) and see the allocation and diversification score before and after. Read-only — nothing is traded or saved.',
+            'What-if: move an amount from one asset class to another (e.g. sell $20k of equities into cds) and see the allocation and diversification score before and after. Pass chaos: true (no soldAsset/amount/boughtAsset needed) to sweep every single-leg move across liquid classes and your top positions at several sizes, scored under bear/base/bull return assumptions net of estimated capital-gains tax, and ranked by a metric you pick. Default returns are placeholders — supply your own in options.returns. Read-only — nothing is traded or saved.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -159,8 +160,19 @@ const TOOLS = [
                         'otherAssets',
                     ],
                 },
+                chaos: {
+                    type: 'boolean',
+                    description:
+                        'Sweep many scenarios instead of one move. soldAsset, amount and boughtAsset are then ignored.',
+                },
+                options: {
+                    type: 'object',
+                    description:
+                        'chaos only. fractions: sizes to try as fractions of each balance (default 0.1, 0.25, 0.5, 1). capGainsRatePct: flat tax rate on realized gains (default 15). returns: { bear|base|bull: { <assetClass>: annualReturn }, symbols: { COIN: { bear, base, bull } } } as decimals, e.g. -0.3. rankBy: baseDelta | bearDelta | bullDelta | scoreChange | taxCost | largestPositionPct (default baseDelta). limit: rows returned (default 25). maxPositions / minPositionValue: which top positions are tried as sellers (default 5 / 1000).',
+                },
             },
-            required: ['soldAsset', 'amount', 'boughtAsset'],
+            // soldAsset / amount / boughtAsset are validated in the handler:
+            // they are required unless chaos is true.
         },
     },
     {
@@ -521,6 +533,9 @@ function handleTool(name, state, toolArgs = {}) {
         }
 
         case 'simulate_rebalance': {
+            if (toolArgs.chaos === true) {
+                return sweepRebalances(state, toolArgs.options || {});
+            }
             const { soldAsset, amount, boughtAsset } = toolArgs;
             if (
                 !ASSET_CLASSES.includes(soldAsset) ||
