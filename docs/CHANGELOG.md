@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-10-22 — Rebalance chaos sweep
+
+- **Added:** `simulate_rebalance` takes `chaos: true` to sweep single-leg moves (liquid asset classes and your top positions, several sizes) under bear/base/bull return assumptions net of estimated capital-gains tax, ranked by a metric you choose (`app/lib/rebalance-sweep.js`). Default returns are placeholders; supply your own, including per-symbol overrides, in `options.returns`. Output is a table with no recommended row, and the tool stays read-only. The single-move path is unchanged.
+
 ### 2026-10-21 — Drive backup verifies its round trip
 
 - **Changed:** a Google Drive backup now reads the uploaded file back, decrypts it and compares it to what was sent before reporting success (`uploadBackupWithToken`, so self-hosted and the Netlify function both get it). A mismatch or unreadable file fails the backup with `gdrive_verify_failed` and the UI shows "Backup failed", not "Backup saved and verified". The response includes `verified: true`. A file that fails verification (including a plaintext copy) is deleted from Drive so list and restore never offer it.
