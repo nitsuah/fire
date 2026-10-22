@@ -212,7 +212,7 @@
     <h2 id="priv-title">Your money. <span class="emph">Your machine.</span></h2>
     <div class="priv-grid">
       <div><h3>Local by default</h3><p>Everything lives in <code>data/db.json</code>, written atomically. It is read-only toward your real accounts and never initiates a transaction.</p></div>
-      <div><h3>Encrypted at rest</h3><p>Set <code>SYNC_MASTER_KEY</code> for AES-256-GCM encryption of the database, plus optional encrypted Google Drive backups. Drive uses Google OAuth on the self-hosted server; the upload/download/decrypt round-trip remains a rollout gate.</p></div>
+      <div><h3>Encrypted at rest</h3><p>Set <code>SYNC_MASTER_KEY</code> for AES-256-GCM encryption of the database, plus optional encrypted Google Drive backups. Drive uses Google OAuth self-hosted and on the hosted deploy, and a backup reports success only after it is read back, decrypted and matched.</p></div>
       <div><h3>Locked down</h3><p>API-key auth is on by default. The app port binds to loopback only, and Caddy serves HTTPS. CSP headers, SRI-pinned scripts and rate limits are applied to every response.</p></div>
     </div>
   </section>
