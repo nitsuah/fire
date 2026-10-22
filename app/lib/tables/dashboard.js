@@ -311,8 +311,18 @@ function escHtml(s) {
 
 // Broad-market ETFs that shouldn't trigger single-stock concentration warnings
 const BROAD_MARKET_FUNDS = new Set([
-    'VTI', 'VOO', 'VXUS', 'SCHB', 'ITOT', 'IVV', 'SPY', 'VT',
-    'SCHX', 'SWTSX', 'FSKAX', 'FZROX'
+    'VTI',
+    'VOO',
+    'VXUS',
+    'SCHB',
+    'ITOT',
+    'IVV',
+    'SPY',
+    'VT',
+    'SCHX',
+    'SWTSX',
+    'FSKAX',
+    'FZROX',
 ]);
 
 // Diversification Tip Tiles - Data-driven suggestions with curated resources
@@ -427,7 +437,12 @@ const DIVERSIFICATION_TIPS = [
             for (const pos of state.importedPositions) {
                 const w = ((pos.value || 0) / totalPortfolioValue) * 100;
                 const sym = String(pos.symbol || '').toUpperCase();
-                if (w >= 20 && !isSettledCash(pos) && !BROAD_MARKET_FUNDS.has(sym)) return true;
+                if (
+                    w >= 20 &&
+                    !isSettledCash(pos) &&
+                    !BROAD_MARKET_FUNDS.has(sym)
+                )
+                    return true;
             }
             return false;
         },
@@ -437,7 +452,11 @@ const DIVERSIFICATION_TIPS = [
             for (const pos of state.importedPositions) {
                 const w = ((pos.value || 0) / totalPortfolioValue) * 100;
                 const sym = String(pos.symbol || '').toUpperCase();
-                if (w >= 20 && !isSettledCash(pos) && !BROAD_MARKET_FUNDS.has(sym)) {
+                if (
+                    w >= 20 &&
+                    !isSettledCash(pos) &&
+                    !BROAD_MARKET_FUNDS.has(sym)
+                ) {
                     concentrated.push(
                         `${escHtml(pos.symbol)} (${w.toFixed(1)}%)`,
                     );
