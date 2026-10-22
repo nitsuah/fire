@@ -1,6 +1,15 @@
 [build]
   publish = "app"
 
+# Every production deploy costs Netlify credits, so skip the ones that cannot
+# change what is served. Only the static app, the functions (which import from
+# app/lib), this file and the dependency manifests ship. Docs, screenshots,
+# tests, promo, site/ (GitHub Pages) and config do not. Exit 0 = no changes =
+# skip; a missing CACHED_COMMIT_REF makes git exit non-zero, so it fails open.
+# Production only: deploy previews are free and stay on for review.
+[context.production]
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- app netlify netlify.toml package.json package-lock.json"
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
