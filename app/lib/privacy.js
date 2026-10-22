@@ -4,14 +4,21 @@
 
 const PRIVACY_ACCEPTED_KEY = 'fire_privacy_v1_accepted';
 
+function stripNavRow(md) {
+    return md.split('\n')
+        .filter(line => !line.trim().endsWith('<!-- nav -->'))
+        .join('\n');
+}
+
 async function loadPrivacyPolicy() {
     try {
         const res = await fetch('/docs/privacy-policy.md');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const md = await res.text();
+        const strippedMd = stripNavRow(md);
         return typeof marked !== 'undefined'
-            ? marked.parse(md)
-            : `<pre class="csp-pre-wrap">${md}</pre>`;
+            ? marked.parse(strippedMd)
+            : `<pre class="csp-pre-wrap">${strippedMd}</pre>`;
     } catch (e) {
         console.warn('[Privacy] Could not load policy:', e);
         return '<p>Privacy policy could not be loaded. View it at <a href="https://github.com/nitsuah/fire/blob/main/docs/privacy-policy.md" target="_blank" rel="noopener">github.com/nitsuah/fire</a>.</p>';
@@ -77,3 +84,5 @@ if (document.readyState === 'loading') {
 } else {
     checkFirstLoad();
 }
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { stripNavRow };
