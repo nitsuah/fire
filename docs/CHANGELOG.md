@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Insights: broad-market funds such as VTI no longer trigger the single-stock concentration warning, and its copy and the CD-maturity copy read correctly (#170).
+
 ### 2026-10-22 — Rebalance chaos sweep
 
 - **Added:** `simulate_rebalance` takes `chaos: true` to sweep single-leg moves (liquid asset classes and your top positions, several sizes) under bear/base/bull return assumptions net of estimated capital-gains tax, ranked by a metric you choose (`app/lib/rebalance-sweep.js`). Default returns are placeholders; supply your own, including per-symbol overrides, in `options.returns`. Output is a table with no recommended row, and the tool stays read-only. The single-move path is unchanged.
