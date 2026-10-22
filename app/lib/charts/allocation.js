@@ -304,7 +304,7 @@ function renderAssetAllocationChart() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'right',
+                        position: 'bottom',
                         labels: {
                             color: '#9ca3af',
                             font: { size: 11, family: 'Inter' },
@@ -383,7 +383,7 @@ function renderAssetAllocationChart() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right',
+                    position: 'bottom',
                     labels: {
                         color: '#9ca3af',
                         font: { size: 11, family: 'Inter' },
