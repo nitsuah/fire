@@ -5,7 +5,10 @@
 const PRIVACY_ACCEPTED_KEY = 'fire_privacy_v1_accepted';
 
 function stripNavRow(md) {
-return md.split('\n').filter(line => !line.trimEnd().endsWith('<!-- nav -->')).join('\n');
+    return md
+        .split('\n')
+        .filter((line) => !line.trimEnd().endsWith('<!-- nav -->'))
+        .join('\n');
 }
 
 async function loadPrivacyPolicy() {
@@ -82,4 +85,5 @@ if (document.readyState === 'loading') {
     checkFirstLoad();
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { stripNavRow };
+if (typeof module !== 'undefined' && module.exports)
+    module.exports = { stripNavRow };
