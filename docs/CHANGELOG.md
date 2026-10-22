@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Privacy modal no longer shows the GitHub docs nav row (#166).
 - Insights: broad-market funds such as VTI no longer trigger the single-stock concentration warning, and its copy and the CD-maturity copy read correctly (#170).
 
 ### 2026-10-22 — Skip no-op Netlify production deploys

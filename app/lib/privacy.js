@@ -4,11 +4,18 @@
 
 const PRIVACY_ACCEPTED_KEY = 'fire_privacy_v1_accepted';
 
+function stripNavRow(md) {
+    return md
+        .split('\n')
+        .filter((line) => !line.trimEnd().endsWith('<!-- nav -->'))
+        .join('\n');
+}
+
 async function loadPrivacyPolicy() {
     try {
         const res = await fetch('/docs/privacy-policy.md');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const md = await res.text();
+        const md = stripNavRow(await res.text());
         return typeof marked !== 'undefined'
             ? marked.parse(md)
             : `<pre class="csp-pre-wrap">${md}</pre>`;
@@ -77,3 +84,6 @@ if (document.readyState === 'loading') {
 } else {
     checkFirstLoad();
 }
+
+if (typeof module !== 'undefined' && module.exports)
+    module.exports = { stripNavRow };
