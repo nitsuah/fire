@@ -309,6 +309,22 @@ function escHtml(s) {
         .replace(/"/g, '&quot;');
 }
 
+// Broad-market ETFs that shouldn't trigger single-stock concentration warnings
+const BROAD_MARKET_FUNDS = new Set([
+    'VTI',
+    'VOO',
+    'VXUS',
+    'SCHB',
+    'ITOT',
+    'IVV',
+    'SPY',
+    'VT',
+    'SCHX',
+    'SWTSX',
+    'FSKAX',
+    'FZROX',
+]);
+
 // Diversification Tip Tiles - Data-driven suggestions with curated resources
 // Each tip's check and message receive a context object: { nw, totalPortfolioValue, cashPct, eqPct, cdsPct, rePct }
 const DIVERSIFICATION_TIPS = [
@@ -420,7 +436,13 @@ const DIVERSIFICATION_TIPS = [
             if (!totalPortfolioValue || totalPortfolioValue <= 0) return false;
             for (const pos of state.importedPositions) {
                 const w = ((pos.value || 0) / totalPortfolioValue) * 100;
-                if (w >= 20 && !isSettledCash(pos)) return true;
+                const sym = String(pos.symbol || '').toUpperCase();
+                if (
+                    w >= 20 &&
+                    !isSettledCash(pos) &&
+                    !BROAD_MARKET_FUNDS.has(sym)
+                )
+                    return true;
             }
             return false;
         },
@@ -429,14 +451,19 @@ const DIVERSIFICATION_TIPS = [
             const concentrated = [];
             for (const pos of state.importedPositions) {
                 const w = ((pos.value || 0) / totalPortfolioValue) * 100;
-                if (w >= 20 && !isSettledCash(pos)) {
+                const sym = String(pos.symbol || '').toUpperCase();
+                if (
+                    w >= 20 &&
+                    !isSettledCash(pos) &&
+                    !BROAD_MARKET_FUNDS.has(sym)
+                ) {
                     concentrated.push(
                         `${escHtml(pos.symbol)} (${w.toFixed(1)}%)`,
                     );
                 }
             }
             return concentrated.length === 1
-                ? `${concentrated[0]} of your equity — concentration above 20% increases single-stock risk.`
+                ? `${concentrated[0]} makes up more than 20% of your equity — a single stock that large increases concentration risk.`
                 : `${concentrated.join(', ')} exceed 20% each — concentration risk detected.`;
         },
         links: [
@@ -552,7 +579,7 @@ const DIVERSIFICATION_TIPS = [
         check: ({ cdsSoon }) => cdsSoon.length > 0,
         severity: 'info',
         message: ({ cdsSoon }) =>
-            `${cdsSoon.length} CD${cdsSoon.length === 1 ? '' : 's'} mature within 60 days — decide now whether to roll over, ladder, or redeploy so the cash isn't left idle.`,
+            `${cdsSoon.length} CD${cdsSoon.length === 1 ? ' matures' : 's mature'} within 60 days — decide now whether to roll over, ladder, or redeploy so the cash isn't left idle.`,
         links: [
             {
                 label: 'CD Ladder Strategy',
