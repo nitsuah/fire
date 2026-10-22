@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Insights: broad-market funds such as VTI no longer trigger the single-stock concentration warning, and its copy and the CD-maturity copy read correctly (#170).
+
 ### 2026-10-22 — Skip no-op Netlify production deploys
 
 - **Changed:** `netlify.toml` gains a `[context.production]` `ignore` command, so a push to `main` only deploys lifefire when `app/`, `netlify/`, `netlify.toml`, `package.json` or `package-lock.json` changed. Docs, screenshot/diagram regeneration, tests, `promo/`, `site/` and `config/` no longer spend 15 production-deploy credits each. Deploy previews are unaffected (free), and a missing `CACHED_COMMIT_REF` makes the check fail open so the build still runs.
