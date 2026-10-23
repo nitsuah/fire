@@ -303,6 +303,23 @@
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
 }
 
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    cursor: pointer;
+    font-size: var(--text-base);
+    color: var(--text-main);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    height: auto;
+    min-width: 18px;
+    min-height: 18px;
+    accent-color: var(--color-primary);
+}
+
 /* Sliders — organic */
 .slider-input {
     -webkit-appearance: none;
