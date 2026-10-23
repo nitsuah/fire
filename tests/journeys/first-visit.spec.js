@@ -22,6 +22,14 @@ test(
             async () => {
                 await page.goto('/');
                 await expect(accept).toBeVisible();
+                const privacyBody = page.locator('#privacy-modal-body');
+                await expect(privacyBody).toBeVisible();
+                await expect(
+                    privacyBody.locator(
+                        'a[href^="./"], a[href$=".md"]:not([href^="http"])',
+                    ),
+                    'privacy modal renders relative docs links that 404 in-app',
+                ).toHaveCount(0);
             },
             { docs: 'privacy-modal' },
         );
