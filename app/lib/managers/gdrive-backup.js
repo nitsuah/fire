@@ -24,8 +24,13 @@ const GDRIVE_DEAD_GRANT_CODES = new Set([
     'gdrive_token_invalid',
 ]);
 
+// True once /api/backup/drive/status has reported `hosted: true`. The
+// isBrowserOnlyMode heuristic flips only after the SPA has loaded, so on the
+// hosted deploy the first status check can still read it as false.
+let gdriveServerHosted = false;
+
 function gdriveHosted() {
-    return typeof isBrowserOnlyMode === 'function' && isBrowserOnlyMode();
+    return gdriveServerHosted || (typeof isBrowserOnlyMode === 'function' && isBrowserOnlyMode());
 }
 
 function gdriveRead(key, storage = localStorage) {
@@ -88,6 +93,7 @@ async function loadGDriveBackupPanel() {
     try {
         const res = await fetch('/api/backup/drive/status');
         const data = await res.json();
+        gdriveServerHosted = data.hosted === true;
         if (!res.ok) {
             throw new Error(
                 data.error || 'Unable to check Google Drive backup status.',
@@ -113,9 +119,10 @@ async function loadGDriveBackupPanel() {
         }
         if (connectBtn) connectBtn.disabled = false;
 
-        const authorized = gdriveHosted()
-            ? Boolean(gdriveRead(GDRIVE_TOKEN_KEY))
-            : data.authorized;
+        const authorized =
+            gdriveHosted()
+                ? Boolean(gdriveRead(GDRIVE_TOKEN_KEY))
+                : data.authorized;
         if (authorized) {
             statusEl.textContent = 'Connected to Google Drive.';
             statusEl.style.color = 'var(--color-success)';
