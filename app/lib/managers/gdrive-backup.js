@@ -30,7 +30,10 @@ const GDRIVE_DEAD_GRANT_CODES = new Set([
 let gdriveServerHosted = false;
 
 function gdriveHosted() {
-    return gdriveServerHosted || (typeof isBrowserOnlyMode === 'function' && isBrowserOnlyMode());
+    return (
+        gdriveServerHosted ||
+        (typeof isBrowserOnlyMode === 'function' && isBrowserOnlyMode())
+    );
 }
 
 function gdriveRead(key, storage = localStorage) {
@@ -119,10 +122,9 @@ async function loadGDriveBackupPanel() {
         }
         if (connectBtn) connectBtn.disabled = false;
 
-        const authorized =
-            gdriveHosted()
-                ? Boolean(gdriveRead(GDRIVE_TOKEN_KEY))
-                : data.authorized;
+        const authorized = gdriveHosted()
+            ? Boolean(gdriveRead(GDRIVE_TOKEN_KEY))
+            : data.authorized;
         if (authorized) {
             statusEl.textContent = 'Connected to Google Drive.';
             statusEl.style.color = 'var(--color-success)';
