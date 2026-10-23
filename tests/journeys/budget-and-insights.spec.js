@@ -43,7 +43,7 @@ test(
                 await openApp(page);
                 await openTab(page, 'insights');
                 await expect(page.locator('#tab-insights')).toContainText(
-                    'Equity Concentration Risk',
+                    'Missing Real Estate',
                 );
                 await expect(tile).toBeVisible();
             },
