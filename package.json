@@ -15,7 +15,7 @@
     "capture:screenshots": "DOCS_SCREENSHOTS=docs/screenshots playwright test --config config/playwright.journeys.config.js --ignore-snapshots --retries 0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.1",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "ethers": "^6.13.0",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
@@ -24,7 +24,11 @@
   },
   "overrides": {
     "postcss": ">=8.5.25",
-    "brace-expansion": ">=5.0.8"
+    "brace-expansion": ">=5.0.8",
+    "fast-uri": ">=3.1.9",
+    "ip-address": ">=10.7.4",
+    "body-parser": ">=2.4.0",
+    "zod": ">=4.6.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
