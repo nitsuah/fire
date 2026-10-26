@@ -26,6 +26,8 @@ const {
     ASSET_CLASSES,
     getAllocationAmounts,
     scoreDiversification,
+    insuranceToMonthly,
+    getInsuranceMonthly,
 } = require('./lib/aggregates.js');
 const { sweepRebalances } = require('./lib/rebalance-sweep.js');
 const { summarizeNetWorthHistory } = require('./lib/net-worth-history.js');
@@ -83,6 +85,12 @@ const TOOLS = [
         name: 'get_expenses',
         description:
             'Monthly expense breakdown (housing, food, transport, etc.) with monthly and annual totals.',
+        inputSchema: { type: 'object', properties: {} },
+    },
+    {
+        name: 'get_insurances',
+        description:
+            'Insurance policies (car, home) with the amount and frequency as entered, normalized monthly and annual amounts, and combined totals.',
         inputSchema: { type: 'object', properties: {} },
     },
     {
@@ -474,6 +482,28 @@ function handleTool(name, state, toolArgs = {}) {
                 taxRate: state.taxRate || 0,
                 fireBasisAnnualTotal: Math.round(proj.annualExpenses),
                 fireBasisMonthlyTotal: Math.round(proj.annualExpenses / 12),
+            };
+        }
+
+        case 'get_insurances': {
+            const ins = state.insurances || {};
+            const rows = Object.entries(ins).map(([policy, v]) => {
+                const amt = Number(v?.amt) || 0;
+                const freq = v?.freq || 'monthly';
+                const monthly = insuranceToMonthly({ amt, freq });
+                return {
+                    policy,
+                    amount: amt,
+                    frequency: freq,
+                    monthly: Math.round(monthly * 100) / 100,
+                    annual: Math.round(monthly * 12 * 100) / 100,
+                };
+            });
+            const monthlyTotal = getInsuranceMonthly(ins);
+            return {
+                policies: rows,
+                monthlyTotal: Math.round(monthlyTotal * 100) / 100,
+                annualTotal: Math.round(monthlyTotal * 12 * 100) / 100,
             };
         }
 
