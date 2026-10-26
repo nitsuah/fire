@@ -125,6 +125,7 @@ function summarizeDataFreshness(state, now = new Date()) {
         ? Math.min(...vehicleTimes)
         : null;
     const importT = lastImportTime(s);
+    const savedT = toTime(s.lastSavedAt);
 
     return {
         pricesAsOf: { oldest: iso(oldest), newest: iso(newest) },
@@ -133,6 +134,10 @@ function summarizeDataFreshness(state, now = new Date()) {
         staleAfterDays: STALE_AFTER_DAYS,
         lastImport: iso(importT),
         daysSinceImport: daysSince(importT, nowMs),
+        // When anything in the state was last edited (null for state written
+        // before this field existed).
+        lastSavedAt: iso(savedT),
+        daysSinceSave: daysSince(savedT, nowMs),
         positionsWithoutPriceSource,
         vehicles: {
             oldestValuation: iso(vehiclesOldest),

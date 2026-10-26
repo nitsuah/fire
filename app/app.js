@@ -503,7 +503,9 @@ function importFullState(event) {
             const importedState = JSON.parse(e.target.result);
             if (importedState && typeof importedState === 'object') {
                 state = sanitizeState(importedState);
-                await saveState();
+                // A restore keeps the backup's own lastSavedAt: the data was
+                // last edited then, not now.
+                await saveState({ preserveSavedAt: true });
                 refreshAllUI();
                 alert('Full state imported successfully!');
             } else {
