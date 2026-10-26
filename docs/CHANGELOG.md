@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Net-worth history is no longer empty on the hosted deploy: the browser records one snapshot per day on load and after each save when `GET /api/state` is unreachable (the Express timer that owns the field never runs there), using the same aggregates the dashboard shows. Self-hosted behavior is unchanged — the server still owns `netWorthHistory` and drops a client copy (`app/lib/daily-snapshot.js`) (#275).
 - Google Drive card keeps showing Connected after a refresh on the hosted deploy (#246).
 - Settings: checkboxes in Notifications & Alerts and Plaid sync now sit inline with their labels (#171).
 - Insights: the equity share excludes crypto, matching the Asset Allocation chart (#169).

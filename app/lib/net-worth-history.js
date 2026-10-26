@@ -19,18 +19,13 @@ const {
     getAggregateVehicles,
 } = require('./finance-core');
 const { pricesAsOf } = require('./data-freshness');
-
-// ~10 years of daily points; the oldest are dropped beyond this.
-const MAX_HISTORY_DAYS = 3650;
+const {
+    MAX_HISTORY_DAYS,
+    dayKey,
+    upsertDailySnapshot,
+} = require('./daily-snapshot');
 
 const round2 = (n) => Math.round(n * 100) / 100;
-
-// YYYY-MM-DD in the server's local time.
-function dayKey(d) {
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${mm}-${dd}`;
-}
 
 function snapshotNetWorth(state) {
     const s = state || {};
@@ -57,7 +52,6 @@ function snapshotNetWorth(state) {
 // price behind it) and stale (older than STALE_AFTER_DAYS), so a flat run
 // of snapshots taken on unrefreshed prices isn't mistaken for tracking.
 function recordNetWorthSnapshot(db, now = new Date()) {
-    const snap = snapshotNetWorth(db);
     const hasData =
         (db.importedPositions || []).length ||
         (db.customAccounts || []).length ||
@@ -66,20 +60,11 @@ function recordNetWorthSnapshot(db, now = new Date()) {
         (db.vehicles || []).length;
     if (!hasData) return null;
 
-    const date = dayKey(now);
-    const entry = {
-        date,
-        ...snap,
-        ...pricesAsOf(db, now),
-        recordedAt: now.toISOString(),
-    };
-    const history = Array.isArray(db.netWorthHistory)
-        ? db.netWorthHistory.filter((e) => e && e.date !== date)
-        : [];
-    history.push(entry);
-    history.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-    db.netWorthHistory = history.slice(-MAX_HISTORY_DAYS);
-    return entry;
+    return upsertDailySnapshot(
+        db,
+        { ...snapshotNetWorth(db), ...pricesAsOf(db, now) },
+        now,
+    );
 }
 
 // Summary for MCP / UI: latest value plus change over 7/30/365 days and

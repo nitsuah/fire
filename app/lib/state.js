@@ -103,6 +103,11 @@ async function loadStateFromServer() {
         );
     }
     loadStateFromStorage();
+    // Opening the app is enough to keep the history going: the hosted deploy
+    // has no server timer, so without this a user who only ever reads would
+    // collect no points. Persist directly — there is no server to post to.
+    if (syncedRevision === null && recordLocalNetWorthSnapshot())
+        localStorage.setItem('fire_tracker_state', JSON.stringify(state));
 }
 
 // A tab left open keeps its own in-memory copy of the data, and any edit
@@ -198,6 +203,43 @@ function loadStateFromStorage() {
 // with the same base revision and the second would be refused).
 let saveQueue = Promise.resolve();
 
+// Appends/updates today's net-worth point on `state` (see postState). Uses
+// the same aggregates the dashboard shows, so the history chart reads the
+// numbers the user is looking at. No pricesAsOf/stale here — those need the
+// server's price bookkeeping; the browser has no such timestamps.
+function recordLocalNetWorthSnapshot(now = new Date()) {
+    const s = state || {};
+    const agg = window.FireAggregates;
+    if (!agg) return null;
+    if (
+        !(s.importedPositions || []).length &&
+        !(s.customAccounts || []).length &&
+        !(s.cds || []).length &&
+        !(s.realEstate || []).length &&
+        !(s.vehicles || []).length
+    )
+        return null; // nothing to record — don't start history at $0
+
+    const r2 = (n) => Math.round(n * 100) / 100;
+    return window.FireDailySnapshot.upsertDailySnapshot(
+        s,
+        {
+            total: r2(agg.getAggregateNetWorth(s)),
+            cash: r2(
+                agg.getAggregateCash(s.importedPositions, s.customAccounts),
+            ),
+            cds: r2(agg.getAggregateCDs(s.cds)),
+            equities: r2(
+                agg.getAggregateEquities(s.importedPositions, s.customAccounts),
+            ),
+            otherAssets: r2(agg.getAggregateOtherAssets(s.customAccounts)),
+            realEstate: r2(agg.getAggregateRealEstate(s.realEstate)),
+            vehicles: r2(agg.getAggregateVehicles(s.vehicles)),
+        },
+        now,
+    );
+}
+
 function saveState({ preserveSavedAt = false } = {}) {
     const run = saveQueue.then(
         () => postState(preserveSavedAt),
@@ -214,6 +256,12 @@ async function postState(preserveSavedAt = false) {
     // ponytail: one-shot flag, not a stored preference; a per-write option is
     // all a restore needs.
     if (!preserveSavedAt) state.lastSavedAt = new Date().toISOString();
+    // With no server there is nothing to record daily net-worth points for
+    // us (the Express timer in server.js never runs on the hosted deploy),
+    // so do it here — that is what keeps the history chart and
+    // get_net_worth_trend from staying empty. The server owns the field
+    // whenever it is reachable (routes/state.js drops a client copy).
+    if (syncedRevision === null) recordLocalNetWorthSnapshot();
     localStorage.setItem('fire_tracker_state', JSON.stringify(state));
 
     try {
