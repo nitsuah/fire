@@ -1,30 +1,25 @@
 name: Visual docs
 
-# Regenerates docs/screenshots/<feature-id>.png from the journeys
-# (tests/journeys, steps tagged { docs: '<id>' }) — same demo seed, mocked
-# prices and frozen clock, so there is one Playwright suite, not two — and
-# renders docs/diagrams/*.mmd to .svg (README block rewritten by
-# scripts/visual-docs-readme.mjs), and opens/updates a PR on bot/visual-docs. Never pushes to main. Recipe:
-# nitsuah/vigil docs/VISUAL_DOCS.md; promo/spots.json links the images by id.
+# Regenerates documented UI screenshots from tagged journeys and renders Mermaid
+# diagrams. The generated-assets PR never pushes directly to main.
+# For journey/diagram-only changes, run this workflow_dispatch manually.
+# See nitsuah/vigil docs/VISUAL_DOCS.md and promo/spots.json for image IDs.
 #
-# One-time repo setting: Settings -> Actions -> General -> "Allow GitHub
-# Actions to create and approve pull requests".
+# Keep push triggers limited to files that can visibly change the captured UI.
+# Exclude generated screenshots, README, tests, backend/server code, and this
+# workflow itself to prevent documentation updates from retriggering the job.
 
 on:
   push:
     branches: [main]
     paths:
-      - 'app/**'
-      - 'tests/journeys/**'
+      - 'app/app.js'
+      - 'app/index.html'
+      - 'app/styles.css'
+      - 'app/lib/**'
+      - 'app/routes/**'
+      - 'app/templates/**'
       - 'promo/demo-seed.js'
-      # Deliberately omit docs/screenshots/**: this workflow commits generated
-      # screenshots back through bot/visual-docs, so watching its own output
-      # retriggers the workflow after every generated-assets PR is merged.
-      # Use workflow_dispatch after manually adding/removing screenshot files.
-      - 'docs/diagrams/*.mmd'
-      - 'docs/diagrams/mermaid.config.json'
-      - 'scripts/visual-docs-readme.mjs'
-      - '.github/workflows/visual-docs.yml'
   workflow_dispatch:
 
 permissions:
