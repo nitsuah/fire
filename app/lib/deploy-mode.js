@@ -83,6 +83,8 @@
 
     // Test seam: forget the answer, any waiters, and their timers.
     function reset() {
+        // Wake callers waiting on the previous probe before clearing its timeout.
+        settle(null);
         for (const t of timers) root.clearTimeout(t);
         timers.clear();
         hosted = null;
