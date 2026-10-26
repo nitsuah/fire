@@ -55,6 +55,31 @@ function ctExcluded() {
 // once it holds the lock, so it always sends the newest blob.
 let ctQueue = Promise.resolve();
 
+// Last answer from GET /api/sync/cointracker/status; null until it loads.
+let ctStatus = null;
+
+// The card used to show whatever the last client call happened to write, so
+// after a reload there was no authoritative "am I connected?". The server now
+// answers it from the sealed blob, which travels in the Authorization header
+// (never the URL — query strings land in access logs).
+async function ctRefreshStatus() {
+    try {
+        const token = ctRead(CT_TOKEN_KEY);
+        const res = await fetch('/api/sync/cointracker/status', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        ctStatus = await res.json();
+        // A blob the server cannot unseal can never work again.
+        if (token && ctStatus.connected === false) ctWrite(CT_TOKEN_KEY, null);
+    } catch {
+        // Server unreachable (or not configured enough to be asked): fall back
+        // to whether this browser still holds a blob.
+        ctStatus = null;
+    }
+    renderCoinTrackerCard();
+}
+
 function ctLocked(fn) {
     if (navigator.locks?.request) {
         return navigator.locks.request('fire-cointracker', fn);
@@ -176,6 +201,7 @@ async function disconnectCoinTracker() {
     ctWrite(CT_TOKEN_KEY, null);
     ctWrite(CT_LAST_SYNC_KEY, null);
     ctWrite(CT_LAST_RESULT_KEY, null);
+    ctStatus = null;
     state.customAccounts = FireCoinTrackerMerge.removeCoinTrackerWallets(
         state.customAccounts,
     );
@@ -224,14 +250,19 @@ async function toggleCoinTrackerWallet(providerId) {
 }
 
 function renderCoinTrackerCard() {
-    const connected = Boolean(ctRead(CT_TOKEN_KEY));
+    // The status endpoint is the authority once it has answered; before that
+    // (or when the server is unreachable) fall back to the local blob.
+    const connected = ctStatus
+        ? ctStatus.connected
+        : Boolean(ctRead(CT_TOKEN_KEY));
+    const configured = ctStatus ? ctStatus.configured !== false : true;
     const lastSync = ctRead(CT_LAST_SYNC_KEY);
     const result = ctLastResult();
     const toggle = (id, show) => {
         const el = document.getElementById(id);
         if (el) el.style.display = show ? '' : 'none';
     };
-    toggle('btn-cointracker-connect', !connected);
+    toggle('btn-cointracker-connect', !connected && configured);
     toggle('btn-cointracker-sync', connected);
     toggle('btn-cointracker-inspect', connected);
     toggle('btn-cointracker-disconnect', connected);
@@ -240,7 +271,13 @@ function renderCoinTrackerCard() {
         FireCoinTrackerMerge.isCoinTrackerRow(a),
     );
     const total = rows.reduce((s, a) => s + (Number(a.value) || 0), 0);
-    if (!connected) {
+    if (!configured) {
+        // Offering Connect here can only fail: SYNC_MASTER_KEY is missing.
+        ctSetStatus(
+            'CoinTracker is not configured on this deployment (SYNC_MASTER_KEY)',
+            'var(--color-warning, var(--color-danger))',
+        );
+    } else if (!connected) {
         ctSetStatus('Not connected');
     } else {
         const when = lastSync ? new Date(lastSync).toLocaleString() : 'never';
@@ -377,11 +414,19 @@ function initCoinTracker() {
         }
     });
     renderCoinTrackerCard();
-    consumeCoinTrackerFragment().then((handled) => {
-        if (handled || !ctRead(CT_TOKEN_KEY)) return;
+    consumeCoinTrackerFragment().then(async (handled) => {
+        if (handled || !ctRead(CT_TOKEN_KEY)) {
+            await ctRefreshStatus();
+            return;
+        }
+        // The endpoint decides whether the stored blob still works, so ask
+        // before deciding to auto-sync off it (#294).
+        await ctRefreshStatus();
+        if (!ctRead(CT_TOKEN_KEY)) return;
         const last = Date.parse(ctRead(CT_LAST_SYNC_KEY) || '');
         if (!Number.isFinite(last) || Date.now() - last > CT_AUTO_SYNC_MS) {
-            runCoinTrackerSync({ silent: true });
+            const merged = await runCoinTrackerSync({ silent: true });
+            if (merged) await ctRefreshStatus();
         }
     });
 }
