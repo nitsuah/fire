@@ -5,21 +5,30 @@ const { readState, mutateState } = require('../lib/db');
 const { parsePlaidTransactions } = require('../lib/finance-parsing');
 const fs = require('fs');
 const { getTokenFile, loadTokens, saveTokens } = require('../lib/token-store');
+const { REAUTH_CODES, failureCode } = require('../lib/plaid-status');
 
 const router = express.Router();
 
+// `configured` is the difference between "no credentials on this deploy" and
+// "credentials, nobody linked yet" — same shape as the Etsy status route.
+// `lastSync` carries the outcome of the last transaction sync, and
+// `reauthRequired` flags an Item whose grant is dead, so a stale success
+// cannot keep reporting "Connected" forever (#293).
 router.get('/plaid/status', (req, res) => {
     const tokens = loadTokens('plaid');
     const db = readState();
     const syncEnabled = db.plaidSyncEnabled !== false;
-    if (!tokens?.items?.length) {
-        return res.json({ connected: false, itemCount: 0, syncEnabled });
-    }
+    const items = tokens?.items || [];
     res.json({
-        connected: true,
-        itemCount: tokens.items.length,
-        lastUpdated: tokens._tokenLastUpdated || null,
-        lastTransactionsSync: tokens.transactionsLastSyncedAt || null,
+        connected: items.length > 0,
+        configured: plaidConfigured(),
+        itemCount: items.length,
+        lastUpdated: tokens?._tokenLastUpdated || null,
+        lastTransactionsSync: tokens?.transactionsLastSyncedAt || null,
+        lastSync: tokens?.transactionsLastSync || null,
+        reauthRequired: items.some((item) =>
+            REAUTH_CODES.has(item.lastErrorCode),
+        ),
         syncEnabled,
     });
 });
@@ -70,6 +79,27 @@ function plaidBase() {
     if (env === 'production') return 'https://production.plaid.com';
     if (env === 'development') return 'https://development.plaid.com';
     return 'https://sandbox.plaid.com';
+}
+
+// The first failed Item's code, as a single string for the last-sync record.
+// Codes only — never a provider message or payload (#262).
+function firstErrorCode(items) {
+    const failed = items.find((item) => item.lastErrorCode);
+    return failed ? failed.lastErrorCode : null;
+}
+
+// A total sync failure still needs its outcome persisted, but a token-file
+// write failure must not mask the 502 the caller already has to report.
+function saveTokensQuietly(tokens, items, lastSync) {
+    try {
+        saveTokens('plaid', {
+            ...tokens,
+            items,
+            transactionsLastSync: lastSync,
+        });
+    } catch (err) {
+        console.error('[Plaid] failed to record sync outcome:', err.message);
+    }
 }
 
 router.post('/plaid/create-link-token', async (req, res) => {
@@ -344,6 +374,7 @@ router.post('/plaid/transactions', async (req, res) => {
         const itemAdded = [];
         const itemModified = [];
         const itemRemovedIds = [];
+        let itemError = null;
         try {
             const originalCursor = item.transactionsCursor || undefined;
             let cursor = originalCursor;
@@ -365,7 +396,15 @@ router.post('/plaid/transactions', async (req, res) => {
                     signal: AbortSignal.timeout(15000),
                 });
                 if (!r.ok) {
-                    failedItems.push(r.status);
+                    // Only the code is kept: the body can carry account
+                    // details, and status must not republish provider
+                    // payloads (#262).
+                    const body =
+                        typeof r.json === 'function'
+                            ? await r.json().catch(() => ({}))
+                            : {};
+                    itemError = body.error_code || `HTTP_${r.status}`;
+                    failedItems.push(itemError);
                     itemFailed = true;
                     break;
                 }
@@ -390,18 +429,25 @@ router.post('/plaid/transactions', async (req, res) => {
                 failedItems.push('page_limit_exceeded');
             }
             if (itemFailed) {
-                updatedItems.push(item);
+                // The item keeps its cursor but remembers why: status reads
+                // this to say "re-link" rather than "connected" (#293).
+                updatedItems.push(
+                    itemError ? { ...item, lastErrorCode: itemError } : item,
+                );
             } else {
                 allAdded.push(...itemAdded);
                 allModified.push(...itemModified);
                 allRemovedIds.push(...itemRemovedIds);
-                updatedItems.push({ ...item, transactionsCursor: cursor });
+                // A successful sync means the grant works again.
+                const clean = { ...item };
+                delete clean.lastErrorCode;
+                updatedItems.push({ ...clean, transactionsCursor: cursor });
                 successfulItemCount++;
             }
         } catch (err) {
-            console.error('[Plaid] transactions fetch error:', err);
+            console.error('[Plaid] transactions fetch error:', err.message);
             failedItems.push(err.message);
-            updatedItems.push(item);
+            updatedItems.push({ ...item, lastErrorCode: failureCode(err) });
         }
     }
 
@@ -412,6 +458,14 @@ router.post('/plaid/transactions', async (req, res) => {
     // "all failed" and skip saving its advanced cursor, forcing it to
     // needlessly re-fetch the same already-confirmed-empty pages forever.
     if (failedItems.length > 0 && successfulItemCount === 0) {
+        // Still persist: the per-item error codes are the only way status
+        // can tell the user to re-link instead of silently showing the old
+        // last-sync timestamp (#293).
+        saveTokensQuietly(tokens, updatedItems, {
+            at: new Date().toISOString(),
+            ok: false,
+            errorCode: firstErrorCode(updatedItems),
+        });
         return res.status(502).json({
             error: 'All Plaid transaction fetches failed. Existing data preserved.',
             failedCount: failedItems.length,
@@ -478,6 +532,11 @@ router.post('/plaid/transactions', async (req, res) => {
             ...tokens,
             items: updatedItems,
             transactionsLastSyncedAt: syncedAt,
+            transactionsLastSync: {
+                at: syncedAt,
+                ok: failedItems.length === 0,
+                errorCode: firstErrorCode(updatedItems),
+            },
         });
     } catch (err) {
         console.error('[Plaid] failed to persist sync cursor:', err);

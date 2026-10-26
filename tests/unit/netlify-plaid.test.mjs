@@ -272,6 +272,85 @@ describe('hosted Plaid Netlify function', () => {
         expect(body.plaidToken).not.toBe(token);
     });
 
+    it('reports a fresh install as configured but not connected', async () => {
+        vi.stubGlobal('fetch', vi.fn());
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
+        const body = await (
+            await handler(
+                new Request(
+                    'https://lifefire.netlify.app/api/sync/plaid/status',
+                    { method: 'GET' },
+                ),
+            )
+        ).json();
+
+        expect(body).toMatchObject({
+            connected: false,
+            configured: true,
+            itemCount: 0,
+            lastSync: null,
+            reauthRequired: false,
+        });
+    });
+
+    // #293: without credentials status must still answer 200 and say so,
+    // rather than 503 or a plain "not linked".
+    it('answers status with configured:false when the function has no credentials', async () => {
+        delete process.env.PLAID_CLIENT_ID;
+        delete process.env.PLAID_SECRET;
+        vi.stubGlobal('fetch', vi.fn());
+        const { default: handler } =
+            await import('../../netlify/functions/plaid.mjs');
+        const response = await handler(
+            new Request('https://lifefire.netlify.app/api/sync/plaid/status', {
+                method: 'GET',
+            }),
+        );
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({
+            connected: false,
+            configured: false,
+            reauthRequired: false,
+        });
+    });
+
+    it('flags a dead grant as re-auth-required after a failed sync', async () => {
+        const handler = (await import('../../netlify/functions/plaid.mjs'))
+            .default;
+        const token = await linkItems(handler, ['access-1']);
+        vi.stubGlobal(
+            'fetch',
+            plaidMock({
+                '/transactions/sync': () => [
+                    400,
+                    {
+                        error_code: 'ITEM_LOGIN_REQUIRED',
+                        error_message: 'the login details have changed',
+                    },
+                ],
+            }),
+        );
+
+        const res = await handler(postRequest('transactions', token));
+        expect(res.status).toBe(502);
+        const failed = await res.json();
+        expect(failed.plaidToken).toBeTruthy();
+
+        const status = await handler(statusRequest(failed.plaidToken));
+        const body = await status.json();
+        expect(body.connected).toBe(true);
+        expect(body.reauthRequired).toBe(true);
+        expect(body.lastSync).toMatchObject({
+            ok: false,
+            errorCode: 'ITEM_LOGIN_REQUIRED',
+        });
+        // Codes only — no provider message, no access token (#262).
+        expect(JSON.stringify(body)).not.toContain('login details');
+        expect(JSON.stringify(body)).not.toContain('access-1');
+    });
+
     it('rejects a cross-origin hosted request', async () => {
         vi.stubGlobal('fetch', vi.fn());
         const { default: handler } =

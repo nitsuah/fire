@@ -260,9 +260,15 @@ test.describe('Financial Overview — unified add form', () => {
         await expect(page.locator('#tab-settings #btn-ebay-oauth')).toHaveCount(
             0,
         );
+        // This suite runs the server with no PLAID_CLIENT_ID/PLAID_SECRET, so
+        // status must read "not configured" and Connect must stay hidden —
+        // offering it would only fail (#275, #293).
+        await expect(
+            page.locator('#tab-settings #plaid-sync-status'),
+        ).toContainText('not configured');
         await expect(
             page.locator('#tab-settings #btn-plaid-link'),
-        ).toBeVisible();
+        ).toBeHidden();
     });
 
     test('wallets show under the form only for Cryptocurrency; the ENS lookup panel is hidden', async ({

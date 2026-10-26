@@ -555,6 +555,48 @@ function applyHostedPlaidTransactions(data) {
     }
 }
 
+// One status vocabulary for both Plaid cards (Financial Overview + Settings).
+// Without it a deploy with no credentials, a dead grant and an unlinked
+// account all read "Not Linked", and a failed sync leaves a stale
+// "Connected" with no hint that anything went wrong (#293).
+function plaidStatusBadge(data) {
+    const accounts = `${data.itemCount} account${data.itemCount === 1 ? '' : 's'}`;
+    if (data.configured === false) {
+        return {
+            label: 'Plaid is not configured on this deployment (PLAID_CLIENT_ID / PLAID_SECRET)',
+            color: 'var(--color-warning, var(--color-danger))',
+            linkable: false,
+        };
+    }
+    if (data.reauthRequired) {
+        return {
+            label: `Re-link required (${accounts}) — Plaid needs you to sign in at the institution again`,
+            color: 'var(--color-warning, var(--color-danger))',
+            linkable: true,
+        };
+    }
+    const last = data.lastSync;
+    if (data.connected && last && last.ok === false) {
+        return {
+            label: `Linked (${accounts}) · Last sync failed${last.errorCode ? ` (${last.errorCode})` : ''}`,
+            color: 'var(--color-danger)',
+            linkable: true,
+        };
+    }
+    if (data.connected) {
+        return {
+            label: `Linked (${accounts})`,
+            color: 'var(--color-success)',
+            linkable: true,
+        };
+    }
+    return {
+        label: 'Not Linked',
+        color: 'var(--text-muted)',
+        linkable: true,
+    };
+}
+
 async function checkPlaidConnection() {
     const statusEl = document.getElementById('plaid-sync-status');
     if (!statusEl) return;
@@ -562,13 +604,12 @@ async function checkPlaidConnection() {
         const { res, data } = await plaidRequest('/api/sync/plaid/status');
         if (!res.ok)
             throw new Error(data.error || 'Unable to check Plaid status.');
-        if (data.connected) {
-            statusEl.textContent = `Status: Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''})`;
-            statusEl.style.color = 'var(--color-success)';
-        } else {
-            statusEl.textContent = 'Status: Not Linked';
-            statusEl.style.color = 'var(--text-muted)';
-        }
+        const badge = plaidStatusBadge(data);
+        statusEl.textContent = `Status: ${badge.label}`;
+        statusEl.style.color = badge.color;
+        // No credentials means Link can only fail — don't offer it (#275).
+        const linkBtn = document.getElementById('btn-plaid-link');
+        if (linkBtn) linkBtn.hidden = !badge.linkable;
         if (typeof setFidelityImportDisabled === 'function') {
             const syncEnabled = isHostedPlaid()
                 ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
@@ -723,20 +764,21 @@ async function loadPlaidSettingsPanel(note = null) {
             ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
             : data.syncEnabled !== false;
         toggle.checked = syncEnabled;
-        if (!data.connected) {
-            statusEl.textContent =
-                'Not connected — use the Plaid Investments card in Financial Overview to link an account first.';
-            statusEl.style.color = 'var(--text-muted)';
-        } else {
-            const lastSyncText = data.lastTransactionsSync
-                ? new Date(data.lastTransactionsSync).toLocaleString()
-                : 'never';
-            const linkedText = `Linked (${data.itemCount} account${data.itemCount !== 1 ? 's' : ''}) · Last sync: ${lastSyncText}`;
-            statusEl.textContent = note
-                ? `${linkedText} · ${note.text}`
-                : linkedText;
-            statusEl.style.color = note?.color || 'var(--color-success)';
-        }
+        const badge = plaidStatusBadge(data);
+        // The timestamp only means something while the last sync succeeded.
+        const detail = !data.connected
+            ? ' — use the Plaid Investments card in Financial Overview to link an account first.'
+            : badge.color === 'var(--color-success)'
+              ? ` · Last sync: ${
+                    data.lastTransactionsSync
+                        ? new Date(data.lastTransactionsSync).toLocaleString()
+                        : 'never'
+                }`
+              : '';
+        statusEl.textContent = [badge.label + detail, note?.text]
+            .filter(Boolean)
+            .join(' · ');
+        statusEl.style.color = note?.color || badge.color;
         if (syncBtn) syncBtn.disabled = !data.connected || !toggle.checked;
         if (typeof setFidelityImportDisabled === 'function') {
             setFidelityImportDisabled(data.connected && syncEnabled);
@@ -785,6 +827,10 @@ async function runPlaidTransactionsSyncNow() {
             '/api/sync/plaid/transactions',
             { method: 'POST', deferHostedTokenPersistence: true },
         );
+        // A failed sync still re-seals the token with why it failed; keep it
+        // or the next status reads the previous success (#293).
+        if (isHostedPlaid() && data.plaidToken)
+            setHostedPlaidToken(data.plaidToken);
         if (!res.ok) throw new Error(data.error || 'Sync failed');
         if (isHostedPlaid()) {
             applyHostedPlaidTransactions(data);

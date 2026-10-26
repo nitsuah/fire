@@ -113,6 +113,37 @@ afterAll(() => {
 });
 
 describe('GET /api/sync/plaid/status', () => {
+    // #293: a deploy with no Plaid credentials must not look like a deploy
+    // whose accounts were merely unlinked.
+    function withCreds(fn) {
+        process.env.PLAID_CLIENT_ID = 'client-id';
+        process.env.PLAID_SECRET = 'secret';
+        return Promise.resolve(fn()).finally(() => {
+            delete process.env.PLAID_CLIENT_ID;
+            delete process.env.PLAID_SECRET;
+        });
+    }
+
+    it('reports a fresh install as not configured, not merely unlinked', async () => {
+        const res = await request(app).get('/api/sync/plaid/status');
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({
+            connected: false,
+            configured: false,
+            itemCount: 0,
+            lastSync: null,
+            reauthRequired: false,
+        });
+    });
+
+    it('reports configured once the server has credentials', async () => {
+        await withCreds(async () => {
+            const res = await request(app).get('/api/sync/plaid/status');
+            expect(res.body.configured).toBe(true);
+            expect(res.body.connected).toBe(false);
+        });
+    });
+
     it('reports not connected with sync enabled by default', async () => {
         const res = await request(app).get('/api/sync/plaid/status');
         expect(res.status).toBe(200);
@@ -134,12 +165,97 @@ describe('GET /api/sync/plaid/status', () => {
         expect(res.status).toBe(200);
         expect(res.body.connected).toBe(true);
         expect(res.body.itemCount).toBe(1);
-        // Note: res.body.lastUpdated is NOT asserted here — it's a
-        // pre-existing bug (not introduced by this change) where the
-        // route reads `tokens.lastUpdated`, a field loadTokens() never
-        // actually sets (it sets `_tokenLastUpdated` instead), so this
-        // has always been undefined. Out of scope for the Plaid
-        // transaction-sync work; flagged separately.
+        // lastUpdated now comes from the field loadTokens() actually sets —
+        // the route used to read `tokens.lastUpdated`, which it never does.
+        expect(typeof res.body.lastUpdated).toBe('string');
+    });
+
+    it('reports the last sync outcome after a successful sync', async () => {
+        writePlaidTokens([{ itemId: 'item-1', accessToken: 'access-1' }]);
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    added: [],
+                    has_more: false,
+                    next_cursor: 'cursor-1',
+                }),
+            }),
+        );
+        const sync = await request(app).post('/api/sync/plaid/transactions');
+        expect(sync.status).toBe(200);
+
+        const res = await request(app).get('/api/sync/plaid/status');
+        expect(res.body.lastSync).toMatchObject({ ok: true, errorCode: null });
+        expect(typeof res.body.lastSync.at).toBe('string');
+        expect(res.body.reauthRequired).toBe(false);
+    });
+
+    it('flags a dead grant as re-auth-required with the provider code', async () => {
+        process.env.PLAID_CLIENT_ID = 'client-id';
+        process.env.PLAID_SECRET = 'secret';
+        try {
+            writePlaidTokens([{ itemId: 'item-1', accessToken: 'access-1' }]);
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue({
+                    ok: false,
+                    status: 400,
+                    json: async () => ({
+                        error_code: 'ITEM_LOGIN_REQUIRED',
+                        error_message: 'the login details have changed',
+                    }),
+                }),
+            );
+
+            // Every item failed — the 502 must still record why, or status
+            // keeps reporting the previous success (#293).
+            const sync = await request(app).post(
+                '/api/sync/plaid/transactions',
+            );
+            expect(sync.status).toBe(502);
+
+            const res = await request(app).get('/api/sync/plaid/status');
+            expect(res.body.connected).toBe(true);
+            expect(res.body.reauthRequired).toBe(true);
+            expect(res.body.lastSync).toMatchObject({
+                ok: false,
+                errorCode: 'ITEM_LOGIN_REQUIRED',
+            });
+            // Codes only — never a provider message or an access token (#262).
+            expect(JSON.stringify(res.body)).not.toContain('access-1');
+            expect(JSON.stringify(res.body)).not.toContain('login details');
+        } finally {
+            delete process.env.PLAID_CLIENT_ID;
+            delete process.env.PLAID_SECRET;
+        }
+    });
+
+    it('reports a successful sync as ok again once the grant recovers', async () => {
+        writePlaidTokens([
+            {
+                itemId: 'item-1',
+                accessToken: 'access-1',
+                lastErrorCode: 'ITEM_LOGIN_REQUIRED',
+            },
+        ]);
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    added: [],
+                    has_more: false,
+                    next_cursor: 'cursor-1',
+                }),
+            }),
+        );
+        await request(app).post('/api/sync/plaid/transactions');
+
+        const res = await request(app).get('/api/sync/plaid/status');
+        expect(res.body.reauthRequired).toBe(false);
+        expect(res.body.lastSync).toMatchObject({ ok: true });
     });
 });
 
