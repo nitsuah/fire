@@ -82,6 +82,21 @@ const TOOLS = [
         inputSchema: { type: 'object', properties: {} },
     },
     {
+        name: 'get_upcoming_events',
+        description:
+            'Date-ordered financial events in the next N days (default 90): CD maturities, plus CDs that matured in the last 7 days so they can be flagged for a decision.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                days: {
+                    type: 'number',
+                    description:
+                        'Look-ahead window in days (1-730, default 90).',
+                },
+            },
+        },
+    },
+    {
         name: 'get_expenses',
         description:
             'Monthly expense breakdown (housing, food, transport, etc.) with monthly and annual totals.',
@@ -490,6 +505,45 @@ function handleTool(name, state, toolArgs = {}) {
                 totalPrincipal: cds.reduce((s, cd) => s + cd.principal, 0),
                 count: cds.length,
                 nextMaturity: sorted[0] || null,
+            };
+        }
+
+        case 'get_upcoming_events': {
+            const DAY_MS = 1000 * 60 * 60 * 24;
+            const days =
+                Number.isInteger(toolArgs.days) &&
+                toolArgs.days >= 1 &&
+                toolArgs.days <= 730
+                    ? toolArgs.days
+                    : 90;
+            // 7 days of already-matured CDs stay in the list so they get acted
+            // on rather than silently dropping off the end.
+            const GRACE_DAYS = 7;
+            const events = [];
+
+            for (const cd of state.cds || []) {
+                const t = cd?.maturity ? Date.parse(cd.maturity) : NaN;
+                if (Number.isNaN(t)) continue;
+                // ceil matches get_cds's daysToMaturity, so a CD maturing
+                // today reads as 0 rather than -1.
+                const daysAway = Math.ceil((t - Date.now()) / DAY_MS);
+                if (daysAway > days || daysAway < -GRACE_DAYS) continue;
+                events.push({
+                    date: new Date(t).toISOString().slice(0, 10),
+                    daysAway,
+                    type: 'cd_maturity',
+                    label: cd.bank ? `${cd.bank} CD` : 'CD',
+                    amount: cd.principal || 0,
+                    rate: cd.rate || 0,
+                });
+            }
+
+            events.sort((a, b) => a.daysAway - b.daysAway);
+            return {
+                days,
+                events,
+                count: events.length,
+                pastGraceDays: GRACE_DAYS,
             };
         }
 
