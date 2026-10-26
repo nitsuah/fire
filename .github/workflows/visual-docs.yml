@@ -17,7 +17,10 @@ on:
       - 'app/**'
       - 'tests/journeys/**'
       - 'promo/demo-seed.js'
-      - 'docs/screenshots/**' # an added or removed screenshot refreshes the README list
+      # Deliberately omit docs/screenshots/**: this workflow commits generated
+      # screenshots back through bot/visual-docs, so watching its own output
+      # retriggers the workflow after every generated-assets PR is merged.
+      # Use workflow_dispatch after manually adding/removing screenshot files.
       - 'docs/diagrams/*.mmd'
       - 'docs/diagrams/mermaid.config.json'
       - 'scripts/visual-docs-readme.mjs'
