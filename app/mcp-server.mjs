@@ -220,6 +220,36 @@ const TOOLS = [
         },
     },
     {
+        name: 'get_transactions',
+        description:
+            'Categorized spending transactions (CSV imports and Plaid sync) newest first, filtered by date range, category or merchant, with per-category totals for the filtered rows.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                from: {
+                    type: 'string',
+                    description: 'Earliest date, YYYY-MM-DD (inclusive).',
+                },
+                to: {
+                    type: 'string',
+                    description: 'Latest date, YYYY-MM-DD (inclusive).',
+                },
+                category: {
+                    type: 'string',
+                    description: 'Exact category, case-insensitive.',
+                },
+                merchant: {
+                    type: 'string',
+                    description: 'Case-insensitive substring of the merchant.',
+                },
+                limit: {
+                    type: 'number',
+                    description: 'Max rows returned (default 200, max 1000).',
+                },
+            },
+        },
+    },
+    {
         name: 'get_diversification_score',
         description:
             '0–100 diversification score from how net worth is spread across asset classes (cash, CDs, equities, crypto, metals, real estate, vehicles, other), minus a penalty for any single position over 20% of net worth; includes the class weights.',
@@ -655,6 +685,98 @@ function handleTool(name, state, toolArgs = {}) {
                 ),
                 fireNumberAtSwr: Math.round(annualExpenses / (swr / 100)),
                 comparison: [3, 3.5, 4, 4.5, 5].map(row),
+            };
+        }
+
+        case 'get_transactions': {
+            const DAY_MS = 1000 * 60 * 60 * 24;
+            const asDate = (v, field) => {
+                if (v === undefined || v === null || v === '') return null;
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v)))
+                    throw new Error(`${field} must be YYYY-MM-DD, got "${v}"`);
+                const t = Date.parse(`${v}T00:00:00Z`);
+                if (Number.isNaN(t))
+                    throw new Error(`${field} is not a real date: "${v}"`);
+                return t;
+            };
+            const from = asDate(toolArgs.from, 'from');
+            const to = asDate(toolArgs.to, 'to');
+            if (from !== null && to !== null && from > to)
+                throw new Error('from must not be after to');
+
+            const category =
+                typeof toolArgs.category === 'string' && toolArgs.category
+                    ? toolArgs.category.toLowerCase()
+                    : null;
+            const merchant =
+                typeof toolArgs.merchant === 'string' && toolArgs.merchant
+                    ? toolArgs.merchant.toLowerCase()
+                    : null;
+            const limit =
+                Number.isInteger(toolArgs.limit) && toolArgs.limit > 0
+                    ? Math.min(toolArgs.limit, 1000)
+                    : 200;
+
+            // Rows come from CSV imports (locale dates like "9/24/2026") and
+            // Plaid (YYYY-MM-DD), so filter on the parsed instant, not a
+            // string prefix.
+            const rows = [];
+            for (const txn of state.spendingTransactions || []) {
+                if (!txn) continue;
+                if (
+                    category &&
+                    String(txn.category || '').toLowerCase() !== category
+                )
+                    continue;
+                if (
+                    merchant &&
+                    !String(txn.merchant || '')
+                        .toLowerCase()
+                        .includes(merchant)
+                )
+                    continue;
+                const t = Date.parse(txn.date);
+                if (from !== null || to !== null) {
+                    if (Number.isNaN(t)) continue;
+                    if (from !== null && t < from) continue;
+                    // `to` is inclusive of the whole day.
+                    if (to !== null && t > to + DAY_MS - 1) continue;
+                }
+                rows.push({ txn, t });
+            }
+
+            const matched = rows.length;
+            rows.sort((a, b) => {
+                const at = Number.isNaN(a.t) ? -Infinity : a.t;
+                const bt = Number.isNaN(b.t) ? -Infinity : b.t;
+                return bt - at;
+            });
+
+            const byCategory = {};
+            let total = 0;
+            for (const { txn } of rows) {
+                const amt = Number(txn.amount) || 0;
+                const cat = txn.category || 'uncategorized';
+                byCategory[cat] = (byCategory[cat] || 0) + amt;
+                total += amt;
+            }
+            const round2 = (n) => Math.round(n * 100) / 100;
+
+            return {
+                transactions: rows.slice(0, limit).map(({ txn }) => ({
+                    id: txn.id,
+                    date: txn.date,
+                    merchant: txn.merchant,
+                    amount: txn.amount,
+                    category: txn.category,
+                })),
+                count: Math.min(matched, limit),
+                matched,
+                total: round2(total),
+                byCategory: Object.fromEntries(
+                    Object.entries(byCategory).map(([k, v]) => [k, round2(v)]),
+                ),
+                limit,
             };
         }
 

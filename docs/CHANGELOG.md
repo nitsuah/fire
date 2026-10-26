@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- MCP: `get_transactions({ from, to, category, merchant, limit })` exposes `state.spendingTransactions` (CSV imports and Plaid sync) newest first, with `count`/`matched`/`total` and per-category totals for the filtered rows. Dates are validated as `YYYY-MM-DD` and filtered on the parsed instant, since CSV imports write locale dates (#267).
+- MCP: `get_upcoming_events({ days = 90 })` returns a date-ordered list of CD maturities inside the window, plus CDs that matured in the last 7 days with a negative `daysAway` so they get acted on. `days` is clamped to 1–730 (#270).
+- MCP: `get_insurances` returns each policy's amount and frequency, normalized monthly and annual amounts, and combined totals, reusing the app's own aggregates helpers (#269).
 - State now records a top-level `lastSavedAt` timestamp on every save, and `dataFreshness` reports it as `lastSavedAt`/`daysSinceSave` so a consumer can tell when the data was last edited. A backup restore keeps the backup's own timestamp (clamped to now if it's in the future); state written before this field existed reports `null` (#272).
 
 ### Fixed
