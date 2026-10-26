@@ -48,8 +48,22 @@ function isApiSyncedEtsyEntry(entry) {
 
 async function fetchEtsyStatus() {
     if (isBrowserOnlyMode()) {
+        // Connected is knowable locally (the sealed blob); configured is not
+        // — the Etsy client id and SYNC_MASTER_KEY live on the function, not
+        // in this bundle. Ask it rather than guessing, or a missing
+        // credential looks exactly like "connected, try again".
+        let configured = null;
+        try {
+            const res = await fetch('/api/sync/etsy/status', {
+                cache: 'no-store',
+            });
+            if (res.ok) configured = Boolean((await res.json()).configured);
+        } catch {
+            /* offline: fall through with configured unknown */
+        }
         return {
             connected: Boolean(etsyRead(ETSY_TOKEN_KEY)),
+            configured,
             lastSync: etsyRead(ETSY_LAST_SYNC_KEY),
             syncEnabled: state.etsySyncEnabled !== false,
         };
@@ -77,21 +91,32 @@ async function renderEtsyStatus(note) {
     const lastSync = data.lastSync
         ? new Date(data.lastSync).toLocaleString()
         : 'never';
+    // "Disconnected" is the wrong answer when the deploy has no credentials:
+    // reconnecting would fail the same way, so say what is actually missing.
+    const notConfigured = data.configured === false;
     const text =
         note?.text ||
-        (data.connected
-            ? `Status: Connected · Last sync: ${lastSync}`
-            : 'Status: Disconnected');
+        (notConfigured
+            ? 'Status: Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)'
+            : data.connected
+              ? `Status: Connected · Last sync: ${lastSync}`
+              : 'Status: Disconnected');
     const color =
         note?.color ||
-        (data.connected ? 'var(--color-success)' : 'var(--text-muted)');
+        (notConfigured
+            ? 'var(--color-warning, var(--color-danger))'
+            : data.connected
+              ? 'var(--color-success)'
+              : 'var(--text-muted)');
     statusEls.forEach((el) => {
         el.textContent = text;
         el.style.color = color;
     });
     document.querySelectorAll('[data-etsy-action]').forEach((btn) => {
         const action = btn.dataset.etsyAction;
-        if (action === 'connect') btn.hidden = data.connected;
+        // Nothing to connect to without credentials — don't offer a button
+        // that can only fail.
+        if (action === 'connect') btn.hidden = data.connected || notConfigured;
         if (action === 'disconnect') btn.hidden = !data.connected;
         if (action === 'sync') {
             btn.hidden = !data.connected;

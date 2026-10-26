@@ -83,6 +83,13 @@ export default async function handler(req) {
         if (req.method !== 'POST') return methodNotAllowed('POST');
         return sync(req);
     }
+    // Credential presence only — the token lives in the browser, so there is
+    // nothing else this deploy can report. Without it a missing client id
+    // shows up as "connected, sync failed" instead of "not configured".
+    if (name === 'status') {
+        if (req.method !== 'GET') return methodNotAllowed('GET');
+        return json(200, { configured: etsy.isConfigured() });
+    }
     return json(404, {
         error: 'Unknown Etsy endpoint. Status, toggle and disconnect are handled in the browser on this deploy.',
     });
