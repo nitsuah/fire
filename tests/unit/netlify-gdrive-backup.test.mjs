@@ -96,6 +96,15 @@ function fakeDrive({ refresh } = {}) {
             files.set(id, media);
             return jsonRes(200, { id });
         }
+        const meta = url.match(/\/drive\/v3\/files\/([^?]+)\?fields=/);
+        if (meta) {
+            const id = decodeURIComponent(meta[1]);
+            // Only files this mock uploaded exist, and they all live in the
+            // one backup folder — anything else 404s, as Drive would.
+            return files.has(id)
+                ? jsonRes(200, { id, parents: ['folder-1'], trashed: false })
+                : jsonRes(404, { error: { code: 404 } });
+        }
         const download = url.match(/\/drive\/v3\/files\/([^?]+)\?alt=media$/);
         if (download) {
             const content = files.get(decodeURIComponent(download[1]));
@@ -390,6 +399,28 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
         expect(res.status).toBe(404);
         expect(res.headers.get('content-type')).toContain('application/json');
         expect((await res.json()).code).toBe('gdrive_api_failed');
+    });
+
+    it('restore refuses a file outside the backup folder without reading it', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const { files, calls } = fakeDrive();
+        // A real, readable, correctly-encrypted file the token can see — but
+        // in someone else's folder. Ownership, not decryption, must refuse it.
+        const elsewhere = 'someone-elses-doc';
+        files.set(
+            elsewhere,
+            gdrive.encryptForBackup(JSON.stringify(SAMPLE_STATE)),
+        );
+        process.env.GDRIVE_BACKUP_FOLDER_ID = 'a-different-folder';
+        const res = await post('/restore', {
+            tokens: sealTokens(freshTokens()),
+            fileId: elsewhere,
+        });
+        expect(res.status).toBe(404);
+        const body = await res.json();
+        expect(body.code).toBe('gdrive_not_a_backup');
+        expect(body.state).toBeUndefined();
+        expect(calls.some((c) => c.url.includes('alt=media'))).toBe(false);
     });
 
     it('an unreadable or wrong-key token blob is a 401 drop-it code', async () => {

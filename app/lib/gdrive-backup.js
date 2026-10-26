@@ -474,7 +474,38 @@ async function downloadBackupWithToken(token, fileId) {
     return res.text();
 }
 
+// Ownership boundary for restore: the server holds one Drive token, so
+// `alt=media` on a bare file ID would happily hand back ANY file that token
+// can see. A backup must live in our own folder before we read it.
+// ponytail: one metadata round trip per restore. If that ever matters, fold
+// the parent check into the media request's error handling instead.
+async function assertBackupFileInFolder(token, fileId) {
+    if (typeof fileId !== 'string' || !DRIVE_FILE_ID_RE.test(fileId)) {
+        throw new Error('Invalid Google Drive file ID.');
+    }
+    const folderId = await getOrCreateFolder(token);
+    const res = await fetch(
+        `${GDRIVE_API}/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,parents,trashed`,
+        {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(10000),
+        },
+    );
+    if (!res.ok) throw await driveError(res, 'Drive file lookup failed');
+    const file = await res.json();
+    if (file?.trashed || !(file?.parents || []).includes(folderId)) {
+        throw Object.assign(
+            new Error(
+                'That file is not one of this server’s backups; restore was refused.',
+            ),
+            { status: 404, code: 'gdrive_not_a_backup' },
+        );
+    }
+    return folderId;
+}
+
 async function downloadAndDecryptBackupWithToken(token, fileId) {
+    await assertBackupFileInFolder(token, fileId);
     return decryptBackup(await downloadBackupWithToken(token, fileId));
 }
 
@@ -513,4 +544,5 @@ module.exports = {
     uploadBackupWithToken,
     listBackupsWithToken,
     downloadBackupWithToken,
+    assertBackupFileInFolder,
 };

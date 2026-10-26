@@ -126,13 +126,16 @@ test.describe('Platform Fee Calculator', () => {
 });
 
 test.describe('Marketplace connections', () => {
-    test('Etsy card starts disconnected with Connect showing', async ({
+    // The test server has no ETSY_CLIENT_ID/SYNC_MASTER_KEY, so the card must
+    // say what is missing instead of offering a Connect that can only fail
+    // (#219).
+    test('Etsy card says not configured when the server has no credentials', async ({
         page,
     }) => {
         await expect(page.locator('#etsy-sync-status')).toHaveText(
-            'Status: Disconnected',
+            'Status: Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)',
         );
-        await expect(page.locator('#btn-etsy-connect')).toBeVisible();
+        await expect(page.locator('#btn-etsy-connect')).toBeHidden();
         await expect(page.locator('#btn-etsy-sync')).toBeHidden();
         await expect(page.locator('#btn-etsy-disconnect')).toBeHidden();
     });

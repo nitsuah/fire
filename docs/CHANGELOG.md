@@ -20,7 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Etsy card on the hosted deploy now says "Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)" instead of "Disconnected" when the function has no credentials, and hides the Connect button in that case — the browser holds the token there, so status was computed without ever asking the server whether connecting could work (#219).
 - Net-worth history is no longer empty on the hosted deploy: the browser records one snapshot per day on load and after each save when `GET /api/state` is unreachable (the Express timer that owns the field never runs there), using the same aggregates the dashboard shows. Self-hosted behavior is unchanged — the server still owns `netWorthHistory` and drops a client copy (`app/lib/daily-snapshot.js`) (#275).
+- Google Drive restore now refuses a `fileId` that is not in this server's own backup folder (or is trashed) before fetching any content. Previously the route passed the ID straight to `alt=media` under the server's single Drive grant, which reads any file that grant can see — not just backups. The hosted function does the same check. Route-by-route authn/authz matrix and logging review recorded in `docs/security-hardening.md` (#279).
 - Google Drive card keeps showing Connected after a refresh on the hosted deploy (#246).
 - Settings: checkboxes in Notifications & Alerts and Plaid sync now sit inline with their labels (#171).
 - Insights: the equity share excludes crypto, matching the Asset Allocation chart (#169).

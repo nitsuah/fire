@@ -144,7 +144,9 @@ describe('netlify etsy function', () => {
 
     it('fails closed when unconfigured and 404s browser-side actions', async () => {
         vi.spyOn(console, 'error').mockImplementation(() => {});
-        expect((await post('status', {})).status).toBe(404);
+        expect((await handler(new Request(`${BASE}/thumbnail`))).status).toBe(
+            404,
+        );
         expect((await handler(new Request(`${BASE}/sync`))).status).toBe(405);
         delete process.env.ETSY_CLIENT_ID;
         expect((await post('sync', {})).status).toBe(503);
@@ -152,5 +154,19 @@ describe('netlify etsy function', () => {
         expect(auth.headers.get('location')).toBe(
             '/#etsy-error=not_configured',
         );
+    });
+
+    // The browser owns the token blob on this deploy, so it cannot know
+    // whether the function has credentials. Without this endpoint a missing
+    // client id renders as a plain "Disconnected" card (#219).
+    it('reports credential presence so the card can say "not configured"', async () => {
+        const res = await handler(new Request(`${BASE}/status`));
+        expect(res.status).toBe(200);
+        expect(res.headers.get('cache-control')).toContain('no-store');
+        expect(await res.json()).toEqual({ configured: true });
+        delete process.env.ETSY_CLIENT_ID;
+        expect(
+            await (await handler(new Request(`${BASE}/status`))).json(),
+        ).toEqual({ configured: false });
     });
 });
