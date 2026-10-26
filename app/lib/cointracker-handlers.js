@@ -207,6 +207,22 @@ async function inspect({ body }, fetchImpl = fetch) {
     }
 }
 
+// Authoritative "am I connected?" answer. The token is browser-held, so it
+// arrives in the Authorization header — never the URL, which lands in logs.
+// A blob that cannot be unsealed is not connected: it can never work again.
+function status({ token }) {
+    const configured = ct.isConfigured();
+    let connected = false;
+    if (configured && token) {
+        try {
+            connected = Boolean(ct.unsealTokens(token));
+        } catch {
+            connected = false;
+        }
+    }
+    return { status: 200, body: { configured, connected } };
+}
+
 async function disconnect({ body }, fetchImpl = fetch) {
     if (!ct.isConfigured()) return notConfigured();
     let tokens = null;
@@ -225,5 +241,6 @@ module.exports = {
     callback,
     sync,
     inspect,
+    status,
     disconnect,
 };

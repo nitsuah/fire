@@ -32,7 +32,7 @@ export default async function handler(req) {
     // COINTRACKER_REDIRECT_URI overrides the derived callback URL.
     const origin = url.origin;
     const name = action(url.pathname);
-    const get = ['authorize', 'callback'].includes(name);
+    const get = ['authorize', 'callback', 'status'].includes(name);
     const post = ['sync', 'inspect', 'disconnect'].includes(name);
     if (!get && !post)
         return json(404, { error: 'Unknown CoinTracker endpoint.' });
@@ -47,6 +47,14 @@ export default async function handler(req) {
                 params: url.searchParams,
                 cookieValue: cookie(req, handlers.COOKIE_NAME),
                 origin,
+            }),
+        );
+    }
+    if (name === 'status') {
+        const header = req.headers.get('authorization') || '';
+        return toResponse(
+            handlers.status({
+                token: header.startsWith('Bearer ') ? header.slice(7) : '',
             }),
         );
     }

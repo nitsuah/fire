@@ -47,6 +47,14 @@ router.get('/cointracker/callback', async (req, res) => {
     );
 });
 
+// The token is browser-held, so it travels in the Authorization header and
+// never the URL: query strings end up in access logs (#294).
+router.get('/cointracker/status', (req, res) => {
+    const header = req.get('authorization') || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    send(res, handlers.status({ token }));
+});
+
 router.post('/cointracker/sync', async (req, res) => {
     send(res, await handlers.sync({ body: req.body }));
 });
