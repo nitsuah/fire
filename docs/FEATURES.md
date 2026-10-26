@@ -27,6 +27,7 @@
 
 ## Net Worth Tracking
 
+- **Net-Worth History** — One snapshot per calendar day (today's updated in place) feeding the history chart and MCP `get_net_worth_trend`. Self-hosted, the Express hourly timer records it; on the hosted deploy — where no server timer runs — the browser records the same point on load and after each save. Snapshots carry `pricesAsOf`/`stale` when the server records them.
 - **Unified Add Form** — Import CSV (default), Account/Asset, CD, Real Estate and Vehicle in one card.
 - **Custom Accounts** — Manual entry with value, APY, and account type (Cash, Savings, Crypto, Precious Metal, Brokerage, HSA, Real Estate, Other); full CRUD via REST API with server-side validation. HSA accounts count toward equities in the dashboard, allocation chart and MCP net worth, and `get_accounts` reports an `hsaTotal` plus an optional `type` filter.
 - **Precious Metals** — Gold/Silver by troy oz valued at live spot (metals.dev or free Yahoo futures fallback) with a Refresh button.
