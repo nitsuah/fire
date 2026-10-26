@@ -22,6 +22,10 @@ describe('get_insurances shape', () => {
     it('treats a missing or zero policy as zero', () => {
         expect(aggregates.getInsuranceMonthly(undefined)).toBe(0);
         expect(aggregates.insuranceToMonthly({})).toBe(0);
-        expect(aggregates.getInsuranceMonthly({ car: { amt: 0, freq: 'monthly' } })).toBe(0);
+        expect(
+            aggregates.getInsuranceMonthly({
+                car: { amt: 0, freq: 'monthly' },
+            }),
+        ).toBe(0);
     });
 });
