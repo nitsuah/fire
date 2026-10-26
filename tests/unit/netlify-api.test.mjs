@@ -65,6 +65,91 @@ describe('hosted fire API', () => {
     });
 });
 
+describe('hosted fire API — quotes', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    // Without this route every price refresh on the hosted deploy 404'd, so
+    // quotes stayed pinned at the last import's values (#218).
+    it('serves /api/prices and returns per-symbol quotes', async () => {
+        const asked = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) => {
+                asked.push(String(url));
+                return new Response(
+                    JSON.stringify({
+                        chart: {
+                            result: [
+                                {
+                                    meta: {
+                                        regularMarketPrice: 100,
+                                        chartPreviousClose: 98,
+                                    },
+                                },
+                            ],
+                        },
+                    }),
+                    { status: 200 },
+                );
+            }),
+        );
+        const res = await handler(
+            new Request('https://lifefire.netlify.app/api/prices?symbols=VTI'),
+        );
+        expect(res.status).toBe(200);
+        // Chart path, not the crumb-gated v7 quote API.
+        expect(asked[0]).toContain('/v8/finance/chart/VTI');
+        expect(asked[0]).not.toContain('/v7/finance/quote');
+        await expect(res.json()).resolves.toEqual({
+            VTI: { price: 100, changePercent: expect.any(Number) },
+        });
+    });
+
+    it('filters cash and junk symbols and bounds the fan-out', async () => {
+        const asked = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) => {
+                asked.push(String(url));
+                return new Response(JSON.stringify({ chart: { result: [] } }), {
+                    status: 200,
+                });
+            }),
+        );
+        await handler(
+            new Request(
+                `https://lifefire.netlify.app/api/prices?symbols=${encodeURIComponent(
+                    'SPAXX,FDRXX,123,FCASH,VTI,VTI',
+                )}`,
+            ),
+        );
+        // VTI only, and deduped.
+        expect(asked).toHaveLength(1);
+        expect(asked[0]).toContain('/chart/VTI');
+    });
+
+    it('returns an empty object (not an error) when Yahoo fails', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => {
+                throw new Error('network down');
+            }),
+        );
+        const res = await handler(
+            new Request('https://lifefire.netlify.app/api/prices?symbols=VTI'),
+        );
+        expect(res.status).toBe(200);
+        await expect(res.json()).resolves.toEqual({});
+    });
+
+    it('returns an empty object when no symbols are given', async () => {
+        const res = await handler(
+            new Request('https://lifefire.netlify.app/api/prices'),
+        );
+        await expect(res.json()).resolves.toEqual({});
+    });
+});
+
 describe('hosted fire API — account refreshes', () => {
     afterEach(() => vi.unstubAllGlobals());
 

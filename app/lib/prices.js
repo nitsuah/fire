@@ -58,7 +58,15 @@ async function fetchAndApplyPrices() {
         const res = await fetch(
             `/api/prices?symbols=${encodeURIComponent(symbols.join(','))}`,
         );
-        if (!res.ok) return;
+        // A failed refresh used to return silently, leaving the card pointing
+        // at an old timestamp with no way to tell it apart from a fresh one
+        // (#218). Say so once per tick rather than on every retry.
+        if (!res.ok) {
+            console.warn(
+                `[Prices] Quote refresh failed (HTTP ${res.status}); keeping the last known prices.`,
+            );
+            return;
+        }
         const prices = await res.json();
 
         const changed = [];

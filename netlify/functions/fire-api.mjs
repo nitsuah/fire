@@ -7,8 +7,12 @@ import {
 // included). crypto-balance resolves ENS over HTTPS with no dependencies.
 import cryptoBalance from '../../app/lib/crypto-balance.js';
 import multichain from '../../app/lib/multichain-balance.js';
+// Keyless per-symbol Yahoo chart reads, the same fallback the self-hosted
+// route uses — the v7 quote API needs a crumb this deploy can't hold.
+import pricesProvider from '../../app/lib/prices-provider.js';
 
 const { detectIdentifierType, resolveCryptoValue, resolveEns } = cryptoBalance;
+const { fetchYahooChart } = pricesProvider;
 const isEnsName = (name) => detectIdentifierType(name) === 'ens';
 
 function json(statusCode, body) {
@@ -118,6 +122,35 @@ async function handleRefreshCrypto(req) {
     }
 }
 
+async function handlePrices(url) {
+    const raw = url.searchParams.get('symbols');
+    if (!raw) return json(200, {});
+    const symbols = [
+        ...new Set(
+            raw
+                .split(',')
+                .map((s) => s.trim().replace(/\*+$/g, ''))
+                .filter(
+                    (s) =>
+                        s.length > 0 &&
+                        !/^\d/.test(s) &&
+                        !['SPAXX', 'FDRXX', 'FCASH', 'FDIC'].includes(
+                            s.toUpperCase(),
+                        ),
+                ),
+        ),
+    ].slice(0, 60); // bound the fan-out on a public endpoint
+    if (!symbols.length) return json(200, {});
+    try {
+        return json(200, await fetchYahooChart(symbols));
+    } catch (err) {
+        console.error('[Netlify API] Price lookup failed:', err.message);
+        // Empty, not an error: the client keeps the last good prices it
+        // already stored and shows them as stale.
+        return json(200, {});
+    }
+}
+
 export default async function handler(req) {
     try {
         const url = new URL(req.url);
@@ -126,6 +159,12 @@ export default async function handler(req) {
 
         if (path === '/metals' && method === 'GET') {
             return await handleMetals(url);
+        }
+
+        // Without this the hosted deploy's every price refresh 404'd, so
+        // quotes stayed pinned at whatever the last import wrote (#218).
+        if (path === '/prices' && method === 'GET') {
+            return await handlePrices(url);
         }
 
         if (path === '/accounts/refresh-crypto' && method === 'POST') {
