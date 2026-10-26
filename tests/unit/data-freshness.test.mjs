@@ -135,8 +135,25 @@ describe('summarizeDataFreshness', () => {
             daysStale: null,
             stale: false,
             lastImport: null,
+            lastSavedAt: null,
+            daysSinceSave: null,
             positionsWithoutPriceSource: [],
         });
+    });
+
+    it('reports lastSavedAt and daysSinceSave', () => {
+        const f = summarizeDataFreshness(
+            { lastSavedAt: '2026-10-04T12:00:00Z' },
+            NOW,
+        );
+        expect(f.lastSavedAt).toBe('2026-10-04T12:00:00.000Z');
+        expect(f.daysSinceSave).toBe(10);
+    });
+
+    it('ignores an unparseable lastSavedAt', () => {
+        const f = summarizeDataFreshness({ lastSavedAt: 'not a date' }, NOW);
+        expect(f.lastSavedAt).toBeNull();
+        expect(f.daysSinceSave).toBeNull();
     });
 });
 

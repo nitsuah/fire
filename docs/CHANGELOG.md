@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- State now records a top-level `lastSavedAt` timestamp on every save, and `dataFreshness` reports it as `lastSavedAt`/`daysSinceSave` so a consumer can tell when the data was last edited. A backup restore keeps the backup's own timestamp (clamped to now if it's in the future); state written before this field existed reports `null` (#272).
+
 ### Fixed
 
 - Google Drive card keeps showing Connected after a refresh on the hosted deploy (#246).

@@ -53,6 +53,13 @@ router.post('/', (req, res) => {
     const { baseRevision, ...body } = req.body;
     delete body.stateRevision;
     delete body.netWorthHistory;
+    // A restore replays a backup's own lastSavedAt (the data was last edited
+    // then, not now), but a skewed or future-sent clock can't backdate it.
+    const bodySavedAt = Date.parse(body.lastSavedAt);
+    const savedAt =
+        Number.isFinite(bodySavedAt) && bodySavedAt <= Date.now()
+            ? new Date(bodySavedAt).toISOString()
+            : new Date().toISOString();
     if (baseRevision !== undefined && baseRevision !== currentRevision) {
         return res.status(409).json({
             error: 'State changed since this copy was loaded; reload and retry.',
@@ -64,6 +71,7 @@ router.post('/', (req, res) => {
         ...current,
         ...body,
         stateRevision: currentRevision + 1,
+        lastSavedAt: savedAt,
         expenses: { ...current.expenses, ...(body.expenses || {}) },
         projectionSettings: {
             ...current.projectionSettings,

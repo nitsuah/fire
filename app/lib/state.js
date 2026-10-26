@@ -198,13 +198,22 @@ function loadStateFromStorage() {
 // with the same base revision and the second would be refused).
 let saveQueue = Promise.resolve();
 
-function saveState() {
-    const run = saveQueue.then(postState, postState);
+function saveState({ preserveSavedAt = false } = {}) {
+    const run = saveQueue.then(
+        () => postState(preserveSavedAt),
+        () => postState(preserveSavedAt),
+    );
     saveQueue = run.catch(() => {});
     return run;
 }
 
-async function postState() {
+async function postState(preserveSavedAt = false) {
+    // Stamp before the write so an export taken right after an edit carries
+    // the same timestamp the server sees. A backup restore keeps the
+    // timestamp it was imported with — that is when the data was last edited.
+    // ponytail: one-shot flag, not a stored preference; a per-write option is
+    // all a restore needs.
+    if (!preserveSavedAt) state.lastSavedAt = new Date().toISOString();
     localStorage.setItem('fire_tracker_state', JSON.stringify(state));
 
     try {
