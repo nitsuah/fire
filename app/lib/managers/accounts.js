@@ -270,8 +270,7 @@ window.refreshCryptoAccount = async function (id) {
         b.textContent = 'Refreshing…';
     });
     try {
-        const browserOnly =
-            typeof syncedRevision === 'undefined' || syncedRevision === null;
+        const browserOnly = await isBrowserOnlyModeAsync();
         const account = state.customAccounts.find((a) => a.id === id);
         let fields;
         if (browserOnly) {
@@ -344,8 +343,7 @@ window.refreshMetalAccount = async function (id) {
     });
     try {
         let data;
-        const browserOnly =
-            typeof syncedRevision === 'undefined' || syncedRevision === null;
+        const browserOnly = await isBrowserOnlyModeAsync();
         if (browserOnly) {
             const account = state.customAccounts.find((a) => a.id === id);
             if (

@@ -167,7 +167,23 @@ function takeEbayConnectPending() {
 }
 
 function isBrowserOnlyMode() {
+    // deploy-mode.js knows for certain once state.js's /api/state probe has
+    // answered. Until then, fall back to the revision heuristic — but only
+    // after waiting for the probe (see isBrowserOnlyModeAsync) so a status
+    // card never paints from the wrong store (#292).
+    if (typeof FireDeployMode !== 'undefined' && !FireDeployMode.isUnknown())
+        return FireDeployMode.isHosted();
     return typeof syncedRevision === 'undefined' || syncedRevision === null;
+}
+
+// For callers that paint a status card: waits (bounded) for the deploy mode
+// to be known rather than guessing from an unresolved /api/state.
+async function isBrowserOnlyModeAsync() {
+    if (typeof FireDeployMode !== 'undefined') {
+        const known = await FireDeployMode.whenKnown();
+        if (known !== null) return known;
+    }
+    return isBrowserOnlyMode();
 }
 
 function readEbayLocal(key) {
@@ -196,7 +212,7 @@ function localEbayStatus() {
 }
 
 async function fetchEbayStatus() {
-    if (isBrowserOnlyMode()) return localEbayStatus();
+    if (await isBrowserOnlyModeAsync()) return localEbayStatus();
     const res = await fetch('/api/sync/ebay/status');
     return res.json();
 }
@@ -245,7 +261,7 @@ async function handleEbayConnectionLost(code, message) {
     writeEbayLocal(EBAY_LAST_SYNC_KEY, null);
     let removed = 0;
     if (code === 'ebay_revoked') {
-        if (isBrowserOnlyMode()) {
+        if (await isBrowserOnlyModeAsync()) {
             const before = state.sideGigLedger.length;
             state.sideGigLedger = state.sideGigLedger.filter(
                 (e) => !isApiSyncedEbayEntry(e),
@@ -318,7 +334,7 @@ async function toggleEbaySyncSetting() {
     const toggle = document.getElementById('setting-ebay-sync-enabled');
     if (!toggle) return;
     const enabled = toggle.checked;
-    if (isBrowserOnlyMode()) {
+    if (await isBrowserOnlyModeAsync()) {
         state.ebaySyncEnabled = enabled;
         await saveState();
         loadEbaySettingsPanel();
@@ -354,7 +370,7 @@ async function runEbaySyncNow({ silent = false } = {}) {
     const original = btn.textContent;
     btn.textContent = 'Syncing…';
     try {
-        const data = isBrowserOnlyMode()
+        const data = (await isBrowserOnlyModeAsync())
             ? await syncEbayViaFunction()
             : await syncEbayViaServer();
         if (!data)
