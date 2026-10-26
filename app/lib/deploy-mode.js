@@ -26,6 +26,9 @@
     let hosted = null;
     let settle;
     let probed = deferred();
+    // Every pending wait timer, so a probe answer can clear them. A race that
+    // the probe wins must not leave a timer armed to fire later.
+    const timers = new Set();
 
     function deferred() {
         return new Promise((resolve) => {
@@ -34,22 +37,34 @@
     }
 
     // Called by state.js once its /api/state probe has a definitive answer.
-    // First answer wins: a later visibility re-sync must not flip the mode.
+    // A confirmed server is final — a later visibility re-sync must not flip
+    // it. A hosted answer can come from a request that merely failed (see the
+    // catch in state.js), so a later probe that does reach a server replaces
+    // it. Re-reporting the same answer is a no-op.
     function resolve(hasServer) {
-        if (hosted !== null) return hosted;
-        hosted = !hasServer;
+        const answer = !hasServer;
+        if (hosted === false || hosted === answer) return hosted;
+        hosted = answer;
         settle(hosted);
+        for (const t of timers) root.clearTimeout(t);
+        timers.clear();
         return hosted;
     }
 
-    // Resolves to hosted-or-not, waiting for the first probe at most
-    // timeoutMs. Resolves to null when nothing has reported yet, so callers
-    // can fall back instead of guessing.
+    // Resolves to hosted-or-not, waiting for the probe at most timeoutMs.
+    // Resolves to null when nothing has reported yet, so callers can fall back
+    // instead of guessing.
     function whenKnown(timeoutMs = WAIT_MS) {
         if (hosted !== null) return Promise.resolve(hosted);
         return Promise.race([
             probed,
-            new Promise((done) => root.setTimeout(() => done(null), timeoutMs)),
+            new Promise((done) => {
+                const t = root.setTimeout(() => {
+                    timers.delete(t);
+                    done(null);
+                }, timeoutMs);
+                timers.add(t);
+            }),
         ]);
     }
 
@@ -66,8 +81,10 @@
         return hosted;
     }
 
-    // Test seam: forget the answer and any waiters.
+    // Test seam: forget the answer, any waiters, and their timers.
     function reset() {
+        for (const t of timers) root.clearTimeout(t);
+        timers.clear();
         hosted = null;
         probed = deferred();
     }
