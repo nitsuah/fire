@@ -430,6 +430,7 @@ const PLAID_HOSTED_ACCESS_KEY = 'fire_plaid_hosted_access_key';
 
 function isHostedPlaid() {
     return (
+        window.location.hostname === 'fire.nitsuah.io' ||
         window.location.hostname === 'lifefire.netlify.app' ||
         window.location.hostname.endsWith('.netlify.app')
     );
