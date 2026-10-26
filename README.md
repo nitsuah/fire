@@ -171,15 +171,14 @@ domain and drop the `tls internal` line.
 
 ## MCP Server (Claude Integration)
 
-Connect Claude Code to your live financial data. The project ships a `.mcp.json` that Claude Code picks up automatically on startup — edit the `cwd` to match your local path:
+Connect Claude Code to your live financial data. The project ships a `.mcp.json` that Claude Code picks up automatically on startup — no edits needed, since Claude Code runs project MCP servers from the project root and the server resolves its data directory itself. Point it at a different data directory with the `FIRE_DATA_DIR` environment variable if you like:
 
 ```json
 {
   "mcpServers": {
     "fire-tracker": {
       "command": "node",
-      "args": ["app/mcp-server.mjs"],
-      "cwd": "/your/path/to/fire"
+      "args": ["app/mcp-server.mjs"]
     }
   }
 }
