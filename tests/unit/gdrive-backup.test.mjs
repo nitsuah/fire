@@ -186,6 +186,15 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
             vi.fn(async (url) => {
                 const u = String(url);
                 if (u.includes('/drive/v3/files/file-123')) {
+                    if (u.includes('fields=id,parents,trashed')) {
+                        return {
+                            ok: true,
+                            json: async () => ({
+                                id: 'file-123',
+                                parents: ['test-folder-id'],
+                            }),
+                        };
+                    }
                     return { ok: true, text: async () => encryptedPayload };
                 }
                 throw new Error(`Unexpected fetch: ${u}`);
@@ -319,5 +328,64 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
             gdrive.downloadAndDecryptBackup('../../etc/passwd'),
         ).rejects.toThrow(/Invalid Google Drive file ID/);
         expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    // The server holds a single Drive token, so `alt=media` on a bare ID
+    // would return any file that token can see (a doc, a photo, another
+    // app's data). Restore must prove the file is one of ours first.
+    it('refuses a file that is not in the backup folder', async () => {
+        await connectAccount();
+        const fetchSpy = vi.fn(async (url) => {
+            const u = String(url);
+            if (u.includes('fields=id,parents,trashed')) {
+                return {
+                    ok: true,
+                    json: async () => ({
+                        id: 'someone-elses-doc',
+                        parents: ['a-different-folder'],
+                    }),
+                };
+            }
+            throw new Error(`Should never fetch contents: ${u}`);
+        });
+        vi.stubGlobal('fetch', fetchSpy);
+        await expect(
+            gdrive.downloadAndDecryptBackup('someone-elses-doc'),
+        ).rejects.toMatchObject({ status: 404, code: 'gdrive_not_a_backup' });
+        expect(
+            fetchSpy.mock.calls.some(([u]) => String(u).includes('alt=media')),
+        ).toBe(false);
+    });
+
+    it('refuses a trashed file even when it was once in the folder', async () => {
+        await connectAccount();
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => ({
+                ok: true,
+                json: async () => ({
+                    id: 'gone',
+                    parents: ['test-folder-id'],
+                    trashed: true,
+                }),
+            })),
+        );
+        await expect(
+            gdrive.downloadAndDecryptBackup('gone'),
+        ).rejects.toMatchObject({ code: 'gdrive_not_a_backup' });
+    });
+
+    it('never leaks the token or file contents in the refusal error', async () => {
+        await connectAccount();
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => ({
+                ok: true,
+                json: async () => ({ id: 'x', parents: [] }),
+            })),
+        );
+        await gdrive.downloadAndDecryptBackup('x').catch((err) => {
+            expect(err.message).not.toMatch(/at-1|rt-1|a{64}/);
+        });
     });
 });

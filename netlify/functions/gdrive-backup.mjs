@@ -149,6 +149,10 @@ function errorResponse(err, fallback, extra = {}) {
         return json(401, { error: err.message, code: err.code });
     if (err.code === 'gdrive_backup_unreadable')
         return json(422, { error: err.message, code: err.code, ...extra });
+    // Not one of this app's backups (wrong folder, or trashed) — see
+    // assertBackupFileInFolder. Say so plainly instead of "try again".
+    if (err.code === 'gdrive_not_a_backup')
+        return json(404, { error: err.message, code: err.code });
     const timedOut = err.name === 'TimeoutError' || err.name === 'AbortError';
     console.error(`[Backup] ${fallback}:`, err.message);
     // Drive errors carry Google's explanation (see driveError in the lib);
@@ -217,12 +221,17 @@ async function restore(req) {
     if (!fileId) return json(400, { error: 'fileId is required.' });
     if (typeof fileId !== 'string' || !gdrive.DRIVE_FILE_ID_RE.test(fileId))
         return json(400, { error: 'Invalid Google Drive file ID.' });
-    return withDrive(body, 'Drive restore failed', async (token) => ({
-        status: 'success',
-        state: decryptRestored(
-            await gdrive.downloadBackupWithToken(token, fileId),
-        ),
-    }));
+    return withDrive(body, 'Drive restore failed', async (token) => {
+        // The token can read any Drive file it can see, so prove the ID is
+        // one of this app's backups before fetching its contents.
+        await gdrive.assertBackupFileInFolder(token, fileId);
+        return {
+            status: 'success',
+            state: decryptRestored(
+                await gdrive.downloadBackupWithToken(token, fileId),
+            ),
+        };
+    });
 }
 
 // A backup sealed with another key, or a corrupted file, fails the GCM auth
