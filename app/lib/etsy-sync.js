@@ -47,7 +47,7 @@ function isApiSyncedEtsyEntry(entry) {
 }
 
 async function fetchEtsyStatus() {
-    if (isBrowserOnlyMode()) {
+    if (await isBrowserOnlyModeAsync()) {
         // Connected is knowable locally (the sealed blob); configured is not
         // — the Etsy client id and SYNC_MASTER_KEY live on the function, not
         // in this bundle. Ask it rather than guessing, or a missing
@@ -162,7 +162,7 @@ async function consumeEtsyOauthFragment() {
         return;
     }
     const value = decodeURIComponent(match[2]);
-    if (isBrowserOnlyMode() && value !== 'stored') {
+    if ((await isBrowserOnlyModeAsync()) && value !== 'stored') {
         etsyWrite(ETSY_TOKEN_KEY, value);
         etsyWrite(ETSY_LAST_SYNC_KEY, null);
         etsyWrite(ETSY_RESUME_KEY, null);
@@ -180,7 +180,7 @@ async function handleEtsyConnectionLost(code, message) {
     etsyWrite(ETSY_RESUME_KEY, null);
     let removed = 0;
     if (code === 'etsy_revoked') {
-        if (isBrowserOnlyMode()) {
+        if (await isBrowserOnlyModeAsync()) {
             const before = state.sideGigLedger.length;
             state.sideGigLedger = state.sideGigLedger.filter(
                 (e) => !isApiSyncedEtsyEntry(e),
@@ -258,7 +258,7 @@ async function runEtsySyncNow({ silent = false, toastOnDone = false } = {}) {
     });
     let note;
     try {
-        const data = isBrowserOnlyMode()
+        const data = (await isBrowserOnlyModeAsync())
             ? await syncEtsyViaFunction()
             : await syncEtsyViaServer();
         if (!data) return;
@@ -293,7 +293,7 @@ async function disconnectEtsy() {
         )
     )
         return;
-    if (!isBrowserOnlyMode()) {
+    if (!(await isBrowserOnlyModeAsync())) {
         try {
             const res = await fetch('/api/sync/etsy/disconnect', {
                 method: 'POST',
@@ -315,7 +315,7 @@ async function disconnectEtsy() {
 }
 
 async function toggleEtsySync(enabled) {
-    if (isBrowserOnlyMode()) {
+    if (await isBrowserOnlyModeAsync()) {
         state.etsySyncEnabled = enabled;
         await saveState();
     } else {

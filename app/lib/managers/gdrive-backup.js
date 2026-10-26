@@ -24,16 +24,17 @@ const GDRIVE_DEAD_GRANT_CODES = new Set([
     'gdrive_token_invalid',
 ]);
 
-// True once /api/backup/drive/status has reported `hosted: true`. The
-// isBrowserOnlyMode heuristic flips only after the SPA has loaded, so on the
-// hosted deploy the first status check can still read it as false.
+// True once /api/backup/drive/status has reported `hosted: true`, or once
+// state.js's /api/state probe has settled the deploy mode (#292). Callers
+// await this so a slow /api/state cannot make a self-hosted deploy look
+// hosted for the first status check.
 let gdriveServerHosted = false;
 
-function gdriveHosted() {
-    return (
-        gdriveServerHosted ||
-        (typeof isBrowserOnlyMode === 'function' && isBrowserOnlyMode())
-    );
+async function gdriveHosted() {
+    if (gdriveServerHosted) return true;
+    if (typeof isBrowserOnlyModeAsync === 'function')
+        return await isBrowserOnlyModeAsync();
+    return typeof isBrowserOnlyMode === 'function' && isBrowserOnlyMode();
 }
 
 function gdriveRead(key, storage = localStorage) {
@@ -61,7 +62,7 @@ function gdriveToast(message, type) {
 // (JSON body for POST, header for GET), keeps a refreshed blob the function
 // hands back, and drops the blob when the grant is dead.
 async function gdriveFetch(path, { method = 'GET', body } = {}) {
-    const hosted = gdriveHosted();
+    const hosted = await gdriveHosted();
     const blob = hosted ? gdriveRead(GDRIVE_TOKEN_KEY) : null;
     if (hosted && !blob) throw new Error('Google Drive is not connected.');
     const headers = {};
@@ -122,7 +123,7 @@ async function loadGDriveBackupPanel() {
         }
         if (connectBtn) connectBtn.disabled = false;
 
-        const authorized = gdriveHosted()
+        const authorized = (await gdriveHosted())
             ? Boolean(gdriveRead(GDRIVE_TOKEN_KEY))
             : data.authorized;
         if (authorized) {
@@ -194,7 +195,7 @@ async function runGDriveBackupNow() {
         // Self-hosted backs up db.json; hosted sends this browser's state.
         const data = await gdriveFetch('/api/backup/drive', {
             method: 'POST',
-            body: gdriveHosted() ? { state } : undefined,
+            body: (await gdriveHosted()) ? { state } : undefined,
         });
         if (statusEl) {
             statusEl.textContent = `Backup saved and verified: ${data.fileName}`;
@@ -263,7 +264,7 @@ document.addEventListener('click', async (e) => {
             method: 'POST',
             body: { fileId },
         });
-        if (gdriveHosted()) {
+        if (await gdriveHosted()) {
             if (!data.state || typeof data.state !== 'object')
                 throw new Error('Restore returned no data.');
             state = sanitizeState(data.state);

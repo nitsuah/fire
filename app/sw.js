@@ -14,6 +14,7 @@ const SHELL_ASSETS = [
     '/icon.svg',
     '/app.js',
     '/lib/html-utils.js',
+    '/lib/deploy-mode.js',
     '/lib/state.js',
     '/lib/prices.js',
     '/lib/expenses.js',

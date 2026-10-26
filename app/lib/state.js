@@ -92,15 +92,22 @@ async function loadStateFromServer() {
             ) {
                 state = sanitizeState({ ...state, ...data });
                 syncedRevision = revisionOf(data);
+                reportDeployMode(true);
                 console.log('State loaded successfully from backend DB.');
                 return;
             }
         }
+        // Any answer other than 404 means a server is there, whatever it
+        // thinks of this request. 404 is the hosted deploy: /api/state is
+        // routed in every build that has a server, and the Netlify catch-all
+        // answers with "not available in the hosted browser deployment".
+        reportDeployMode(res.status !== 404);
     } catch (e) {
         console.warn(
             'Express backend unreachable. Falling back to localStorage.',
             e,
         );
+        reportDeployMode(false);
     }
     loadStateFromStorage();
     // Opening the app is enough to keep the history going: the hosted deploy
@@ -108,6 +115,14 @@ async function loadStateFromServer() {
     // collect no points. Persist directly — there is no server to post to.
     if (syncedRevision === null && recordLocalNetWorthSnapshot())
         localStorage.setItem('fire_tracker_state', JSON.stringify(state));
+}
+
+// Hands the deploy mode to app/lib/deploy-mode.js, so provider status cards
+// stop inferring "hosted" from a null syncedRevision — which is also true
+// for a self-hosted tab whose /api/state has not answered yet (#292).
+function reportDeployMode(hasServer) {
+    if (typeof FireDeployMode === 'undefined') return;
+    FireDeployMode.resolve(hasServer);
 }
 
 // A tab left open keeps its own in-memory copy of the data, and any edit
