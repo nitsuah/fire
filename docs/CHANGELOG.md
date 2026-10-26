@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Accounts: `HSA` is now its own account type, selectable in the Add Account form and accepted by `POST`/`PUT /api/accounts`. It counts as invested (the equities bucket) in the dashboard, allocation chart, rebalancing table and MCP `get_net_worth`, so it never lands in "Other Assets"; `get_accounts` gains an `hsaTotal` and an optional `type` filter (#271).
 - MCP: `get_transactions({ from, to, category, merchant, limit })` exposes `state.spendingTransactions` (CSV imports and Plaid sync) newest first, with `count`/`matched`/`total` and per-category totals for the filtered rows. Dates are validated as `YYYY-MM-DD` and filtered on the parsed instant, since CSV imports write locale dates (#267).
 - MCP: `get_upcoming_events({ days = 90 })` returns a date-ordered list of CD maturities inside the window, plus CDs that matured in the last 7 days with a negative `daysAway` so they get acted on. `days` is clamped to 1–730 (#270).
 - MCP: `get_insurances` returns each policy's amount and frequency, normalized monthly and annual amounts, and combined totals, reusing the app's own aggregates helpers (#269).

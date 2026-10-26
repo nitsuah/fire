@@ -28,7 +28,7 @@
 ## Net Worth Tracking
 
 - **Unified Add Form** — Import CSV (default), Account/Asset, CD, Real Estate and Vehicle in one card.
-- **Custom Accounts** — Manual entry with value, APY, and account type (Cash, Savings, Crypto, Precious Metal, Brokerage, Real Estate, Other); full CRUD via REST API with server-side validation.
+- **Custom Accounts** — Manual entry with value, APY, and account type (Cash, Savings, Crypto, Precious Metal, Brokerage, HSA, Real Estate, Other); full CRUD via REST API with server-side validation. HSA accounts count toward equities in the dashboard, allocation chart and MCP net worth, and `get_accounts` reports an `hsaTotal` plus an optional `type` filter.
 - **Precious Metals** — Gold/Silver by troy oz valued at live spot (metals.dev or free Yahoo futures fallback) with a Refresh button.
 - **Crypto Accounts** — ENS name, 0x address or ticker accepted in either Name or Identifier. ⟳ Refresh on an ENS/0x account totals native coins and priced tokens (spam filtered) across Ethereum, Base, Optimism, Arbitrum and Polygon, plus native BNB and AVAX balances on BNB Chain and Avalanche (native only, no tokens), keyless, on both the self-hosted and hosted deploys. A per-chain breakdown appears under the row, and a ⚠ when a chain couldn't be read. Ticker accounts are valued as quantity × live price. The wallet tracker (multi-chain balances) appears under the form for Type = Cryptocurrency.
   - **Native balance only (no priced tokens):** Bitcoin, Solana, Tron, Litecoin, Dogecoin, Bitcoin Cash — native coin balance only; USD value requires an optional price provider key.

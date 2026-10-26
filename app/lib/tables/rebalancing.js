@@ -178,7 +178,8 @@ window.renderRebalancingTool = function () {
         if (acc.type === 'Crypto') current.Crypto += v;
         else if (acc.type === 'Cash' || acc.type === 'Savings')
             current.Cash += v;
-        else if (acc.type === 'Brokerage') current.Equities += v;
+        else if (acc.type === 'Brokerage' || acc.type === 'HSA')
+            current.Equities += v;
         else if (acc.type === 'RealEstate') current['Real Estate'] += v;
         // 'Other' accounts are intentionally excluded from rebalancing buckets
     });

@@ -88,7 +88,12 @@
             }
         });
         (customAccounts || []).forEach((acc) => {
-            if (acc.type === 'Brokerage' || acc.type === 'Crypto')
+            // HSA is invested like a brokerage account, so it shares that bucket.
+            if (
+                acc.type === 'Brokerage' ||
+                acc.type === 'HSA' ||
+                acc.type === 'Crypto'
+            )
                 sum += acc.value || 0;
         });
         return sum;
@@ -100,6 +105,7 @@
                 acc.type !== 'Cash' &&
                 acc.type !== 'Savings' &&
                 acc.type !== 'Brokerage' &&
+                acc.type !== 'HSA' &&
                 acc.type !== 'Crypto'
             ) {
                 sum += acc.value || 0;

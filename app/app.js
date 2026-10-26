@@ -541,7 +541,7 @@ function importCSV(event) {
                 if (type === 'Cash' || type === 'Savings') {
                     state.customAccounts.push({ type, name, value: val, costBasis: cost, apy: 0 });
                     imported++;
-                } else if (type === 'Brokerage' || type === 'Crypto') {
+                } else if (type === 'Brokerage' || type === 'HSA' || type === 'Crypto') {
                     state.customAccounts.push({ type, name, value: val, costBasis: cost, apy: 0 });
                     imported++;
                 } else if (type === 'CD') {

@@ -13,6 +13,7 @@ const VALID_TYPES = new Set([
     'Cash',
     'Savings',
     'Brokerage',
+    'HSA',
     'Crypto',
     'Metal',
     'Other',

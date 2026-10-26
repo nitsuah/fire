@@ -66,8 +66,17 @@ const TOOLS = [
     {
         name: 'get_accounts',
         description:
-            'All custom accounts (cash, savings, brokerage, crypto, etc.) with type and current value.',
-        inputSchema: { type: 'object', properties: {} },
+            'All custom accounts (cash, savings, brokerage, HSA, crypto, etc.) with type and current value, plus estimated annual interest and the combined HSA balance.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                type: {
+                    type: 'string',
+                    description:
+                        'Only return accounts of this type, e.g. "HSA" (case-sensitive).',
+                },
+            },
+        },
     },
     {
         name: 'get_portfolio',
@@ -292,7 +301,11 @@ function computeNetWorthBreakdown(state) {
     for (const acc of state.customAccounts || []) {
         if (acc.type === 'Cash' || acc.type === 'Savings') {
             cash += acc.value || 0;
-        } else if (acc.type === 'Brokerage' || acc.type === 'Crypto') {
+        } else if (
+            acc.type === 'Brokerage' ||
+            acc.type === 'HSA' ||
+            acc.type === 'Crypto'
+        ) {
             equities += acc.value || 0;
         } else {
             // Metals and other valuables — matches the dashboard's
@@ -409,22 +422,29 @@ function handleTool(name, state, toolArgs = {}) {
         }
 
         case 'get_accounts': {
-            const accounts = (state.customAccounts || []).map((a) => ({
-                id: a.id,
-                name: a.name,
-                type: a.type,
-                value: a.value || 0,
-                apy: a.apy || 0,
-                ...(a.type === 'Metal'
-                    ? {
-                          metalType: a.metalType,
-                          weightOz: a.weightOz,
-                          spotPricePerOz: a.spotPricePerOz ?? null,
-                          payoutPct: a.payoutPct ?? null,
-                          valueLastRefreshed: a.valueLastRefreshed ?? null,
-                      }
-                    : {}),
-            }));
+            // Optional type filter so a caller can pull just its HSAs, etc.
+            const wantType =
+                typeof toolArgs.type === 'string' && toolArgs.type
+                    ? toolArgs.type
+                    : null;
+            const accounts = (state.customAccounts || [])
+                .filter((a) => !wantType || a.type === wantType)
+                .map((a) => ({
+                    id: a.id,
+                    name: a.name,
+                    type: a.type,
+                    value: a.value || 0,
+                    apy: a.apy || 0,
+                    ...(a.type === 'Metal'
+                        ? {
+                              metalType: a.metalType,
+                              weightOz: a.weightOz,
+                              spotPricePerOz: a.spotPricePerOz ?? null,
+                              payoutPct: a.payoutPct ?? null,
+                              valueLastRefreshed: a.valueLastRefreshed ?? null,
+                          }
+                        : {}),
+                }));
             const interest = getEstimatedAnnualInterest(
                 state.customAccounts,
                 state.cds,
@@ -437,8 +457,17 @@ function handleTool(name, state, toolArgs = {}) {
                     staking: Math.round(interest.staking),
                     total: Math.round(interest.total),
                 },
+                // Total is over the returned (possibly filtered) rows.
                 total: Math.round(accounts.reduce((s, a) => s + a.value, 0)),
+                // Always the whole-state HSA total, filtered or not.
+                hsaTotal: Math.round(
+                    (state.customAccounts || []).reduce(
+                        (s, a) => (a.type === 'HSA' ? s + (a.value || 0) : s),
+                        0,
+                    ),
+                ),
                 count: accounts.length,
+                typeFilter: wantType,
             };
         }
 
