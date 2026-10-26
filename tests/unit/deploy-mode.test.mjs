@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import deployMode from '../../app/lib/deploy-mode.js';
 
 beforeEach(() => deployMode.reset());
@@ -53,10 +53,30 @@ describe('deploy mode signal', () => {
 
     // A wait that the probe wins must not leave its timeout armed (#297 review).
     it('a probe answer clears pending wait timers', async () => {
-        const waited = deployMode.whenKnown(5000);
-        deployMode.resolve(true);
-        await expect(waited).resolves.toBe(false);
-        expect(deployMode.isHosted()).toBe(false);
+        vi.useFakeTimers();
+        try {
+            const waited = deployMode.whenKnown(5000);
+            expect(vi.getTimerCount()).toBe(1);
+            deployMode.resolve(true);
+            expect(vi.getTimerCount()).toBe(0);
+            await expect(waited).resolves.toBe(false);
+            expect(deployMode.isHosted()).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('reset settles pending waits before replacing the probe', async () => {
+        vi.useFakeTimers();
+        try {
+            const waited = deployMode.whenKnown(5000);
+            expect(vi.getTimerCount()).toBe(1);
+            deployMode.reset();
+            await expect(waited).resolves.toBeNull();
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('whenKnown resolves as soon as the probe answers', async () => {
