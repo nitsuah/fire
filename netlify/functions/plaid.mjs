@@ -1,5 +1,8 @@
 import crypto from 'node:crypto';
 import { parsePlaidTransactions } from '../../app/lib/finance-parsing.js';
+import plaidStatus from '../../app/lib/plaid-status.js';
+
+const { REAUTH_CODES } = plaidStatus;
 
 const PLAID_TOKEN_VERSION = 1;
 // Rolling expiry: every response re-seals the token, so this only locks out
@@ -241,6 +244,17 @@ function partialWarning(failures) {
     return `${failures.length} item(s) failed; partial data returned.${relink}`;
 }
 
+// What the last transaction sync did, recorded so status can report an
+// outcome rather than only a timestamp (#293). Codes only (#262).
+function outcome(failures, items) {
+    const failed = items.find((item) => item.lastErrorCode);
+    return {
+        at: new Date().toISOString(),
+        ok: failures.length === 0,
+        errorCode: failed ? failed.lastErrorCode : null,
+    };
+}
+
 async function createLinkToken() {
     const data = await plaidPost('/link/token/create', {
         user: { client_user_id: 'fire-tracker-user' },
@@ -428,22 +442,38 @@ async function transactions(token) {
         }
 
         if (itemFailed) {
-            updatedItems.push(item);
+            // The Item keeps its cursor but remembers the sanitized reason,
+            // so status can say "re-link" instead of a stale "Connected"
+            // (#293). Codes only, never the provider message (#262).
+            const code = failedItems[failedItems.length - 1]?.code;
+            updatedItems.push(code ? { ...item, lastErrorCode: code } : item);
         } else {
             allAdded.push(...itemAdded);
             allModified.push(...itemModified);
             allRemovedIds.push(...itemRemovedIds);
-            updatedItems.push({ ...item, transactionsCursor: cursor });
+            const clean = { ...item };
+            delete clean.lastErrorCode;
+            updatedItems.push({ ...clean, transactionsCursor: cursor });
             successfulItemCount++;
         }
     }
 
     if (failedItems.length && successfulItemCount === 0) {
+        // The browser owns the sealed token, so the failure outcome can only
+        // reach status by riding along with this error (#293).
         throw Object.assign(
             new Error(
                 'All Plaid transaction fetches failed. Existing data preserved.',
             ),
-            { status: 502, failedItems },
+            {
+                status: 502,
+                failedItems,
+                plaidToken: seal({
+                    ...token,
+                    items: updatedItems,
+                    transactionsLastSync: outcome(failedItems, updatedItems),
+                }),
+            },
         );
     }
 
@@ -464,6 +494,7 @@ async function transactions(token) {
             ...token,
             items: updatedItems,
             transactionsLastSyncedAt: syncedAt,
+            transactionsLastSync: outcome(failedItems, updatedItems),
         }),
         transactions: {
             added: parsedAdded,
@@ -494,17 +525,32 @@ async function readBody(req) {
 
 export default async function handler(req) {
     try {
-        const misconfigured = configError();
-        if (misconfigured) {
-            console.error('[Netlify Plaid] not configured:', misconfigured);
-            return json(503, { error: 'Hosted Plaid is not configured.' });
-        }
         const url = new URL(req.url);
         const path = routePath(url.pathname);
         const method = req.method || 'GET';
         const origin = req.headers.get('origin');
         if (origin && origin !== url.origin) {
             return json(403, { error: 'Origin not allowed.' });
+        }
+        const misconfigured = configError();
+        if (misconfigured) {
+            console.error('[Netlify Plaid] not configured:', misconfigured);
+            // Status is the one endpoint that must still answer: a deploy
+            // with no credentials has to read as "not configured", not as
+            // an error or as an ordinary "not linked" (#293).
+            if (path === '/sync/plaid/status' && method === 'GET') {
+                return json(200, {
+                    connected: false,
+                    configured: false,
+                    itemCount: 0,
+                    lastTransactionsSync: null,
+                    lastSync: null,
+                    reauthRequired: false,
+                    syncEnabled: true,
+                    hosted: true,
+                });
+            }
+            return json(503, { error: 'Hosted Plaid is not configured.' });
         }
         if (!hasAccess(req)) {
             return json(401, {
@@ -529,8 +575,11 @@ export default async function handler(req) {
             if (!rawToken) {
                 return json(200, {
                     connected: false,
+                    configured: true,
                     itemCount: 0,
                     lastTransactionsSync: null,
+                    lastSync: null,
+                    reauthRequired: false,
                     syncEnabled: true,
                     hosted: true,
                 });
@@ -538,8 +587,15 @@ export default async function handler(req) {
             const token = await requireToken(req, {});
             return json(200, {
                 connected: true,
+                configured: true,
                 itemCount: token.items.length,
                 lastTransactionsSync: token.transactionsLastSyncedAt || null,
+                lastSync: token.transactionsLastSync || null,
+                // The grant is dead: say so instead of reporting a healthy
+                // "Connected" that can never sync again (#293).
+                reauthRequired: token.items.some((item) =>
+                    REAUTH_CODES.has(item.lastErrorCode),
+                ),
                 syncEnabled: true,
                 hosted: true,
                 plaidToken: seal(token),
@@ -604,6 +660,7 @@ export default async function handler(req) {
             error: err.message,
             ...(err.code ? { code: err.code } : {}),
             ...(err.failedItems ? { failedItems: err.failedItems } : {}),
+            ...(err.plaidToken ? { plaidToken: err.plaidToken } : {}),
         });
     }
 }
