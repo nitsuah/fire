@@ -178,9 +178,14 @@ function renderDashboardOtherAssetsPanel() {
 
     const misc = state.customAccounts.filter(
         (a) =>
-            !['Cash', 'Savings', 'Brokerage', 'Crypto', 'Metal'].includes(
-                a.type,
-            ),
+            ![
+                'Cash',
+                'Savings',
+                'Brokerage',
+                'HSA',
+                'Crypto',
+                'Metal',
+            ].includes(a.type),
     );
     if (misc.length) {
         let html = `<div class="liquid-section-label">Other Valuables</div>`;

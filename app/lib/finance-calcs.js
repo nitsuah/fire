@@ -196,7 +196,11 @@ function _getAggregateNetWorth(state) {
         if (!isCash) equities += pos.value || 0;
     });
     (state.customAccounts || []).forEach((acc) => {
-        if (acc.type === 'Brokerage' || acc.type === 'Crypto')
+        if (
+            acc.type === 'Brokerage' ||
+            acc.type === 'HSA' ||
+            acc.type === 'Crypto'
+        )
             equities += acc.value || 0;
         else if (acc.type !== 'Cash' && acc.type !== 'Savings')
             other += acc.value || 0; // metals, pensions, etc. — not spendable cash

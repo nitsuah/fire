@@ -102,7 +102,7 @@ function getEquitiesDetailItems() {
         }
     });
     state.customAccounts.forEach((acc) => {
-        if (acc.type === 'Brokerage') {
+        if (acc.type === 'Brokerage' || acc.type === 'HSA') {
             items.push({
                 name: acc.name,
                 sub: acc.type,
@@ -164,6 +164,7 @@ function getOtherDetailItems() {
             acc.type !== 'Cash' &&
             acc.type !== 'Savings' &&
             acc.type !== 'Brokerage' &&
+            acc.type !== 'HSA' &&
             acc.type !== 'Crypto' &&
             acc.type !== 'Metal'
         ) {
