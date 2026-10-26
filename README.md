@@ -19,14 +19,14 @@
 - **Ask your LLM** — the built-in MCP server exposes read-only financial tools for Claude/other MCP clients without giving the model trading or write access to external accounts.
 - **Built for investigation, not just a number** — projections, scenario stress tests, diversification signals, tax-loss alerts, rebalancing what-ifs, CD maturities, emergency runway, and side-gig tax tagging turn raw balances into context.
 
-**Try it:** [live browser demo](https://lifefire.netlify.app/) · **Run it locally:** `docker compose up -d` · **Use with Claude:** see [MCP Server](#mcp-server-claude-integration) and the [fire-coach skill](skills/README.md)
+**Try it:** [live browser demo](https://fire.nitsuah.io/) · **Run it locally:** `docker compose up -d` · **Use with Claude:** see [MCP Server](#mcp-server-claude-integration) and the [fire-coach skill](skills/README.md)
 
 ---
 
 ## Live links
 
 - **Project site:** https://nitsuah.github.io/fire/
-- **Browser demo:** https://lifefire.netlify.app/
+- **Browser demo:** https://fire.nitsuah.io/
 
 ## Features
 
