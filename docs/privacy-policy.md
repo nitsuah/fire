@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is ever transmitted to any remote server operated by this application. The only remote copies are ones you opt into: eBay order sync, CoinTracker wallet balances (read from your CoinTracker account) and encrypted Google Drive backups to your own Drive (see Sections 2 and 4).
+fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is transmitted to any remote server operated by this application unless you opt into a listed integration. The only remote copies are ones you opt into: eBay order sync, CoinTracker wallet balances (read from your CoinTracker account) and encrypted Google Drive backups to your own Drive (see Sections 2 and 4).
 
 ---
 
@@ -21,7 +21,7 @@ fire is a **local-first, privacy-by-design** personal finance tool. It is not a 
 When you use the hosted Netlify deployment:
 
 - **All data lives exclusively in your browser's `localStorage`**, keyed to `fire_tracker_state`.
-- Data never leaves your device through this application. It is not sent to Netlify servers, cloud databases, or any third party by this app.
+- Data does not leave your device through this application unless you opt into an integration described below. Without an opt-in, it is not sent to Netlify servers, cloud databases, or any third party by this app.
 - Clearing your browser data, switching browsers, or using a private/incognito session **will erase your data**. Use the Export JSON Backup feature regularly.
 - **Optional Google Drive backup.** If you connect Google Drive, the backup flow runs through this site's Netlify Function (`/api/backup/drive/*`). Your state is sent to that Function, encrypted there with a server-held key (`SYNC_MASTER_KEY`) using AES-256-GCM, and uploaded to **your own** Google Drive. The Drive OAuth token comes back to your browser sealed with the same key and is kept under the separate `localStorage` key `fire_tracker_gdrive_token`, which your browser can't decrypt. A restore sends the chosen backup back to the Function, which decrypts it server-side and returns your plaintext state to the browser. Because the key lives on the server, a backup can't be decrypted without this deployment, and losing `SYNC_MASTER_KEY` makes existing backups unreadable.
 - **Optional eBay order sync and CoinTracker wallet sync are the exceptions.** CoinTracker works like eBay below: its requests go through `/api/sync/cointracker/*`, nothing is kept server-side, and the encrypted token is stored under the separate `localStorage` key `fire_cointracker_token` (see Section 4). If you click *Connect eBay*, the connect and sync requests go through this site's Netlify Functions (`/api/sync/ebay/*`) to eBay. The Functions keep nothing: your eBay tokens come back to your browser encrypted with a server-held key (stored under the separate `localStorage` key `fire_tracker_ebay_token`, which your browser can't decrypt), and orders pulled during a sync are returned straight to your browser. They never log your eBay username or user ID.
@@ -41,7 +41,7 @@ When you run the application locally via Docker:
 
 ## 3. Data Never Collected or Transmitted by This App
 
-The following data is explicitly **never collected, stored remotely, or shared** by this application, apart from the encrypted Google Drive backup you can opt into (Section 2), which is unreadable without this app's key:
+The following data is explicitly **never collected, stored remotely, or shared** by this application, apart from two exceptions: the encrypted Google Drive backup you can opt into (Section 2), which is unreadable without this app's key, and the Google Drive OAuth sign-in and token refresh described in Section 4:
 
 - Account balances, net worth, or investment values
 - Portfolio positions or CSV import contents
