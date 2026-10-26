@@ -33,6 +33,7 @@ const { sweepRebalances } = require('./lib/rebalance-sweep.js');
 const { summarizeNetWorthHistory } = require('./lib/net-worth-history.js');
 const { coinTrackerAddresses } = require('./lib/cointracker-merge.js');
 const { summarizeDataFreshness } = require('./lib/data-freshness.js');
+const { detectRecurringCharges } = require('./lib/recurring-charges.js');
 
 const AUDIT_LOG = join(DATA_DIR, 'mcp-audit.log');
 
@@ -269,6 +270,21 @@ const TOOLS = [
                 limit: {
                     type: 'number',
                     description: 'Max rows returned (default 200, max 1000).',
+                },
+            },
+        },
+    },
+    {
+        name: 'get_recurring_charges',
+        description:
+            'Detects subscriptions and recurring bills from the stored spending transactions: merchants charged at a steady weekly, monthly or annual interval with amounts within 10%. Returns each one with its amount, last and next expected date, and a monthly equivalent, plus monthly and annual totals. Read-only and inferred — the app stores no subscription model.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                minOccurrences: {
+                    type: 'number',
+                    description:
+                        'Only report series with at least this many charges (default 2).',
                 },
             },
         },
@@ -860,6 +876,32 @@ function handleTool(name, state, toolArgs = {}) {
                     Object.entries(byCategory).map(([k, v]) => [k, round2(v)]),
                 ),
                 limit,
+            };
+        }
+
+        case 'get_recurring_charges': {
+            const minOccurrences =
+                Number.isInteger(toolArgs.minOccurrences) &&
+                toolArgs.minOccurrences >= 1
+                    ? toolArgs.minOccurrences
+                    : null;
+            const result = detectRecurringCharges(
+                state.spendingTransactions || [],
+            );
+            if (!minOccurrences) return result;
+            const charges = result.charges.filter(
+                (c) => c.occurrences >= minOccurrences,
+            );
+            const round2 = (n) => Math.round(n * 100) / 100;
+            const monthlyTotal = round2(
+                charges.reduce((s, c) => s + c.monthlyEquivalent, 0),
+            );
+            return {
+                charges,
+                count: charges.length,
+                monthlyTotal,
+                annualTotal: round2(monthlyTotal * 12),
+                minOccurrences,
             };
         }
 

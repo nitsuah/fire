@@ -17,6 +17,7 @@ const EXPECTED_TOOLS = [
     'get_accounts',
     'get_portfolio',
     'get_transactions',
+    'get_recurring_charges',
     'get_cds',
     'get_upcoming_events',
     'get_expenses',
