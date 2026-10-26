@@ -164,6 +164,7 @@ async function resyncStateFromServer({ force = false } = {}) {
         }
         state = sanitizeState({ ...state, ...data });
         syncedRevision = revisionOf(data);
+        reportDeployMode(true);
         resyncPending = false;
         if (typeof syncExpenseInputsFromState === 'function')
             syncExpenseInputsFromState();
