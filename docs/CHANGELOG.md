@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- MCP: `get_upcoming_events({ days = 90 })` returns a date-ordered list of CD maturities inside the window, plus CDs that matured in the last 7 days with a negative `daysAway` so they get acted on. `days` is clamped to 1–730 (#270).
+- MCP: `get_insurances` returns each policy's amount and frequency, normalized monthly and annual amounts, and combined totals, reusing the app's own aggregates helpers (#269).
+
 ### Fixed
 
 - Google Drive card keeps showing Connected after a refresh on the hosted deploy (#246).
