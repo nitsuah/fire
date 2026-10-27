@@ -290,6 +290,26 @@ describe('POST /api/sync/etsy/sync', () => {
         expect(loadTokens('etsy').resumeFrom).toBeUndefined();
     });
 
+    it('records lastSyncOutcome on failure then success', async () => {
+        connect();
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => jsonRes(502, {})),
+        );
+        await request(app).post('/api/sync/etsy/sync');
+        let status = await request(app).get('/api/sync/etsy/status');
+        expect(status.body.lastSyncOutcome.ok).toBe(false);
+        expect(typeof status.body.lastSyncOutcome.errorCode).toBe('string');
+        expect(JSON.stringify(status.body)).not.toContain('1.tok');
+        fetch.mockImplementation(async () =>
+            jsonRes(200, { results: [receipt(1)] }),
+        );
+        await request(app).post('/api/sync/etsy/sync');
+        status = await request(app).get('/api/sync/etsy/status');
+        expect(status.body.lastSyncOutcome.ok).toBe(true);
+        expect(status.body.lastSyncOutcome.errorCode).toBeNull();
+    });
+
     it('disconnect forgets the grant but keeps synced sales', async () => {
         connect();
         await mutateState((state) => {

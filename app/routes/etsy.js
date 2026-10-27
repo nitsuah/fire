@@ -84,6 +84,7 @@ router.get('/etsy/status', (req, res) => {
         configured: etsy.isConfigured(),
         lastSync: tokens.lastSyncedAt || null,
         shopId: tokens.shop_id || null,
+        lastSyncOutcome: tokens.lastSyncOutcome || null,
         syncEnabled,
     });
 });
@@ -162,8 +163,16 @@ router.post('/etsy/sync', async (req, res) => {
                     (e) => !etsy.isApiSyncedEtsyEntry(e),
                 );
             });
-        } else if (err.tokens) {
-            saveTokens('etsy', { ...tokens, ...err.tokens });
+        } else {
+            saveTokens('etsy', {
+                ...tokens,
+                ...(err.tokens || {}),
+                lastSyncOutcome: {
+                    at: new Date().toISOString(),
+                    ok: false,
+                    errorCode: mapped.body.code || null,
+                },
+            });
         }
         return send(res, mapped);
     }
@@ -185,6 +194,7 @@ router.post('/etsy/sync', async (req, res) => {
         ...result.tokens,
         lastSyncedAt: syncedAt,
         resumeFrom: result.truncated ? result.resumeFrom : undefined,
+        lastSyncOutcome: { at: syncedAt, ok: true, errorCode: null },
     });
     res.json({
         status: 'success',
