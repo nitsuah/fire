@@ -30,6 +30,10 @@ test(
                     ),
                     'privacy modal renders relative docs links that 404 in-app',
                 ).toHaveCount(0);
+                await expect(
+                    privacyBody,
+                    'privacy modal renders the GitHub nav row (#166)',
+                ).not.toContainText('Features · Roadmap');
             },
             { docs: 'privacy-modal' },
         );
