@@ -46,6 +46,10 @@ test(
                     'Missing Real Estate',
                 );
                 await expect(tile).toBeVisible();
+                await expect(
+                    page.locator('#tab-insights'),
+                    'VTI is a broad-market fund, not a single stock (#170)',
+                ).not.toContainText(/VTI \(\d/);
             },
             { docs: 'insights-tab' },
         );
