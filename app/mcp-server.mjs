@@ -16,6 +16,7 @@ const require = createRequire(import.meta.url);
 // tests/unit/mcp-server-read-only.test.mjs.
 const { readState, initDatabase, DATA_DIR } = require('./lib/db.js');
 const { buildProjectionData } = require('./lib/finance-calcs.js');
+const { fireStatus } = require('./lib/aggregates.js');
 const { saleAmounts, summarizeSideGigTax } = require('./lib/side-gig-tax.js');
 const {
     getEstimatedAnnualInterest,
@@ -377,20 +378,15 @@ function handleTool(name, state, toolArgs = {}) {
         case 'fire_status_summary': {
             const proj = buildProjectionData(state);
             const {
-                networth,
-                fireNumber,
-                nwData,
                 coastFireLine,
                 passiveIncome,
                 netWithdrawal,
                 blendedReturn,
                 depletionAge,
             } = proj;
-            const progressPercent =
-                fireNumber > 0
-                    ? Math.round((networth / fireNumber) * 1000) / 10
-                    : 0;
-            const yearsIdx = nwData.findIndex((nw) => nw >= fireNumber);
+            // Same headline numbers as the dashboard banner.
+            const { networth, fireNumber, progressPercent, yearsToFire } =
+                fireStatus(state);
             const annualExpenses =
                 fireNumber * ((state.projectionSettings?.swr || 4.0) / 100);
             const monthlyExpenses = annualExpenses / 12;
@@ -399,8 +395,8 @@ function handleTool(name, state, toolArgs = {}) {
             return {
                 fireNumber: Math.round(fireNumber),
                 currentNetWorth: Math.round(networth),
-                progressPercent,
-                yearsToFire: yearsIdx >= 0 ? yearsIdx : null,
+                progressPercent: Math.round(progressPercent * 10) / 10,
+                yearsToFire,
                 currentAge: settings.currentAge || null,
                 retireAge: settings.retireAge || null,
                 monthlyExpenses: Math.round(monthlyExpenses),

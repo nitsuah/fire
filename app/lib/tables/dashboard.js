@@ -37,14 +37,14 @@ function getBannerIncome() {
 // Sets the summary banner's Net Worth / Income / Spend Rate / FIRE Progress
 // text, plus the narrow-width single-bar variant of the same data.
 function renderHeaderBannerMetrics() {
-    const networth = getAggregateNetWorth();
-    const annualExpenses = getAnnualExpensesTotal();
+    const {
+        networth,
+        annualExpenses,
+        fireNumber,
+        progressPercent,
+        yearsToFire,
+    } = window.FireAggregates.fireStatus(state);
     const swr = state.projectionSettings.swr / 100;
-    const fireNumber = swr > 0 ? annualExpenses / swr : 0;
-    const progressPercent =
-        fireNumber > 0
-            ? Math.max(0, Math.min((networth / fireNumber) * 100, 100))
-            : 0;
 
     document.getElementById('banner-networth').textContent =
         formatCurrency(networth);
@@ -66,15 +66,7 @@ function renderHeaderBannerMetrics() {
             const cover = annualExpenses > 0 ? income / annualExpenses : 0;
             etaEl.textContent = `Safe withdrawal ${formatCurrency(income)}/yr · ${cover.toFixed(1)}× spend`;
         } else {
-            const ps = state.projectionSettings || {};
-            const nominal = (Number(ps.expectedReturn) || 0) / 100;
-            const inflation = (Number(ps.inflationRate) || 0) / 100;
-            const years = window.FireAggregates.yearsToFire({
-                networth,
-                fireNumber,
-                annualSavings: Number(ps.annualSavings) || 0,
-                realReturn: (1 + nominal) / (1 + inflation) - 1,
-            });
+            const years = yearsToFire;
             etaEl.textContent =
                 years === null
                     ? 'Not on track at current savings/returns'

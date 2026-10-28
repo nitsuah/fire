@@ -75,7 +75,10 @@ const SEED = {
             type: 'Metal',
             metalType: 'gold',
             weightOz: 2,
-            value: 7600,
+            // Matches the mocked metals quote (demo-mocks.js): 2 oz x $3,800 x 95% payout.
+            spotPricePerOz: 3800,
+            payoutPct: 0.95,
+            value: 7220,
             apy: 0,
         },
     ],
