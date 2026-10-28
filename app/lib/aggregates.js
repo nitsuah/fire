@@ -309,8 +309,40 @@
         return null;
     }
 
+    // The one FIRE headline calculation, shared by the dashboard banner and
+    // the MCP fire_status_summary so both always report the same numbers.
+    function fireStatus(state) {
+        const ps = state.projectionSettings || {};
+        const networth = getAggregateNetWorth(state);
+        const annualExpenses = getAnnualExpensesTotal(
+            state.expenses || {},
+            state.insurances,
+            state.taxRate || 0,
+        );
+        const swr = (ps.swr || 0) / 100;
+        const fireNumber = swr > 0 ? annualExpenses / swr : 0;
+        const nominal = (Number(ps.expectedReturn) || 0) / 100;
+        const inflation = (Number(ps.inflationRate) || 0) / 100;
+        return {
+            networth,
+            annualExpenses,
+            fireNumber,
+            progressPercent:
+                fireNumber > 0
+                    ? Math.max(0, Math.min((networth / fireNumber) * 100, 100))
+                    : 0,
+            yearsToFire: yearsToFire({
+                networth,
+                fireNumber,
+                annualSavings: Number(ps.annualSavings) || 0,
+                realReturn: (1 + nominal) / (1 + inflation) - 1,
+            }),
+        };
+    }
+
     const api = {
         yearsToFire,
+        fireStatus,
         ASSET_CLASSES,
         getAllocationAmounts,
         scoreDiversification,
