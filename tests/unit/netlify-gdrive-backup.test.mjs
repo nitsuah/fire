@@ -319,6 +319,39 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
         expect((await res.json()).error).toMatch(/state/);
     });
 
+    it('upload rejects an unreadable grant before serializing or calling Drive', async () => {
+        const { fetchMock } = fakeDrive();
+        const res = await post('', {
+            tokens: 'not-a-sealed-blob',
+            state: SAMPLE_STATE,
+        });
+        expect(res.status).toBe(401);
+        expect((await res.json()).code).toBe('gdrive_token_invalid');
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('upload serializes state compactly', async () => {
+        fakeDrive();
+        const spy = vi.spyOn(JSON, 'stringify');
+        const res = await post('', {
+            tokens: sealTokens(freshTokens()),
+            state: SAMPLE_STATE,
+        });
+        expect(res.status).toBe(200);
+        expect(spy.mock.calls.some((c) => c[2] === 2)).toBe(false);
+        spy.mockRestore();
+    });
+
+    it('upload refuses an oversized body with 413 and never reaches Drive', async () => {
+        const { fetchMock } = fakeDrive();
+        const res = await post('', {
+            tokens: sealTokens(freshTokens()),
+            state: { blob: 'x'.repeat(6 * 1024 * 1024) },
+        });
+        expect(res.status).toBe(413);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it('list returns the Drive backup files', async () => {
         const { files } = fakeDrive();
         files.set('abc_123', 'x');
