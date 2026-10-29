@@ -58,6 +58,8 @@ async function decodeVin(vin) {
     };
 }
 
+const MIN_VEHICLE_YEAR = 1886; // first production automobile
+
 // Standard automotive depreciation curve (industry consensus):
 // Year 1: -20%, Year 2: -15%, Years 3–5: -12%/yr, Years 6–10: -8%/yr, 10+: -5%/yr
 // Mileage: deduct 1% per 10k miles above average (12k/yr), cap ±15%.
@@ -66,6 +68,8 @@ function estimateDepreciation(vehicleYear, purchasePrice, mileage, condition) {
     const parsedYear = parseInt(vehicleYear);
     if (!parsedYear || !Number.isFinite(parsedYear)) return null;
     const currentYear = new Date().getFullYear();
+    // The retention loop below runs once per year of age, so an absurd year would spin it for billions of iterations.
+    if (parsedYear < MIN_VEHICLE_YEAR || parsedYear > currentYear + 1) return null;
     const age = Math.max(0, currentYear - parsedYear);
 
     let retention = 1.0;

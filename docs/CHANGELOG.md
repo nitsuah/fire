@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Vehicle depreciation estimate returns no value for model years before 1886 or more than one year ahead, instead of looping once per year of age.
 - Promo: re-rendered the hero spot (`brag-22s`, `site/assets/fire-tracker.mp4` and `poster.jpg`) from the current demo seed, so it shows the 95% metals payout (gold $7,220, net worth $287,897.50) and the shared FIRE headline (25.8%, ~12 years to FIRE) that the dashboard and MCP `fire_status_summary` now agree on (#309).
 - Docs: MCP tool count is 20 in the README tool list (now including `get_transactions`, `get_recurring_charges`, `get_upcoming_events`), FEATURES.md and the security checklist; the integration matrix names the Drive token file `data/tokens-gdrive.json`; the privacy policy no longer says data lives "exclusively" in `localStorage`, and Section 3 now covers the opt-in eBay and CoinTracker integrations.
 - MCP `fire_status_summary` now uses the dashboard's FIRE calculation (`FireAggregates.fireStatus`: net worth, progress, years to FIRE), and the promo demo seed stores the mocked metals payout, so Claude and the dashboard report identical numbers (#178).
