@@ -109,6 +109,25 @@ describe('ebay-marketplace-account-deletion function', () => {
         expect(logged).not.toMatch(/secret-user|secret-id/);
     });
 
+    it('logs a forged notificationId as invalid instead of injecting log lines', async () => {
+        delete process.env.EBAY_CLIENT_ID;
+        delete process.env.EBAY_CLIENT_SECRET;
+        const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+        const forged = {
+            ...notification,
+            notification: {
+                ...notification.notification,
+                notificationId: 'abc\n[eBay] FORGED server message',
+            },
+        };
+        const res = await deletion(post(ENDPOINT, forged));
+        expect(res.status).toBe(200);
+        const logged = log.mock.calls.flat().join(' ');
+        expect(logged).toContain('notificationId=invalid');
+        expect(logged).not.toContain('FORGED');
+        expect(logged).not.toContain('\n');
+    });
+
     it('rejects a notification with a missing signature when credentials exist', async () => {
         vi.spyOn(console, 'warn').mockImplementation(() => {});
         const res = await deletion(post(ENDPOINT, notification));
