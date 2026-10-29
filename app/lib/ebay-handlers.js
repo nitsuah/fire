@@ -66,6 +66,16 @@ function handleDeletionChallenge({
     };
 }
 
+// notificationId comes from the caller. Only a plain identifier may reach a
+// log line; anything else (newlines, control characters, long text) is
+// replaced so it cannot forge log entries.
+function safeNotificationId(raw) {
+    if (raw === undefined || raw === null || raw === '') return 'unknown';
+    return typeof raw === 'string' && /^[\w.:-]{1,64}$/.test(raw)
+        ? raw
+        : 'invalid';
+}
+
 // POST leg: a MARKETPLACE_ACCOUNT_DELETION notification. The signature is
 // checked first whenever app credentials exist. `purge` is the runtime's
 // cleanup (Express: delete stored tokens + disable sync) and must throw on
@@ -120,7 +130,7 @@ async function handleDeletionNotification({
             body: { error: 'Malformed account deletion notification.' },
         };
     }
-    const id = notification.notificationId || 'unknown';
+    const id = safeNotificationId(notification.notificationId);
     if (purge) {
         console.log(
             `[eBay] ${topic} received (notificationId=${id}). Purging locally stored eBay tokens and disabling sync.`,
