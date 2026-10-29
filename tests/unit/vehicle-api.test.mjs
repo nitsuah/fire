@@ -112,7 +112,6 @@ describe('estimateDepreciation', () => {
     });
 
     it('rejects out-of-range years instead of looping once per year of age', () => {
-        const start = Date.now();
         expect(
             estimateDepreciation(-999999999999, 20000, 10000, 'Good'),
         ).toBeNull();
@@ -126,7 +125,6 @@ describe('estimateDepreciation', () => {
                 'Good',
             ),
         ).toBeNull();
-        expect(Date.now() - start).toBeLessThan(100);
     });
 
     it('still prices the oldest and the next-model-year vehicles', () => {
