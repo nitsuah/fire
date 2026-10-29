@@ -111,6 +111,53 @@ describe('estimateDepreciation', () => {
         expect(estimateDepreciation('n/a', 20000, 10000, 'Good')).toBeNull();
     });
 
+    it('rejects out-of-range years instead of looping once per year of age', () => {
+        expect(
+            estimateDepreciation(-999999999999, 20000, 10000, 'Good'),
+        ).toBeNull();
+        expect(estimateDepreciation(1, 20000, 10000, 'Good')).toBeNull();
+        expect(estimateDepreciation(1885, 20000, 10000, 'Good')).toBeNull();
+        expect(
+            estimateDepreciation(
+                new Date().getFullYear() + 2,
+                20000,
+                10000,
+                'Good',
+            ),
+        ).toBeNull();
+    });
+
+    it('rejects non-integer or partly numeric years instead of truncating them', () => {
+        const year = new Date().getFullYear() - 2;
+        expect(
+            estimateDepreciation(`${year}abc`, 20000, 10000, 'Good'),
+        ).toBeNull();
+        expect(
+            estimateDepreciation(`${year}.7`, 20000, 10000, 'Good'),
+        ).toBeNull();
+        expect(
+            estimateDepreciation(year + 0.5, 20000, 10000, 'Good'),
+        ).toBeNull();
+        expect(
+            estimateDepreciation(` ${year} `, 20000, 10000, 'Good'),
+        ).not.toBeNull();
+        expect(
+            estimateDepreciation(String(year), 20000, 10000, 'Good'),
+        ).not.toBeNull();
+    });
+
+    it('still prices the oldest and the next-model-year vehicles', () => {
+        expect(estimateDepreciation(1886, 20000, 0, 'Good')).not.toBeNull();
+        expect(
+            estimateDepreciation(
+                new Date().getFullYear() + 1,
+                20000,
+                0,
+                'Good',
+            ),
+        ).not.toBeNull();
+    });
+
     it('returns full retention for a brand-new vehicle at average mileage', () => {
         const currentYear = new Date().getFullYear();
         const result = estimateDepreciation(currentYear, 10000, 0, 'Good');
