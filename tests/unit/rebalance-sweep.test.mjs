@@ -156,9 +156,9 @@ describe('sweepRebalances', () => {
         expect(r.totalRows).toBe(r2.totalRows);
         expect(r.assumptions.fractions).toEqual([0.5]);
 
-        expect(
-            sweepRebalances(state, { maxPositions: 0 }).status,
-        ).toBe('swept');
+        expect(sweepRebalances(state, { maxPositions: 0 }).status).toBe(
+            'swept',
+        );
     });
 
     it('reports unavailable when there is nothing to move', () => {
