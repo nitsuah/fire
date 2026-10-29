@@ -21,6 +21,11 @@ const LIQUID_CLASSES = ['cash', 'cds', 'equities', 'crypto', 'metals'];
 const SCENARIOS = ['bear', 'base', 'bull'];
 const DEFAULT_FRACTIONS = [0.1, 0.25, 0.5, 1];
 
+// Work ceiling: sellers (5 classes + at most MAX_POSITIONS) x 4 buy classes x
+// MAX_FRACTIONS is at most 2,000 scenario rows.
+const MAX_FRACTIONS = 20;
+const MAX_POSITIONS = 20;
+
 // asc = lower is better for that metric
 const RANKABLE = {
     baseDelta: 'desc',
@@ -110,9 +115,12 @@ function validateOptions(opts) {
     if (
         !Array.isArray(fractions) ||
         fractions.length === 0 ||
+        fractions.length > MAX_FRACTIONS ||
         fractions.some((f) => !(f > 0 && f <= 1))
     ) {
-        throw invalid('fractions must be numbers in (0, 1].');
+        throw invalid(
+            `fractions must be 1 to ${MAX_FRACTIONS} numbers in (0, 1].`,
+        );
     }
     const capGainsRatePct = opts.capGainsRatePct ?? 15;
     if (!(capGainsRatePct >= 0 && capGainsRatePct <= 100)) {
@@ -128,13 +136,29 @@ function validateOptions(opts) {
     if (!Number.isInteger(limit) || limit < 1 || limit > 500) {
         throw invalid('limit must be an integer from 1 to 500.');
     }
+
+    const maxPositions = opts.maxPositions ?? 5;
+    if (
+        !Number.isInteger(maxPositions) ||
+        maxPositions < 0 ||
+        maxPositions > MAX_POSITIONS
+    ) {
+        throw invalid(
+            `maxPositions must be an integer from 0 to ${MAX_POSITIONS}.`,
+        );
+    }
+    const minPositionValue = opts.minPositionValue ?? 1000;
+    if (!Number.isFinite(minPositionValue) || minPositionValue < 0) {
+        throw invalid('minPositionValue must be a non-negative number.');
+    }
+
     return {
-        fractions,
+        fractions: [...new Set(fractions)],
         capGainsRatePct,
         rankBy,
         limit,
-        minPositionValue: opts.minPositionValue ?? 1000,
-        maxPositions: opts.maxPositions ?? 5,
+        minPositionValue,
+        maxPositions,
     };
 }
 

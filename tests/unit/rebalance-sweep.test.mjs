@@ -126,6 +126,41 @@ describe('sweepRebalances', () => {
         ).toThrow(/Invalid input/);
     });
 
+    it('bounds the sweep work', () => {
+        expect(() =>
+            sweepRebalances(state, {
+                fractions: Array.from({ length: 21 }, (_, i) => (i + 1) / 21),
+            }),
+        ).toThrow(/Invalid input/);
+        expect(() => sweepRebalances(state, { maxPositions: 21 })).toThrow(
+            /Invalid input/,
+        );
+        expect(() => sweepRebalances(state, { maxPositions: -1 })).toThrow(
+            /Invalid input/,
+        );
+        expect(() => sweepRebalances(state, { maxPositions: 1.5 })).toThrow(
+            /Invalid input/,
+        );
+        expect(() =>
+            sweepRebalances(state, { minPositionValue: Infinity }),
+        ).toThrow(/Invalid input/);
+        expect(() => sweepRebalances(state, { minPositionValue: -1 })).toThrow(
+            /Invalid input/,
+        );
+
+        const r = sweepRebalances(state, {
+            fractions: [0.5, 0.5, 0.5],
+            limit: 500,
+        });
+        const r2 = sweepRebalances(state, { fractions: [0.5], limit: 500 });
+        expect(r.totalRows).toBe(r2.totalRows);
+        expect(r.assumptions.fractions).toEqual([0.5]);
+
+        expect(
+            sweepRebalances(state, { maxPositions: 0 }).status,
+        ).toBe('swept');
+    });
+
     it('reports unavailable when there is nothing to move', () => {
         expect(sweepRebalances({}, {}).status).toBe('unavailable');
     });
