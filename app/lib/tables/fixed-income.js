@@ -49,9 +49,9 @@ function renderImportedFilesTable() {
     state.importedFiles.forEach((file, index) => {
         html += `
             <tr>
-                <td class="font-bold" title="${file.date}">${file.name}</td>
-                <td><span class="text-purple">${file.source}</span></td>
-                <td>${file.records}</td>
+                <td class="font-bold" title="${escHtml(file.date)}">${escHtml(file.name)}</td>
+                <td><span class="text-purple">${escHtml(file.source)}</span></td>
+                <td>${escHtml(file.records)}</td>
                 <td class="text-right">
                     <button class="delete-btn" data-csp-click-action="deleteImportedFile" data-csp-click-value="${index}">Remove</button>
                 </td>
