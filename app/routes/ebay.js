@@ -199,7 +199,11 @@ router.get('/ebay/status', (req, res) => {
     const db = readState();
     const syncEnabled = db.ebaySyncEnabled !== false;
     if (!tokens) {
-        return res.json({ connected: false, configured: eBayConfigured(), syncEnabled });
+        return res.json({
+            connected: false,
+            configured: eBayConfigured(),
+            syncEnabled,
+        });
     }
     res.json({
         connected: true,
