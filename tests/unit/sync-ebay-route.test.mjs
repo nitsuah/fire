@@ -131,6 +131,31 @@ describe('GET /api/sync/ebay/status', () => {
         const res = await request(app).get('/api/sync/ebay/status');
         expect(res.body.syncEnabled).toBe(false);
     });
+
+    it('reports configured: false without eBay client credentials', async () => {
+        const res = await request(app).get('/api/sync/ebay/status');
+        expect(res.body.configured).toBe(false);
+    });
+
+    it('reports configured: true once the client credentials are set', async () => {
+        process.env.EBAY_CLIENT_ID = 'test-client-id';
+        process.env.EBAY_CLIENT_SECRET = 'test-client-secret';
+        const res = await request(app).get('/api/sync/ebay/status');
+        expect(res.body.configured).toBe(true);
+    });
+
+    it('keeps configured on the connected answer and never echoes tokens', async () => {
+        const { saveTokens } = await import('../../app/lib/token-store.js');
+        saveTokens('ebay', {
+            access_token: 'ebay-secret-tok-1',
+            refresh_token: 'ebay-secret-rt-1',
+        });
+        process.env.EBAY_CLIENT_ID = 'test-client-id';
+        process.env.EBAY_CLIENT_SECRET = 'test-client-secret';
+        const res = await request(app).get('/api/sync/ebay/status');
+        expect(res.body).toMatchObject({ connected: true, configured: true });
+        expect(JSON.stringify(res.body)).not.toContain('ebay-secret-');
+    });
 });
 
 describe('POST /api/sync/ebay/toggle', () => {
