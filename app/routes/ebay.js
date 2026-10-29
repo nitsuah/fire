@@ -181,7 +181,11 @@ router.post('/ebay/sync', async (req, res) => {
         if (!ok)
             return res.status(500).json({ error: 'Failed to save orders.' });
         const syncedAt = new Date().toISOString();
-        saveTokens('ebay', { ...tokens, lastSyncedAt: syncedAt });
+        saveTokens('ebay', {
+            ...tokens,
+            lastSyncedAt: syncedAt,
+            lastSyncOutcome: { at: syncedAt, ok: true, errorCode: null },
+        });
         res.json({
             status: 'success',
             fetched: entries.length,
@@ -190,6 +194,21 @@ router.post('/ebay/sync', async (req, res) => {
         });
     } catch (err) {
         console.error('[eBay] Sync error:', err);
+        try {
+            saveTokens('ebay', {
+                ...tokens,
+                lastSyncOutcome: {
+                    at: new Date().toISOString(),
+                    ok: false,
+                    errorCode: err.code || null,
+                },
+            });
+        } catch (saveErr) {
+            console.error(
+                '[eBay] Unable to record sync outcome:',
+                saveErr.message,
+            );
+        }
         res.status(502).json({ error: err.message });
     }
 });
@@ -209,6 +228,7 @@ router.get('/ebay/status', (req, res) => {
         connected: true,
         configured: eBayConfigured(),
         lastSync: tokens.lastSyncedAt || null,
+        lastSyncOutcome: tokens.lastSyncOutcome || null,
         tokenUpdatedAt: tokens._tokenLastUpdated || null,
         environment: tokens.environment || 'sandbox',
         syncEnabled,

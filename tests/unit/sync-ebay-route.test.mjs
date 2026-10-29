@@ -217,6 +217,60 @@ describe('POST /api/sync/ebay/sync', () => {
     });
 });
 
+describe('eBay last-sync outcome', () => {
+    beforeEach(async () => {
+        process.env.EBAY_CLIENT_ID = 'test-client-id';
+        process.env.EBAY_CLIENT_SECRET = 'test-client-secret';
+        const { saveTokens } = await import('../../app/lib/token-store.js');
+        saveTokens('ebay', {
+            access_token: 'ebay-secret-tok-2',
+            refresh_token: 'ebay-secret-rt-2',
+            environment: 'sandbox',
+        });
+    });
+
+    // Stubs only the Order API that POST /ebay/sync calls. body is raw text.
+    function stubOrderApi(status, body) {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response(body, { status })),
+        );
+    }
+
+    it('shows a failed sync on status, with no token text or provider message', async () => {
+        stubOrderApi(500, 'upstream said ebay-secret-tok-2');
+        const sync = await request(app).post('/api/sync/ebay/sync');
+        expect(sync.status).toBe(502);
+
+        const res = await request(app).get('/api/sync/ebay/status');
+        expect(res.body.connected).toBe(true);
+        expect(res.body.lastSync).toBeNull();
+        expect(res.body.lastSyncOutcome).toMatchObject({
+            ok: false,
+            errorCode: null,
+        });
+        expect(typeof res.body.lastSyncOutcome.at).toBe('string');
+        expect(JSON.stringify(res.body)).not.toContain('ebay-secret-');
+        expect(JSON.stringify(res.body)).not.toContain('upstream said');
+    });
+
+    it('clears the failure once a later sync succeeds', async () => {
+        stubOrderApi(500, 'boom');
+        await request(app).post('/api/sync/ebay/sync');
+
+        stubOrderApi(200, '{"orders":[]}');
+        const sync = await request(app).post('/api/sync/ebay/sync');
+        expect(sync.status).toBe(200);
+
+        const res = await request(app).get('/api/sync/ebay/status');
+        expect(res.body.lastSyncOutcome).toMatchObject({
+            ok: true,
+            errorCode: null,
+        });
+        expect(res.body.lastSync).toBe(sync.body.syncedAt);
+    });
+});
+
 describe('GET /api/sync/ebay/authorize', () => {
     it('returns 503 when eBay client credentials are not configured', async () => {
         const res = await request(app).get('/api/sync/ebay/authorize');
