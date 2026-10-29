@@ -69,7 +69,8 @@ function estimateDepreciation(vehicleYear, purchasePrice, mileage, condition) {
     if (!parsedYear || !Number.isFinite(parsedYear)) return null;
     const currentYear = new Date().getFullYear();
     // The retention loop below runs once per year of age, so an absurd year would spin it for billions of iterations.
-    if (parsedYear < MIN_VEHICLE_YEAR || parsedYear > currentYear + 1) return null;
+    if (parsedYear < MIN_VEHICLE_YEAR || parsedYear > currentYear + 1)
+        return null;
     const age = Math.max(0, currentYear - parsedYear);
 
     let retention = 1.0;
