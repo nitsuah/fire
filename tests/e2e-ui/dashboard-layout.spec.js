@@ -769,6 +769,22 @@ test.describe('Insights — additional watchers', () => {
         await expect(block).toContainText('Aggressive Withdrawal Rate');
         await expect(block).toContainText('Crypto Share of Net Worth');
     });
+
+    test('precious metals tile appears when metals exceed 10% of net worth', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            localStorage.removeItem('fire_dismissed_div_tips');
+            state.customAccounts = [
+                { id: 'e2e-m', name: 'Gold', type: 'Metal', value: 20000 },
+                { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 80000 },
+            ];
+            renderDiversificationSuggestions();
+        });
+        await expect(page.locator('#divs-suggestion-block')).toContainText(
+            'Precious Metals Share',
+        );
+    });
 });
 
 test.describe('Side Hustle Accelerators', () => {

@@ -612,6 +612,22 @@ const DIVERSIFICATION_TIPS = [
             },
         ],
     },
+    {
+        id: 'metals-share',
+        title: 'Precious Metals Share',
+        icon: '🥇',
+        check: ({ metalsPct }) => metalsPct > 10,
+        severity: 'info',
+        message: ({ metalsPct }) =>
+            `Precious metals are ${metalsPct.toFixed(0)}% of net worth — they pay no income and can stay flat for years; many planners keep them around 5–10%.`,
+        links: [
+            {
+                label: 'Rebalancing Basics',
+                url: 'https://www.investopedia.com/terms/r/rebalancing.asp',
+                external: true,
+            },
+        ],
+    },
 ];
 
 function getDismissedTips() {
@@ -672,6 +688,9 @@ function renderDiversificationSuggestions(
     const cryptoValue = (state.customAccounts || [])
         .filter((a) => a.type === 'Crypto')
         .reduce((sum, a) => sum + (a.value || 0), 0);
+    const metalsValue = (state.customAccounts || [])
+        .filter((a) => a.type === 'Metal')
+        .reduce((sum, a) => sum + (a.value || 0), 0);
     const now = Date.now();
     const cdsSoon = (state.cds || []).filter((cd) => {
         const days = (new Date(cd.maturity).getTime() - now) / 86400000;
@@ -695,6 +714,7 @@ function renderDiversificationSuggestions(
         cdsSoon,
         swr: state.projectionSettings?.swr || 0,
         cryptoPct: (cryptoValue / nw) * 100,
+        metalsPct: (metalsValue / nw) * 100,
     };
     const dismissed = getDismissedTips();
     const activeTips = DIVERSIFICATION_TIPS.filter((tip) => {
