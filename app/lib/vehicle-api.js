@@ -65,8 +65,9 @@ const MIN_VEHICLE_YEAR = 1886; // first production automobile
 // Mileage: deduct 1% per 10k miles above average (12k/yr), cap ±15%.
 function estimateDepreciation(vehicleYear, purchasePrice, mileage, condition) {
     if (!purchasePrice || purchasePrice <= 0) return null;
-    const parsedYear = parseInt(vehicleYear);
-    if (!parsedYear || !Number.isFinite(parsedYear)) return null;
+    // Strict: "2020abc" or 2020.7 must not be silently truncated to 2020.
+    const parsedYear = Number(String(vehicleYear ?? '').trim());
+    if (!Number.isInteger(parsedYear) || parsedYear === 0) return null;
     const currentYear = new Date().getFullYear();
     // The retention loop below runs once per year of age, so an absurd year would spin it for billions of iterations.
     if (parsedYear < MIN_VEHICLE_YEAR || parsedYear > currentYear + 1)
