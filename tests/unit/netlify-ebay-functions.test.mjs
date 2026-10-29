@@ -4,6 +4,7 @@ import deletion from '../../netlify/functions/ebay-marketplace-account-deletion.
 import authorize from '../../netlify/functions/ebay-authorize.mjs';
 import callback from '../../netlify/functions/ebay-callback.mjs';
 import sync from '../../netlify/functions/ebay-sync.mjs';
+import ebayStatus from '../../netlify/functions/ebay-status.mjs';
 import cryptoUtils from '../../app/lib/crypto-utils.js';
 import ebayConnector from '../../app/lib/ebay-connector.js';
 
@@ -248,6 +249,27 @@ describe('ebay-sync function', () => {
 
     it('rejects GET with 405', async () => {
         const res = await sync(get(`${BASE}/sync`));
+        expect(res.status).toBe(405);
+    });
+});
+
+describe('ebay-status function', () => {
+    it('reports configured: false without eBay client credentials', async () => {
+        delete process.env.EBAY_CLIENT_ID;
+        delete process.env.EBAY_CLIENT_SECRET;
+        const res = await ebayStatus(get(`${BASE}/status`));
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ configured: false });
+    });
+
+    it('reports configured: true once both client credentials are set', async () => {
+        const res = await ebayStatus(get(`${BASE}/status`));
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ configured: true });
+    });
+
+    it('rejects POST with 405', async () => {
+        const res = await ebayStatus(post(`${BASE}/status`, {}));
         expect(res.status).toBe(405);
     });
 });

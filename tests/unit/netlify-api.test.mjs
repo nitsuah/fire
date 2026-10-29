@@ -63,6 +63,21 @@ describe('hosted fire API', () => {
             ),
         ).toBe(true);
     });
+
+    it('routes /api/sync/ebay/status to the status function, not the catch-all', () => {
+        const toml = fs.readFileSync(
+            path.join(process.cwd(), 'netlify.toml'),
+            'utf8',
+        );
+        const rule = toml.indexOf('from = "/api/sync/ebay/status"');
+        const fallbackRule = toml.indexOf('from = "/api/*"');
+        expect(rule).toBeGreaterThan(-1);
+        expect(fallbackRule).toBeGreaterThan(rule);
+        const block = toml.slice(rule, toml.indexOf('[[redirects]]', rule));
+        expect(block).toContain('to = "/.netlify/functions/ebay-status"');
+        expect(block).toContain('status = 200');
+        expect(block).toContain('force = true');
+    });
 });
 
 describe('hosted fire API — quotes', () => {
