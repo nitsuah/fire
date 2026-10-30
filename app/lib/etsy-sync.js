@@ -21,6 +21,17 @@ const ETSY_DEAD_GRANT_CODES = new Set(['etsy_revoked', 'etsy_token_invalid']);
 // Later syncs re-read a week before the last one; dedupe drops repeats.
 const ETSY_RESYNC_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 
+// "Last sync failed (code)" for a recorded failed outcome, else null. Only
+// the Etsy error code is shown, never a provider message (#262).
+function etsyFailedSyncText(outcome) {
+    if (!outcome || outcome.ok !== false) return null;
+    const code = outcome.errorCode ? ` (${outcome.errorCode})` : '';
+    const when = outcome.at
+        ? ` at ${new Date(outcome.at).toLocaleString()}`
+        : '';
+    return `Last sync failed${code}${when}`;
+}
+
 function etsyRead(key, storage = localStorage) {
     try {
         return storage.getItem(key);
@@ -94,20 +105,23 @@ async function renderEtsyStatus(note) {
     // "Disconnected" is the wrong answer when the deploy has no credentials:
     // reconnecting would fail the same way, so say what is actually missing.
     const notConfigured = data.configured === false;
-    const text =
-        note?.text ||
-        (notConfigured
-            ? 'Status: Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)'
-            : data.connected
-              ? `Status: Connected · Last sync: ${lastSync}`
-              : 'Status: Disconnected');
-    const color =
-        note?.color ||
-        (notConfigured
-            ? 'var(--color-warning, var(--color-danger))'
-            : data.connected
-              ? 'var(--color-success)'
-              : 'var(--text-muted)');
+    const failed = etsyFailedSyncText(data.lastSyncOutcome);
+    const text = failed
+        ? `Status: Connected · ${failed}`
+        : note?.text ||
+          (notConfigured
+              ? 'Status: Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)'
+              : data.connected
+                ? `Status: Connected · Last sync: ${lastSync}`
+                : 'Status: Disconnected');
+    const color = failed
+        ? 'var(--color-danger)'
+        : note?.color ||
+          (notConfigured
+              ? 'var(--color-warning, var(--color-danger))'
+              : data.connected
+                ? 'var(--color-success)'
+                : 'var(--text-muted)');
     statusEls.forEach((el) => {
         el.textContent = text;
         el.style.color = color;
@@ -352,3 +366,6 @@ function initEtsySync() {
     });
     consumeEtsyOauthFragment().finally(() => renderEtsyStatus());
 }
+
+if (typeof module !== 'undefined' && module.exports)
+    module.exports = { etsyFailedSyncText };
