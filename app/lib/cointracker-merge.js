@@ -106,6 +106,53 @@
     }
 
     /**
+     * Wallets CoinTracker reports that the owner has not confirmed yet.
+     * A wallet is NOT suggested when its providerId is already a CoinTracker
+     * row, when it was dismissed, or when any of its addresses is already
+     * tracked (a CoinTracker row's addresses or any Crypto row's identifier,
+     * compared case-insensitively). Pure: never changes `accounts`.
+     * @param {object[]} accounts state.customAccounts
+     * @param {object[]} wallets  normalized CoinTracker wallets
+     * @param {object}   opts     { syncedAt, dismissed: providerId[] }
+     * @returns {object[]} suggestions: providerId, name, chains, addresses,
+     *                     usdValue, source, syncedAt
+     */
+    function suggestCoinTrackerWallets(accounts, wallets, opts = {}) {
+        const syncedAt = opts.syncedAt || new Date().toISOString();
+        const dismissed = new Set((opts.dismissed || []).map(String));
+        const confirmed = new Set();
+        const tracked = new Set();
+        for (const acc of accounts || []) {
+            if (isCoinTrackerRow(acc)) {
+                confirmed.add(String(acc.cointracker.providerId));
+                for (const a of acc.cointracker.addresses || [])
+                    tracked.add(lower(a));
+            } else if (acc.type === 'Crypto' && lower(acc.identifier)) {
+                tracked.add(lower(acc.identifier));
+            }
+        }
+        const out = [];
+        for (const w of wallets || []) {
+            if (!w || w.providerId == null) continue;
+            const id = String(w.providerId);
+            if (confirmed.has(id) || dismissed.has(id)) continue;
+            if ((w.addresses || []).some((a) => tracked.has(lower(a)))) {
+                continue;
+            }
+            out.push({
+                providerId: w.providerId,
+                name: w.name || 'CoinTracker wallet',
+                chains: w.chains || [],
+                addresses: w.addresses || [],
+                usdValue: w.usdValue,
+                source: SOURCE,
+                syncedAt,
+            });
+        }
+        return out;
+    }
+
+    /**
      * @param {object[]} accounts state.customAccounts
      * @param {object[]} wallets  normalized CoinTracker wallets
      * @param {object}   opts     { syncedAt, partial, excluded: providerId[],
@@ -227,6 +274,7 @@
         removeCoinTrackerWallets,
         coinTrackerAddresses,
         possibleDuplicates,
+        suggestCoinTrackerWallets,
     };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
