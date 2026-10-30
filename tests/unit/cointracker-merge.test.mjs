@@ -281,7 +281,9 @@ describe('suggestCoinTrackerWallets', () => {
     it('skips confirmed, dismissed and already-tracked wallets', () => {
         const confirmed = mergeCoinTrackerWallets([], [coinbase]).accounts;
         expect(
-            suggestCoinTrackerWallets(confirmed, [coinbase]).map((w) => w.providerId),
+            suggestCoinTrackerWallets(confirmed, [coinbase]).map(
+                (w) => w.providerId,
+            ),
         ).toEqual([]);
         expect(
             suggestCoinTrackerWallets([], [ledger, coinbase], {
