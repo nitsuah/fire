@@ -34,16 +34,27 @@ function getBannerIncome() {
     };
 }
 
+// Where the FIRE target stands: the safe-withdrawal cover once reached, else
+// the years left. '' when no target is set. Used by the banner and the
+// compact bar's panel so they cannot disagree.
+function fireEtaText(status, swr) {
+    const { networth, annualExpenses, fireNumber, yearsToFire } = status;
+    if (fireNumber <= 0) return '';
+    if (networth >= fireNumber) {
+        const income = networth * swr;
+        const cover = annualExpenses > 0 ? income / annualExpenses : 0;
+        return `Safe withdrawal ${formatCurrency(income)}/yr · ${cover.toFixed(1)}× spend`;
+    }
+    return yearsToFire === null
+        ? 'Not on track at current savings/returns'
+        : `~${yearsToFire} yr${yearsToFire === 1 ? '' : 's'} to FIRE`;
+}
+
 // Sets the summary banner's Net Worth / Income / Spend Rate / FIRE Progress
 // text, plus the narrow-width single-bar variant of the same data.
 function renderHeaderBannerMetrics() {
-    const {
-        networth,
-        annualExpenses,
-        fireNumber,
-        progressPercent,
-        yearsToFire,
-    } = window.FireAggregates.fireStatus(state);
+    const status = window.FireAggregates.fireStatus(state);
+    const { networth, annualExpenses, fireNumber, progressPercent } = status;
     const swr = state.projectionSettings.swr / 100;
 
     document.getElementById('banner-networth').textContent =
@@ -58,21 +69,7 @@ function renderHeaderBannerMetrics() {
     // Past 100% the bar alone says nothing, so show what the portfolio can
     // pay out; before it, how long until FIRE at current savings/returns.
     const etaEl = document.getElementById('banner-fire-eta');
-    if (etaEl) {
-        if (fireNumber <= 0) {
-            etaEl.textContent = '';
-        } else if (networth >= fireNumber) {
-            const income = networth * swr;
-            const cover = annualExpenses > 0 ? income / annualExpenses : 0;
-            etaEl.textContent = `Safe withdrawal ${formatCurrency(income)}/yr · ${cover.toFixed(1)}× spend`;
-        } else {
-            const years = yearsToFire;
-            etaEl.textContent =
-                years === null
-                    ? 'Not on track at current savings/returns'
-                    : `~${years} yr${years === 1 ? '' : 's'} to FIRE`;
-        }
-    }
+    if (etaEl) etaEl.textContent = fireEtaText(status, swr);
 
     const fireBarEl = document.getElementById('banner-fire-bar');
     if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
