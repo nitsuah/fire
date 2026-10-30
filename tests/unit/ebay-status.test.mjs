@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { ebayStatusBadge, fetchEbayConfigured } from '../../app/lib/ebay-status.js';
+import {
+    ebayStatusBadge,
+    fetchEbayConfigured,
+} from '../../app/lib/ebay-status.js';
 
 describe('ebayStatusBadge', () => {
     it('not configured is a warning and not connectable', () => {
@@ -46,15 +49,23 @@ describe('ebayStatusBadge', () => {
 });
 
 describe('fetchEbayConfigured', () => {
-    const stub = (body, ok = true) => async () => ({ ok, json: async () => body });
+    const stub =
+        (body, ok = true) =>
+        async () => ({ ok, json: async () => body });
 
     it('returns the configured flag from the status endpoint', async () => {
-        expect(await fetchEbayConfigured(stub({ configured: true }))).toBe(true);
-        expect(await fetchEbayConfigured(stub({ configured: false }))).toBe(false);
+        expect(await fetchEbayConfigured(stub({ configured: true }))).toBe(
+            true,
+        );
+        expect(await fetchEbayConfigured(stub({ configured: false }))).toBe(
+            false,
+        );
     });
 
     it('is null when the response is not ok, has no boolean, or the call throws', async () => {
-        expect(await fetchEbayConfigured(stub({ configured: true }, false))).toBeNull();
+        expect(
+            await fetchEbayConfigured(stub({ configured: true }, false)),
+        ).toBeNull();
         expect(await fetchEbayConfigured(stub({}))).toBeNull();
         expect(
             await fetchEbayConfigured(async () => {

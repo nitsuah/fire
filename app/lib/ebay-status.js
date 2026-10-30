@@ -38,7 +38,9 @@ function ebayStatusBadge(data) {
 // function), so ask the status endpoint. Unknown (offline, error, no boolean) is null.
 async function fetchEbayConfigured(fetchFn) {
     try {
-        const res = await fetchFn('/api/sync/ebay/status', { cache: 'no-store' });
+        const res = await fetchFn('/api/sync/ebay/status', {
+            cache: 'no-store',
+        });
         if (!res.ok) return null;
         const body = await res.json();
         return typeof body.configured === 'boolean' ? body.configured : null;
