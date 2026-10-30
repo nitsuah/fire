@@ -19,18 +19,28 @@ describe('ebayStatusBadge', () => {
     });
 
     it('connected is Connected; an absent outcome is not a failure', () => {
-        expect(ebayStatusBadge({ configured: true, connected: true }).label).toBe('Connected');
         expect(
-            ebayStatusBadge({ configured: true, connected: true, lastSyncOutcome: null }).label,
+            ebayStatusBadge({ configured: true, connected: true }).label,
+        ).toBe('Connected');
+        expect(
+            ebayStatusBadge({
+                configured: true,
+                connected: true,
+                lastSyncOutcome: null,
+            }).label,
         ).toBe('Connected');
     });
 
     it('disconnected is connectable; offline (configured null) is connectable too', () => {
-        expect(ebayStatusBadge({ configured: true, connected: false })).toEqual({
-            label: 'Disconnected',
-            color: 'var(--text-muted)',
-            connectable: true,
-        });
-        expect(ebayStatusBadge({ configured: null, connected: false }).connectable).toBe(true);
+        expect(ebayStatusBadge({ configured: true, connected: false })).toEqual(
+            {
+                label: 'Disconnected',
+                color: 'var(--text-muted)',
+                connectable: true,
+            },
+        );
+        expect(
+            ebayStatusBadge({ configured: null, connected: false }).connectable,
+        ).toBe(true);
     });
 });

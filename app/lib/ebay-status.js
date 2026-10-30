@@ -21,7 +21,11 @@ function ebayStatusBadge(data) {
         };
     }
     if (data.connected) {
-        return { label: 'Connected', color: 'var(--color-success)', connectable: false };
+        return {
+            label: 'Connected',
+            color: 'var(--color-success)',
+            connectable: false,
+        };
     }
     return {
         label: 'Disconnected',
