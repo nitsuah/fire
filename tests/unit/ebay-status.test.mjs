@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
     ebayStatusBadge,
     fetchEbayConfigured,
@@ -72,5 +72,15 @@ describe('fetchEbayConfigured', () => {
                 throw new Error('offline');
             }),
         ).toBeNull();
+    });
+
+    it('requests the status endpoint without caching', async () => {
+        const fetchFn = vi.fn(stub({ configured: true }));
+
+        await fetchEbayConfigured(fetchFn);
+
+        expect(fetchFn).toHaveBeenCalledWith('/api/sync/ebay/status', {
+            cache: 'no-store',
+        });
     });
 });
