@@ -3,16 +3,14 @@ import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
 
-// Minimal escHtml used by the loaded module - kept simple for vitest parse compatibility
+// Real entity encoding (same behaviour as app/lib/html-utils.js escHtml), so the tests exercise genuine escaping
 function escHtml(s) {
     return String(s)
-        .replace(/&/g, '&')
-        .replace(/</g, '<')
-        .replace(/>/g, '>')
-        .replace(/"/g, '"')
-        .replace(/'/g, function () {
-            return '&#39;';
-        });
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
 }
 
 const APP_LIB = path.join(__dirname, '../../app/lib');
