@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vehicle depreciation estimate returns no value for model years before 1886 or more than one year ahead, instead of looping once per year of age.
 - Imported-files table escapes file name, source and date before inserting them into the page.
 - **Fixed:** projection span is capped at 120 years
+- **Fixed:** projection settings summary values are HTML-escaped
 - eBay: self-hosted `GET /api/sync/ebay/status` now reports `configured`, so a deploy with no `EBAY_CLIENT_ID` is distinguishable from a revoked token (step 1 of #301).
 - eBay: self-hosted sync records its last outcome. `GET /api/sync/ebay/status` returns `lastSyncOutcome: { at, ok, errorCode }`, so a failed sync stays visible after a reload and a successful one clears it. Codes only, never tokens or provider messages (step 2 of #301).
 - eBay (hosted): `GET /api/sync/ebay/status` is a Netlify Function that reports `configured`, so the browser-only deploy can tell "no credentials" from "no token" (step 3 of #301).
