@@ -291,7 +291,11 @@ function buildProjectionData(state, scenarioOffset) {
         ),
         -0.01,
     );
-    const span = state.projectionSettings.spanYears || 30;
+    const MAX_SPAN_YEARS = 120;
+    const span = Math.min(
+        state.projectionSettings.spanYears || 30,
+        MAX_SPAN_YEARS,
+    );
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
 
