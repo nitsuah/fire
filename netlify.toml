@@ -15,8 +15,8 @@
 
 # The browser-only deploy serves the eBay routes from Netlify Functions at the
 # same public paths the Express server uses (status 200 = rewrite, query
-# string preserved; force = win over any static file). /status and /toggle
-# stay client-side in this mode (see app/lib/side-gig.js).
+# string preserved; force = win over any static file). /status answers only
+# `configured`; /toggle stays client-side in this mode (see app/lib/side-gig.js).
 [[redirects]]
   from = "/api/sync/ebay/marketplace-account-deletion"
   to = "/.netlify/functions/ebay-marketplace-account-deletion"
@@ -38,6 +38,12 @@
 [[redirects]]
   from = "/api/sync/ebay/sync"
   to = "/.netlify/functions/ebay-sync"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/sync/ebay/status"
+  to = "/.netlify/functions/ebay-status"
   status = 200
   force = true
 
