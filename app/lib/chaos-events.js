@@ -947,7 +947,8 @@
         return items[items.length - 1];
     }
 
-    function isEligible(def, age, retireAge, yr, history, earning) {
+    function isEligible(def, age, retireAge, yr, history, earning, blocked) {
+        if (blocked && blocked.has(def.id)) return false;
         if (def.ageMin !== undefined && age < def.ageMin) return false;
         if (def.ageMax !== undefined && age > def.ageMax) return false;
         if (def.working && age >= retireAge) return false;
@@ -957,6 +958,28 @@
         if (past.length && yr - past[past.length - 1] < (def.gap || 1))
             return false;
         return true;
+    }
+
+    // Maps optional household answers to the catalog ids they rule out. An
+    // answer that is missing (or anything else) rules nothing out.
+    //   pets: 'none' | 'cat' | 'dog' | 'both'
+    //   children: 'no' | 'yes'
+    //   housing: 'rent' | 'own'
+    function excludedEventIds(profile) {
+        const { pets, children, housing } = profile || {};
+        const out = new Set();
+        if (pets === 'none' || pets === 'dog') out.add('cat-cancer');
+        if (pets === 'none' || pets === 'cat') out.add('dog-surgery');
+        if (children === 'no') {
+            out.add('child');
+            out.add('childcare-ends');
+        }
+        if (housing === 'rent') {
+            out.add('roof-hvac');
+            out.add('refinance');
+        }
+        if (housing === 'own') out.add('rent-hike');
+        return out;
     }
 
     function makeEvent(def, yr, age, rng) {
@@ -991,8 +1014,10 @@
         retireAge = 60,
         span = 30,
         hasEarnedIncome = true,
+        profile,
     }) {
         const rng = makeRng(seed);
+        const blocked = excludedEventIds(profile);
         const history = {};
         const perYear = Array.from({ length: Math.max(span, 0) }, () => []);
         const pending = {}; // yearIndex -> [{ defId, cause }]
@@ -1037,6 +1062,7 @@
                         yr,
                         history,
                         hasEarnedIncome,
+                        blocked,
                     )
                 )
                     continue;
@@ -1073,6 +1099,7 @@
                         yr,
                         history,
                         hasEarnedIncome,
+                        blocked,
                     )
                 )
                     continue;
@@ -1101,6 +1128,7 @@
                             yr,
                             history,
                             hasEarnedIncome,
+                            blocked,
                         ),
                 );
                 if (!pool.length) continue;
@@ -1357,6 +1385,7 @@
         makeRng,
         newSeed,
         generateEvents,
+        excludedEventIds,
         simulate,
         eventsNearIndex,
         eventsInWindow,

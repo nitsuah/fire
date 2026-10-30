@@ -453,3 +453,27 @@ describe('window + tooltip helpers', () => {
         );
     });
 });
+
+describe('household profile', () => {
+    it('rules out events that cannot happen for the household', () => {
+        const profile = { pets: 'none', children: 'no', housing: 'rent' };
+        const banned = ['cat-cancer', 'dog-surgery', 'child', 'childcare-ends', 'roof-hvac', 'refinance'];
+        for (let seed = 1; seed <= 100; seed++) {
+            const evs = FC.generateEvents({ seed, ...opts, profile });
+            evs.forEach((e) => expect(banned).not.toContain(e.defId));
+        }
+    });
+
+    it('changes nothing when the profile is empty or missing', () => {
+        const base = FC.generateEvents({ seed: 7, ...opts });
+        expect(FC.generateEvents({ seed: 7, ...opts, profile: {} })).toEqual(base);
+        expect(FC.generateEvents({ seed: 7, ...opts, profile: null })).toEqual(base);
+    });
+
+    it('maps each answer to its ids', () => {
+        expect([...FC.excludedEventIds({ pets: 'cat' })]).toEqual(['dog-surgery']);
+        expect([...FC.excludedEventIds({ pets: 'dog' })]).toEqual(['cat-cancer']);
+        expect([...FC.excludedEventIds({ housing: 'own' })]).toEqual(['rent-hike']);
+        expect(FC.excludedEventIds({ pets: 'both', children: 'yes' }).size).toBe(0);
+    });
+});
