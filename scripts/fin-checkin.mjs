@@ -194,7 +194,12 @@ export function sanitizeRates(raw) {
     return Object.keys(out).length ? out : null;
 }
 
-export async function loadRates({ file, env = process.env, fetchFn = fetch, warn = () => {} }) {
+export async function loadRates({
+    file,
+    env = process.env,
+    fetchFn = fetch,
+    warn = () => {},
+}) {
     try {
         if (file) {
             return sanitizeRates(JSON.parse(fs.readFileSync(file, 'utf8')));
@@ -212,7 +217,9 @@ export async function loadRates({ file, env = process.env, fetchFn = fetch, warn
     } catch (err) {
         // Rates are optional and never invented; report that a requested source failed,
         // without echoing the path, URL or file contents.
-        warn(`market rates: could not load the requested source (${err.name || 'error'})`);
+        warn(
+            `market rates: could not load the requested source (${err.name || 'error'})`,
+        );
     }
     return null;
 }
@@ -470,7 +477,8 @@ export function numbersPreserved(reply, allowedText) {
 
 function optionValue(argv, i, name) {
     const v = argv[i];
-    if (v === undefined || v.startsWith('--')) throw new Error(`${name} needs a value`);
+    if (v === undefined || v.startsWith('--'))
+        throw new Error(`${name} needs a value`);
     return v;
 }
 
