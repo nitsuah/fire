@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Insights: the equity share excludes crypto, matching the Asset Allocation chart (#169).
 - **Fixed:** the production `ignore` command now returns 1 (build) when `CACHED_COMMIT_REF` or `COMMIT_REF` is empty, and quotes both. Unquoted, an empty `CACHED_COMMIT_REF` made the shell drop the argument, so `git diff --quiet` compared a commit to the working tree and could exit 0, skipping a production deploy instead of failing open.
 - Privacy modal no longer shows the GitHub docs nav row (#166).
+- **Fixed:** tax rate is HTML-escaped in the tax-harvest summary
 - Insights: broad-market funds such as VTI no longer trigger the single-stock concentration warning, and its copy and the CD-maturity copy read correctly (#170).
 - Dashboard: the Asset Allocation legend sits under the chart, so long labels are no longer clipped (#167).
 

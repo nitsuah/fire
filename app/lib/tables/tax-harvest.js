@@ -3,6 +3,15 @@
    Depends on globals: state, formatCurrency, escHtml
    ========================================================================== */
 
+function _esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+
 window.renderTaxHarvestTable = function () {
     const tbody = document.getElementById('tbody-tax-harvest');
     const summaryEl = document.getElementById('tax-harvest-summary');
@@ -71,7 +80,7 @@ window.renderTaxHarvestTable = function () {
         const potentialTotal = Math.abs(totalLoss) * taxRate;
         summaryEl.innerHTML = `
             <div class="tax-harvest-stat"><span>Total Harvestable Losses</span><strong class="text-coral">${formatCurrency(totalLoss)}</strong></div>
-            <div class="tax-harvest-stat"><span>Potential Savings* (@ ${state.taxRate ?? 20}% rate)</span><strong class="text-emerald">${formatCurrency(potentialTotal)}</strong></div>
+            <div class="tax-harvest-stat"><span>Potential Savings* (@ ${_esc(state.taxRate ?? 20)}% rate)</span><strong class="text-emerald">${formatCurrency(potentialTotal)}</strong></div>
             <div class="tax-harvest-stat"><span>Ordinary Income Offset (max $3k/yr)</span><strong>${formatCurrency(annualCap)}</strong></div>
             <div class="tax-harvest-stat"><span>Days Until Year-End</span><strong class="${isUrgent ? 'text-amber' : ''}">${daysLeft} days${isUrgent ? ' ⚠' : ''}</strong></div>
         `;
