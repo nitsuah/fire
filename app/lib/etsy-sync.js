@@ -106,24 +106,22 @@ async function renderEtsyStatus(note) {
     // reconnecting would fail the same way, so say what is actually missing.
     const notConfigured = data.configured === false;
     const failed = etsyFailedSyncText(data.lastSyncOutcome);
-    const text =
-        note?.text ||
-        (notConfigured
-            ? 'Status: Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)'
-            : data.connected
-              ? failed
-                  ? `Status: Connected · ${failed}`
-                  : `Status: Connected · Last sync: ${lastSync}`
-              : 'Status: Disconnected');
-    const color =
-        note?.color ||
-        (notConfigured
-            ? 'var(--color-warning, var(--color-danger))'
-            : data.connected
-              ? failed
-                  ? 'var(--color-danger)'
-                  : 'var(--color-success)'
-              : 'var(--text-muted)');
+    const text = failed
+        ? `Status: Connected · ${failed}`
+        : note?.text ||
+          (notConfigured
+              ? 'Status: Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)'
+              : data.connected
+                ? `Status: Connected · Last sync: ${lastSync}`
+                : 'Status: Disconnected');
+    const color = failed
+        ? 'var(--color-danger)'
+        : note?.color ||
+          (notConfigured
+              ? 'var(--color-warning, var(--color-danger))'
+              : data.connected
+                ? 'var(--color-success)'
+                : 'var(--text-muted)');
     statusEls.forEach((el) => {
         el.textContent = text;
         el.style.color = color;
