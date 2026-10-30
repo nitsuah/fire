@@ -596,8 +596,13 @@ describe('GET /api/prices', () => {
     });
 
     it('does not crash for valid equity symbols (network may be unavailable)', async () => {
-        const res = await request(app).get('/api/prices?symbols=AAPL');
-        expect(res.status).toBe(200);
-        expect(typeof res.body).toBe('object');
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network disabled in tests')));
+        try {
+            const res = await request(app).get('/api/prices?symbols=AAPL');
+            expect(res.status).toBe(200);
+            expect(typeof res.body).toBe('object');
+        } finally {
+            vi.unstubAllGlobals();
+        }
     });
 });
