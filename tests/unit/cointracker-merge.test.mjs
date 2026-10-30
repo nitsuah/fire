@@ -265,3 +265,37 @@ describe('MCP net worth with CoinTracker', () => {
         expect(w.wallets[0].coveredByCoinTracker).toBe(true);
     });
 });
+
+describe('suggestCoinTrackerWallets', () => {
+    const { suggestCoinTrackerWallets } = merge;
+
+    it('suggests unconfirmed wallets with their source and sync time', () => {
+        const s = suggestCoinTrackerWallets([], [ledger, coinbase], {
+            syncedAt: '2026-10-28T00:00:00.000Z',
+        });
+        expect(s.map((w) => w.providerId)).toEqual(['w1', 'w2']);
+        expect(s[0].source).toBe('cointracker');
+        expect(s[0].syncedAt).toBe('2026-10-28T00:00:00.000Z');
+    });
+
+    it('skips confirmed, dismissed and already-tracked wallets', () => {
+        const confirmed = mergeCoinTrackerWallets([], [coinbase]).accounts;
+        expect(
+            suggestCoinTrackerWallets(confirmed, [coinbase]).map((w) => w.providerId),
+        ).toEqual([]);
+        expect(
+            suggestCoinTrackerWallets([], [ledger, coinbase], {
+                dismissed: ['w2'],
+            }).map((w) => w.providerId),
+        ).toEqual(['w1']);
+        const manual = [{ ...manualLedger, identifier: ADDR.toUpperCase() }];
+        expect(suggestCoinTrackerWallets(manual, [ledger])).toEqual([]);
+    });
+
+    it('never changes the accounts it is given', () => {
+        const accounts = [manualLedger];
+        const before = JSON.stringify(accounts);
+        suggestCoinTrackerWallets(accounts, [ledger, coinbase]);
+        expect(JSON.stringify(accounts)).toBe(before);
+    });
+});
