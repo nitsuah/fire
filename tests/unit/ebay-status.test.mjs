@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { ebayStatusBadge } from '../../app/lib/ebay-status.js';
+import { describe, it, expect, vi } from 'vitest';
+import {
+    ebayStatusBadge,
+    fetchEbayConfigured,
+} from '../../app/lib/ebay-status.js';
 
 describe('ebayStatusBadge', () => {
     it('not configured is a warning and not connectable', () => {
@@ -42,5 +45,42 @@ describe('ebayStatusBadge', () => {
         expect(
             ebayStatusBadge({ configured: null, connected: false }).connectable,
         ).toBe(true);
+    });
+});
+
+describe('fetchEbayConfigured', () => {
+    const stub =
+        (body, ok = true) =>
+        async () => ({ ok, json: async () => body });
+
+    it('returns the configured flag from the status endpoint', async () => {
+        expect(await fetchEbayConfigured(stub({ configured: true }))).toBe(
+            true,
+        );
+        expect(await fetchEbayConfigured(stub({ configured: false }))).toBe(
+            false,
+        );
+    });
+
+    it('is null when the response is not ok, has no boolean, or the call throws', async () => {
+        expect(
+            await fetchEbayConfigured(stub({ configured: true }, false)),
+        ).toBeNull();
+        expect(await fetchEbayConfigured(stub({}))).toBeNull();
+        expect(
+            await fetchEbayConfigured(async () => {
+                throw new Error('offline');
+            }),
+        ).toBeNull();
+    });
+
+    it('requests the status endpoint without caching', async () => {
+        const fetchFn = vi.fn(stub({ configured: true }));
+
+        await fetchEbayConfigured(fetchFn);
+
+        expect(fetchFn).toHaveBeenCalledWith('/api/sync/ebay/status', {
+            cache: 'no-store',
+        });
     });
 });
