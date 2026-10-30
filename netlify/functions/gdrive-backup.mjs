@@ -18,6 +18,10 @@ const CALLBACK_PATH = '/api/backup/drive/callback';
 const PENDING_TTL_MS = 10 * 60 * 1000;
 // Netlify caps a synchronous function request body at 6 MB.
 const MAX_STATE_BYTES = 5 * 1024 * 1024;
+// Request bodies carry the sealed grant plus the state, so allow a little over
+// the state cap before refusing to parse at all.
+const MAX_BODY_BYTES = MAX_STATE_BYTES + 64 * 1024;
+const TOO_LARGE = Symbol('too-large');
 
 const clientConfigured = () =>
     Boolean(process.env.GDRIVE_CLIENT_ID && process.env.GDRIVE_CLIENT_SECRET);
@@ -133,9 +137,11 @@ async function callback(req, url) {
     }
 }
 
-async function readBody(req) {
+async function readBody(req, maxBytes = Infinity) {
     try {
-        const body = JSON.parse((await req.text()) || '{}');
+        const text = (await req.text()) || '{}';
+        if (Buffer.byteLength(text) > maxBytes) return { [TOO_LARGE]: true };
+        const body = JSON.parse(text);
         return body && typeof body === 'object' && !Array.isArray(body)
             ? body
             : {};
@@ -194,11 +200,19 @@ async function withDrive(body, fallback, fn) {
 }
 
 async function upload(req) {
-    const body = await readBody(req);
+    const body = await readBody(req, MAX_BODY_BYTES);
+    if (body[TOO_LARGE])
+        return json(413, { error: 'State is too large to back up.' });
+    // Validate the sealed grant before doing any work on caller-supplied state.
+    try {
+        unsealTokens(body.tokens);
+    } catch (err) {
+        return errorResponse(err, 'Drive upload failed');
+    }
     const state = body.state;
     if (!state || typeof state !== 'object' || Array.isArray(state))
         return json(400, { error: 'state (an object) is required.' });
-    const payload = JSON.stringify(state, null, 2);
+    const payload = JSON.stringify(state);
     if (Buffer.byteLength(payload) > MAX_STATE_BYTES)
         return json(413, { error: 'State is too large to back up.' });
     return withDrive(body, 'Drive upload failed', async (token) => ({
