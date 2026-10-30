@@ -5,6 +5,7 @@ import {
     pickAction,
     sanitizeRates,
     loadRates,
+    parseArgs,
     isoWeek,
     upcomingEnds,
     daysUntil,
@@ -240,5 +241,25 @@ describe('model handling', () => {
         });
         expect(json.modelUsed).toBe(true);
         expect(text).toContain('A calm week.');
+    });
+});
+
+describe('option parsing and rate-source warnings', () => {
+    it('rejects a missing or flag-like value for --rates and --date', () => {
+        expect(() => parseArgs(['--date'])).toThrow('--date needs a value');
+        expect(() => parseArgs(['--rates', '--json'])).toThrow('--rates needs a value');
+        expect(() => parseArgs(['--rates'])).toThrow('--rates needs a value');
+        expect(parseArgs(['--date', '2026-10-30', '--json']).date).toBe('2026-10-30');
+    });
+
+    it('warns, without echoing the source, when a requested rates source fails', async () => {
+        const warn = vi.fn();
+        const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 503 });
+        expect(await loadRates({ env: { FIN_RATES_URL: 'https://example.invalid/r' }, fetchFn, warn })).toBeNull();
+        expect(warn).toHaveBeenCalledWith('market rates: FIN_RATES_URL returned HTTP 503');
+        const warn2 = vi.fn();
+        expect(await loadRates({ file: '/nonexistent/rates.json', env: {}, warn: warn2 })).toBeNull();
+        expect(warn2).toHaveBeenCalledTimes(1);
+        expect(warn2.mock.calls[0][0]).not.toContain('nonexistent');
     });
 });

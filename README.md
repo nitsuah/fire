@@ -214,10 +214,10 @@ Market rates are never invented: pass `--rates <file>` or set `FIN_RATES_URL` to
 Task Scheduler, Mondays at 17:33 (adjust the repo path; `FIRE_DATA_DIR` if your data is elsewhere):
 
 ```bat
-schtasks /Create /TN "fire weekly check-in" /SC WEEKLY /D MON /ST 17:33 /TR "cmd /c cd /d C:Usersyoucodeire && node scriptsin-checkin.mjs >> %USERPROFILE%.fireweekly-checkin.log 2>&1"
+schtasks /Create /TN "fire weekly check-in" /SC WEEKLY /D MON /ST 17:33 /TR "cmd /c cd /d C:\Users\you\code\fire && node scripts\fin-checkin.mjs >> %USERPROFILE%\.fire\weekly-checkin.log 2>&1"
 ```
 
-Create `%USERPROFILE%.fire` first. The script needs the repo's dependencies installed (`npm ci`).
+Create `%USERPROFILE%\.fire` first. The script needs the repo's dependencies installed (`npm ci`).
 
 ## Chaos mode
 

@@ -194,7 +194,7 @@ export function sanitizeRates(raw) {
     return Object.keys(out).length ? out : null;
 }
 
-export async function loadRates({ file, env = process.env, fetchFn = fetch }) {
+export async function loadRates({ file, env = process.env, fetchFn = fetch, warn = () => {} }) {
     try {
         if (file) {
             return sanitizeRates(JSON.parse(fs.readFileSync(file, 'utf8')));
@@ -203,11 +203,16 @@ export async function loadRates({ file, env = process.env, fetchFn = fetch }) {
             const res = await fetchFn(env.FIN_RATES_URL, {
                 signal: AbortSignal.timeout(10_000),
             });
-            if (!res.ok) return null;
+            if (!res.ok) {
+                warn(`market rates: FIN_RATES_URL returned HTTP ${res.status}`);
+                return null;
+            }
             return sanitizeRates(await res.json());
         }
-    } catch {
-        // fall through: rates are optional and are never invented
+    } catch (err) {
+        // Rates are optional and never invented; report that a requested source failed,
+        // without echoing the path, URL or file contents.
+        warn(`market rates: could not load the requested source (${err.name || 'error'})`);
     }
     return null;
 }
@@ -463,18 +468,22 @@ export function numbersPreserved(reply, allowedText) {
 
 /* ---------- run ---------- */
 
+function optionValue(argv, i, name) {
+    const v = argv[i];
+    if (v === undefined || v.startsWith('--')) throw new Error(`${name} needs a value`);
+    return v;
+}
+
 export function parseArgs(argv) {
     const o = { noModel: false, json: false, rates: null, date: null };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         if (a === '--no-model') o.noModel = true;
         else if (a === '--json') o.json = true;
-        else if (a === '--rates') o.rates = argv[++i];
-        else if (a === '--date') o.date = argv[++i];
+        else if (a === '--rates') o.rates = optionValue(argv, ++i, '--rates');
+        else if (a === '--date') o.date = optionValue(argv, ++i, '--date');
         else throw new Error(`Unknown argument: ${a}`);
     }
-    if (argv.includes('--rates') && !o.rates)
-        throw new Error('--rates needs a file path');
     return o;
 }
 
@@ -502,7 +511,7 @@ export async function run(
     const opts = parseArgs(argv);
     const today = parseToday(opts.date, now);
     const facts = collectFacts(readStateFn(), today);
-    const rates = await loadRates({ file: opts.rates, env, fetchFn });
+    const rates = await loadRates({ file: opts.rates, env, fetchFn, warn });
     const comparison = compareRates(facts, rates);
     const action = pickAction(facts, comparison);
     const header = buildHeader(facts, comparison);
