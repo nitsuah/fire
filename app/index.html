@@ -1494,6 +1494,39 @@
                                 <button type="button" class="chaos-btn" data-csp-click-action="toggleChaos" aria-pressed="false" title="Chaos mode: sprinkle realistic random life events (surgery, new job, windfall…) onto the projection">🌪️ Chaos</button>
                                 <button type="button" class="chaos-reroll-btn" data-csp-click-action="rerollChaos" hidden title="Roll a different set of life events" aria-label="Reroll life events">🎲</button>
                             </div>
+                            <div class="chaos-panel" id="chaos-profile-panel" hidden>
+                                <h3>Tailor to my household</h3>
+                                <div class="form-group">
+                                    <label>Pets</label>
+                                    <select data-csp-change-action="saveChaosProfile" data-key="pets">
+                                        <option value="">Skip</option>
+                                        <option value="none">None</option>
+                                        <option value="cat">Cat</option>
+                                        <option value="dog">Dog</option>
+                                        <option value="both">Both</option>
+                                    </select>
+                                    <span class="text-muted">Affects pet-related costs (e.g. vet)</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>Children</label>
+                                    <select data-csp-change-action="saveChaosProfile" data-key="children">
+                                        <option value="">Skip</option>
+                                        <option value="no">No</option>
+                                        <option value="yes">Yes</option>
+                                    </select>
+                                    <span class="text-muted">Affects childcare expenses</span>
+                                </div>
+                                <div class="form-group">
+                                    <label>Housing</label>
+                                    <select data-csp-change-action="saveChaosProfile" data-key="housing">
+                                        <option value="">Skip</option>
+                                        <option value="rent">Rent</option>
+                                        <option value="own">Own</option>
+                                    </select>
+                                    <span class="text-muted">Affects maintenance/rent events</span>
+                                </div>
+                                <button type="button" class="action-btn" data-csp-click-action="clearChaosProfile">Clear answers</button>
+                            </div>
                             <div class="chart-container mt-3 csp-i-023">
                                 <canvas id="chart-networth-projections"></canvas>
                             </div>

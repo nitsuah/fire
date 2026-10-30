@@ -27,6 +27,7 @@ var state = {
     sideGigLedger: [],
     spendingTransactions: [],
     merchantCategoryOverrides: {},
+    chaosProfile: null,
     projectionSettings: {
         annualSavings: 25000,
         expectedReturn: 8.0,
@@ -100,6 +101,7 @@ const CSP_ACTIONS = new Set([
     'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate', 'saveEditAccount',
     'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
     'toggleChaos', 'rerollChaos',
+    'saveChaosProfile', 'clearChaosProfile',
 ]);
 
 function initCspEventDelegation() {
@@ -628,6 +630,7 @@ function resetAllData() {
         taxGrossIncome: 100000,
         taxFilingState: 'NY',
         sideGigLedger: [],
+        chaosProfile: null,
         projectionSettings: {
             annualSavings: 25000,
             expectedReturn: 8.0,
