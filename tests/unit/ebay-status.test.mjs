@@ -122,9 +122,9 @@ describe('eBay last-sync outcome storage', () => {
         const expected = { at: 't1', ok: false, errorCode: 'http_503' };
         expect(ebayReadOutcome(s)).toEqual(expected);
         const invalid = { at: null, ok: false, errorCode: null };
-        expect(ebayBuildOutcome({ at: 1, ok: 1, errorCode: 'bad code' })).toEqual(
-            invalid,
-        );
+        expect(
+            ebayBuildOutcome({ at: 1, ok: 1, errorCode: 'bad code' }),
+        ).toEqual(invalid);
         expect(
             ebayBuildOutcome({ errorCode: 'x'.repeat(65) }).errorCode,
         ).toBeNull();
@@ -133,7 +133,10 @@ describe('eBay last-sync outcome storage', () => {
     it('rejects malformed, primitive, array, and invalid-shape values', () => {
         const s = storage();
         const malformed = ['{', 'null', '42', '"text"', '[]'];
-        const invalidShapes = [{ at: 1, ok: true }, { at: 't1', ok: 'true' }];
+        const invalidShapes = [
+            { at: 1, ok: true },
+            { at: 't1', ok: 'true' },
+        ];
         for (const raw of [
             ...malformed,
             ...invalidShapes.map((value) => JSON.stringify(value)),
@@ -149,7 +152,9 @@ describe('eBay last-sync outcome storage', () => {
         const expectedFailure = { at: 't1', ok: false, errorCode: 'http_503' };
         const success = { at: 't2', ok: true, errorCode: null };
         expect(ebayWriteOutcome(s, failure)).toEqual(expectedFailure);
-        expect(JSON.parse(s.getItem(EBAY_LAST_OUTCOME_KEY))).toEqual(expectedFailure);
+        expect(
+            JSON.parse(s.getItem(EBAY_LAST_OUTCOME_KEY)),
+        ).toEqual(expectedFailure);
         expect(ebayReadOutcome(s)).toEqual(success);
         expect(s.getItem(EBAY_LAST_OUTCOME_KEY)).toBeNull();
     });
