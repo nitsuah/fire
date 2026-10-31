@@ -122,9 +122,10 @@ describe('eBay last-sync outcome storage', () => {
         s.setItem(EBAY_LAST_OUTCOME_KEY, JSON.stringify(raw));
         const expected = { at: 't1', ok: false, errorCode: 'http_503' };
         expect(ebayReadOutcome(s)).toEqual(expected);
-        expect(
-            ebayBuildOutcome({ at: 1, ok: 1, errorCode: 'bad code' }),
-        ).toEqual({ at: null, ok: false, errorCode: null });
+        const invalid = { at: null, ok: false, errorCode: null };
+        expect(ebayBuildOutcome({ at: 1, ok: 1, errorCode: 'bad code' })).toEqual(
+            invalid,
+        );
         expect(
             ebayBuildOutcome({ errorCode: 'x'.repeat(65) }).errorCode,
         ).toBeNull();
@@ -132,16 +133,12 @@ describe('eBay last-sync outcome storage', () => {
 
     it('rejects malformed, primitive, array, and invalid-shape values', () => {
         const s = storage();
-        const malformed = [
-            '{',
-            'null',
-            '42',
-            '"text"',
-            '[]',
-            JSON.stringify({ at: 1, ok: true }),
-            JSON.stringify({ at: 't1', ok: 'true' }),
-        ];
-        for (const raw of malformed) {
+        const malformed = ['{', 'null', '42', '"text"', '[]'];
+        const invalidShapes = [{ at: 1, ok: true }, { at: 't1', ok: 'true' }];
+        for (const raw of [
+            ...malformed,
+            ...invalidShapes.map((value) => JSON.stringify(value)),
+        ]) {
             s.setItem(EBAY_LAST_OUTCOME_KEY, raw);
             expect(ebayReadOutcome(s)).toBeNull();
         }
@@ -153,9 +150,8 @@ describe('eBay last-sync outcome storage', () => {
         const expectedFailure = { at: 't1', ok: false, errorCode: 'http_503' };
         const success = { at: 't2', ok: true, errorCode: null };
         expect(ebayWriteOutcome(s, failure)).toEqual(expectedFailure);
-        expect(JSON.parse(s.getItem(EBAY_LAST_OUTCOME_KEY))).toEqual(
-            expectedFailure,
-        );
+        expect(JSON.parse(s.getItem(EBAY_LAST_OUTCOME_KEY))).toEqual(expectedFailure);
+        expect(ebayReadOutcome(s)).toEqual(expectedFailure);
         expect(ebayWriteOutcome(s, success)).toEqual(success);
         expect(ebayReadOutcome(s)).toEqual(success);
         expect(ebayWriteOutcome(s, null)).toBeNull();
@@ -163,21 +159,13 @@ describe('eBay last-sync outcome storage', () => {
     });
 
     it('fails open on storage errors', () => {
-        const broken = {
-            getItem() {
-                throw new Error('storage unavailable');
-            },
-            setItem() {
-                throw new Error('storage unavailable');
-            },
-            removeItem() {
-                throw new Error('storage unavailable');
-            },
+        const fail = () => {
+            throw new Error('storage unavailable');
         };
+        const broken = { getItem: fail, setItem: fail, removeItem: fail };
+        const outcome = { ok: false, errorCode: 'network_error' };
         expect(ebayReadOutcome(broken)).toBeNull();
-        expect(
-            ebayWriteOutcome(broken, { ok: false, errorCode: 'network_error' }),
-        ).toBeNull();
+        expect(ebayWriteOutcome(broken, outcome)).toBeNull();
         expect(() => ebayWriteOutcome(broken, null)).not.toThrow();
     });
 });
