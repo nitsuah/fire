@@ -51,7 +51,11 @@ function ebayWriteOutcome(storage, outcome) {
     try {
         const target = storage || defaultEbayStorage();
         if (!target) return null;
-        if (outcome == null || typeof outcome !== 'object' || Array.isArray(outcome)) {
+        if (
+            outcome == null ||
+            typeof outcome !== 'object' ||
+            Array.isArray(outcome)
+        ) {
             if (typeof target.removeItem === 'function') {
                 target.removeItem(EBAY_LAST_OUTCOME_KEY);
             }
