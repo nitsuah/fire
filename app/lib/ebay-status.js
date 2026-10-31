@@ -1,4 +1,4 @@
-/* global module, AbortSignal */
+/* global module, AbortSignal, localStorage */
 'use strict';
 
 const EBAY_LAST_OUTCOME_KEY = 'fire_tracker_ebay_last_sync_outcome';
