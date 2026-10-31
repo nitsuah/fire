@@ -40,6 +40,7 @@ async function fetchEbayConfigured(fetchFn) {
     try {
         const res = await fetchFn('/api/sync/ebay/status', {
             cache: 'no-store',
+            signal: AbortSignal.timeout(8000),
         });
         if (!res.ok) return null;
         const body = await res.json();
