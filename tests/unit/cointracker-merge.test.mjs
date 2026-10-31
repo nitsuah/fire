@@ -138,11 +138,9 @@ describe('mergeCoinTrackerWallets', () => {
     });
 
     it('honors excluded wallets even on a partial sync', () => {
-        const first = mergeCoinTrackerWallets(
-            [],
-            [ledger, coinbase],
-            { confirm: true },
-        ).accounts;
+        const first = mergeCoinTrackerWallets([], [ledger, coinbase], {
+            confirm: true,
+        }).accounts;
         const r = mergeCoinTrackerWallets(first, [ledger, coinbase], {
             partial: true,
             excluded: ['w2'],
@@ -178,15 +176,16 @@ describe('mergeCoinTrackerWallets', () => {
 
 describe('skipped wallets', () => {
     it('keeps a wallet CoinTracker still lists but could not value, and drops removed ones', () => {
-        const first = mergeCoinTrackerWallets(
-            [],
-            [ledger, coinbase],
-            { confirm: true },
-        ).accounts;
+        const first = mergeCoinTrackerWallets([], [ledger, coinbase], {
+            confirm: true,
+        }).accounts;
         const r = mergeCoinTrackerWallets(first, [], { keep: ['w1'] });
         // An empty result is partial anyway; use a non-empty complete sync.
         const other = { ...coinbase, providerId: 'w9', name: 'New' };
-        const r2 = mergeCoinTrackerWallets(first, [other], { keep: ['w1'], confirm: true });
+        const r2 = mergeCoinTrackerWallets(first, [other], {
+            keep: ['w1'],
+            confirm: true,
+        });
         expect(r.accounts).toHaveLength(2);
         expect(r2.accounts.map((a) => a.id)).toEqual([
             'cointracker-w1',
@@ -211,11 +210,9 @@ describe('removeCoinTrackerWallets', () => {
 
 describe('coinTrackerAddresses', () => {
     it('collects lower-cased addresses from CoinTracker rows only', () => {
-        const merged = mergeCoinTrackerWallets(
-            [savings],
-            [ledger],
-            { confirm: true },
-        ).accounts;
+        const merged = mergeCoinTrackerWallets([savings], [ledger], {
+            confirm: true,
+        }).accounts;
         expect([...coinTrackerAddresses(merged)]).toEqual([ADDR.toLowerCase()]);
     });
 });
@@ -231,11 +228,9 @@ describe('MCP net worth with CoinTracker', () => {
     }, 60000);
 
     it('does not count a tracked wallet CoinTracker already reports', () => {
-        const customAccounts = mergeCoinTrackerWallets(
-            [],
-            [ledger],
-            { confirm: true },
-        ).accounts;
+        const customAccounts = mergeCoinTrackerWallets([], [ledger], {
+            confirm: true,
+        }).accounts;
         const r = handleTool('get_net_worth', {
             customAccounts,
             wallets: [
@@ -278,7 +273,9 @@ describe('suggestCoinTrackerWallets', () => {
     });
 
     it('skips confirmed, dismissed and already-tracked wallets', () => {
-        const confirmed = mergeCoinTrackerWallets([], [coinbase], { confirm: true }).accounts;
+        const confirmed = mergeCoinTrackerWallets([], [coinbase], {
+            confirm: true,
+        }).accounts;
         expect(
             suggestCoinTrackerWallets(confirmed, [coinbase]).map(
                 (w) => w.providerId,
