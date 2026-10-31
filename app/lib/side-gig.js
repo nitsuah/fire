@@ -215,7 +215,9 @@ async function fetchEbayStatus() {
     if (await isBrowserOnlyModeAsync()) {
         return {
             ...localEbayStatus(),
-            configured: await fetchEbayConfigured((url, opts) => fetch(url, opts)),
+            configured: await fetchEbayConfigured((url, opts) =>
+                fetch(url, opts),
+            ),
         };
     }
     const res = await fetch('/api/sync/ebay/status');
