@@ -26,8 +26,9 @@ describe('quickStartProgress', () => {
             accounts: 1,
             profile: true,
         });
-        expect(progress.steps.filter((step) => step.done).map((step) => step.id))
-            .toEqual(['profile']);
+        expect(
+            progress.steps.filter((step) => step.done).map((step) => step.id),
+        ).toEqual(['profile']);
     });
 
     it('completes required steps without requiring optional steps', () => {
@@ -38,14 +39,17 @@ describe('quickStartProgress', () => {
         });
         expect(progress.requiredDone).toBe(true);
         expect(progress.doneCount).toBe(3);
-        expect(progress.steps.filter((step) => step.optional && step.done))
-            .toEqual([]);
+        expect(
+            progress.steps.filter((step) => step.optional && step.done),
+        ).toEqual([]);
     });
 
     it('keeps ids unique and links only to existing sidebar tabs', () => {
         expect(new Set(STEPS.map((step) => step.id)).size).toBe(STEPS.length);
         expect(
-            STEPS.filter((step) => step.tab).every((step) => sidebarTabs.has(step.tab)),
+            STEPS.filter((step) => step.tab).every((step) =>
+                sidebarTabs.has(step.tab),
+            ),
         ).toBe(true);
     });
 });
