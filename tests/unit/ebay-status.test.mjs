@@ -155,7 +155,9 @@ describe('eBay last-sync outcome storage', () => {
         expect(JSON.parse(s.getItem(EBAY_LAST_OUTCOME_KEY))).toEqual(
             expectedFailure,
         );
+        expect(ebayWriteOutcome(s, success)).toEqual(success);
         expect(ebayReadOutcome(s)).toEqual(success);
+        ebayWriteOutcome(s, null);
         expect(s.getItem(EBAY_LAST_OUTCOME_KEY)).toBeNull();
     });
 
