@@ -63,7 +63,7 @@ router.get('/', async (req, res) => {
 
     const symbolsArr = rawSymbols
         .split(',')
-        .map((s) => s.trim().replace(/\*+$/g, ''))
+        .map((s) => s.trim().replace(/\*+$/, ''))
         .filter(
             (s) =>
                 s.length > 0 &&
