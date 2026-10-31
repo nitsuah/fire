@@ -217,10 +217,13 @@ function renderChaosTimeline(containerId, data, { compact = false } = {}) {
     const list = n
         ? `<ul class="chaos-chip-list">${chips}</ul>`
         : '<p class="text-muted chaos-empty">No life events in this window — try a longer range or reroll.</p>';
+    const excluded = chaos.excluded && chaos.excluded.length
+        ? `<p class="chaos-excluded"><span class="text-muted">Excluded by profile: </span>${escHtml(chaos.excluded.join(', '))}</p>`
+        : '';
     el.hidden = false;
     const html = compact
-        ? `<details class="chaos-details"><summary class="chaos-summary">${summaryInner}</summary>${list}</details>`
-        : `<div class="chaos-summary">${summaryInner}</div>${list}`;
+        ? `<details class="chaos-details"><summary class="chaos-summary">${summaryInner}</summary>${excluded}${list}</details>`
+        : `<div class="chaos-summary">${summaryInner}</div>${excluded}${list}`;
     el.innerHTML = html;
     // CSP: category colors go through the CSSOM, not style="" in markup.
     el.querySelectorAll('[data-cat-color]').forEach((li) =>
