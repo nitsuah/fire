@@ -153,6 +153,11 @@ async function runCoinTrackerSync({ silent = false } = {}) {
             },
         );
         state.customAccounts = merged.accounts;
+        const suggestions = FireCoinTrackerMerge.suggestCoinTrackerWallets(
+            state.customAccounts,
+            data.wallets || [],
+            { syncedAt: data.syncedAt, dismissed: ctExcluded() },
+        );
         await saveState();
         ctWrite(CT_LAST_SYNC_KEY, data.syncedAt);
         ctWrite(
@@ -176,7 +181,7 @@ async function runCoinTrackerSync({ silent = false } = {}) {
         if (typeof refreshAllUI === 'function') refreshAllUI();
         renderCoinTrackerCard();
         renderCoinTrackerShape(data);
-        return merged;
+        return { ...merged, suggestions };
     } catch (err) {
         ctSetStatus(`Sync failed: ${err.message}`, 'var(--color-danger)');
         if (!silent) throw err;
