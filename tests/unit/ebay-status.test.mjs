@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import {
     ebayStatusBadge,
     fetchEbayConfigured,
+    EBAY_LAST_OUTCOME_KEY,
+    ebayBuildOutcome,
+    ebayReadOutcome,
+    ebayWriteOutcome,
 } from '../../app/lib/ebay-status.js';
 
 describe('ebayStatusBadge', () => {
@@ -92,5 +96,79 @@ describe('fetchEbayConfigured', () => {
         });
 
         await expect(fetchEbayConfigured(fetchFn)).resolves.toBeNull();
+    });
+});
+
+describe('eBay last-sync outcome storage', () => {
+    const storage = () => {
+        const values = new Map();
+        return {
+            getItem: (key) => values.get(key) ?? null,
+            setItem: (key, value) => values.set(key, String(value)),
+            removeItem: (key) => values.delete(key),
+        };
+    };
+
+    it('normalizes safe codes and strips fields', () => {
+        const s = storage();
+        const raw = {
+            at: 't1',
+            ok: false,
+            errorCode: 'HTTP_503',
+            message: 'private',
+            token: 'secret',
+        };
+        s.setItem(EBAY_LAST_OUTCOME_KEY, JSON.stringify(raw));
+        const expected = { at: 't1', ok: false, errorCode: 'http_503' };
+        expect(ebayReadOutcome(s)).toEqual(expected);
+        const invalid = { at: null, ok: false, errorCode: null };
+        expect(
+            ebayBuildOutcome({ at: 1, ok: 1, errorCode: 'bad code' }),
+        ).toEqual(invalid);
+        expect(
+            ebayBuildOutcome({ errorCode: 'x'.repeat(65) }).errorCode,
+        ).toBeNull();
+    });
+
+    it('rejects malformed, primitive, array, and invalid-shape values', () => {
+        const s = storage();
+        const malformed = ['{', 'null', '42', '"text"', '[]'];
+        const invalidShapes = [
+            { at: 1, ok: true },
+            { at: 't1', ok: 'true' },
+        ];
+        for (const raw of [
+            ...malformed,
+            ...invalidShapes.map((value) => JSON.stringify(value)),
+        ]) {
+            s.setItem(EBAY_LAST_OUTCOME_KEY, raw);
+            expect(ebayReadOutcome(s)).toBeNull();
+        }
+    });
+
+    it('persists failure, recovery, and clear', () => {
+        const s = storage();
+        const failure = { at: 't1', ok: false, errorCode: 'HTTP_503' };
+        const expectedFailure = { at: 't1', ok: false, errorCode: 'http_503' };
+        const success = { at: 't2', ok: true, errorCode: null };
+        expect(ebayWriteOutcome(s, failure)).toEqual(expectedFailure);
+        expect(JSON.parse(s.getItem(EBAY_LAST_OUTCOME_KEY))).toEqual(
+            expectedFailure,
+        );
+        expect(ebayWriteOutcome(s, success)).toEqual(success);
+        expect(ebayReadOutcome(s)).toEqual(success);
+        ebayWriteOutcome(s, null);
+        expect(s.getItem(EBAY_LAST_OUTCOME_KEY)).toBeNull();
+    });
+
+    it('fails open on storage errors', () => {
+        const fail = () => {
+            throw new Error('storage unavailable');
+        };
+        const broken = { getItem: fail, setItem: fail, removeItem: fail };
+        const outcome = { ok: false, errorCode: 'network_error' };
+        expect(ebayReadOutcome(broken)).toBeNull();
+        expect(ebayWriteOutcome(broken, outcome)).toBeNull();
+        expect(() => ebayWriteOutcome(broken, null)).not.toThrow();
     });
 });
