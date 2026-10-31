@@ -22,7 +22,8 @@ const token = (over = {}, value = '1000000') => ({
 function fakeFetch({ natives = {}, tokens = {}, fail = [] } = {}) {
     return vi.fn(async (url) => {
         const u = String(url);
-        const host = new URL(u).host;
+        const urlObj = new URL(u);
+        const host = urlObj.hostname;
         if (fail.includes(host)) return new Response('boom', { status: 503 });
         if (u.endsWith('/token-balances'))
             return Response.json(tokens[host] || []);
@@ -30,7 +31,7 @@ function fakeFetch({ natives = {}, tokens = {}, fail = [] } = {}) {
             return Response.json(
                 natives[host] || { coin_balance: '0', exchange_rate: '2000' },
             );
-        if (u.includes('finance.yahoo.com'))
+        if (host === 'query1.finance.yahoo.com' || host === 'finance.yahoo.com')
             return Response.json({
                 chart: { result: [{ meta: { regularMarketPrice: 600 } }] },
             });

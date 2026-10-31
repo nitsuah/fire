@@ -9,7 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+
     steps:
     - uses: actions/checkout@v7
     
@@ -40,6 +42,8 @@ jobs:
     # conflict handling, dashboard renderers). This suite wasn't run in CI
     # before, and three of its tests went stale unnoticed.
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     container:
       # Keep in step with @playwright/test in package.json.
       image: mcr.microsoft.com/playwright:v1.64.0-jammy

@@ -227,7 +227,8 @@ describe('POST /api/wallets/:id/refresh', () => {
                         }),
                     };
                 }
-                if (String(url).includes('coingecko.com')) {
+                const urlObj = new URL(url);
+                if (urlObj.hostname === 'api.coingecko.com') {
                     return {
                         ok: true,
                         json: async () => ({ bitcoin: { usd: 50000 } }),

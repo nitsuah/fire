@@ -219,8 +219,8 @@ describe('estimateVehicleValue', () => {
         vi.stubGlobal(
             'fetch',
             vi.fn(async (url) => {
-                const u = String(url);
-                if (u.includes('vinaudit.com')) {
+                const urlObj = new URL(url);
+                if (urlObj.hostname === 'marketvalue.vinaudit.com') {
                     return {
                         ok: true,
                         json: async () => ({
@@ -234,7 +234,7 @@ describe('estimateVehicleValue', () => {
                         }),
                     };
                 }
-                if (u.includes('vpic.nhtsa.dot.gov')) {
+                if (urlObj.hostname === 'vpic.nhtsa.dot.gov') {
                     return {
                         ok: true,
                         json: async () => ({
@@ -249,7 +249,7 @@ describe('estimateVehicleValue', () => {
                         }),
                     };
                 }
-                throw new Error(`Unexpected fetch: ${u}`);
+                throw new Error(`Unexpected fetch: ${url}`);
             }),
         );
         const currentYear = new Date().getFullYear();
@@ -276,14 +276,14 @@ describe('estimateVehicleValue', () => {
         vi.stubGlobal(
             'fetch',
             vi.fn(async (url) => {
-                const u = String(url);
-                if (u.includes('vinaudit.com')) {
+                const urlObj = new URL(url);
+                if (urlObj.hostname === 'marketvalue.vinaudit.com') {
                     return { ok: false, status: 500 };
                 }
-                if (u.includes('vpic.nhtsa.dot.gov')) {
+                if (urlObj.hostname === 'vpic.nhtsa.dot.gov') {
                     return { ok: false, status: 500 };
                 }
-                throw new Error(`Unexpected fetch: ${u}`);
+                throw new Error(`Unexpected fetch: ${url}`);
             }),
         );
         const currentYear = new Date().getFullYear();
