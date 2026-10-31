@@ -453,7 +453,10 @@ describe('buildProjectionData — spanYears normalization', () => {
         for (const val of ['abc', NaN, -5, true]) {
             const state = {
                 ...BASE,
-                projectionSettings: { ...BASE.projectionSettings, spanYears: val },
+                projectionSettings: {
+                    ...BASE.projectionSettings,
+                    spanYears: val,
+                },
             };
             const data = buildProjectionData(state, 0);
             expect(data.labels).toHaveLength(31);
