@@ -315,7 +315,9 @@ function applyProjectionSettingsToForm() {
         state.projectionSettings.inflationRate;
     setSwrSelectValue(state.projectionSettings.swr);
     document.getElementById('proj-years').value =
-        state.projectionSettings.spanYears;
+        window.FireAggregates.normalizeSpanYears(
+            state.projectionSettings.spanYears,
+        );
     document.getElementById('proj-current-age').value =
         state.projectionSettings.currentAge || 30;
     document.getElementById('proj-retire-age').value =
@@ -334,7 +336,9 @@ function readProjectionSettingsFromForm() {
             const v = parseFloat(document.getElementById('proj-swr').value);
             return Number.isFinite(v) ? v : 4.0;
         })(),
-        spanYears: parseInt(document.getElementById('proj-years').value) || 30,
+        spanYears: window.FireAggregates.normalizeSpanYears(
+            document.getElementById('proj-years').value,
+        ),
         currentAge:
             parseInt(document.getElementById('proj-current-age').value) || 30,
         retireAge:
@@ -358,10 +362,11 @@ function renderProjSettingsSummary() {
     const el = document.getElementById('proj-settings-summary');
     if (!el) return;
     const s = state.projectionSettings;
+    const spanYears = window.FireAggregates.normalizeSpanYears(s.spanYears);
     el.innerHTML = `
         <span>Age <strong>${escapeHTML(s.currentAge || 30)}</strong> → retire <strong>${escapeHTML(s.retireAge || 60)}</strong></span>
         <span>Save <strong>${escapeHTML(formatCurrency(s.annualSavings || 0))}</strong>/yr at <strong>${escapeHTML((s.expectedReturn || 0).toFixed(1))}%</strong> return</span>
-        <span>Inflation <strong>${escapeHTML((s.inflationRate || 0).toFixed(1))}%</strong> · SWR <strong>${escapeHTML((s.swr || 4).toFixed(1))}%</strong> · ${escapeHTML(s.spanYears || 30)}yr span</span>
+        <span>Inflation <strong>${escapeHTML((s.inflationRate || 0).toFixed(1))}%</strong> · SWR <strong>${escapeHTML((s.swr || 4).toFixed(1))}%</strong> · ${escapeHTML(spanYears)}yr span</span>
     `;
 }
 
@@ -519,7 +524,9 @@ function buildProjectionData() {
         (state.projectionSettings.expectedReturn + scenarioOffset) / 100;
     const inflation = state.projectionSettings.inflationRate / 100;
     const realReturn = (1 + nominalReturn) / (1 + inflation) - 1;
-    const span = state.projectionSettings.spanYears;
+    const span = window.FireAggregates.normalizeSpanYears(
+        state.projectionSettings.spanYears,
+    );
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
 
