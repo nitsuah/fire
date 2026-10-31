@@ -5,6 +5,8 @@
    CommonJS module — require()'d by finance-core.js
    ========================================================================== */
 
+const { normalizeSpanYears } = require('./aggregates.js');
+
 // US median retirement savings by age (Vanguard How America Saves 2023)
 // Duplicated here so this module is self-contained; finance-core re-exports it.
 const US_MEDIAN_SAVINGS = {
@@ -291,11 +293,7 @@ function buildProjectionData(state, scenarioOffset) {
         ),
         -0.01,
     );
-    const MAX_SPAN_YEARS = 120;
-    const span = Math.min(
-        state.projectionSettings.spanYears || 30,
-        MAX_SPAN_YEARS,
-    );
+    const span = normalizeSpanYears(state.projectionSettings.spanYears);
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
 

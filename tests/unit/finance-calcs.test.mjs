@@ -437,3 +437,47 @@ describe('buildProjectionData — blended return and passive income', () => {
         expect(data.networth).toBe(300000);
     });
 });
+
+describe('buildProjectionData — spanYears normalization', () => {
+    it('huge span (1e9) yields 121 labels and 121 nwData points (MAX_SPAN_YEARS + 1)', () => {
+        const state = {
+            ...BASE,
+            projectionSettings: { ...BASE.projectionSettings, spanYears: 1e9 },
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.labels).toHaveLength(121);
+        expect(data.nwData).toHaveLength(121);
+    });
+
+    it('invalid values (abc, NaN, -5, true) fall back to 31 points (DEFAULT_SPAN_YEARS + 1)', () => {
+        for (const val of ['abc', NaN, -5, true]) {
+            const state = {
+                ...BASE,
+                projectionSettings: { ...BASE.projectionSettings, spanYears: val },
+            };
+            const data = buildProjectionData(state, 0);
+            expect(data.labels).toHaveLength(31);
+            expect(data.nwData).toHaveLength(31);
+        }
+    });
+
+    it('supported 10-year span yields 11 points', () => {
+        const state = {
+            ...BASE,
+            projectionSettings: { ...BASE.projectionSettings, spanYears: 10 },
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.labels).toHaveLength(11);
+        expect(data.nwData).toHaveLength(11);
+    });
+
+    it('120 years yields 121 points', () => {
+        const state = {
+            ...BASE,
+            projectionSettings: { ...BASE.projectionSettings, spanYears: 120 },
+        };
+        const data = buildProjectionData(state, 0);
+        expect(data.labels).toHaveLength(121);
+        expect(data.nwData).toHaveLength(121);
+    });
+});
