@@ -136,10 +136,10 @@ function ctSetStatus(text, color = 'var(--text-muted)') {
 }
 
 function ctFiniteNumber(value) {
+    if (typeof value !== 'number' && typeof value !== 'string') return null;
+    if (typeof value === 'string' && !value.trim()) return null;
     const number = typeof value === 'number' ? value : Number(value);
-    return value !== null && value !== '' && Number.isFinite(number)
-        ? number
-        : null;
+    return Number.isFinite(number) ? number : null;
 }
 
 // Persist only the normalized wallet fields needed for suggestions and explicit
