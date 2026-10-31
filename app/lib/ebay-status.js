@@ -1,6 +1,71 @@
 /* global module, AbortSignal */
 'use strict';
 
+const EBAY_LAST_OUTCOME_KEY = 'fire_tracker_ebay_last_sync_outcome';
+
+function defaultEbayStorage() {
+    try {
+        return typeof localStorage === 'undefined' ? null : localStorage;
+    } catch {
+        return null;
+    }
+}
+
+function ebayBuildOutcome(input = {}) {
+    const value =
+        input && typeof input === 'object' && !Array.isArray(input)
+            ? input
+            : {};
+    const at = typeof value.at === 'string' ? value.at : null;
+    const ok = value.ok === true;
+    const errorCode =
+        typeof value.errorCode === 'string' &&
+        /^[a-z0-9_-]{1,64}$/i.test(value.errorCode)
+            ? value.errorCode.toLowerCase()
+            : null;
+    return { at, ok, errorCode };
+}
+
+function ebayReadOutcome(storage = defaultEbayStorage()) {
+    try {
+        if (!storage || typeof storage.getItem !== 'function') return null;
+        const raw = storage.getItem(EBAY_LAST_OUTCOME_KEY);
+        if (typeof raw !== 'string' || raw.trim() === '') return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return null;
+        }
+        if (
+            (parsed.at !== null && typeof parsed.at !== 'string') ||
+            typeof parsed.ok !== 'boolean'
+        ) {
+            return null;
+        }
+        return ebayBuildOutcome(parsed);
+    } catch {
+        return null;
+    }
+}
+
+function ebayWriteOutcome(storage, outcome) {
+    try {
+        const target = storage || defaultEbayStorage();
+        if (!target) return null;
+        if (outcome == null || typeof outcome !== 'object' || Array.isArray(outcome)) {
+            if (typeof target.removeItem === 'function') {
+                target.removeItem(EBAY_LAST_OUTCOME_KEY);
+            }
+            return null;
+        }
+        if (typeof target.setItem !== 'function') return null;
+        const normalized = ebayBuildOutcome(outcome);
+        target.setItem(EBAY_LAST_OUTCOME_KEY, JSON.stringify(normalized));
+        return normalized;
+    } catch {
+        return null;
+    }
+}
+
 // One eBay status vocabulary for the Financial Overview and Settings cards.
 // Pure (no DOM, no fetch) so it runs in the browser and in Vitest. Same shape
 // as plaidStatusBadge in side-gig.js (#293). Codes only, never tokens.
@@ -51,5 +116,12 @@ async function fetchEbayConfigured(fetchFn) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { ebayStatusBadge, fetchEbayConfigured };
+    module.exports = {
+        EBAY_LAST_OUTCOME_KEY,
+        ebayBuildOutcome,
+        ebayReadOutcome,
+        ebayWriteOutcome,
+        ebayStatusBadge,
+        fetchEbayConfigured,
+    };
 }

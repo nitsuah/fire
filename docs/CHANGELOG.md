@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- eBay (hosted): persist sanitized last-sync outcomes in browser `localStorage` so failures survive reload; success replaces the failure, while a lost grant or new OAuth blob clears stale outcome. The status matrix now reflects server-backed self-hosted and browser-local hosted behavior (#326).
+
 - Etsy card (self-hosted) now shows "Last sync failed (code)" from the status endpoint's `lastSyncOutcome` instead of a success-colored timestamp (step 1 of #302; hosted deploy is step 2).
 - Vehicle depreciation estimate returns no value for model years before 1886 or more than one year ahead, instead of looping once per year of age.
 - Imported-files table escapes file name, source and date before inserting them into the page.
