@@ -45,7 +45,7 @@ These items came from the current browser/production pass. **P0** items are corr
   - Acceptance Criteria: Link, public-token exchange, account/position refresh, and transaction sync all work on lifefire.netlify.app; each hosted function has unit coverage; browser smoke coverage exercises the hosted routes; no /api/sync/plaid/* request can fall through to an HTML Netlify 404.
   - Progress 2026-09-30 (PR #146): `netlify/functions/plaid.mjs` serves all `/api/sync/plaid/*` routes, with unit coverage and the toml routing test; status is verified on the deploy preview. Remaining: a live Link → sync run on lifefire.netlify.app (set `PLAID_HOSTED_ACCESS_KEY` if `PLAID_ENV` isn't sandbox) and browser smoke coverage.
   - Rule going forward (from the PR #111 follow-up, merged here on 2026-10-01): any new `/api/*` route the SPA calls needs a Netlify Function, or a documented browser-only fallback, in the same PR.
-  - `docs/integrations.md` already documents the hosted function (`netlify.toml` rewrite, browser-held AES-256-GCM token, `PLAID_HOSTED_ACCESS_KEY`). The privacy-policy update from the same follow-up still needs checking.
+  - `docs/integrations.md` already documents the hosted function (`netlify.toml` rewrite, browser-held AES-256-GCM token, `PLAID_HOSTED_ACCESS_KEY`). The privacy policy now covers Plaid and Etsy (#314).
 
 - [x] **Split app/routes/sync.js (942 LOC): separate eBay and Plaid routes, extract the transactions handler (F-20260916-05)**
   - Done 2026-09-30 in fire#146: split into `app/routes/ebay.js` and `app/routes/plaid.js`, with token helpers in `app/lib/token-store.js`; `app/routes/sync.js` is now ~300 LOC. Paths and cursor semantics are unchanged and the tests pass. Accounts/positions responses gained `syncedItemIds`/`warning`.
