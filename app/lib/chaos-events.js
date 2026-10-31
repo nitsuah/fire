@@ -982,6 +982,30 @@
         return out;
     }
 
+    // Returns short human-readable labels for the exclusions implied by a
+    // household profile. Mirrors excludedEventIds but for UI display.
+    function describeExclusions(profile) {
+        const { pets, children, housing } = profile || {};
+        const labels = [];
+        if (pets === 'none') {
+            labels.push('pet events');
+        } else if (pets === 'cat') {
+            labels.push('dog events');
+        } else if (pets === 'dog') {
+            labels.push('cat events');
+        }
+        if (children === 'no') {
+            labels.push('child events');
+        }
+        if (housing === 'rent') {
+            labels.push('homeowner events');
+        }
+        if (housing === 'own') {
+            labels.push('rent-increase events');
+        }
+        return labels;
+    }
+
     function makeEvent(def, yr, age, rng) {
         const outcome = pickWeighted(def.outcomes, rng, (o) => o.w || 1);
         return {
@@ -1386,6 +1410,7 @@
         newSeed,
         generateEvents,
         excludedEventIds,
+        describeExclusions,
         simulate,
         eventsNearIndex,
         eventsInWindow,

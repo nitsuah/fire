@@ -695,6 +695,7 @@ function buildProjectionData() {
             hasEarnedIncome: !(
                 Number.isFinite(grossIncome) && grossIncome < 5000
             ),
+            profile: state.chaosProfile || null,
         });
         const simArgs = {
             events,
@@ -723,6 +724,9 @@ function buildProjectionData() {
             simArgs,
             savedTotal: sim.savedTotal,
             premiumTotal: sim.premiumTotal,
+            excluded: window.FireChaos.describeExclusions(
+                state.chaosProfile || null,
+            ),
         };
     }
 
