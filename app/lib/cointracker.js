@@ -135,6 +135,55 @@ function ctSetStatus(text, color = 'var(--text-muted)') {
     el.style.color = color;
 }
 
+function ctFiniteNumber(value) {
+    const number = typeof value === 'number' ? value : Number(value);
+    return value !== null && value !== '' && Number.isFinite(number)
+        ? number
+        : null;
+}
+
+// Persist only the normalized wallet fields needed for suggestions and explicit
+// confirmation. Never keep the raw provider response or any token in this key.
+function normalizeCoinTrackerWallets(wallets) {
+    return (Array.isArray(wallets) ? wallets : [])
+        .filter(
+            (wallet) =>
+                wallet &&
+                (typeof wallet.providerId === 'string' ||
+                    typeof wallet.providerId === 'number'),
+        )
+        .map((wallet) => ({
+            providerId: String(wallet.providerId),
+            name:
+                typeof wallet.name === 'string' && wallet.name.trim()
+                    ? wallet.name.trim()
+                    : 'CoinTracker wallet',
+            kind: typeof wallet.kind === 'string' ? wallet.kind : null,
+            chains: Array.isArray(wallet.chains)
+                ? wallet.chains.filter((value) => typeof value === 'string')
+                : [],
+            addresses: Array.isArray(wallet.addresses)
+                ? wallet.addresses.filter((value) => typeof value === 'string')
+                : [],
+            holdings: Array.isArray(wallet.holdings)
+                ? wallet.holdings
+                      .filter(
+                          (holding) =>
+                              holding && typeof holding === 'object',
+                      )
+                      .map((holding) => ({
+                          symbol:
+                              typeof holding.symbol === 'string'
+                                  ? holding.symbol
+                                  : null,
+                          quantity: ctFiniteNumber(holding.quantity),
+                          usdValue: ctFiniteNumber(holding.usdValue),
+                      }))
+                : [],
+            usdValue: ctFiniteNumber(wallet.usdValue),
+        }));
+}
+
 async function runCoinTrackerSync({ silent = false } = {}) {
     const btn = document.getElementById('btn-cointracker-sync');
     if (btn) btn.disabled = true;
@@ -142,9 +191,10 @@ async function runCoinTrackerSync({ silent = false } = {}) {
         ctSetStatus('Syncing CoinTracker wallets…', 'var(--color-warning)');
     try {
         const data = await ctPost('sync');
+        const wallets = normalizeCoinTrackerWallets(data.wallets);
         const merged = FireCoinTrackerMerge.mergeCoinTrackerWallets(
-            state.customAccounts,
-            data.wallets || [],
+            state.customAccounts || [],
+            wallets,
             {
                 syncedAt: data.syncedAt,
                 partial: Boolean(data.partial),
@@ -155,7 +205,7 @@ async function runCoinTrackerSync({ silent = false } = {}) {
         state.customAccounts = merged.accounts;
         const suggestions = FireCoinTrackerMerge.suggestCoinTrackerWallets(
             state.customAccounts,
-            data.wallets || [],
+            wallets,
             { syncedAt: data.syncedAt, dismissed: ctExcluded() },
         );
         await saveState();
@@ -165,11 +215,7 @@ async function runCoinTrackerSync({ silent = false } = {}) {
             JSON.stringify({
                 tool: data.tool,
                 warnings: data.warnings || [],
-                wallets: (data.wallets || []).map((w) => ({
-                    providerId: w.providerId,
-                    name: w.name,
-                    usdValue: w.usdValue,
-                })),
+                wallets,
                 counts: {
                     added: merged.added,
                     updated: merged.updated,
@@ -252,6 +298,36 @@ async function toggleCoinTrackerWallet(providerId) {
     await saveState();
     renderCoinTrackerCard();
     await runCoinTrackerSync({ silent: true });
+}
+
+async function addCoinTrackerSuggestion(providerId) {
+    const id = String(providerId);
+    if (ctExcluded().includes(id)) return;
+    const wallet = (ctLastResult()?.wallets || []).find(
+        (candidate) => String(candidate.providerId) === id,
+    );
+    if (!wallet) return;
+
+    state.customAccounts = FireCoinTrackerMerge.confirmCoinTrackerWallet(
+        state.customAccounts || [],
+        wallet,
+        {
+            syncedAt: ctRead(CT_LAST_SYNC_KEY),
+            excluded: ctExcluded(),
+        },
+    );
+    await saveState();
+    if (typeof refreshAllUI === 'function') refreshAllUI();
+    renderCoinTrackerCard();
+}
+
+async function dismissCoinTrackerSuggestion(providerId) {
+    const excluded = new Set(ctExcluded());
+    excluded.add(String(providerId));
+    state.coinTrackerExcluded = [...excluded];
+    // Persist the dismissal without triggering another provider request.
+    await saveState();
+    renderCoinTrackerCard();
 }
 
 function renderCoinTrackerCard() {
@@ -342,6 +418,57 @@ function renderCoinTrackerCard() {
                 : '';
     }
 
+    const suggestionsEl = document.getElementById(
+        'cointracker-suggestions',
+    );
+    if (suggestionsEl) {
+        const suggestions = connected
+            ? FireCoinTrackerMerge.suggestCoinTrackerWallets(
+                  state.customAccounts || [],
+                  result?.wallets || [],
+                  { syncedAt: lastSync, dismissed: ctExcluded() },
+              )
+            : [];
+        const freshness =
+            lastSync && Number.isFinite(Date.parse(lastSync))
+                ? new Date(lastSync).toLocaleString()
+                : 'unknown';
+        suggestionsEl.innerHTML = suggestions.length
+            ? `<div class="mt-3">
+                <p class="csp-text-12"><strong>Suggested wallets</strong> — review before adding.</p>
+                ${suggestions
+                    .map((wallet) => {
+                        const providerId = String(wallet.providerId);
+                        const chains = (wallet.chains || [])
+                            .filter(Boolean)
+                            .join(', ');
+                        const value =
+                            typeof wallet.usdValue === 'number' &&
+                            Number.isFinite(wallet.usdValue)
+                                ? formatCurrency(wallet.usdValue)
+                                : 'Value unavailable';
+                        return `<div class="chain-balance-row wallet-row">
+                            <span class="chain-name">
+                                <strong>${escHtml(wallet.name)}</strong>
+                                ${chains ? `<span class="tag-badge csp-ml-6">${escHtml(chains)}</span>` : ''}
+                                <span class="text-muted csp-block csp-text-10">Source: CoinTracker · Last synced: ${escHtml(freshness)}</span>
+                            </span>
+                            <span class="chain-val wallet-row-actions">
+                                <span>${escHtml(value)}</span>
+                                <button type="button" class="action-btn" data-ct-suggestion-add="${escHtml(providerId)}">Add</button>
+                                <button type="button" class="backup-btn" data-ct-suggestion-dismiss="${escHtml(providerId)}">Dismiss</button>
+                            </span>
+                        </div>`;
+                    })
+                    .join('')}
+            </div>`
+            : '';
+        toggle(
+            'cointracker-suggestions',
+            connected && suggestions.length > 0,
+        );
+    }
+
     const dupEl = document.getElementById('cointracker-duplicates');
     if (dupEl) {
         const dups = connected
@@ -416,6 +543,23 @@ function initCoinTracker() {
             inspectCoinTrackerTools();
         } else if (target.dataset.ctToggle) {
             toggleCoinTrackerWallet(target.dataset.ctToggle);
+        } else if (target.dataset.ctSuggestionAdd) {
+            addCoinTrackerSuggestion(target.dataset.ctSuggestionAdd).catch(
+                () =>
+                    ctSetStatus(
+                        'Could not add the suggested CoinTracker wallet.',
+                        'var(--color-danger)',
+                    ),
+            );
+        } else if (target.dataset.ctSuggestionDismiss) {
+            dismissCoinTrackerSuggestion(
+                target.dataset.ctSuggestionDismiss,
+            ).catch(() =>
+                ctSetStatus(
+                    'Could not dismiss the suggested CoinTracker wallet.',
+                    'var(--color-danger)',
+                ),
+            );
         }
     });
     renderCoinTrackerCard();
