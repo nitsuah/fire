@@ -5,6 +5,7 @@ import merge from '../../app/lib/cointracker-merge.js';
 
 const {
     mergeCoinTrackerWallets,
+    confirmCoinTrackerWallet,
     removeCoinTrackerWallets,
     coinTrackerAddresses,
 } = merge;
@@ -295,5 +296,61 @@ describe('suggestCoinTrackerWallets', () => {
         const before = JSON.stringify(accounts);
         suggestCoinTrackerWallets(accounts, [ledger, coinbase]);
         expect(JSON.stringify(accounts)).toBe(before);
+    });
+});
+
+describe('confirmCoinTrackerWallet', () => {
+    it('adds only the selected wallet on confirmation', () => {
+        const accounts = [savings];
+        const result = confirmCoinTrackerWallet(accounts, ledger, {
+            syncedAt: 'T1',
+        });
+
+        expect(result).toHaveLength(2);
+        expect(result[0]).toBe(savings);
+        expect(result[1]).toMatchObject({
+            id: 'cointracker-w1',
+            type: 'Crypto',
+            name: 'Ledger ETH',
+            value: 4600,
+            source: 'cointracker',
+            cointracker: { providerId: 'w1', syncedAt: 'T1' },
+        });
+    });
+
+    it('adopts a matching manual row and preserves its manual snapshot', () => {
+        const result = confirmCoinTrackerWallet(
+            [savings, manualLedger],
+            ledger,
+        );
+
+        expect(result).toHaveLength(2);
+        expect(result[0]).toBe(savings);
+        expect(result[1]).toMatchObject({
+            id: 'm1',
+            name: 'My cold wallet',
+            value: 4600,
+            manualSnapshot: {
+                value: 4000,
+                identifier: manualLedger.identifier,
+                quantity: 1.4,
+            },
+        });
+    });
+
+    it('leaves unrelated account rows untouched by reference', () => {
+        const unrelatedCrypto = {
+            id: 'u1',
+            type: 'Crypto',
+            name: 'Unrelated wallet',
+            value: 12,
+            identifier: '0x000000000000000000000000000000000000dead',
+        };
+        const accounts = [savings, unrelatedCrypto];
+        const result = confirmCoinTrackerWallet(accounts, ledger);
+
+        expect(result[0]).toBe(savings);
+        expect(result[1]).toBe(unrelatedCrypto);
+        expect(result).toHaveLength(3);
     });
 });

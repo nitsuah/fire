@@ -253,6 +253,22 @@
         };
     }
 
+    /**
+     * Confirm exactly one CoinTracker suggestion, without treating the
+     * selected wallet as a complete sync or removing any other account.
+     * @param {object[]} accounts state.customAccounts
+     * @param {object} wallet the owner-selected CoinTracker wallet
+     * @param {object} opts merge options such as syncedAt and excluded
+     * @returns {object[]} updated account list
+     */
+    function confirmCoinTrackerWallet(accounts, wallet, opts = {}) {
+        return mergeCoinTrackerWallets(accounts, [wallet], {
+            ...opts,
+            confirm: true,
+            partial: true,
+        }).accounts;
+    }
+
     // Disconnect: drop CoinTracker-only rows, restore adopted manual rows.
     function removeCoinTrackerWallets(accounts) {
         return (accounts || [])
@@ -275,6 +291,7 @@
         SOURCE,
         isCoinTrackerRow,
         mergeCoinTrackerWallets,
+        confirmCoinTrackerWallet,
         removeCoinTrackerWallets,
         coinTrackerAddresses,
         possibleDuplicates,
