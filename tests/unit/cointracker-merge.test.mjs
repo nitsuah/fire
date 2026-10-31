@@ -319,7 +319,10 @@ describe('confirmCoinTrackerWallet', () => {
     });
 
     it('adopts a matching manual row and preserves its manual snapshot', () => {
-        const result = confirmCoinTrackerWallet([savings, manualLedger], ledger);
+        const result = confirmCoinTrackerWallet(
+            [savings, manualLedger],
+            ledger,
+        );
 
         expect(result).toHaveLength(2);
         expect(result[0]).toBe(savings);
