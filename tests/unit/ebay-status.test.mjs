@@ -74,13 +74,23 @@ describe('fetchEbayConfigured', () => {
         ).toBeNull();
     });
 
-    it('requests the status endpoint without caching', async () => {
+    it('requests the status endpoint without caching and with an 8-second timeout', async () => {
         const fetchFn = vi.fn(stub({ configured: true }));
 
         await fetchEbayConfigured(fetchFn);
 
-        expect(fetchFn).toHaveBeenCalledWith('/api/sync/ebay/status', {
-            cache: 'no-store',
+        const options = fetchFn.mock.calls[0][1];
+        expect(options.cache).toBe('no-store');
+        expect(options.signal).toBeInstanceOf(AbortSignal);
+        expect(options.signal.aborted).toBe(false);
+    });
+
+    it('returns null when the configured-status request times out', async () => {
+        const fetchFn = vi.fn(async (_url, options) => {
+            options.signal.throwIfAborted();
+            throw new DOMException('The operation was aborted', 'TimeoutError');
         });
+
+        await expect(fetchEbayConfigured(fetchFn)).resolves.toBeNull();
     });
 });

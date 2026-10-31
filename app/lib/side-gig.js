@@ -212,7 +212,12 @@ function localEbayStatus() {
 }
 
 async function fetchEbayStatus() {
-    if (await isBrowserOnlyModeAsync()) return localEbayStatus();
+    if (await isBrowserOnlyModeAsync()) {
+        const configured = await fetchEbayConfigured((url, opts) =>
+            fetch(url, opts),
+        );
+        return { ...localEbayStatus(), configured };
+    }
     const res = await fetch('/api/sync/ebay/status');
     return res.json();
 }
