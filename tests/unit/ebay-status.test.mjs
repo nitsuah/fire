@@ -101,124 +101,65 @@ describe('fetchEbayConfigured', () => {
 
 
 describe('eBay last-sync outcome storage', () => {
-    function fakeStorage() {
+    const storage = () => {
         const values = new Map();
         return {
             getItem: (key) => (values.has(key) ? values.get(key) : null),
             setItem: (key, value) => values.set(key, String(value)),
             removeItem: (key) => values.delete(key),
         };
-    }
+    };
 
-    it('builds exactly the normalized outcome fields and accepts safe codes case-insensitively', () => {
-        expect(
-            ebayBuildOutcome({
-                at: '2026-10-31T12:00:00.000Z',
-                ok: true,
-                errorCode: 'HTTP_503',
-                message: 'must not be retained',
-            }),
-        ).toEqual({
-            at: '2026-10-31T12:00:00.000Z',
-            ok: true,
-            errorCode: 'http_503',
+    it('normalizes only the exact outcome fields and safe codes', () => {
+        expect(ebayBuildOutcome({ at: '2026-10-31T12:00:00.000Z', ok: true, errorCode: 'HTTP_503', message: 'private' })).toEqual({
+            at: '2026-10-31T12:00:00.000Z', ok: true, errorCode: 'http_503',
         });
-        expect(
-            ebayBuildOutcome({
-                at: 123,
-                ok: 1,
-                errorCode: 'provider error: private',
-            }),
-        ).toEqual({ at: null, ok: false, errorCode: null });
-        expect(
-            ebayBuildOutcome({ at: null, ok: false, errorCode: 'x'.repeat(65) })
-                .errorCode,
-        ).toBeNull();
+        expect(ebayBuildOutcome({ at: 123, ok: 1, errorCode: 'provider error' })).toEqual({
+            at: null, ok: false, errorCode: null,
+        });
+        expect(ebayBuildOutcome({ errorCode: 'x'.repeat(65) }).errorCode).toBeNull();
     });
 
-    it('reads only normalized fields and strips extra properties', () => {
-        const storage = fakeStorage();
-        storage.setItem(
-            EBAY_LAST_OUTCOME_KEY,
-            JSON.stringify({
-                at: '2026-10-31T12:00:00.000Z',
-                ok: false,
-                errorCode: 'HTTP_503',
-                message: 'private provider text',
-                token: 'secret',
-            }),
-        );
-        expect(ebayReadOutcome(storage)).toEqual({
-            at: '2026-10-31T12:00:00.000Z',
-            ok: false,
-            errorCode: 'http_503',
+    it('reads normalized fields and returns null for malformed or non-object data', () => {
+        const s = storage();
+        s.setItem(EBAY_LAST_OUTCOME_KEY, JSON.stringify({
+            at: '2026-10-31T12:00:00.000Z', ok: false, errorCode: 'HTTP_503', message: 'private', token: 'secret',
+        }));
+        expect(ebayReadOutcome(s)).toEqual({
+            at: '2026-10-31T12:00:00.000Z', ok: false, errorCode: 'http_503',
         });
-    });
-
-    it('returns null for missing, malformed, primitive, array, or invalid-shape data', () => {
-        const storage = fakeStorage();
-        expect(ebayReadOutcome(storage)).toBeNull();
-        for (const raw of [
-            '{',
-            'null',
-            '42',
-            '"text"',
-            '[]',
-            JSON.stringify({ at: 123, ok: true }),
-            JSON.stringify({ at: '2026-10-31T12:00:00.000Z', ok: 'true' }),
-        ]) {
-            storage.setItem(EBAY_LAST_OUTCOME_KEY, raw);
-            expect(ebayReadOutcome(storage)).toBeNull();
+        for (const raw of ['{', 'null', '42', '"text"', '[]', JSON.stringify({ at: 123, ok: true }), JSON.stringify({ at: '2026-10-31T12:00:00.000Z', ok: 'true' })]) {
+            s.setItem(EBAY_LAST_OUTCOME_KEY, raw);
+            expect(ebayReadOutcome(s)).toBeNull();
         }
     });
 
-    it('records a failure, replaces it on recovery, and clears the key', () => {
-        const storage = fakeStorage();
-        ebayWriteOutcome(storage, {
-            at: '2026-10-31T12:00:00.000Z',
-            ok: false,
-            errorCode: 'HTTP_503',
-            message: 'not persisted',
+    it('records failure, replaces it on recovery, and clears the key', () => {
+        const s = storage();
+        expect(ebayWriteOutcome(s, { at: '2026-10-31T12:00:00.000Z', ok: false, errorCode: 'HTTP_503', message: 'private' })).toEqual({
+            at: '2026-10-31T12:00:00.000Z', ok: false, errorCode: 'http_503',
         });
-        expect(ebayReadOutcome(storage)).toEqual({
-            at: '2026-10-31T12:00:00.000Z',
-            ok: false,
-            errorCode: 'http_503',
+        expect(JSON.parse(s.getItem(EBAY_LAST_OUTCOME_KEY))).toEqual({
+            at: '2026-10-31T12:00:00.000Z', ok: false, errorCode: 'http_503',
         });
-        ebayWriteOutcome(storage, {
-            at: '2026-10-31T12:05:00.000Z',
-            ok: true,
-            errorCode: null,
+        expect(ebayWriteOutcome(s, { at: '2026-10-31T12:05:00.000Z', ok: true, errorCode: null })).toEqual({
+            at: '2026-10-31T12:05:00.000Z', ok: true, errorCode: null,
         });
-        expect(ebayReadOutcome(storage)).toEqual({
-            at: '2026-10-31T12:05:00.000Z',
-            ok: true,
-            errorCode: null,
+        expect(ebayReadOutcome(s)).toEqual({
+            at: '2026-10-31T12:05:00.000Z', ok: true, errorCode: null,
         });
-        expect(ebayWriteOutcome(storage, null)).toBeNull();
-        expect(storage.getItem(EBAY_LAST_OUTCOME_KEY)).toBeNull();
+        expect(ebayWriteOutcome(s, null)).toBeNull();
+        expect(s.getItem(EBAY_LAST_OUTCOME_KEY)).toBeNull();
     });
 
     it('fails open when storage methods throw', () => {
-        const brokenStorage = {
-            getItem() {
-                throw new Error('storage unavailable');
-            },
-            setItem() {
-                throw new Error('storage unavailable');
-            },
-            removeItem() {
-                throw new Error('storage unavailable');
-            },
+        const broken = {
+            getItem() { throw new Error('storage unavailable'); },
+            setItem() { throw new Error('storage unavailable'); },
+            removeItem() { throw new Error('storage unavailable'); },
         };
-        expect(ebayReadOutcome(brokenStorage)).toBeNull();
-        expect(
-            ebayWriteOutcome(brokenStorage, {
-                at: '2026-10-31T12:00:00.000Z',
-                ok: false,
-                errorCode: 'network_error',
-            }),
-        ).toBeNull();
-        expect(() => ebayWriteOutcome(brokenStorage, null)).not.toThrow();
+        expect(ebayReadOutcome(broken)).toBeNull();
+        expect(ebayWriteOutcome(broken, { ok: false, errorCode: 'network_error' })).toBeNull();
+        expect(() => ebayWriteOutcome(broken, null)).not.toThrow();
     });
 });
