@@ -167,7 +167,9 @@ function normalizeCoinTrackerWallets(wallets) {
                 : [],
             holdings: Array.isArray(wallet.holdings)
                 ? wallet.holdings
-                      .filter((holding) => holding && typeof holding === 'object')
+                      .filter(
+                          (holding) => holding && typeof holding === 'object',
+                      )
                       .map((holding) => ({
                           symbol:
                               typeof holding.symbol === 'string'
