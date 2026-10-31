@@ -252,9 +252,7 @@ test.describe('Financial Overview — unified add form', () => {
         await page.locator('#btn-tab-sidegig').click();
         // The isolated test server has no eBay credentials, so Connect
         // cannot work here and must be hidden (#367).
-        await expect(
-            page.locator('#tab-sidegig #btn-ebay-oauth'),
-        ).toBeHidden();
+        await expect(page.locator('#tab-sidegig #btn-ebay-oauth')).toBeHidden();
         await expect(
             page.locator('#tab-sidegig #btn-sidegig-ebay-sync'),
         ).toBeVisible();
