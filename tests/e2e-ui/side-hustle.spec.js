@@ -140,6 +140,15 @@ test.describe('Marketplace connections', () => {
         await expect(page.locator('#btn-etsy-disconnect')).toBeHidden();
     });
 
+    test('eBay card says not configured when the server has no credentials', async ({
+        page,
+    }) => {
+        await expect(page.locator('#ebay-sync-status')).toHaveText(
+            'Status: eBay is not configured on this deployment (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET)',
+        );
+        await expect(page.locator('#btn-ebay-oauth')).toBeHidden();
+    });
+
     test('imports a Mercari export into the ledger once', async ({ page }) => {
         const dialogs = [];
         page.on('dialog', async (d) => {
