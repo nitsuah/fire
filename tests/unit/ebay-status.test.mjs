@@ -99,7 +99,6 @@ describe('fetchEbayConfigured', () => {
     });
 });
 
-
 describe('eBay last-sync outcome storage', () => {
     const storage = () => {
         const values = new Map();
