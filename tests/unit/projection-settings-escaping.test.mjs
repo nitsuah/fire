@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { normalizeSpanYears } = require('../../app/lib/aggregates.js');
 
 // projections.js is a classic browser script that depends on globals, so load
 // it into a stubbed browser context and call renderProjSettingsSummary directly.
@@ -23,7 +27,7 @@ function loadModule() {
                 storage[k] = v;
             },
         },
-        window: {},
+        window: { FireAggregates: { normalizeSpanYears } },
         JSON,
         Number,
         Array,
