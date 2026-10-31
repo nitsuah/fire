@@ -63,7 +63,13 @@ router.get('/', async (req, res) => {
 
     const symbolsArr = rawSymbols
         .split(',')
-        .map((s) => s.trim().replace(/\*+$/, ''))
+        .map((s) => {
+            const trimmed = s.trim();
+            // Remove trailing asterisks without regex (avoids ReDoS warning)
+            let end = trimmed.length;
+            while (end > 0 && trimmed[end - 1] === '*') end--;
+            return trimmed.slice(0, end);
+        })
         .filter(
             (s) =>
                 s.length > 0 &&
