@@ -464,8 +464,10 @@ function renderCoinTrackerCard() {
                             </span>
                             <span class="chain-val wallet-row-actions">
                                 <span>${escHtml(value)}</span>
-                                <button type="button" class="action-btn" data-ct-suggestion-add="${escHtml(providerId)}">Add</button>
-                                <button type="button" class="backup-btn" data-ct-suggestion-dismiss="${escHtml(providerId)}">Dismiss</button>
+                                <span class="wallet-row-btns">
+                                    <button type="button" class="action-btn" data-ct-suggestion-add="${escHtml(providerId)}">Add</button>
+                                    <button type="button" class="backup-btn" data-ct-suggestion-dismiss="${escHtml(providerId)}">Dismiss</button>
+                                </span>
                             </span>
                         </div>`;
                     })
