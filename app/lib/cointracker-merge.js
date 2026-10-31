@@ -157,13 +157,16 @@
      * @param {object[]} wallets  normalized CoinTracker wallets
      * @param {object}   opts     { syncedAt, partial, excluded: providerId[],
      *                            keep: providerId[] still in CoinTracker but
-     *                            skipped this sync (e.g. no USD value) }
+     *                            skipped this sync (e.g. no USD value),
+     *                            confirm: false - if false, never create or adopt,
+     *                            only refresh existing CoinTracker rows }
      * @returns {{accounts, added, updated, adopted, removed, possibleDuplicates}}
      */
     function mergeCoinTrackerWallets(accounts, wallets, opts = {}) {
         const syncedAt = opts.syncedAt || new Date().toISOString();
         const excluded = new Set((opts.excluded || []).map(String));
         const keep = new Set((opts.keep || []).map(String));
+        const confirm = Boolean(opts.confirm);
         // An empty result can't prove every wallet is gone.
         const partial = Boolean(opts.partial) || wallets.length === 0;
         const incoming = wallets.filter(
@@ -198,6 +201,7 @@
                 counts.updated++;
                 continue;
             }
+            if (!confirm) continue;
             const addrs = new Set((wallet.addresses || []).map(lower));
             const manualIdx = result.findIndex(
                 (acc) =>
