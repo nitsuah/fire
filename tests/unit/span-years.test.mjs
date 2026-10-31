@@ -19,7 +19,10 @@ function createProjectionContext(spanYears = 30, formValues = {}) {
     const document = {
         getElementById(id) {
             if (!elements.has(id)) {
-                elements.set(id, { value: formValues[id] ?? '', innerHTML: '' });
+                elements.set(id, {
+                    value: formValues[id] ?? '',
+                    innerHTML: '',
+                });
             }
             return elements.get(id);
         },
@@ -52,7 +55,7 @@ function createProjectionContext(spanYears = 30, formValues = {}) {
         getAggregateCash: () => 10000,
         getAnnualExpensesTotal: () => 40000,
         getMonthlyExpensesBase: () => 3000,
-        formatCurrency: value => String(value),
+        formatCurrency: (value) => String(value),
     };
     runInNewContext(projectionSource, context);
     return { context, elements };
@@ -113,7 +116,9 @@ describe('normalizeSpanYears', () => {
     it('shows the normalized horizon in the collapsed settings summary', () => {
         const { context, elements } = createProjectionContext(1000);
         context.renderProjSettingsSummary();
-        expect(elements.get('proj-settings-summary').innerHTML).toContain('120yr span');
+        expect(elements.get('proj-settings-summary').innerHTML).toContain(
+            '120yr span',
+        );
     });
 
     it('bounds the browser projection arrays to 121 points', () => {
