@@ -48,6 +48,7 @@ describe('mergeCoinTrackerWallets', () => {
     it('adds one Crypto row per wallet and leaves other accounts alone', () => {
         const r = mergeCoinTrackerWallets([savings], [ledger, coinbase], {
             syncedAt: 'T1',
+            confirm: true,
         });
         expect(r.added).toBe(2);
         expect(r.accounts[0]).toBe(savings);
@@ -65,11 +66,9 @@ describe('mergeCoinTrackerWallets', () => {
     });
 
     it('adopts a manual row with the same address instead of double counting', () => {
-        const r = mergeCoinTrackerWallets(
-            [savings, manualLedger],
-            [ledger],
-            {},
-        );
+        const r = mergeCoinTrackerWallets([savings, manualLedger], [ledger], {
+            confirm: true,
+        });
         expect(r.adopted).toBe(1);
         expect(r.accounts).toHaveLength(2);
         const row = r.accounts[1];
@@ -92,7 +91,7 @@ describe('mergeCoinTrackerWallets', () => {
         const first = mergeCoinTrackerWallets(
             [manualLedger],
             [ledger, coinbase],
-            {},
+            { confirm: true },
         ).accounts;
         const second = mergeCoinTrackerWallets(
             first,
@@ -120,7 +119,7 @@ describe('mergeCoinTrackerWallets', () => {
         const first = mergeCoinTrackerWallets(
             [manualLedger],
             [ledger, coinbase],
-            {},
+            { confirm: true },
         ).accounts;
         const partial = mergeCoinTrackerWallets(first, [coinbase], {
             partial: true,
@@ -142,7 +141,7 @@ describe('mergeCoinTrackerWallets', () => {
         const first = mergeCoinTrackerWallets(
             [],
             [ledger, coinbase],
-            {},
+            { confirm: true },
         ).accounts;
         const r = mergeCoinTrackerWallets(first, [ledger, coinbase], {
             partial: true,
@@ -182,12 +181,12 @@ describe('skipped wallets', () => {
         const first = mergeCoinTrackerWallets(
             [],
             [ledger, coinbase],
-            {},
+            { confirm: true },
         ).accounts;
         const r = mergeCoinTrackerWallets(first, [], { keep: ['w1'] });
         // An empty result is partial anyway; use a non-empty complete sync.
         const other = { ...coinbase, providerId: 'w9', name: 'New' };
-        const r2 = mergeCoinTrackerWallets(first, [other], { keep: ['w1'] });
+        const r2 = mergeCoinTrackerWallets(first, [other], { keep: ['w1'], confirm: true });
         expect(r.accounts).toHaveLength(2);
         expect(r2.accounts.map((a) => a.id)).toEqual([
             'cointracker-w1',
@@ -201,7 +200,7 @@ describe('removeCoinTrackerWallets', () => {
         const merged = mergeCoinTrackerWallets(
             [savings, manualLedger],
             [ledger, coinbase],
-            {},
+            { confirm: true },
         ).accounts;
         expect(removeCoinTrackerWallets(merged)).toEqual([
             savings,
@@ -215,7 +214,7 @@ describe('coinTrackerAddresses', () => {
         const merged = mergeCoinTrackerWallets(
             [savings],
             [ledger],
-            {},
+            { confirm: true },
         ).accounts;
         expect([...coinTrackerAddresses(merged)]).toEqual([ADDR.toLowerCase()]);
     });
@@ -235,7 +234,7 @@ describe('MCP net worth with CoinTracker', () => {
         const customAccounts = mergeCoinTrackerWallets(
             [],
             [ledger],
-            {},
+            { confirm: true },
         ).accounts;
         const r = handleTool('get_net_worth', {
             customAccounts,
@@ -279,7 +278,7 @@ describe('suggestCoinTrackerWallets', () => {
     });
 
     it('skips confirmed, dismissed and already-tracked wallets', () => {
-        const confirmed = mergeCoinTrackerWallets([], [coinbase]).accounts;
+        const confirmed = mergeCoinTrackerWallets([], [coinbase], { confirm: true }).accounts;
         expect(
             suggestCoinTrackerWallets(confirmed, [coinbase]).map(
                 (w) => w.providerId,
