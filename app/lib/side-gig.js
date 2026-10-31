@@ -290,16 +290,17 @@ async function checkEbayConnection() {
     if (!statusEl) return;
     try {
         const data = await fetchEbayStatus();
-        if (data.connected) {
-            const lastSync = data.lastSync
-                ? new Date(data.lastSync).toLocaleDateString()
-                : 'never';
-            statusEl.textContent = `Status: Connected (Last sync: ${lastSync})`;
-            statusEl.style.color = 'var(--color-success)';
-        } else {
-            statusEl.textContent = 'Status: Disconnected';
-            statusEl.style.color = 'var(--text-muted)';
-        }
+        const badge = ebayStatusBadge(data);
+        const connectBtn = document.getElementById('btn-ebay-oauth');
+        const lastSync = data.lastSync
+            ? new Date(data.lastSync).toLocaleDateString()
+            : null;
+        const label = lastSync
+            ? `${badge.label} (Last sync: ${lastSync})`
+            : badge.label;
+        statusEl.textContent = `Status: ${label}`;
+        statusEl.style.color = badge.color;
+        if (connectBtn) connectBtn.hidden = !badge.connectable;
     } catch (err) {
         statusEl.textContent = 'Status: Error checking connection';
         statusEl.style.color = 'var(--color-danger)';
@@ -317,17 +318,14 @@ async function loadEbaySettingsPanel() {
     try {
         const data = await fetchEbayStatus();
         toggle.checked = data.syncEnabled !== false;
+        const badge = ebayStatusBadge(data);
         const lastSyncText = data.lastSync
             ? new Date(data.lastSync).toLocaleString()
-            : 'never';
-        if (!data.connected) {
-            statusEl.textContent =
-                'Not connected — use the eBay Seller API card in Financial Overview to connect your account first.';
-            statusEl.style.color = 'var(--text-muted)';
-        } else {
-            statusEl.textContent = `Connected · Last sync: ${lastSyncText}`;
-            statusEl.style.color = 'var(--color-success)';
-        }
+            : null;
+        statusEl.textContent = lastSyncText
+            ? `${badge.label} · Last sync: ${lastSyncText}`
+            : badge.label;
+        statusEl.style.color = badge.color;
         if (syncBtn) syncBtn.disabled = !data.connected || !toggle.checked;
     } catch (err) {
         statusEl.textContent = 'Unable to check eBay sync status.';
