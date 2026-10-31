@@ -116,6 +116,42 @@ describe('mergeCoinTrackerWallets', () => {
         });
     });
 
+    it('does not add or adopt wallets when confirm is omitted or false', () => {
+        const existing = mergeCoinTrackerWallets([], [ledger], {
+            confirm: true,
+        }).accounts;
+        const accounts = [...existing, manualLedger];
+        const unconfirmed = {
+            providerId: 'w3',
+            name: 'Unconfirmed wallet',
+            addresses: [manualLedger.identifier],
+            usdValue: 700,
+            holdings: [],
+        };
+        const incoming = [
+            { ...ledger, usdValue: 5000 },
+            { ...coinbase, usdValue: 300 },
+            unconfirmed,
+        ];
+
+        const omitted = mergeCoinTrackerWallets(accounts, incoming, {});
+        const explicitFalse = mergeCoinTrackerWallets(accounts, incoming, {
+            confirm: false,
+        });
+
+        for (const result of [omitted, explicitFalse]) {
+            expect(result.added).toBe(0);
+            expect(result.adopted).toBe(0);
+            expect(result.updated).toBe(1);
+            expect(result.accounts).toHaveLength(2);
+            expect(result.accounts[0]).toMatchObject({
+                id: 'cointracker-w1',
+                value: 5000,
+            });
+            expect(result.accounts[1]).toBe(manualLedger);
+        }
+    });
+
     it('drops a vanished wallet only after a complete sync, restoring its manual row', () => {
         const first = mergeCoinTrackerWallets(
             [manualLedger],
