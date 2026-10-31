@@ -422,13 +422,25 @@ function renderCoinTrackerCard() {
         'cointracker-suggestions',
     );
     if (suggestionsEl) {
-        const suggestions = connected
-            ? FireCoinTrackerMerge.suggestCoinTrackerWallets(
-                  state.customAccounts || [],
-                  result?.wallets || [],
-                  { syncedAt: lastSync, dismissed: ctExcluded() },
-              )
+        const storedWallets = Array.isArray(result?.wallets)
+            ? result.wallets
             : [];
+        // Older local result records stored only name/value/providerId. Do not
+        // suggest from them until a sync refreshes the address-aware snapshot.
+        const hasNormalizedWallets = storedWallets.every(
+            (wallet) =>
+                Array.isArray(wallet?.addresses) &&
+                Array.isArray(wallet?.chains) &&
+                Array.isArray(wallet?.holdings),
+        );
+        const suggestions =
+            connected && hasNormalizedWallets
+                ? FireCoinTrackerMerge.suggestCoinTrackerWallets(
+                      state.customAccounts || [],
+                      storedWallets,
+                      { syncedAt: lastSync, dismissed: ctExcluded() },
+                  )
+                : [];
         const freshness =
             lastSync && Number.isFinite(Date.parse(lastSync))
                 ? new Date(lastSync).toLocaleString()
