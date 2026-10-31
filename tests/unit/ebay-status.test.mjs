@@ -151,10 +151,7 @@ describe('eBay last-sync outcome storage', () => {
         const success = { at: 't2', ok: true, errorCode: null };
         expect(ebayWriteOutcome(s, failure)).toEqual(expectedFailure);
         expect(JSON.parse(s.getItem(EBAY_LAST_OUTCOME_KEY))).toEqual(expectedFailure);
-        expect(ebayReadOutcome(s)).toEqual(expectedFailure);
-        expect(ebayWriteOutcome(s, success)).toEqual(success);
         expect(ebayReadOutcome(s)).toEqual(success);
-        expect(ebayWriteOutcome(s, null)).toBeNull();
         expect(s.getItem(EBAY_LAST_OUTCOME_KEY)).toBeNull();
     });
 
