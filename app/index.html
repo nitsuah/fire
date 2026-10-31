@@ -1693,7 +1693,7 @@
                         <!-- CoinTracker Wallet Sync -->
                         <div class="card glass-card settings-card--cointracker" id="cointracker-card">
                             <h2 class="card-title">CoinTracker Wallets</h2>
-                            <p class="card-subtitle">Optional. Connect CoinTracker to pull your wallets and exchange accounts with their current USD balances, so you don't have to enter every wallet and chain by hand. Access is read-only (balances only; fire never reads P&amp;L, cost basis or tax data, and never asks for keys). CoinTracker becomes the source of truth: a manual crypto account with the same address is replaced while connected and restored if you disconnect.</p>
+                            <p class="card-subtitle">Optional. Connect CoinTracker to discover wallets and exchange accounts with their current USD balances. Access is read-only (balances only; Fire never reads P&amp;L, cost basis or tax data, and never asks for keys). Wallets are suggestions: nothing is added until you explicitly click Add. After confirmation, CoinTracker becomes the source of truth for that wallet; a matching manual crypto account is restored if you disconnect.</p>
                             <div class="api-connector-panel mt-3">
                                 <div class="connector-header">
                                     <h3 class="csp-i-012">🪙 CoinTracker</h3>
@@ -1707,6 +1707,7 @@
                                 <p id="cointracker-status" class="text-muted mt-2 csp-i-015">Not connected</p>
                             </div>
                             <div id="cointracker-wallets" class="mt-3"></div>
+                            <div id="cointracker-suggestions" class="mt-3" aria-live="polite"></div>
                             <div id="cointracker-duplicates" class="mt-2"></div>
                             <button type="button" class="action-btn mt-2" id="btn-cointracker-inspect">Inspect CoinTracker tools</button>
                             <div id="cointracker-inspect" class="text-muted mt-2"></div>
