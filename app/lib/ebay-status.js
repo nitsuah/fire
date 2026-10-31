@@ -1,4 +1,4 @@
-/* global module */
+/* global module, AbortSignal */
 'use strict';
 
 // One eBay status vocabulary for the Financial Overview and Settings cards.
