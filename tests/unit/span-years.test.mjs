@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const { normalizeSpanYears, MAX_SPAN_YEARS } = require('../../app/lib/aggregates.js');
+const {
+    normalizeSpanYears,
+    MAX_SPAN_YEARS,
+} = require('../../app/lib/aggregates.js');
 
 describe('normalizeSpanYears', () => {
     it('defaults missing, blank, invalid, boolean and out-of-range-low values', () => {

@@ -334,9 +334,7 @@ function readProjectionSettingsFromForm() {
             const v = parseFloat(document.getElementById('proj-swr').value);
             return Number.isFinite(v) ? v : 4.0;
         })(),
-        spanYears: window.FireAggregates.normalizeSpanYears(
-            parseInt(document.getElementById('proj-years').value),
-        ),
+        spanYears: parseInt(document.getElementById('proj-years').value) || 30,
         currentAge:
             parseInt(document.getElementById('proj-current-age').value) || 30,
         retireAge:
@@ -521,9 +519,7 @@ function buildProjectionData() {
         (state.projectionSettings.expectedReturn + scenarioOffset) / 100;
     const inflation = state.projectionSettings.inflationRate / 100;
     const realReturn = (1 + nominalReturn) / (1 + inflation) - 1;
-    const span = window.FireAggregates.normalizeSpanYears(
-        state.projectionSettings.spanYears,
-    );
+    const span = state.projectionSettings.spanYears;
     const currentAge = state.projectionSettings.currentAge || 30;
     const retireAge = state.projectionSettings.retireAge || 60;
 
