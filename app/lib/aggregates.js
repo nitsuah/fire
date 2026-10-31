@@ -340,7 +340,27 @@
         };
     }
 
+    // Projection horizons are shared by browser and server. Imported state must
+    // not drive unbounded loops or chart-array allocations.
+    const MIN_SPAN_YEARS = 1;
+    const MAX_SPAN_YEARS = 120;
+    const DEFAULT_SPAN_YEARS = 30;
+
+    function normalizeSpanYears(value) {
+        if (
+            (typeof value !== 'number' && typeof value !== 'string') ||
+            (typeof value === 'string' && value.trim() === '')
+        )
+            return DEFAULT_SPAN_YEARS;
+        const n = Number(value);
+        if (!Number.isFinite(n) || n < MIN_SPAN_YEARS)
+            return DEFAULT_SPAN_YEARS;
+        return Math.min(Math.trunc(n), MAX_SPAN_YEARS);
+    }
+
     const api = {
+        normalizeSpanYears,
+        MAX_SPAN_YEARS,
         yearsToFire,
         fireStatus,
         ASSET_CLASSES,
