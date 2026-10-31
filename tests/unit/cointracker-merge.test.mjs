@@ -120,9 +120,17 @@ describe('mergeCoinTrackerWallets', () => {
             confirm: true,
         }).accounts;
         const accounts = [...existing, manualLedger];
+        const unconfirmed = {
+            providerId: 'w3',
+            name: 'Unconfirmed wallet',
+            addresses: [manualLedger.identifier],
+            usdValue: 700,
+            holdings: [],
+        };
         const incoming = [
             { ...ledger, usdValue: 5000 },
             { ...coinbase, usdValue: 300 },
+            unconfirmed,
         ];
 
         const omitted = mergeCoinTrackerWallets(accounts, incoming, {});
