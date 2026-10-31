@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Privacy policy now describes the Plaid and Etsy integrations: what each fetches, that both are opt-in, where tokens live (a sealed blob in browser `localStorage` on the hosted site, `data/tokens-*.json` self-hosted), the third-party hosts contacted, and how to delete or revoke them (#314).
+
 - Etsy card (self-hosted) now shows "Last sync failed (code)" from the status endpoint's `lastSyncOutcome` instead of a success-colored timestamp (step 1 of #302; hosted deploy is step 2).
 - Vehicle depreciation estimate returns no value for model years before 1886 or more than one year ahead, instead of looping once per year of age.
 - Imported-files table escapes file name, source and date before inserting them into the page.
