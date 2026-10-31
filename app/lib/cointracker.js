@@ -167,10 +167,7 @@ function normalizeCoinTrackerWallets(wallets) {
                 : [],
             holdings: Array.isArray(wallet.holdings)
                 ? wallet.holdings
-                      .filter(
-                          (holding) =>
-                              holding && typeof holding === 'object',
-                      )
+                      .filter((holding) => holding && typeof holding === 'object')
                       .map((holding) => ({
                           symbol:
                               typeof holding.symbol === 'string'
@@ -418,9 +415,7 @@ function renderCoinTrackerCard() {
                 : '';
     }
 
-    const suggestionsEl = document.getElementById(
-        'cointracker-suggestions',
-    );
+    const suggestionsEl = document.getElementById('cointracker-suggestions');
     if (suggestionsEl) {
         const storedWallets = Array.isArray(result?.wallets)
             ? result.wallets
@@ -475,10 +470,7 @@ function renderCoinTrackerCard() {
                     .join('')}
             </div>`
             : '';
-        toggle(
-            'cointracker-suggestions',
-            connected && suggestions.length > 0,
-        );
+        toggle('cointracker-suggestions', connected && suggestions.length > 0);
     }
 
     const dupEl = document.getElementById('cointracker-duplicates');
@@ -556,12 +548,11 @@ function initCoinTracker() {
         } else if (target.dataset.ctToggle) {
             toggleCoinTrackerWallet(target.dataset.ctToggle);
         } else if (target.dataset.ctSuggestionAdd) {
-            addCoinTrackerSuggestion(target.dataset.ctSuggestionAdd).catch(
-                () =>
-                    ctSetStatus(
-                        'Could not add the suggested CoinTracker wallet.',
-                        'var(--color-danger)',
-                    ),
+            addCoinTrackerSuggestion(target.dataset.ctSuggestionAdd).catch(() =>
+                ctSetStatus(
+                    'Could not add the suggested CoinTracker wallet.',
+                    'var(--color-danger)',
+                ),
             );
         } else if (target.dataset.ctSuggestionDismiss) {
             dismissCoinTrackerSuggestion(
