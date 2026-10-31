@@ -22,6 +22,7 @@ const SHELL_ASSETS = [
     '/lib/chaos-events.js',
     '/lib/layout-manager.js',
     '/lib/side-gig.js',
+    '/lib/ebay-status.js',
     '/lib/csv-import.js',
     '/lib/finance-calcs.js',
     '/lib/finance-core.js',
