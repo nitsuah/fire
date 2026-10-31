@@ -724,7 +724,9 @@ function buildProjectionData() {
             simArgs,
             savedTotal: sim.savedTotal,
             premiumTotal: sim.premiumTotal,
-            excluded: window.FireChaos.describeExclusions(state.chaosProfile || null),
+            excluded: window.FireChaos.describeExclusions(
+                state.chaosProfile || null,
+            ),
         };
     }
 

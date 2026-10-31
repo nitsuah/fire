@@ -497,15 +497,9 @@ describe('household profile', () => {
     });
 
     it('describeExclusions mirrors excludedEventIds for UI', () => {
-        expect(FC.describeExclusions({ pets: 'none' })).toEqual([
-            'pet events',
-        ]);
-        expect(FC.describeExclusions({ pets: 'cat' })).toEqual([
-            'dog events',
-        ]);
-        expect(FC.describeExclusions({ pets: 'dog' })).toEqual([
-            'cat events',
-        ]);
+        expect(FC.describeExclusions({ pets: 'none' })).toEqual(['pet events']);
+        expect(FC.describeExclusions({ pets: 'cat' })).toEqual(['dog events']);
+        expect(FC.describeExclusions({ pets: 'dog' })).toEqual(['cat events']);
         expect(FC.describeExclusions({ children: 'no' })).toEqual([
             'child events',
         ]);
@@ -515,9 +509,9 @@ describe('household profile', () => {
         expect(FC.describeExclusions({ housing: 'own' })).toEqual([
             'rent-increase events',
         ]);
-        expect(FC.describeExclusions({ pets: 'both', children: 'yes' })).toEqual(
-            [],
-        );
+        expect(
+            FC.describeExclusions({ pets: 'both', children: 'yes' }),
+        ).toEqual([]);
         expect(FC.describeExclusions({})).toEqual([]);
         expect(FC.describeExclusions(null)).toEqual([]);
         expect(FC.describeExclusions(undefined)).toEqual([]);
