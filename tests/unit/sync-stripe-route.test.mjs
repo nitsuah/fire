@@ -41,11 +41,6 @@ beforeAll(async () => {
 
 beforeEach(() => {
     process.env.SYNC_MASTER_KEY = TEST_MASTER_KEY;
-    try {
-        fs.unlinkSync(getTokenFile('stripe'));
-    } catch (err) {
-        if (err.code !== 'ENOENT') throw err;
-    }
 });
 
 afterEach(() => {
