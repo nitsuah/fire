@@ -184,7 +184,6 @@ test.describe('Marketplace connections', () => {
     });
 });
 
-
 test('manual Side Gig Ledger form reflows on phone and stays within desktop viewport', async ({
     page,
 }) => {
