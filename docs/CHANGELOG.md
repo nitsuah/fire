@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Side Gig Ledger manual-entry form now stacks with visible labels at tablet/phone widths, and the tax summary wraps without horizontal overflow (#173).
+
 - Expenses: budget hints and Tax Estimator summary rows have explicit spacing and stay within their layout cells at desktop and mobile widths (#168).
 - Privacy policy now describes the Plaid and Etsy integrations: what each fetches, that both are opt-in, where tokens live (a sealed blob in browser `localStorage` on the hosted site, `data/tokens-*.json` self-hosted), the third-party hosts contacted, and how to delete or revoke them (#314).
 

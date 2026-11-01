@@ -583,6 +583,37 @@
     align-items: center;
 }
 
+/* This file loads after base.css, so repeat its responsive override here. */
+@media (max-width: 1024px) {
+    .grid-4-col {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .grid-4-col .span-4 {
+        grid-column: span 1;
+        text-align: left;
+    }
+}
+
+/* Side Gig tax summary: keep each metric readable at narrow widths. */
+.sg-tax-summary-items {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-xs) var(--space-md);
+}
+
+.sg-tax-summary-item {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.sg-tax-summary-note {
+    margin-top: var(--space-xs);
+    overflow-wrap: anywhere;
+}
+
 /* Cash Flow — organic fluid */
 .cf-list {
     display: flex;
