@@ -2,13 +2,13 @@
 
 > This page distinguishes current Stripe mapper behavior from the future cross-provider reconciliation policy. The mapper does not currently link Stripe, eBay, Etsy, or manual rows together.
 
-## Identity and provenance
+## Canonical key and provenance
 
 - The pure Stripe balance-transaction mapper emits a ledger row id of `stripe-<txn id>` and keeps the raw provider id in `stripeTxnId`. The id is source provenance, not proof that another provider row is the same sale.
 - The mapper currently has no Stripe account-id input. The account-scoped canonical key described in [the overlap audit](stripe-overlap-audit.md) is `stripe:<account id>:<balance transaction id>`; it is a future storage/reconciliation key, not the current mapper's row id.
 - eBay rows keep `ebay-<orderId>`; Etsy rows keep `etsy-<receipt_id>`; manual rows keep their user-created ids. Keep those source ids when reconciling.
 
-## Current Stripe counting rules
+## Counting rules (current Stripe mapper)
 
 - Only USD balance transactions with a `txn_` id and a valid UTC `created` date are mapped. Integer minor units become dollars rounded to cents.
 - `charge` / `payment` are sale rows. `refund`, `payment_refund`, and `adjustment` are separate negative refund/reversal rows with their own ids. A `stripe_fee` row has zero gross and a fee expense.
