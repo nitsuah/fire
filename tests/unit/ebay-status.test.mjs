@@ -185,7 +185,7 @@ describe('eBay outcome persistence', () => {
             ok: false,
             errorCode: 'timeout',
         });
-        for (const raw of ['{', 'null', '[]', '2', '"text"']) {
+        for (const raw of ['{', 'null', '[]', '2', '"text"', '{}', '{"foo":1}']) {
             storage.setItem(OUTCOME_KEY, raw);
             expect(ebayReadOutcome(storage)).toBeNull();
         }
@@ -356,4 +356,64 @@ describe('hosted eBay call-site transitions', () => {
         expect(context.state.sideGigLedger).toEqual([{ id: 'manual' }]);
         expect(context.saveState).toHaveBeenCalledOnce();
     });
+    it('preserves the prior outcome when token changes during a failed fetch', async () => {
+        const { context, values, outcome } = hostedHarness();
+        context.fetch.mockImplementation(async () => {
+            values.set(TOKEN_KEY, 'replacement-token');
+            return syncResponse({ code: 'TIMEOUT', error: 'private' }, 503);
+        });
+        await expect(context.syncEbayViaFunction()).rejects.toThrow();
+        expect(values.get(SYNC_KEY)).toBe('previous-sync');
+        expect(outcome()).toEqual({
+            at: FIXED_NOW,
+            ok: true,
+            errorCode: null,
+        });
+    });
+
+    it('discards a success response when token changes during fetch', async () => {
+        const { context, values, outcome } = hostedHarness();
+        const previous = {
+            at: 'previous-outcome',
+            ok: false,
+            errorCode: 'timeout',
+        };
+        values.set(OUTCOME_KEY, JSON.stringify(previous));
+        context.fetch.mockImplementation(async () => {
+            values.set(TOKEN_KEY, 'replacement-token');
+            return syncResponse({
+                entries: [{ id: 'stale-sale' }],
+                syncedAt: FIXED_NOW,
+            });
+        });
+        await expect(context.syncEbayViaFunction()).rejects.toThrow(
+            'eBay connection changed during sync; retry',
+        );
+        expect(context.state.sideGigLedger).toEqual([]);
+        expect(context.saveState).not.toHaveBeenCalled();
+        expect(values.get(SYNC_KEY)).toBe('previous-sync');
+        expect(outcome()).toEqual(previous);
+    });
+
+    it('preserves the prior outcome and timestamp when token changes during saveState', async () => {
+        const { context, values, outcome } = hostedHarness();
+        const previous = {
+            at: 'previous-outcome',
+            ok: false,
+            errorCode: 'timeout',
+        };
+        values.set(OUTCOME_KEY, JSON.stringify(previous));
+        context.fetch.mockResolvedValue(
+            syncResponse({ entries: [], syncedAt: FIXED_NOW }),
+        );
+        context.saveState.mockImplementation(async () => {
+            values.set(TOKEN_KEY, 'replacement-token');
+        });
+        await expect(context.syncEbayViaFunction()).rejects.toThrow(
+            'eBay connection changed during sync; retry',
+        );
+        expect(values.get(SYNC_KEY)).toBe('previous-sync');
+        expect(outcome()).toEqual(previous);
+    });
+
 });

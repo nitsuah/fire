@@ -58,7 +58,12 @@ function ebayReadOutcome(storage) {
         const raw = target.getItem(EBAY_LAST_OUTCOME_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        if (
+            !parsed ||
+            typeof parsed !== 'object' ||
+            Array.isArray(parsed) ||
+            typeof parsed.ok !== 'boolean'
+        ) {
             return null;
         }
         return ebayBuildOutcome(parsed);

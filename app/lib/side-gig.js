@@ -478,8 +478,11 @@ async function syncEbayViaFunction() {
         throw new Error('Invalid sync response');
     }
     const canCommitSuccess = isCurrentAttempt();
+    if (!canCommitSuccess) {
+        throw new Error('eBay connection changed during sync; retry');
+    }
     const successBlob = data.tokens || blob;
-    if (canCommitSuccess && data.tokens) {
+    if (data.tokens) {
         writeEbayLocal(EBAY_TOKEN_KEY, data.tokens);
     }
     let added = 0;
@@ -504,20 +507,21 @@ async function syncEbayViaFunction() {
         }
         throw err;
     }
-    if (canCommitSuccess && readEbayLocal(EBAY_TOKEN_KEY) === successBlob) {
-        writeEbayLocal(EBAY_LAST_SYNC_KEY, data.syncedAt);
-        ebayWriteOutcome(
-            null,
-            ebayBuildOutcome({
-                at:
-                    typeof data.syncedAt === 'string' && data.syncedAt
-                        ? data.syncedAt
-                        : new Date().toISOString(),
-                ok: true,
-                errorCode: null,
-            }),
-        );
+    if (readEbayLocal(EBAY_TOKEN_KEY) !== successBlob) {
+        throw new Error('eBay connection changed during sync; retry');
     }
+    writeEbayLocal(EBAY_LAST_SYNC_KEY, data.syncedAt);
+    ebayWriteOutcome(
+        null,
+        ebayBuildOutcome({
+            at:
+                typeof data.syncedAt === 'string' && data.syncedAt
+                    ? data.syncedAt
+                    : new Date().toISOString(),
+            ok: true,
+            errorCode: null,
+        }),
+    );
     return { ...data, added };
 }
 
