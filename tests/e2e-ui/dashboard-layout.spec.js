@@ -1120,7 +1120,9 @@ test.describe('Expenses — budget field labels', () => {
                 value.y - (name.y + name.height),
                 name.y - (value.y + value.height),
             );
-            expect(Math.max(horizontalGap, verticalGap)).toBeGreaterThanOrEqual(4);
+            expect(Math.max(horizontalGap, verticalGap)).toBeGreaterThanOrEqual(
+                4,
+            );
 
             const scrollWidth = await page.evaluate(
                 () => document.documentElement.scrollWidth,
