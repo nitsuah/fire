@@ -207,6 +207,7 @@ function localEbayStatus() {
     return {
         connected: Boolean(readEbayLocal(EBAY_TOKEN_KEY)),
         lastSync: readEbayLocal(EBAY_LAST_SYNC_KEY),
+        lastSyncOutcome: ebayReadOutcome(),
         syncEnabled: state.ebaySyncEnabled !== false,
     };
 }
@@ -238,6 +239,7 @@ async function consumeEbayOauthFragment() {
     }
     if (match[1] === 'connected') {
         writeEbayLocal(EBAY_TOKEN_KEY, decodeURIComponent(match[2]));
+        ebayWriteOutcome(null, null);
         showSideGigToast('eBay connected — syncing your sales…');
         await checkEbayConnection();
         try {
@@ -264,6 +266,7 @@ async function consumeEbayOauthFragment() {
 async function handleEbayConnectionLost(code, message) {
     writeEbayLocal(EBAY_TOKEN_KEY, null);
     writeEbayLocal(EBAY_LAST_SYNC_KEY, null);
+    ebayWriteOutcome(null, null);
     let removed = 0;
     if (code === 'ebay_revoked') {
         if (await isBrowserOnlyModeAsync()) {
@@ -420,6 +423,18 @@ async function syncEbayViaFunction() {
     const blob = readEbayLocal(EBAY_TOKEN_KEY);
     if (!blob) throw new Error('eBay is not connected.');
     const isCurrentAttempt = () => readEbayLocal(EBAY_TOKEN_KEY) === blob;
+    const recordFailure = (errorCode) => {
+        if (isCurrentAttempt()) {
+            ebayWriteOutcome(
+                null,
+                ebayBuildOutcome({
+                    at: new Date().toISOString(),
+                    ok: false,
+                    errorCode,
+                }),
+            );
+        }
+    };
     let res;
     try {
         res = await fetch('/api/sync/ebay/sync', {
@@ -428,16 +443,7 @@ async function syncEbayViaFunction() {
             body: JSON.stringify({ tokens: blob }),
         });
     } catch (err) {
-        if (isCurrentAttempt()) {
-            ebayWriteOutcome(
-                null,
-                ebayBuildOutcome({
-                    at: new Date().toISOString(),
-                    ok: false,
-                    errorCode: 'network_error',
-                }),
-            );
-        }
+        recordFailure('network_error');
         throw err;
     }
     let data;
@@ -445,16 +451,7 @@ async function syncEbayViaFunction() {
         data = await res.json();
     } catch {
         if (res.ok) {
-            if (isCurrentAttempt()) {
-                ebayWriteOutcome(
-                    null,
-                    ebayBuildOutcome({
-                        at: new Date().toISOString(),
-                        ok: false,
-                        errorCode: 'invalid_response',
-                    }),
-                );
-            }
+            recordFailure('invalid_response');
             throw new Error('Invalid sync response');
         }
         data = {};
@@ -464,17 +461,21 @@ async function syncEbayViaFunction() {
         return null;
     }
     if (!res.ok) {
-        if (isCurrentAttempt()) {
-            ebayWriteOutcome(
-                null,
-                ebayBuildOutcome({
-                    at: new Date().toISOString(),
-                    ok: false,
-                    errorCode: data.code || 'http_' + res.status,
-                }),
-            );
-        }
+        recordFailure(data.code || 'http_' + res.status);
         throw new Error(data.error || 'Sync failed');
+    }
+    if (
+        !data ||
+        typeof data !== 'object' ||
+        Array.isArray(data) ||
+        !Array.isArray(data.entries) ||
+        typeof data.syncedAt !== 'string' ||
+        !data.syncedAt ||
+        (data.tokens !== undefined &&
+            (typeof data.tokens !== 'string' || !data.tokens))
+    ) {
+        recordFailure('invalid_response');
+        throw new Error('Invalid sync response');
     }
     const canCommitSuccess = isCurrentAttempt();
     const successBlob = data.tokens || blob;
@@ -482,7 +483,7 @@ async function syncEbayViaFunction() {
         writeEbayLocal(EBAY_TOKEN_KEY, data.tokens);
     }
     let added = 0;
-    for (const entry of data.entries || []) {
+    for (const entry of data.entries) {
         if (!state.sideGigLedger.some((e) => e.id === entry.id)) {
             state.sideGigLedger.push(entry);
             added++;
@@ -503,8 +504,8 @@ async function syncEbayViaFunction() {
         }
         throw err;
     }
-    writeEbayLocal(EBAY_LAST_SYNC_KEY, data.syncedAt);
     if (canCommitSuccess && readEbayLocal(EBAY_TOKEN_KEY) === successBlob) {
+        writeEbayLocal(EBAY_LAST_SYNC_KEY, data.syncedAt);
         ebayWriteOutcome(
             null,
             ebayBuildOutcome({

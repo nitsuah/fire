@@ -12,6 +12,7 @@
 
 const ETSY_TOKEN_KEY = 'fire_tracker_etsy_token';
 const ETSY_LAST_SYNC_KEY = 'fire_tracker_etsy_last_sync';
+const ETSY_LAST_OUTCOME_KEY = 'fire_tracker_etsy_last_sync_outcome';
 const ETSY_CONNECT_PENDING_KEY = 'fire_tracker_etsy_connect_pending';
 // Set when a sync stopped at its page cap; the next sync starts here.
 const ETSY_RESUME_KEY = 'fire_tracker_etsy_resume_from';
@@ -49,6 +50,57 @@ function etsyWrite(key, value, storage = localStorage) {
     }
 }
 
+function etsyBuildOutcome(value = {}) {
+    const input =
+        value && typeof value === 'object' && !Array.isArray(value)
+            ? value
+            : {};
+    const errorCode =
+        typeof input.errorCode === 'string' &&
+        /^[a-z0-9_-]{1,64}$/i.test(input.errorCode)
+            ? input.errorCode.toLowerCase()
+            : null;
+    return {
+        at: typeof input.at === 'string' ? input.at : null,
+        ok: input.ok === true,
+        errorCode,
+    };
+}
+
+function etsyReadOutcome(storage) {
+    let raw;
+    try {
+        raw = etsyRead(ETSY_LAST_OUTCOME_KEY, storage);
+    } catch {
+        return null;
+    }
+    if (typeof raw !== 'string') return null;
+    try {
+        const parsed = JSON.parse(raw);
+        if (
+            !parsed ||
+            typeof parsed !== 'object' ||
+            Array.isArray(parsed) ||
+            typeof parsed.ok !== 'boolean'
+        ) {
+            return null;
+        }
+        return etsyBuildOutcome(parsed);
+    } catch {
+        return null;
+    }
+}
+
+function etsyWriteOutcome(storage, outcome) {
+    const value =
+        outcome == null ? null : JSON.stringify(etsyBuildOutcome(outcome));
+    try {
+        etsyWrite(ETSY_LAST_OUTCOME_KEY, value, storage);
+    } catch {
+        /* localStorage unavailable — fail open */
+    }
+}
+
 // Mirrors isApiSyncedEtsyEntry in app/lib/etsy-connector.js.
 function isApiSyncedEtsyEntry(entry) {
     return (
@@ -76,6 +128,7 @@ async function fetchEtsyStatus() {
             connected: Boolean(etsyRead(ETSY_TOKEN_KEY)),
             configured,
             lastSync: etsyRead(ETSY_LAST_SYNC_KEY),
+            lastSyncOutcome: etsyReadOutcome(),
             syncEnabled: state.etsySyncEnabled !== false,
         };
     }
@@ -180,6 +233,7 @@ async function consumeEtsyOauthFragment() {
         etsyWrite(ETSY_TOKEN_KEY, value);
         etsyWrite(ETSY_LAST_SYNC_KEY, null);
         etsyWrite(ETSY_RESUME_KEY, null);
+        etsyWriteOutcome(undefined, null);
     }
     showSideGigToast('Etsy connected — syncing your sales…');
     await runEtsySyncNow({ silent: true, toastOnDone: true });
@@ -192,6 +246,7 @@ async function handleEtsyConnectionLost(code, message) {
     etsyWrite(ETSY_TOKEN_KEY, null);
     etsyWrite(ETSY_LAST_SYNC_KEY, null);
     etsyWrite(ETSY_RESUME_KEY, null);
+    etsyWriteOutcome(undefined, null);
     let removed = 0;
     if (code === 'etsy_revoked') {
         if (await isBrowserOnlyModeAsync()) {
@@ -237,18 +292,35 @@ async function syncEtsyViaFunction() {
         (Number.isNaN(last)
             ? undefined
             : new Date(last - ETSY_RESYNC_LOOKBACK_MS).toISOString());
-    const res = await fetch('/api/sync/etsy/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens: blob, since }),
-    });
+    let res;
+    try {
+        res = await fetch('/api/sync/etsy/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens: blob, since }),
+        });
+    } catch (err) {
+        etsyWriteOutcome(undefined, {
+            at: new Date().toISOString(),
+            ok: false,
+            errorCode: 'network_error',
+        });
+        throw err;
+    }
     const data = await res.json().catch(() => ({}));
     if (data.tokens) etsyWrite(ETSY_TOKEN_KEY, data.tokens);
     if (res.status === 401 && ETSY_DEAD_GRANT_CODES.has(data.code)) {
         await handleEtsyConnectionLost(data.code, data.error);
         return null;
     }
-    if (!res.ok) throw new Error(data.error || 'Sync failed');
+    if (!res.ok) {
+        etsyWriteOutcome(undefined, {
+            at: new Date().toISOString(),
+            ok: false,
+            errorCode: data.code,
+        });
+        throw new Error(data.error || 'Sync failed');
+    }
     const ids = new Set(state.sideGigLedger.map((e) => e.id));
     let added = 0;
     for (const entry of data.entries || []) {
@@ -259,6 +331,11 @@ async function syncEtsyViaFunction() {
     }
     if (added) await saveState();
     etsyWrite(ETSY_LAST_SYNC_KEY, data.syncedAt);
+    etsyWriteOutcome(undefined, {
+        at: data.syncedAt || new Date().toISOString(),
+        ok: true,
+        errorCode: null,
+    });
     etsyWrite(ETSY_RESUME_KEY, data.truncated ? data.resumeFrom : null);
     return { ...data, added };
 }
@@ -324,6 +401,7 @@ async function disconnectEtsy() {
     etsyWrite(ETSY_TOKEN_KEY, null);
     etsyWrite(ETSY_LAST_SYNC_KEY, null);
     etsyWrite(ETSY_RESUME_KEY, null);
+    etsyWriteOutcome(undefined, null);
     showSideGigToast('Etsy disconnected.');
     renderEtsyStatus();
 }
@@ -368,4 +446,10 @@ function initEtsySync() {
 }
 
 if (typeof module !== 'undefined' && module.exports)
-    module.exports = { etsyFailedSyncText };
+    module.exports = {
+        ETSY_LAST_OUTCOME_KEY,
+        etsyBuildOutcome,
+        etsyReadOutcome,
+        etsyWriteOutcome,
+        etsyFailedSyncText,
+    };
