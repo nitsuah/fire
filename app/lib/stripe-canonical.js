@@ -1,3 +1,4 @@
+/* global module */
 'use strict';
 
 const SALE_TYPES = new Set(['charge', 'payment']);
