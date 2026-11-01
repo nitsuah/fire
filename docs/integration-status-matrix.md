@@ -16,7 +16,7 @@ that can only fail.
 
 | Provider | Self-hosted | Hosted (Netlify) | Status endpoint |
 | --- | --- | --- | --- |
-| eBay | `data/tokens-ebay.json` (encrypted with `SYNC_MASTER_KEY` when set) | browser `localStorage`, sealed blob | `/api/sync/ebay/status`: Express returns configured/connected/lastSyncOutcome; Netlify Function returns `configured` only; browser owns connection state (hosted outcome persistence pending #326) |
+| eBay | `data/tokens-ebay.json` (encrypted with `SYNC_MASTER_KEY` when set) | browser `localStorage`, sealed blob + sanitized last-sync outcome | `/api/sync/ebay/status`: Express returns configured/connected/lastSyncOutcome; Netlify Function returns `configured` only; hosted connection/outcome state remains browser-local (#326) |
 | Etsy | `data/tokens-etsy.json` | browser `localStorage`, sealed blob + local last-sync outcome | `/api/sync/etsy/status`; hosted function reports `configured`, browser adds its local outcome |
 | Plaid | `data/tokens-plaid.json` | browser, sealed `plaidToken` | `/api/sync/plaid/status` in both runtimes |
 | CoinTracker | none — browser-held in **both** modes | browser `localStorage`, sealed blob | `/api/sync/cointracker/status` in both runtimes (#294) |
@@ -30,7 +30,7 @@ Its status call therefore takes the blob in an `Authorization` header.
 
 | Provider | `configured` | `connected` | last-sync outcome | re-auth signal |
 | --- | --- | --- | --- | --- |
-| eBay | yes — Express and Netlify status function both expose `configured` (#322/#324) | self-hosted token file; hosted sealed blob in browser | self-hosted `lastSyncOutcome` from token store (#323); hosted browser outcome persistence pending #326 (current main retains only the timestamp) | revoked grant drops token; next status is disconnected; live provider revocation remains unverified |
+| eBay | yes — Express and Netlify status function both expose `configured` (#322/#324) | self-hosted token file; hosted sealed blob in browser | self-hosted `lastSyncOutcome` from token store (#323); hosted sanitized browser-local outcome survives reload and is replaced on success (#326) | revoked grant drops token and clears the browser outcome; next status is disconnected; live provider revocation remains unverified |
 | Etsy | yes | token file present | self-hosted `lastSyncOutcome` from token store; hosted browser-local `lastSyncOutcome` survives reload (#321) | known codes surface on sync; hosted dead-grant path clears the browser outcome |
 | Plaid | yes | items present | `lastSync: { at, ok, errorCode }` (#293) | yes — `reauthRequired` from a per-item `lastErrorCode` |
 | CoinTracker | yes | sealed blob unseals (#294) | client-side `lastSync` key | yes — an unsealable blob is reported disconnected and dropped |
@@ -46,7 +46,7 @@ the grant is dead and retrying can never fix it — only the user can.
 | Plaid | `configured: false`, Connect hidden | `connected: false` | `connected: true`, `lastSync: null` | `lastSync.ok === false` + `errorCode` | `reauthRequired: true` |
 | CoinTracker | `configured: false`, Connect hidden | `connected: false` | `connected: true`, no last-sync key | sync error toast, blob kept | blob unsealable → dropped |
 | Etsy | `configured: false`, Connect hidden | `connected: false` | `lastSync: null` | `lastSyncOutcome.ok === false` + safe `errorCode` (browser-local when hosted) | revoked grant → token and outcome cleared |
-| eBay | `configured: false`, Connect hidden | `connected: false` | self-hosted: `connected: true`, `lastSync: null`; hosted: connected from sealed browser token, `lastSync: null` | self-hosted: `lastSyncOutcome.ok === false` + safe `errorCode`; hosted outcome persistence pending #326 | revoked grant drops token; next status is disconnected (live account behavior unverified) |
+| eBay | `configured: false`, Connect hidden | `connected: false` | self-hosted: `connected: true`, `lastSync: null`; hosted: connected from sealed browser token, `lastSync: null` | self-hosted: `lastSyncOutcome.ok === false` + safe `errorCode`; hosted browser-local `lastSyncOutcome` survives reload (#326) | revoked grant clears token and outcome; next status is disconnected (live account behavior unverified) |
 | Drive backup | `clientConfigured`/`masterKeySet` false | `authorized: false` | authorized, never backed up | backup error surfaces `driveReason` | 401 `gdrive_token_invalid` drops the grant (hosted suite only) |
 
 ## Verification status
@@ -60,7 +60,7 @@ describes; an empty cell means nothing pins it yet.
 | Plaid (both runtimes) | `tests/unit/sync-plaid-route.test.mjs`, `tests/unit/netlify-plaid.test.mjs` |
 | CoinTracker (both runtimes) | `tests/unit/cointracker-status.test.mjs` |
 | Etsy | `tests/unit/etsy-sync-label.test.mjs`, `tests/unit/sync-etsy-route.test.mjs`, `tests/unit/netlify-etsy-function.test.mjs` |
-| eBay | `tests/unit/sync-ebay-route.test.mjs` covers configured false/true, connected token redaction, and self-hosted failure/recovery; `tests/unit/netlify-ebay-functions.test.mjs` covers hosted configured false/true; browser outcome persistence is pending #326 |
+| eBay | `tests/unit/ebay-status.test.mjs` covers safe outcome normalization/storage and hosted sync, OAuth, and lost-grant transitions (#326); `tests/unit/sync-ebay-route.test.mjs` and `tests/unit/netlify-ebay-functions.test.mjs` cover configured/status behavior |
 | Drive backup | `tests/unit/gdrive-backup.test.mjs`, `tests/unit/netlify-gdrive-backup.test.mjs` — the `gdrive_token_invalid` handling is pinned only in the hosted suite; the self-hosted route has no revoked-grant case |
 
 Not verified here, and not something a code read can establish:
@@ -75,8 +75,8 @@ Not verified here, and not something a code read can establish:
 
 Filed as follow-ups rather than left implicit:
 
-1. **Hosted eBay status remains intentionally split.** The Netlify function reports `configured` only; connection state is in the browser-held sealed token. Hosted last-sync outcome persistence is still tracked by #326; current main retains only the timestamp.
-2. **eBay live provider/account behavior is not verified by code/tests.** Synthetic tests pin configured/status behavior and the self-hosted outcome, but OAuth, real sync, and provider-side revocation need owner-controlled live acceptance (#301). Etsy hosted outcome is browser-local and the Netlify function remains stateless (#302/#321).
+1. **Hosted eBay status remains intentionally split.** The Netlify function reports `configured` only; connection and sanitized last-sync outcome are browser-local. The outcome survives reload, later success replaces failure, and OAuth reconnect/lost grant clear it (#326).
+2. **eBay live provider/account behavior is not verified by code/tests.** Synthetic tests pin configured/status and hosted outcome transitions, but OAuth, real sync, and provider-side revocation need owner-controlled live acceptance (#301). Etsy hosted outcome is browser-local and the Netlify function remains stateless (#302/#321).
 
 3. **The hosted Drive card always receives `authorized: false`** and overrides
    it from the browser blob. That is intentional (the server never holds the

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Etsy (hosted): persist a sanitized last-sync outcome in browser storage so failures survive reloads; clear it on success, disconnect, lost grant, or reconnect (#321).
+- eBay (hosted): persist a sanitized last-sync outcome in browser storage; failures survive reloads, success replaces failure, and OAuth reconnect or lost grant clears stale state (#326).
 
 - Docs: `docs/stripe-overlap-audit.md` records where a Stripe connector could overlap eBay, Etsy, manual rows and bank deposits, the canonical Stripe key, and the rule that payouts are never income (#261).
 - `scripts/fin-checkin.mjs`: the weekly financial check-in as a script. It pulls net worth, runway, CDs, concentration and price freshness through the read-only MCP code, picks the action item by fixed rules, and makes at most one 9router call to rewrite the templated text (templated fallback when it is down). Flags `--no-model`, `--rates`, `--json`; documented in the README with a Task Scheduler example.

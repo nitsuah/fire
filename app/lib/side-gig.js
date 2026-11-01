@@ -207,6 +207,7 @@ function localEbayStatus() {
     return {
         connected: Boolean(readEbayLocal(EBAY_TOKEN_KEY)),
         lastSync: readEbayLocal(EBAY_LAST_SYNC_KEY),
+        lastSyncOutcome: ebayReadOutcome(),
         syncEnabled: state.ebaySyncEnabled !== false,
     };
 }
@@ -238,6 +239,7 @@ async function consumeEbayOauthFragment() {
     }
     if (match[1] === 'connected') {
         writeEbayLocal(EBAY_TOKEN_KEY, decodeURIComponent(match[2]));
+        ebayWriteOutcome(null, null);
         showSideGigToast('eBay connected — syncing your sales…');
         await checkEbayConnection();
         try {
@@ -264,6 +266,7 @@ async function consumeEbayOauthFragment() {
 async function handleEbayConnectionLost(code, message) {
     writeEbayLocal(EBAY_TOKEN_KEY, null);
     writeEbayLocal(EBAY_LAST_SYNC_KEY, null);
+    ebayWriteOutcome(null, null);
     let removed = 0;
     if (code === 'ebay_revoked') {
         if (await isBrowserOnlyModeAsync()) {
@@ -419,27 +422,106 @@ async function syncEbayViaFunction() {
     }
     const blob = readEbayLocal(EBAY_TOKEN_KEY);
     if (!blob) throw new Error('eBay is not connected.');
-    const res = await fetch('/api/sync/ebay/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens: blob }),
-    });
-    const data = await res.json().catch(() => ({}));
+    const isCurrentAttempt = () => readEbayLocal(EBAY_TOKEN_KEY) === blob;
+    const recordFailure = (errorCode) => {
+        if (isCurrentAttempt()) {
+            ebayWriteOutcome(
+                null,
+                ebayBuildOutcome({
+                    at: new Date().toISOString(),
+                    ok: false,
+                    errorCode,
+                }),
+            );
+        }
+    };
+    let res;
+    try {
+        res = await fetch('/api/sync/ebay/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens: blob }),
+        });
+    } catch (err) {
+        recordFailure('network_error');
+        throw err;
+    }
+    let data;
+    try {
+        data = await res.json();
+    } catch {
+        if (res.ok) {
+            recordFailure('invalid_response');
+            throw new Error('Invalid sync response');
+        }
+        data = {};
+    }
     if (res.status === 401 && data.code) {
         await handleEbayConnectionLost(data.code, data.error);
         return null;
     }
-    if (!res.ok) throw new Error(data.error || 'Sync failed');
-    if (data.tokens) writeEbayLocal(EBAY_TOKEN_KEY, data.tokens);
+    if (!res.ok) {
+        recordFailure(data.code || 'http_' + res.status);
+        throw new Error(data.error || 'Sync failed');
+    }
+    if (
+        !data ||
+        typeof data !== 'object' ||
+        Array.isArray(data) ||
+        !Array.isArray(data.entries) ||
+        typeof data.syncedAt !== 'string' ||
+        !data.syncedAt ||
+        (data.tokens !== undefined &&
+            (typeof data.tokens !== 'string' || !data.tokens))
+    ) {
+        recordFailure('invalid_response');
+        throw new Error('Invalid sync response');
+    }
+    const canCommitSuccess = isCurrentAttempt();
+    if (!canCommitSuccess) {
+        throw new Error('eBay connection changed during sync; retry');
+    }
+    const successBlob = data.tokens || blob;
+    if (data.tokens) {
+        writeEbayLocal(EBAY_TOKEN_KEY, data.tokens);
+    }
     let added = 0;
-    for (const entry of data.entries || []) {
+    for (const entry of data.entries) {
         if (!state.sideGigLedger.some((e) => e.id === entry.id)) {
             state.sideGigLedger.push(entry);
             added++;
         }
     }
-    await saveState();
+    try {
+        await saveState();
+    } catch (err) {
+        if (readEbayLocal(EBAY_TOKEN_KEY) === successBlob) {
+            ebayWriteOutcome(
+                null,
+                ebayBuildOutcome({
+                    at: new Date().toISOString(),
+                    ok: false,
+                    errorCode: 'storage_error',
+                }),
+            );
+        }
+        throw err;
+    }
+    if (readEbayLocal(EBAY_TOKEN_KEY) !== successBlob) {
+        throw new Error('eBay connection changed during sync; retry');
+    }
     writeEbayLocal(EBAY_LAST_SYNC_KEY, data.syncedAt);
+    ebayWriteOutcome(
+        null,
+        ebayBuildOutcome({
+            at:
+                typeof data.syncedAt === 'string' && data.syncedAt
+                    ? data.syncedAt
+                    : new Date().toISOString(),
+            ok: true,
+            errorCode: null,
+        }),
+    );
     return { ...data, added };
 }
 

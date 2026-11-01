@@ -1,4 +1,4 @@
-/* global module, AbortSignal */
+/* global module, AbortSignal, localStorage */
 'use strict';
 
 // One eBay status vocabulary for the Financial Overview and Settings cards.
@@ -34,6 +34,60 @@ function ebayStatusBadge(data) {
     };
 }
 
+const EBAY_LAST_OUTCOME_KEY = 'fire_tracker_ebay_last_sync_outcome';
+
+function ebayBuildOutcome({ at, ok, errorCode } = {}) {
+    let safeCode = null;
+    if (
+        typeof errorCode === 'string' &&
+        /^[a-z0-9_-]{1,64}$/i.test(errorCode)
+    ) {
+        safeCode = errorCode.toLowerCase();
+    }
+    const success = ok === true;
+    return {
+        at: typeof at === 'string' ? at : null,
+        ok: success,
+        errorCode: success ? null : safeCode,
+    };
+}
+
+function ebayReadOutcome(storage) {
+    try {
+        const target = storage || localStorage;
+        const raw = target.getItem(EBAY_LAST_OUTCOME_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (
+            !parsed ||
+            typeof parsed !== 'object' ||
+            Array.isArray(parsed) ||
+            typeof parsed.ok !== 'boolean'
+        ) {
+            return null;
+        }
+        return ebayBuildOutcome(parsed);
+    } catch {
+        return null;
+    }
+}
+
+function ebayWriteOutcome(storage, outcome) {
+    try {
+        const target = storage || localStorage;
+        if (outcome === null) {
+            target.removeItem(EBAY_LAST_OUTCOME_KEY);
+            return;
+        }
+        target.setItem(
+            EBAY_LAST_OUTCOME_KEY,
+            JSON.stringify(ebayBuildOutcome(outcome)),
+        );
+    } catch {
+        /* storage unavailable — sync and status must remain usable */
+    }
+}
+
 // Browser-only mode cannot see the deploy's eBay credentials (they live on the
 // function), so ask the status endpoint. Unknown (offline, error, no boolean) is null.
 async function fetchEbayConfigured(fetchFn) {
@@ -51,5 +105,12 @@ async function fetchEbayConfigured(fetchFn) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { ebayStatusBadge, fetchEbayConfigured };
+    module.exports = {
+        EBAY_LAST_OUTCOME_KEY,
+        ebayBuildOutcome,
+        ebayReadOutcome,
+        ebayWriteOutcome,
+        ebayStatusBadge,
+        fetchEbayConfigured,
+    };
 }
