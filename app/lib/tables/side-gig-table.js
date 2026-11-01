@@ -34,7 +34,13 @@ function renderSideGigTaxSummary() {
         parts.push(
             `<span class="text-coral">${s.untagged.count} untagged</span>`,
         );
-    el.innerHTML = `${parts.join(' · ')}<br><span class="text-muted">${escHtml(s.note)}</span>`;
+    const items = parts
+        .map((part) => `<span class="sg-tax-summary-item">${part}</span>`)
+        .join('');
+    el.innerHTML = [
+        `<div class="sg-tax-summary-items">${items}</div>`,
+        `<div class="sg-tax-summary-note text-muted">${escHtml(s.note)}</div>`,
+    ].join('');
 }
 
 // Totals strip above the ledger: where the money went, and how many item
