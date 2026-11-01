@@ -1608,6 +1608,14 @@ test('CoinTracker sync failure preserves existing accounts', async ({
                     },
                 },
                 {
+                    id: 'manual-tracked',
+                    type: 'Crypto',
+                    name: 'Manual tracked wallet',
+                    identifier: '0x2222222222222222222222222222222222222222',
+                    value: 600,
+                    apy: 0,
+                },
+                {
                     id: 'manual-savings',
                     type: 'Savings',
                     name: 'Emergency Savings',
@@ -1629,14 +1637,7 @@ test('CoinTracker sync failure preserves existing accounts', async ({
 
     const snapshot = () =>
         page.evaluate(() => ({
-            accounts: state.customAccounts.map((account) => ({
-                id: account.id,
-                type: account.type,
-                name: account.name,
-                value: account.value,
-                source: account.source || null,
-                providerId: account.cointracker?.providerId || null,
-            })),
+            accounts: state.customAccounts,
             excluded: state.coinTrackerExcluded,
             lastSync: localStorage.getItem('fire_cointracker_last_sync'),
             lastResult: localStorage.getItem('fire_cointracker_last_result'),
@@ -1649,16 +1650,31 @@ test('CoinTracker sync failure preserves existing accounts', async ({
             type: 'Crypto',
             name: 'Existing CoinTracker wallet',
             value: 1250,
+            apy: 0,
             source: 'cointracker',
-            providerId: 'ct-existing',
+            cointracker: {
+                providerId: 'ct-existing',
+                kind: 'wallet',
+                chains: ['Ethereum'],
+                addresses: ['0x1111111111111111111111111111111111111111'],
+                holdings: [],
+                syncedAt,
+            },
+        },
+        {
+            id: 'manual-tracked',
+            type: 'Crypto',
+            name: 'Manual tracked wallet',
+            identifier: '0x2222222222222222222222222222222222222222',
+            value: 600,
+            apy: 0,
         },
         {
             id: 'manual-savings',
             type: 'Savings',
             name: 'Emergency Savings',
             value: 9000,
-            source: null,
-            providerId: null,
+            apy: 4.5,
         },
     ]);
     expect(before.excluded).toEqual(['w-dismiss']);
@@ -1680,8 +1696,16 @@ test('CoinTracker sync failure preserves existing accounts', async ({
     expect(await snapshot()).toEqual(before);
 
     // A reload must preserve the same accounts, exclusions, and prior result.
-    // The recent last-sync value prevents an automatic sync on page load.
+    // The recent last-sync value prevents an automatic sync on page load. Wait
+    // for the asynchronous status/auto-sync decision before checking the count.
+    const finalStatusResponse = page.waitForResponse(
+        (response) =>
+            response.url().includes('/api/sync/cointracker/status') &&
+            response.request().method() === 'GET',
+    );
     await page.reload();
+    await finalStatusResponse;
+    await page.waitForLoadState('networkidle');
     await dismissPrivacyModal(page);
     await page.locator('#btn-tab-settings').click();
     await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
