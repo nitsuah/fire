@@ -128,6 +128,10 @@ describe('GET /api/sync/stripe/status', () => {
 
 describe('POST /api/sync/stripe/credentials', () => {
     it('stores fake restricted credentials encrypted and returns status only', async () => {
+        const fetchMock = vi.fn();
+        const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.stubGlobal('fetch', fetchMock);
         const res = await request(app)
             .post('/api/sync/stripe/credentials')
             .send(CREDENTIALS);
@@ -152,6 +156,9 @@ describe('POST /api/sync/stripe/credentials', () => {
             webhookSigningSecret: CREDENTIALS.webhookSigningSecret,
             configuredAt: expect.any(String),
         });
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(logSpy).not.toHaveBeenCalled();
+        expect(errorSpy).not.toHaveBeenCalled();
     });
 
     it('preserves the existing webhook secret when the next update omits it', async () => {
