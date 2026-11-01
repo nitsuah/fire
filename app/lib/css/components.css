@@ -1488,7 +1488,7 @@
 
 /* Budget field labels: bold category on line one, hint on line two, so every
    input sits at the same height regardless of label length. */
-.expense-label {
+.form-group label.expense-label {
     display: flex;
     flex-direction: column;
     gap: 4px;
