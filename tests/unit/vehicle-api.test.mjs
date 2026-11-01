@@ -220,6 +220,7 @@ describe('estimateVehicleValue', () => {
             'fetch',
             vi.fn(async (url) => {
                 const urlObj = new URL(url);
+                // Exact hostname matching (avoids CodeQL incomplete-url-substring-sanitization)
                 if (urlObj.hostname === 'marketvalue.vinaudit.com') {
                     return {
                         ok: true,
