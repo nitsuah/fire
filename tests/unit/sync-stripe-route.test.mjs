@@ -149,6 +149,7 @@ describe('POST /api/sync/stripe/credentials', () => {
         );
 
         const encryptedFile = fs.readFileSync(getTokenFile('stripe'), 'utf8');
+        expect(fs.statSync(getTokenFile('stripe')).mode & 0o777).toBe(0o600);
         expect(encryptedFile).not.toContain(CREDENTIALS.restrictedKey);
         expect(encryptedFile).not.toContain(CREDENTIALS.webhookSigningSecret);
         expect(loadTokens('stripe')).toMatchObject({
@@ -159,6 +160,20 @@ describe('POST /api/sync/stripe/credentials', () => {
         expect(fetchMock).not.toHaveBeenCalled();
         expect(logSpy).not.toHaveBeenCalled();
         expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it('accepts a restricted key without a webhook secret', async () => {
+        const res = await request(app)
+            .post('/api/sync/stripe/credentials')
+            .send({ restrictedKey: 'rk_test_restrictedOnly123' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.connected).toBe(true);
+        expect(res.body.webhookConfigured).toBe(false);
+        expect(loadTokens('stripe')).toMatchObject({
+            restrictedKey: 'rk_test_restrictedOnly123',
+        });
+        expect(loadTokens('stripe').webhookSigningSecret).toBeUndefined();
     });
 
     it('preserves the existing webhook secret when the next update omits it', async () => {
