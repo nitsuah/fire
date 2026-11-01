@@ -76,10 +76,14 @@ router.post('/stripe/credentials', (req, res) => {
 
     const body = req.body;
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
-        return res.status(400).json({ error: 'Invalid Stripe credentials payload.' });
+        return res
+            .status(400)
+            .json({ error: 'Invalid Stripe credentials payload.' });
     }
     if (Object.keys(body).some((key) => !ALLOWED_CREDENTIAL_FIELDS.has(key))) {
-        return res.status(400).json({ error: 'Unexpected Stripe credentials field.' });
+        return res
+            .status(400)
+            .json({ error: 'Unexpected Stripe credentials field.' });
     }
     if (invalidSecret(body.restrictedKey, RESTRICTED_KEY_RE)) {
         return res.status(400).json({
