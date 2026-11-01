@@ -1,4 +1,4 @@
-/* global module, AbortSignal */
+/* global module, AbortSignal, localStorage */
 'use strict';
 
 // One eBay status vocabulary for the Financial Overview and Settings cards.
@@ -37,11 +37,13 @@ function ebayStatusBadge(data) {
 const EBAY_LAST_OUTCOME_KEY = 'fire_tracker_ebay_last_sync_outcome';
 
 function ebayBuildOutcome({ at, ok, errorCode } = {}) {
-    const safeCode =
+    let safeCode = null;
+    if (
         typeof errorCode === 'string' &&
         /^[a-z0-9_-]{1,64}$/i.test(errorCode)
-            ? errorCode.toLowerCase()
-            : null;
+    ) {
+        safeCode = errorCode.toLowerCase();
+    }
     const success = ok === true;
     return {
         at: typeof at === 'string' ? at : null,

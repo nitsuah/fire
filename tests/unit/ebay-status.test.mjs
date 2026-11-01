@@ -100,7 +100,6 @@ describe('fetchEbayConfigured', () => {
     });
 });
 
-
 const OUTCOME_KEY = 'fire_tracker_ebay_last_sync_outcome';
 const TOKEN_KEY = 'fire_tracker_ebay_token';
 const SYNC_KEY = 'fire_tracker_ebay_last_sync';
