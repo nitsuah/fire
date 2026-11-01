@@ -1328,7 +1328,7 @@
                                     Only items missing a cost
                                 </label>
                             </div>
-                            <p class="text-muted mb-2" id="sidegig-tax-summary"></p>
+                            <div class="text-muted mb-2" id="sidegig-tax-summary"></div>
                             <div class="table-container">
                                 <table class="data-table" id="table-sidegig-history">
                                     <thead>
@@ -1352,9 +1352,11 @@
                             </div>
                             <form id="form-sidegig-manual" class="grid-4-col mt-4">
                                 <div class="form-group">
+                                    <label for="sg-desc">Sale description / job name</label>
                                     <input type="text" id="sg-desc" placeholder="Sale Description / Job Name" required>
                                 </div>
                                 <div class="form-group">
+                                    <label for="sg-cat">Platform / income type</label>
                                     <select id="sg-cat">
                                         <option value="eBay">eBay Sale</option>
                                         <option value="Etsy">Etsy Sale</option>
@@ -1369,12 +1371,15 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
+                                    <label for="sg-revenue">Gross revenue ($)</label>
                                     <input type="number" id="sg-revenue" min="0" step="0.01" placeholder="Gross Revenue ($)" required>
                                 </div>
                                 <div class="form-group">
+                                    <label for="sg-expense">Fees &amp; expenses ($)</label>
                                     <input type="number" id="sg-expense" min="0" step="0.01" placeholder="Fees & Expenses ($)">
                                 </div>
                                 <div class="form-group">
+                                    <label for="sg-basis">Tax tag (optional)</label>
                                     <select id="sg-basis" aria-label="How was this item acquired?">
                                         <option value="">Tax tag (optional)</option>
                                         <option value="business">Business / bought to resell</option>
@@ -1384,6 +1389,7 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
+                                    <label for="sg-cost">Item cost basis ($)</label>
                                     <input type="number" id="sg-cost" min="0" step="0.01" placeholder="Item Cost ($, blank = unknown)" aria-label="Item cost basis (blank = unknown)">
                                 </div>
                                 <div class="form-group span-4 text-right">
