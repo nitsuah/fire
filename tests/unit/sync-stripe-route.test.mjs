@@ -35,7 +35,9 @@ let getTokenFile;
 let loadTokens;
 
 beforeAll(async () => {
-    ({ getTokenFile, loadTokens } = await import('../../app/lib/token-store.js'));
+    ({ getTokenFile, loadTokens } = await import(
+        '../../app/lib/token-store.js'
+    ));
     app = (await import('../../app/server.js')).default;
 });
 
@@ -97,7 +99,9 @@ describe('GET /api/sync/stripe/status', () => {
             webhookConfigured: true,
         });
         expect(typeof res.body.lastUpdated).toBe('string');
-        expect(JSON.stringify(res.body)).not.toContain(CREDENTIALS.restrictedKey);
+        expect(JSON.stringify(res.body)).not.toContain(
+            CREDENTIALS.restrictedKey,
+        );
         expect(JSON.stringify(res.body)).not.toContain(
             CREDENTIALS.webhookSigningSecret,
         );
@@ -125,7 +129,9 @@ describe('POST /api/sync/stripe/credentials', () => {
     it('stores fake restricted credentials encrypted and returns status only', async () => {
         const fetchMock = vi.fn();
         const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const errorSpy = vi
+            .spyOn(console, 'error')
+            .mockImplementation(() => {});
         vi.stubGlobal('fetch', fetchMock);
         const res = await request(app)
             .post('/api/sync/stripe/credentials')
