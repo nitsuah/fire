@@ -35,9 +35,8 @@ let getTokenFile;
 let loadTokens;
 
 beforeAll(async () => {
-    ({ getTokenFile, loadTokens } = await import(
-        '../../app/lib/token-store.js'
-    ));
+    ({ getTokenFile, loadTokens } =
+        await import('../../app/lib/token-store.js'));
     app = (await import('../../app/server.js')).default;
 });
 
@@ -144,7 +143,9 @@ describe('POST /api/sync/stripe/credentials', () => {
             connected: true,
             webhookConfigured: true,
         });
-        expect(JSON.stringify(res.body)).not.toContain(CREDENTIALS.restrictedKey);
+        expect(JSON.stringify(res.body)).not.toContain(
+            CREDENTIALS.restrictedKey,
+        );
         expect(JSON.stringify(res.body)).not.toContain(
             CREDENTIALS.webhookSigningSecret,
         );
@@ -245,7 +246,9 @@ describe('POST /api/sync/stripe/credentials', () => {
         expect(res.status).toBe(500);
         expect(res.body.error).toMatch(/refusing to overwrite/i);
         expect(fs.readFileSync(file, 'utf8')).toBe(original);
-        expect(JSON.stringify(res.body)).not.toContain(CREDENTIALS.restrictedKey);
+        expect(JSON.stringify(res.body)).not.toContain(
+            CREDENTIALS.restrictedKey,
+        );
         expect(JSON.stringify(res.body)).not.toContain(
             CREDENTIALS.webhookSigningSecret,
         );
