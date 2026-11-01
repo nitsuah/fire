@@ -203,9 +203,9 @@ describe('mergeCoinTrackerWallets', () => {
             syncedAt: 'T2',
         });
 
-        expect(hidden.accounts.some((account) => account.id === 'cointracker-w1')).toBe(
-            false,
-        );
+        expect(
+            hidden.accounts.some((account) => account.id === 'cointracker-w1'),
+        ).toBe(false);
         expect(hidden.accounts.find((account) => account.id === 'm2')).toBe(
             unrelatedManual,
         );
@@ -215,14 +215,16 @@ describe('mergeCoinTrackerWallets', () => {
             excluded: [],
         });
 
-        expect(restored.filter((account) => account.id === 'cointracker-w1')).toHaveLength(
-            1,
-        );
+        expect(
+            restored.filter((account) => account.id === 'cointracker-w1'),
+        ).toHaveLength(1);
         expect(restored).toHaveLength(3);
-        expect(restored.find((account) => account.id === 'm2')).toBe(unrelatedManual);
-        expect(hidden.accounts.some((account) => account.id === 'cointracker-w1')).toBe(
-            false,
+        expect(restored.find((account) => account.id === 'm2')).toBe(
+            unrelatedManual,
         );
+        expect(
+            hidden.accounts.some((account) => account.id === 'cointracker-w1'),
+        ).toBe(false);
     });
 
     it('flags ticker-only and address-less manual crypto rows as possible duplicates', () => {
