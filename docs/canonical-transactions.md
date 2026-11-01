@@ -20,7 +20,7 @@
 
 The same economic sale can appear as a Stripe charge, an eBay/Etsy sale, or a manual ledger row. Those records have different source ids and must not be silently merged based on amount/date.
 
-The intended reconciliation policy is an explicit user-confirmed link: retain each source's provenance, count one canonical economic transaction, and store the link so the relationship is auditable. That link/merge workflow is **not implemented by the current mapper**. CoinTracker is a wallet/balance source, not a transaction or cost-basis source, and is outside this transaction model.
+The intended reconciliation policy is an explicit user-confirmed link: retain each source's provenance, count one canonical economic transaction, and store the link so the relationship is auditable. That link/merge workflow is **not implemented by the current mapper**. Fire's current CoinTracker integration imports wallet/balance data only; it does not ingest CoinTracker transactions or cost basis into this ledger. Those MCP capabilities are outside the current Fire integration/transaction model.
 
 ## Suspected duplicates and user correction
 
