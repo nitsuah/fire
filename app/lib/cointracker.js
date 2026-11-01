@@ -289,12 +289,37 @@ async function inspectCoinTrackerTools() {
 }
 
 async function toggleCoinTrackerWallet(providerId) {
+    const id = String(providerId);
     const excluded = new Set(ctExcluded());
-    if (excluded.has(providerId)) excluded.delete(providerId);
-    else excluded.add(providerId);
+    const wasExcluded = excluded.has(id);
+    if (wasExcluded) excluded.delete(id);
+    else excluded.add(id);
     state.coinTrackerExcluded = [...excluded];
     // Persist first: the choice must stick even if the sync below fails.
     await saveState();
+
+    if (wasExcluded) {
+        // Restore only this previously confirmed wallet from the last result.
+        // Do not auto-add other suggestions when the user clicks Include.
+        const wallet = (ctLastResult()?.wallets || []).find(
+            (candidate) => String(candidate.providerId) === id,
+        );
+        if (wallet) {
+            state.customAccounts = FireCoinTrackerMerge.confirmCoinTrackerWallet(
+                state.customAccounts || [],
+                wallet,
+                {
+                    syncedAt: ctRead(CT_LAST_SYNC_KEY),
+                    excluded: ctExcluded(),
+                },
+            );
+            await saveState();
+            if (typeof refreshAllUI === 'function') refreshAllUI();
+            renderCoinTrackerCard();
+            return;
+        }
+    }
+
     renderCoinTrackerCard();
     await runCoinTrackerSync({ silent: true });
 }
