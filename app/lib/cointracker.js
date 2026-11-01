@@ -305,14 +305,15 @@ async function toggleCoinTrackerWallet(providerId) {
             (candidate) => String(candidate.providerId) === id,
         );
         if (wallet) {
-            state.customAccounts = FireCoinTrackerMerge.confirmCoinTrackerWallet(
-                state.customAccounts || [],
-                wallet,
-                {
-                    syncedAt: ctRead(CT_LAST_SYNC_KEY),
-                    excluded: ctExcluded(),
-                },
-            );
+            state.customAccounts =
+                FireCoinTrackerMerge.confirmCoinTrackerWallet(
+                    state.customAccounts || [],
+                    wallet,
+                    {
+                        syncedAt: ctRead(CT_LAST_SYNC_KEY),
+                        excluded: ctExcluded(),
+                    },
+                );
             await saveState();
             if (typeof refreshAllUI === 'function') refreshAllUI();
             renderCoinTrackerCard();
