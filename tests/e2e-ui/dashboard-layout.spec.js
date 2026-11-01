@@ -1541,3 +1541,149 @@ test('CoinTracker suggestions dismissal persists across sync and reload', async 
     await expect(dismissed).toHaveCount(0);
     await expect(unrelated).toBeVisible();
 });
+
+
+test('CoinTracker sync failure preserves existing accounts', async ({ page }) => {
+    const syncedAt = new Date().toISOString();
+    const lastResult = JSON.stringify({
+        tool: 'balances',
+        warnings: ['previous warning'],
+        wallets: [
+            {
+                providerId: 'ct-existing',
+                name: 'Existing CoinTracker wallet',
+                kind: 'wallet',
+                chains: ['Ethereum'],
+                addresses: ['0x1111111111111111111111111111111111111111'],
+                holdings: [],
+                usdValue: 1250,
+            },
+        ],
+        counts: { added: 0, updated: 1, adopted: 0, removed: 0 },
+    });
+    let syncCalls = 0;
+
+    await page.route('**/api/sync/cointracker/status', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ configured: true, connected: true }),
+        }),
+    );
+    await page.route('**/api/sync/cointracker/sync', async (route) => {
+        const request = route.request();
+        expect(request.method()).toBe('POST');
+        expect(request.postDataJSON().token).toBe('e2e-fake-token');
+        syncCalls += 1;
+        await route.fulfill({
+            status: 503,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'provider unavailable' }),
+        });
+    });
+
+    await page.evaluate(
+        async ({ syncedAt, lastResult }) => {
+            localStorage.setItem('fire_cointracker_token', 'e2e-fake-token');
+            localStorage.setItem('fire_cointracker_last_sync', syncedAt);
+            localStorage.setItem('fire_cointracker_last_result', lastResult);
+            state.customAccounts = [
+                {
+                    id: 'cointracker-existing',
+                    type: 'Crypto',
+                    name: 'Existing CoinTracker wallet',
+                    value: 1250,
+                    apy: 0,
+                    source: 'cointracker',
+                    cointracker: {
+                        providerId: 'ct-existing',
+                        kind: 'wallet',
+                        chains: ['Ethereum'],
+                        addresses: [
+                            '0x1111111111111111111111111111111111111111',
+                        ],
+                        holdings: [],
+                        syncedAt,
+                    },
+                },
+                {
+                    id: 'manual-savings',
+                    type: 'Savings',
+                    name: 'Emergency Savings',
+                    value: 9000,
+                    apy: 4.5,
+                },
+            ];
+            state.coinTrackerExcluded = ['w-dismiss'];
+            await globalThis.saveState();
+        },
+        { syncedAt, lastResult },
+    );
+
+    // Reload only after the fake state and route mocks are installed.
+    await page.reload();
+    await dismissPrivacyModal(page);
+    await page.locator('#btn-tab-settings').click();
+    await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
+
+    const snapshot = () =>
+        page.evaluate(() => ({
+            accounts: state.customAccounts.map((account) => ({
+                id: account.id,
+                type: account.type,
+                name: account.name,
+                value: account.value,
+                source: account.source || null,
+                providerId: account.cointracker?.providerId || null,
+            })),
+            excluded: state.coinTrackerExcluded,
+            lastSync: localStorage.getItem('fire_cointracker_last_sync'),
+            lastResult: localStorage.getItem('fire_cointracker_last_result'),
+        }));
+
+    const before = await snapshot();
+    expect(before.accounts).toEqual([
+        {
+            id: 'cointracker-existing',
+            type: 'Crypto',
+            name: 'Existing CoinTracker wallet',
+            value: 1250,
+            source: 'cointracker',
+            providerId: 'ct-existing',
+        },
+        {
+            id: 'manual-savings',
+            type: 'Savings',
+            name: 'Emergency Savings',
+            value: 9000,
+            source: null,
+            providerId: null,
+        },
+    ]);
+    expect(before.excluded).toEqual(['w-dismiss']);
+    expect(before.lastSync).toBe(syncedAt);
+    expect(before.lastResult).toBe(lastResult);
+
+    const syncResponse = page.waitForResponse(
+        (response) =>
+            response.url().includes('/api/sync/cointracker/sync') &&
+            response.request().method() === 'POST',
+    );
+    await page.locator('#btn-cointracker-sync').click();
+    const response = await syncResponse;
+    expect(response.status()).toBe(503);
+    await expect(page.locator('#cointracker-status')).toContainText(
+        'Sync failed: provider unavailable',
+    );
+    await expect(page.locator('#btn-cointracker-sync')).toBeEnabled();
+    expect(await snapshot()).toEqual(before);
+
+    // A reload must preserve the same accounts, exclusions, and prior result.
+    // The recent last-sync value prevents an automatic sync on page load.
+    await page.reload();
+    await dismissPrivacyModal(page);
+    await page.locator('#btn-tab-settings').click();
+    await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
+    expect(await snapshot()).toEqual(before);
+    expect(syncCalls).toBe(1);
+});
