@@ -1491,8 +1491,9 @@
 .expense-label {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
     min-height: 36px;
+    min-width: 0;
 }
 
 .expense-label strong {
@@ -1504,6 +1505,8 @@
     font-weight: 400;
     color: var(--text-muted);
     font-size: var(--text-xs);
+    min-width: 0;
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

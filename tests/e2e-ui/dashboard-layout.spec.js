@@ -1083,6 +1083,51 @@ test.describe('Expenses — budget field labels', () => {
         // Consistent cells: every label is the same height.
         expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
     });
+
+    test('hints and tax summary rows do not collide or overflow at desktop/mobile widths', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-expenses').click();
+        for (const viewport of [
+            { width: 1440, height: 900 },
+            { width: 390, height: 844 },
+        ]) {
+            await page.setViewportSize(viewport);
+            const label = page.locator('label[for="exp-transport"]');
+            const categoryLocator = label.locator('strong');
+            const hintLocator = label.locator('.expense-label-hint');
+            await expect(categoryLocator).toBeVisible();
+            await expect(hintLocator).toBeVisible();
+            const category = await categoryLocator.boundingBox();
+            const hint = await hintLocator.boundingBox();
+            const group = await label.evaluate((el) => {
+                const rect = el.parentElement.getBoundingClientRect();
+                return { left: rect.left, right: rect.right };
+            });
+            expect(hint.y).toBeGreaterThan(category.y + category.height);
+            expect(hint.x).toBeGreaterThanOrEqual(group.left - 1);
+            expect(hint.x + hint.width).toBeLessThanOrEqual(group.right + 1);
+
+            const row = page.locator('.tax-summary .stat-item').first();
+            await expect(row).toBeVisible();
+            const name = await row.locator('.stat-name').boundingBox();
+            const value = await row.locator('.stat-val').boundingBox();
+            const horizontalGap = Math.max(
+                value.x - (name.x + name.width),
+                name.x - (value.x + value.width),
+            );
+            const verticalGap = Math.max(
+                value.y - (name.y + name.height),
+                name.y - (value.y + value.height),
+            );
+            expect(Math.max(horizontalGap, verticalGap)).toBeGreaterThanOrEqual(4);
+
+            const scrollWidth = await page.evaluate(
+                () => document.documentElement.scrollWidth,
+            );
+            expect(scrollWidth).toBeLessThanOrEqual(viewport.width);
+        }
+    });
 });
 
 test.describe('Projection math per growth preset', () => {

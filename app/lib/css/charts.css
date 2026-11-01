@@ -186,6 +186,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
     padding: var(--space-sm) var(--space-md);
     background: rgba(255,255,255,0.02);
     border-radius: var(--border-radius-sm);
@@ -197,11 +199,13 @@
 }
 
 .stat-name {
+    min-width: 0;
     font-size: var(--text-sm);
     color: var(--text-muted);
 }
 
 .stat-val {
+    min-width: 0;
     font-family: var(--font-heading);
     font-size: var(--text-lg);
     font-weight: 700;
