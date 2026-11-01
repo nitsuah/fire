@@ -185,7 +185,15 @@ describe('eBay outcome persistence', () => {
             ok: false,
             errorCode: 'timeout',
         });
-        for (const raw of ['{', 'null', '[]', '2', '"text"', '{}', '{"foo":1}']) {
+        for (const raw of [
+            '{',
+            'null',
+            '[]',
+            '2',
+            '"text"',
+            '{}',
+            '{"foo":1}',
+        ]) {
             storage.setItem(OUTCOME_KEY, raw);
             expect(ebayReadOutcome(storage)).toBeNull();
         }
@@ -415,5 +423,4 @@ describe('hosted eBay call-site transitions', () => {
         expect(values.get(SYNC_KEY)).toBe('previous-sync');
         expect(outcome()).toEqual(previous);
     });
-
 });
