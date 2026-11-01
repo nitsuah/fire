@@ -102,7 +102,9 @@ describe('Google Drive backup API-key boundary', () => {
             const req = request(app)[method.toLowerCase()](route);
             if (method === 'POST') {
                 req.send(
-                    route.endsWith('/restore') ? { fileId: 'valid-file-id' } : {},
+                    route.endsWith('/restore')
+                        ? { fileId: 'valid-file-id' }
+                        : {},
                 );
             }
             const res = await req;
