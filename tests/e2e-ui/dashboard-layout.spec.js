@@ -1384,7 +1384,6 @@ test('CoinTracker suggestions can be added without auto-import', async ({
     ).toHaveCount(0);
 });
 
-
 test('CoinTracker suggestions dismissal persists across sync and reload', async ({
     page,
 }) => {
@@ -1439,13 +1438,16 @@ test('CoinTracker suggestions dismissal persists across sync and reload', async 
         });
     });
 
-    await page.evaluate(async ({ syncedAt }) => {
-        localStorage.setItem('fire_cointracker_token', 'e2e-fake-token');
-        localStorage.setItem('fire_cointracker_last_sync', syncedAt);
-        state.customAccounts = [];
-        state.coinTrackerExcluded = [];
-        await globalThis.saveState();
-    }, { syncedAt });
+    await page.evaluate(
+        async ({ syncedAt }) => {
+            localStorage.setItem('fire_cointracker_token', 'e2e-fake-token');
+            localStorage.setItem('fire_cointracker_last_sync', syncedAt);
+            state.customAccounts = [];
+            state.coinTrackerExcluded = [];
+            await globalThis.saveState();
+        },
+        { syncedAt },
+    );
 
     const sync = async () => {
         const response = page.waitForResponse(
@@ -1463,18 +1465,14 @@ test('CoinTracker suggestions dismissal persists across sync and reload', async 
     await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
     await sync();
 
-    const dismissed = page.locator(
-        '[data-ct-suggestion-dismiss="w-dismiss"]',
-    );
+    const dismissed = page.locator('[data-ct-suggestion-dismiss="w-dismiss"]');
     const unrelated = page.locator('[data-ct-suggestion-dismiss="w-keep"]');
     await expect(dismissed).toBeVisible();
     await expect(unrelated).toBeVisible();
 
     await dismissed.click();
     await expect
-        .poll(() =>
-            page.evaluate(() => state.coinTrackerExcluded || []),
-        )
+        .poll(() => page.evaluate(() => state.coinTrackerExcluded || []))
         .toContain('w-dismiss');
     await expect(dismissed).toHaveCount(0);
     await expect(unrelated).toBeVisible();
