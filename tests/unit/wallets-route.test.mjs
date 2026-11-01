@@ -216,7 +216,9 @@ describe('POST /api/wallets/:id/refresh', () => {
         vi.stubGlobal(
             'fetch',
             vi.fn(async (url) => {
-                if (String(url).includes('blockstream.info')) {
+                const urlObj = new URL(url);
+                // Exact hostname matching (avoids CodeQL incomplete-url-substring-sanitization)
+                if (urlObj.hostname === 'blockstream.info') {
                     return {
                         ok: true,
                         json: async () => ({
@@ -227,7 +229,6 @@ describe('POST /api/wallets/:id/refresh', () => {
                         }),
                     };
                 }
-                const urlObj = new URL(url);
                 if (urlObj.hostname === 'api.coingecko.com') {
                     return {
                         ok: true,
@@ -263,7 +264,9 @@ describe('POST /api/wallets/refresh-all', () => {
         vi.stubGlobal(
             'fetch',
             vi.fn(async (url) => {
-                if (String(url).includes('blockstream.info')) {
+                const urlObj = new URL(url);
+                // Exact hostname matching (avoids CodeQL incomplete-url-substring-sanitization)
+                if (urlObj.hostname === 'blockstream.info') {
                     return { ok: false, status: 503 };
                 }
                 throw new Error(`Unexpected fetch: ${url}`);

@@ -25,12 +25,14 @@ function fakeFetch({ natives = {}, tokens = {}, fail = [] } = {}) {
         const urlObj = new URL(u);
         const host = urlObj.hostname;
         if (fail.includes(host)) return new Response('boom', { status: 503 });
-        if (u.endsWith('/token-balances'))
+        // Exact path matching to avoid CodeQL incomplete-url-substring-sanitization
+        if (urlObj.pathname.endsWith('/token-balances'))
             return Response.json(tokens[host] || []);
-        if (u.includes('/api/v2/addresses/'))
+        if (urlObj.pathname.includes('/api/v2/addresses/'))
             return Response.json(
                 natives[host] || { coin_balance: '0', exchange_rate: '2000' },
             );
+        // Exact hostname matching (avoids CodeQL incomplete-url-substring-sanitization)
         if (host === 'query1.finance.yahoo.com' || host === 'finance.yahoo.com')
             return Response.json({
                 chart: { result: [{ meta: { regularMarketPrice: 600 } }] },
