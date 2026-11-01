@@ -1190,14 +1190,7 @@ test('CoinTracker suggestions can be added without auto-import', async ({
 }) => {
     const syncedAt = new Date().toISOString();
     const trackedAddress = '0x3333333333333333333333333333333333333333';
-    const wallet = (
-        providerId,
-        name,
-        kind,
-        chain,
-        address,
-        usdValue,
-    ) => ({
+    const wallet = (providerId, name, kind, chain, address, usdValue) => ({
         providerId,
         name,
         kind,
@@ -1233,43 +1226,35 @@ test('CoinTracker suggestions can be added without auto-import', async ({
         ),
     ];
 
-    await page.route(
-        '**/api/sync/cointracker/status',
-        (route) =>
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ configured: true, connected: true }),
+    await page.route('**/api/sync/cointracker/status', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ configured: true, connected: true }),
+        }),
+    );
+    await page.route('**/api/sync/cointracker/sync', async (route) => {
+        const request = route.request();
+        expect(request.method()).toBe('POST');
+        expect(request.postDataJSON().token).toBe('e2e-fake-token');
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                status: 'success',
+                tool: 'balances',
+                wallets,
+                syncedAt,
+                partial: false,
+                skippedProviderIds: [],
+                warnings: [],
             }),
-    );
-    await page.route(
-        '**/api/sync/cointracker/sync',
-        async (route) => {
-            const request = route.request();
-            expect(request.method()).toBe('POST');
-            expect(request.postDataJSON().token).toBe('e2e-fake-token');
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    status: 'success',
-                    tool: 'balances',
-                    wallets,
-                    syncedAt,
-                    partial: false,
-                    skippedProviderIds: [],
-                    warnings: [],
-                }),
-            });
-        },
-    );
+        });
+    });
 
     await page.evaluate(
         async ({ syncedAt, trackedAddress }) => {
-            localStorage.setItem(
-                'fire_cointracker_token',
-                'e2e-fake-token',
-            );
+            localStorage.setItem('fire_cointracker_token', 'e2e-fake-token');
             localStorage.setItem('fire_cointracker_last_sync', syncedAt);
             state.customAccounts = [
                 {
@@ -1398,4 +1383,3 @@ test('CoinTracker suggestions can be added without auto-import', async ({
         page.locator('[data-ct-suggestion-add="w-tracked"]'),
     ).toHaveCount(0);
 });
-
