@@ -185,6 +185,48 @@ describe('mergeCoinTrackerWallets', () => {
         expect(r.accounts.map((a) => a.id)).toEqual(['cointracker-w1']);
     });
 
+    it('restores an excluded wallet from cached data without changing unrelated manual rows', () => {
+        const unrelatedManual = {
+            ...manualLedger,
+            id: 'm2',
+            name: 'Unrelated cold wallet',
+            identifier: '0x0000000000000000000000000000000000000002',
+        };
+        const first = mergeCoinTrackerWallets(
+            [unrelatedManual],
+            [ledger, coinbase],
+            { confirm: true, syncedAt: 'T1' },
+        ).accounts;
+        const hidden = mergeCoinTrackerWallets(first, [ledger, coinbase], {
+            partial: true,
+            excluded: ['w1'],
+            syncedAt: 'T2',
+        });
+
+        expect(
+            hidden.accounts.some((account) => account.id === 'cointracker-w1'),
+        ).toBe(false);
+        expect(hidden.accounts.find((account) => account.id === 'm2')).toBe(
+            unrelatedManual,
+        );
+
+        const restored = confirmCoinTrackerWallet(hidden.accounts, ledger, {
+            syncedAt: 'T3',
+            excluded: [],
+        });
+
+        expect(
+            restored.filter((account) => account.id === 'cointracker-w1'),
+        ).toHaveLength(1);
+        expect(restored).toHaveLength(3);
+        expect(restored.find((account) => account.id === 'm2')).toBe(
+            unrelatedManual,
+        );
+        expect(
+            hidden.accounts.some((account) => account.id === 'cointracker-w1'),
+        ).toBe(false);
+    });
+
     it('flags ticker-only and address-less manual crypto rows as possible duplicates', () => {
         const tickerRow = {
             id: 't1',
