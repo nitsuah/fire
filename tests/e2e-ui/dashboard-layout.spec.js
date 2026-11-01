@@ -1383,3 +1383,118 @@ test('CoinTracker suggestions can be added without auto-import', async ({
         page.locator('[data-ct-suggestion-add="w-tracked"]'),
     ).toHaveCount(0);
 });
+
+
+test('CoinTracker suggestions dismissal persists across sync and reload', async ({
+    page,
+}) => {
+    const syncedAt = new Date().toISOString();
+    const wallet = (providerId, name, address, usdValue) => ({
+        providerId,
+        name,
+        kind: 'wallet',
+        chains: ['Ethereum'],
+        addresses: [address],
+        holdings: [],
+        usdValue,
+    });
+    const wallets = [
+        wallet(
+            'w-dismiss',
+            'Dismissed Ethereum wallet',
+            '0x1111111111111111111111111111111111111111',
+            1200,
+        ),
+        wallet(
+            'w-keep',
+            'Unrelated Ethereum wallet',
+            '0x2222222222222222222222222222222222222222',
+            900,
+        ),
+    ];
+
+    await page.route('**/api/sync/cointracker/status', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ configured: true, connected: true }),
+        }),
+    );
+    await page.route('**/api/sync/cointracker/sync', async (route) => {
+        const request = route.request();
+        expect(request.method()).toBe('POST');
+        expect(request.postDataJSON().token).toBe('e2e-fake-token');
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                status: 'success',
+                tool: 'balances',
+                wallets,
+                syncedAt,
+                partial: false,
+                skippedProviderIds: [],
+                warnings: [],
+            }),
+        });
+    });
+
+    await page.evaluate(async ({ syncedAt }) => {
+        localStorage.setItem('fire_cointracker_token', 'e2e-fake-token');
+        localStorage.setItem('fire_cointracker_last_sync', syncedAt);
+        state.customAccounts = [];
+        state.coinTrackerExcluded = [];
+        await globalThis.saveState();
+    }, { syncedAt });
+
+    const sync = async () => {
+        const response = page.waitForResponse(
+            (res) =>
+                res.url().includes('/api/sync/cointracker/sync') &&
+                res.request().method() === 'POST',
+        );
+        await page.locator('#btn-cointracker-sync').click();
+        await response;
+    };
+
+    await page.reload();
+    await dismissPrivacyModal(page);
+    await page.locator('#btn-tab-settings').click();
+    await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
+    await sync();
+
+    const dismissed = page.locator(
+        '[data-ct-suggestion-dismiss="w-dismiss"]',
+    );
+    const unrelated = page.locator('[data-ct-suggestion-dismiss="w-keep"]');
+    await expect(dismissed).toBeVisible();
+    await expect(unrelated).toBeVisible();
+
+    await dismissed.click();
+    await expect
+        .poll(() =>
+            page.evaluate(() => state.coinTrackerExcluded || []),
+        )
+        .toContain('w-dismiss');
+    await expect(dismissed).toHaveCount(0);
+    await expect(unrelated).toBeVisible();
+
+    // A later sync must not reintroduce the dismissed candidate.
+    await sync();
+    await expect(dismissed).toHaveCount(0);
+    await expect(unrelated).toBeVisible();
+
+    // The exclusion survives a browser reload and another mocked sync.
+    await page.reload();
+    await dismissPrivacyModal(page);
+    await page.locator('#btn-tab-settings').click();
+    await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
+    await expect
+        .poll(() =>
+            page.evaluate(() => state.coinTrackerExcluded || []),
+        )
+        .toContain('w-dismiss');
+    await sync();
+    await expect(dismissed).toHaveCount(0);
+    await expect(unrelated).toBeVisible();
+});
