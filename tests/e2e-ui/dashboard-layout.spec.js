@@ -1542,8 +1542,9 @@ test('CoinTracker suggestions dismissal persists across sync and reload', async 
     await expect(unrelated).toBeVisible();
 });
 
-
-test('CoinTracker sync failure preserves existing accounts', async ({ page }) => {
+test('CoinTracker sync failure preserves existing accounts', async ({
+    page,
+}) => {
     const syncedAt = new Date().toISOString();
     const lastResult = JSON.stringify({
         tool: 'balances',
