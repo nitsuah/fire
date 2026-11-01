@@ -275,6 +275,8 @@ The logic is in `app/lib/cointracker-merge.js`, which is pure and unit-tested:
 
 Direct-chain tracking (Etherscan and the others below) is unchanged and still works without CoinTracker.
 
+See [Canonical transaction model](canonical-transactions.md) for Stripe identity/counting rules, cross-provider overlap, and current reconciliation limitations.
+
 ### Token audience
 
 The first live connect (2026-10-01) logged in fine, but the MCP server rejected the token (`401 invalid_token`), even after a refresh. Auth0 issues a JWT for an API only when the authorize request names it as `audience`; otherwise it returns an opaque token for `/userinfo`. The connector now sends `audience` (default: the MCP URL) alongside `resource`. If the MCP server still rejects the token, the card shows the token's shape (`jwt`/`opaque`, `aud`, `scope`; never the token itself). If CoinTracker's login rejects the audience, its error is passed through to the card. Use `COINTRACKER_AUDIENCE` to try another value, or `none` to omit it.

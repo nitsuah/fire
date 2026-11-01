@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - eBay (hosted): persist a sanitized last-sync outcome in browser storage; failures survive reloads, success replaces failure, and OAuth reconnect or lost grant clears stale state (#326).
 
 - Docs: `docs/stripe-overlap-audit.md` records where a Stripe connector could overlap eBay, Etsy, manual rows and bank deposits, the canonical Stripe key, and the rule that payouts are never income (#261).
+- Docs: add `docs/canonical-transactions.md` describing the current Stripe mapper, source provenance, cross-provider duplicate limits, and the manual user correction path (#344).
 - `scripts/fin-checkin.mjs`: the weekly financial check-in as a script. It pulls net worth, runway, CDs, concentration and price freshness through the read-only MCP code, picks the action item by fixed rules, and makes at most one 9router call to rewrite the templated text (templated fallback when it is down). Flags `--no-model`, `--rates`, `--json`; documented in the README with a Task Scheduler example.
 - Insights: a Precious Metals Share tile appears when metals are over 10% of net worth (#222).
 - `docs/integration-status-matrix.md` records each connector's credential location, status source, five-state vocabulary and test coverage. It now reflects eBay's completed configured/status work in both runtimes (#322/#324) and self-hosted last-sync outcome (#323); hosted browser outcome persistence remains tracked by #326. Live provider/account acceptance remains manual (#301).
