@@ -185,89 +185,94 @@ test.describe('Marketplace connections', () => {
 });
 
 
-test(
-    'manual Side Gig Ledger form reflows on phone and stays within desktop viewport',
-    async ({ page }) => {
-        const form = page.locator('#form-sidegig-manual');
-        const fieldIds = [
-            'sg-desc',
-            'sg-cat',
-            'sg-revenue',
-            'sg-expense',
-            'sg-basis',
-            'sg-cost',
-        ];
+test('manual Side Gig Ledger form reflows on phone and stays within desktop viewport', async ({
+    page,
+}) => {
+    const form = page.locator('#form-sidegig-manual');
+    const fieldIds = [
+        'sg-desc',
+        'sg-cat',
+        'sg-revenue',
+        'sg-expense',
+        'sg-basis',
+        'sg-cost',
+    ];
 
-        await page.setViewportSize({ width: 390, height: 844 });
-        await expect(form).toBeVisible();
-        for (const id of fieldIds) {
-            await expect(form.locator(`label[for="${id}"]`)).toBeVisible();
-            await expect(form.locator(`#${id}`)).toBeVisible();
-        }
-        await expect(form.locator('button[type="submit"]')).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(form).toBeVisible();
+    for (const id of fieldIds) {
+        await expect(form.locator(`label[for="${id}"]`)).toBeVisible();
+        await expect(form.locator(`#${id}`)).toBeVisible();
+    }
+    await expect(form.locator('button[type="submit"]')).toBeVisible();
 
-        const mobileGroups = await form.locator('.form-group').evaluateAll((groups) =>
+    const mobileGroups = await form
+        .locator('.form-group')
+        .evaluateAll((groups) =>
             groups.map((group) => {
                 const rect = group.getBoundingClientRect();
                 return { left: rect.left, top: rect.top };
             }),
         );
-        expect(mobileGroups).toHaveLength(7);
-        for (let index = 1; index < mobileGroups.length; index += 1) {
-            expect(
-                Math.abs(mobileGroups[index].left - mobileGroups[0].left),
-            ).toBeLessThanOrEqual(1);
-            expect(mobileGroups[index].top).toBeGreaterThan(
-                mobileGroups[index - 1].top,
-            );
-        }
-        await expect
-            .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
-            .toBeLessThanOrEqual(390);
+    expect(mobileGroups).toHaveLength(7);
+    for (let index = 1; index < mobileGroups.length; index += 1) {
+        expect(
+            Math.abs(mobileGroups[index].left - mobileGroups[0].left),
+        ).toBeLessThanOrEqual(1);
+        expect(mobileGroups[index].top).toBeGreaterThan(
+            mobileGroups[index - 1].top,
+        );
+    }
+    await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBeLessThanOrEqual(390);
 
-        const summary = page.locator('#sidegig-tax-summary');
-        const summaryItems = summary.locator('.sg-tax-summary-items');
-        const summaryNote = summary.locator('.sg-tax-summary-note');
-        await expect(summary).toBeVisible();
-        await expect(summaryItems).toBeVisible();
-        await expect(summaryNote).toBeVisible();
-        await expect
-            .poll(() =>
-                summary.evaluate(
-                    (element) => element.scrollWidth - element.clientWidth,
-                ),
-            )
-            .toBeLessThanOrEqual(1);
+    const summary = page.locator('#sidegig-tax-summary');
+    const summaryItems = summary.locator('.sg-tax-summary-items');
+    const summaryNote = summary.locator('.sg-tax-summary-note');
+    await expect(summary).toBeVisible();
+    await expect(summaryItems).toBeVisible();
+    await expect(summaryNote).toBeVisible();
+    await expect
+        .poll(() =>
+            summary.evaluate(
+                (element) => element.scrollWidth - element.clientWidth,
+            ),
+        )
+        .toBeLessThanOrEqual(1);
 
-        await page.setViewportSize({ width: 1440, height: 900 });
-        for (const id of fieldIds) {
-            await expect(form.locator(`#${id}`)).toBeVisible();
-        }
-        await expect(form.locator('button[type="submit"]')).toBeVisible();
-        const desktopControlBounds = await form
-            .locator('input, select, button')
-            .evaluateAll((elements) =>
-                elements.map((element) => {
-                    const rect = element.getBoundingClientRect();
-                    return { left: rect.left, right: rect.right };
-                }),
-            );
-        for (const bounds of desktopControlBounds) {
-            expect(bounds.left).toBeGreaterThanOrEqual(0);
-            expect(bounds.right).toBeLessThanOrEqual(1440);
-        }
-        await expect
-            .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
-            .toBeLessThanOrEqual(1440);
-        await expect
-            .poll(() =>
-                summary.evaluate(
-                    (element) => element.scrollWidth - element.clientWidth,
-                ),
-            )
-            .toBeLessThanOrEqual(1);
-        await expect
-            .poll(() => summary.evaluate((element) => element.getBoundingClientRect().right))
-            .toBeLessThanOrEqual(1440);
-    },
-);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    for (const id of fieldIds) {
+        await expect(form.locator(`#${id}`)).toBeVisible();
+    }
+    await expect(form.locator('button[type="submit"]')).toBeVisible();
+    const desktopControlBounds = await form
+        .locator('input, select, button')
+        .evaluateAll((elements) =>
+            elements.map((element) => {
+                const rect = element.getBoundingClientRect();
+                return { left: rect.left, right: rect.right };
+            }),
+        );
+    for (const bounds of desktopControlBounds) {
+        expect(bounds.left).toBeGreaterThanOrEqual(0);
+        expect(bounds.right).toBeLessThanOrEqual(1440);
+    }
+    await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBeLessThanOrEqual(1440);
+    await expect
+        .poll(() =>
+            summary.evaluate(
+                (element) => element.scrollWidth - element.clientWidth,
+            ),
+        )
+        .toBeLessThanOrEqual(1);
+    await expect
+        .poll(() =>
+            summary.evaluate(
+                (element) => element.getBoundingClientRect().right,
+            ),
+        )
+        .toBeLessThanOrEqual(1440);
+});
