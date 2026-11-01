@@ -169,9 +169,9 @@ describe('stripeBalanceTransactionsToEntries', () => {
         const input = [transaction()];
         const before = structuredClone(input);
 
-        expect(stripe.stripeBalanceTransactionsToEntries(input).entries).toHaveLength(
-            1,
-        );
+        expect(
+            stripe.stripeBalanceTransactionsToEntries(input).entries,
+        ).toHaveLength(1);
         expect(input).toEqual(before);
         expect(stripe.stripeBalanceTransactionsToEntries(null)).toEqual({
             entries: [],
