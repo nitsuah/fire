@@ -1488,9 +1488,7 @@ test('CoinTracker suggestions dismissal persists across sync and reload', async 
     await page.locator('#btn-tab-settings').click();
     await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
     await expect
-        .poll(() =>
-            page.evaluate(() => state.coinTrackerExcluded || []),
-        )
+        .poll(() => page.evaluate(() => state.coinTrackerExcluded || []))
         .toContain('w-dismiss');
     await sync();
     await expect(dismissed).toHaveCount(0);
