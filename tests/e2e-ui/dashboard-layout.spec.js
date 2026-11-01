@@ -1190,7 +1190,14 @@ test('CoinTracker suggestions can be added without auto-import', async ({
 }) => {
     const syncedAt = new Date().toISOString();
     const trackedAddress = '0x3333333333333333333333333333333333333333';
-    const wallet = (providerId, name, kind, chain, address, usdValue) => ({
+    const wallet = (
+        providerId,
+        name,
+        kind,
+        chain,
+        address,
+        usdValue,
+    ) => ({
         providerId,
         name,
         kind,
@@ -1200,63 +1207,92 @@ test('CoinTracker suggestions can be added without auto-import', async ({
         usdValue,
     });
     const wallets = [
-        wallet('w-add', 'New Ethereum wallet', 'wallet', 'Ethereum',
-            '0x1111111111111111111111111111111111111111', 1250),
-        wallet('w-dismiss', 'New Bitcoin account', 'exchange', 'Bitcoin',
-            'bc1qdismisscandidate', 2200),
-        wallet('w-tracked', 'Already tracked wallet', 'wallet', 'Ethereum',
-            trackedAddress, 3300),
+        wallet(
+            'w-add',
+            'New Ethereum wallet',
+            'wallet',
+            'Ethereum',
+            '0x1111111111111111111111111111111111111111',
+            1250,
+        ),
+        wallet(
+            'w-dismiss',
+            'New Bitcoin account',
+            'exchange',
+            'Bitcoin',
+            'bc1qdismisscandidate',
+            2200,
+        ),
+        wallet(
+            'w-tracked',
+            'Already tracked wallet',
+            'wallet',
+            'Ethereum',
+            trackedAddress,
+            3300,
+        ),
     ];
 
-    await page.route('**/api/sync/cointracker/status', (route) =>
-        route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ configured: true, connected: true }),
-        }),
-    );
-    await page.route('**/api/sync/cointracker/sync', async (route) => {
-        const request = route.request();
-        expect(request.method()).toBe('POST');
-        expect(request.postDataJSON().token).toBe('e2e-fake-token');
-        await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-                status: 'success',
-                tool: 'balances',
-                wallets,
-                syncedAt,
-                partial: false,
-                skippedProviderIds: [],
-                warnings: [],
+    await page.route(
+        '**/api/sync/cointracker/status',
+        (route) =>
+            route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ configured: true, connected: true }),
             }),
-        });
-    });
+    );
+    await page.route(
+        '**/api/sync/cointracker/sync',
+        async (route) => {
+            const request = route.request();
+            expect(request.method()).toBe('POST');
+            expect(request.postDataJSON().token).toBe('e2e-fake-token');
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    status: 'success',
+                    tool: 'balances',
+                    wallets,
+                    syncedAt,
+                    partial: false,
+                    skippedProviderIds: [],
+                    warnings: [],
+                }),
+            });
+        },
+    );
 
-    await page.evaluate(async ({ syncedAt, trackedAddress }) => {
-        localStorage.setItem('fire_cointracker_token', 'e2e-fake-token');
-        localStorage.setItem('fire_cointracker_last_sync', syncedAt);
-        state.customAccounts = [
-            {
-                id: 'manual-tracked',
-                type: 'Crypto',
-                name: 'Manual tracked wallet',
-                identifier: trackedAddress,
-                value: 600,
-                apy: 0,
-            },
-            {
-                id: 'manual-savings',
-                type: 'Savings',
-                name: 'Emergency Savings',
-                value: 9000,
-                apy: 4.5,
-            },
-        ];
-        state.coinTrackerExcluded = [];
-        await saveState();
-    }, { syncedAt, trackedAddress });
+    await page.evaluate(
+        async ({ syncedAt, trackedAddress }) => {
+            localStorage.setItem(
+                'fire_cointracker_token',
+                'e2e-fake-token',
+            );
+            localStorage.setItem('fire_cointracker_last_sync', syncedAt);
+            state.customAccounts = [
+                {
+                    id: 'manual-tracked',
+                    type: 'Crypto',
+                    name: 'Manual tracked wallet',
+                    identifier: trackedAddress,
+                    value: 600,
+                    apy: 0,
+                },
+                {
+                    id: 'manual-savings',
+                    type: 'Savings',
+                    name: 'Emergency Savings',
+                    value: 9000,
+                    apy: 4.5,
+                },
+            ];
+            state.coinTrackerExcluded = [];
+            await globalThis.saveState();
+        },
+        { syncedAt, trackedAddress },
+    );
 
     // Reload only after the fake state and route mocks are installed.
     await page.reload();
@@ -1276,9 +1312,15 @@ test('CoinTracker suggestions can be added without auto-import', async ({
     await expect(suggestions).toBeVisible();
     await expect(suggestions).toContainText('Source: CoinTracker');
     await expect(suggestions).toContainText('Last synced:');
-    await expect(page.locator('[data-ct-suggestion-add="w-add"]')).toBeVisible();
-    await expect(page.locator('[data-ct-suggestion-add="w-dismiss"]')).toBeVisible();
-    await expect(page.locator('[data-ct-suggestion-add="w-tracked"]')).toHaveCount(0);
+    await expect(
+        page.locator('[data-ct-suggestion-add="w-add"]'),
+    ).toBeVisible();
+    await expect(
+        page.locator('[data-ct-suggestion-add="w-dismiss"]'),
+    ).toBeVisible();
+    await expect(
+        page.locator('[data-ct-suggestion-add="w-tracked"]'),
+    ).toHaveCount(0);
 
     const before = await page.evaluate(() =>
         state.customAccounts.map((account) => ({
@@ -1310,20 +1352,29 @@ test('CoinTracker suggestions can be added without auto-import', async ({
     ]);
 
     await page.locator('[data-ct-suggestion-add="w-add"]').click();
-    await expect.poll(() => page.evaluate(() =>
-        state.customAccounts.some((account) =>
-            account.source === 'cointracker' &&
-            String(account.cointracker?.providerId) === 'w-add',
-        ),
-    )).toBe(true);
+    await expect
+        .poll(() =>
+            page.evaluate(() =>
+                state.customAccounts.some(
+                    (account) =>
+                        account.source === 'cointracker' &&
+                        String(account.cointracker?.providerId) === 'w-add',
+                ),
+            ),
+        )
+        .toBe(true);
 
     const after = await page.evaluate(() => ({
         ids: state.customAccounts
             .filter((account) => account.source === 'cointracker')
             .map((account) => String(account.cointracker?.providerId))
             .sort(),
-        manual: state.customAccounts.find((account) => account.id === 'manual-tracked'),
-        savings: state.customAccounts.find((account) => account.id === 'manual-savings'),
+        manual: state.customAccounts.find(
+            (account) => account.id === 'manual-tracked',
+        ),
+        savings: state.customAccounts.find(
+            (account) => account.id === 'manual-savings',
+        ),
     }));
     expect(after.ids).toEqual(['w-add']);
     expect(after.manual).toMatchObject({
@@ -1340,7 +1391,11 @@ test('CoinTracker suggestions can be added without auto-import', async ({
         value: 9000,
         apy: 4.5,
     });
-    await expect(page.locator('[data-ct-suggestion-add="w-dismiss"]')).toBeVisible();
-    await expect(page.locator('[data-ct-suggestion-add="w-tracked"]')).toHaveCount(0);
+    await expect(
+        page.locator('[data-ct-suggestion-add="w-dismiss"]'),
+    ).toBeVisible();
+    await expect(
+        page.locator('[data-ct-suggestion-add="w-tracked"]'),
+    ).toHaveCount(0);
 });
 
