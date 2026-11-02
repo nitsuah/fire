@@ -1925,35 +1925,38 @@ test('CoinTracker parent journey composes Add Dismiss and sync failure', async (
         .toContain('w-dismiss');
 
     // Assert only selected provider ID added, dismissed ID excluded, unrelated manual rows unchanged
-    const afterAddDismiss = await page.evaluate(() => ({
-        addedIds: state.customAccounts
-            .filter((account) => account.source === 'cointracker')
-            .map((account) => String(account.cointracker?.providerId))
-            .sort(),
-        excluded: state.coinTrackerExcluded || [],
-        manualTracked: state.customAccounts.find(
-            (account) => account.id === 'manual-tracked',
-        ),
-        manualSavings: state.customAccounts.find(
-            (account) => account.id === 'manual-savings',
-        ),
-    }));
-    expect(afterAddDismiss.addedIds).toEqual(['w-add']);
-    expect(afterAddDismiss.excluded).toContain('w-dismiss');
-    expect(afterAddDismiss.manualTracked).toMatchObject({
-        id: 'manual-tracked',
-        name: 'Manual tracked wallet',
-        type: 'Crypto',
-        identifier: trackedAddress,
-        value: 600,
-    });
-    expect(afterAddDismiss.manualSavings).toMatchObject({
-        id: 'manual-savings',
-        name: 'Emergency Savings',
-        type: 'Savings',
-        value: 9000,
-        apy: 4.5,
-    });
+    const expectPreservedState = async () => {
+        const snap = await page.evaluate(() => ({
+            addedIds: state.customAccounts
+                .filter((account) => account.source === 'cointracker')
+                .map((account) => String(account.cointracker?.providerId))
+                .sort(),
+            excluded: state.coinTrackerExcluded || [],
+            manualTracked: state.customAccounts.find(
+                (account) => account.id === 'manual-tracked',
+            ),
+            manualSavings: state.customAccounts.find(
+                (account) => account.id === 'manual-savings',
+            ),
+        }));
+        expect(snap.addedIds).toEqual(['w-add']);
+        expect(snap.excluded).toContain('w-dismiss');
+        expect(snap.manualTracked).toMatchObject({
+            id: 'manual-tracked',
+            name: 'Manual tracked wallet',
+            type: 'Crypto',
+            identifier: trackedAddress,
+            value: 600,
+        });
+        expect(snap.manualSavings).toMatchObject({
+            id: 'manual-savings',
+            name: 'Emergency Savings',
+            type: 'Savings',
+            value: 9000,
+            apy: 4.5,
+        });
+    };
+    await expectPreservedState();
 
     // 3. Repeat a mocked sync (partial response) and reload; added wallet remains, dismissed stays absent, manual rows unchanged
     const syncResponse2 = page.waitForResponse(
@@ -1964,35 +1967,7 @@ test('CoinTracker parent journey composes Add Dismiss and sync failure', async (
     await page.locator('#btn-cointracker-sync').click();
     await syncResponse2;
 
-    const afterPartialSync = await page.evaluate(() => ({
-        addedIds: state.customAccounts
-            .filter((account) => account.source === 'cointracker')
-            .map((account) => String(account.cointracker?.providerId))
-            .sort(),
-        excluded: state.coinTrackerExcluded || [],
-        manualTracked: state.customAccounts.find(
-            (account) => account.id === 'manual-tracked',
-        ),
-        manualSavings: state.customAccounts.find(
-            (account) => account.id === 'manual-savings',
-        ),
-    }));
-    expect(afterPartialSync.addedIds).toEqual(['w-add']);
-    expect(afterPartialSync.excluded).toContain('w-dismiss');
-    expect(afterPartialSync.manualTracked).toMatchObject({
-        id: 'manual-tracked',
-        name: 'Manual tracked wallet',
-        type: 'Crypto',
-        identifier: trackedAddress,
-        value: 600,
-    });
-    expect(afterPartialSync.manualSavings).toMatchObject({
-        id: 'manual-savings',
-        name: 'Emergency Savings',
-        type: 'Savings',
-        value: 9000,
-        apy: 4.5,
-    });
+    await expectPreservedState();
 
     // Reload and verify state survives
     const finalStatusResponse = page.waitForResponse(
@@ -2007,35 +1982,7 @@ test('CoinTracker parent journey composes Add Dismiss and sync failure', async (
     await page.locator('#btn-tab-settings').click();
     await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
 
-    const afterReload = await page.evaluate(() => ({
-        addedIds: state.customAccounts
-            .filter((account) => account.source === 'cointracker')
-            .map((account) => String(account.cointracker?.providerId))
-            .sort(),
-        excluded: state.coinTrackerExcluded || [],
-        manualTracked: state.customAccounts.find(
-            (account) => account.id === 'manual-tracked',
-        ),
-        manualSavings: state.customAccounts.find(
-            (account) => account.id === 'manual-savings',
-        ),
-    }));
-    expect(afterReload.addedIds).toEqual(['w-add']);
-    expect(afterReload.excluded).toContain('w-dismiss');
-    expect(afterReload.manualTracked).toMatchObject({
-        id: 'manual-tracked',
-        name: 'Manual tracked wallet',
-        type: 'Crypto',
-        identifier: trackedAddress,
-        value: 600,
-    });
-    expect(afterReload.manualSavings).toMatchObject({
-        id: 'manual-savings',
-        name: 'Emergency Savings',
-        type: 'Savings',
-        value: 9000,
-        apy: 4.5,
-    });
+    await expectPreservedState();
 
     // 4. Exercise a deterministic partial response (already did above) and subsequent non-2xx sync failure
     const syncResponse3 = page.waitForResponse(
@@ -2053,6 +2000,12 @@ test('CoinTracker parent journey composes Add Dismiss and sync failure', async (
 
     // Verify failure does not remove/overwrite unrelated accounts or erase exclusions/prior sync result
     const afterFailure = await page.evaluate(() => ({
+        lastSync: localStorage.getItem('fire_cointracker_last_sync'),
+        lastResultIds: (
+            JSON.parse(
+                localStorage.getItem('fire_cointracker_last_result') || '{}',
+            ).wallets || []
+        ).map((wallet) => String(wallet.providerId)),
         addedIds: state.customAccounts
             .filter((account) => account.source === 'cointracker')
             .map((account) => String(account.cointracker?.providerId))
@@ -2065,6 +2018,9 @@ test('CoinTracker parent journey composes Add Dismiss and sync failure', async (
             (account) => account.id === 'manual-savings',
         ),
     }));
+    expect(afterFailure.lastSync).toBe(syncedAt);
+    // lastResult persists from the second (partial) sync which returned w-keep
+    expect(afterFailure.lastResultIds).toEqual(['w-keep']);
     expect(afterFailure.addedIds).toEqual(['w-add']);
     expect(afterFailure.excluded).toContain('w-dismiss');
     expect(afterFailure.manualTracked).toMatchObject({
@@ -2096,6 +2052,12 @@ test('CoinTracker parent journey composes Add Dismiss and sync failure', async (
     await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
 
     const finalState = await page.evaluate(() => ({
+        lastSync: localStorage.getItem('fire_cointracker_last_sync'),
+        lastResultIds: (
+            JSON.parse(
+                localStorage.getItem('fire_cointracker_last_result') || '{}',
+            ).wallets || []
+        ).map((wallet) => String(wallet.providerId)),
         addedIds: state.customAccounts
             .filter((account) => account.source === 'cointracker')
             .map((account) => String(account.cointracker?.providerId))
@@ -2108,6 +2070,9 @@ test('CoinTracker parent journey composes Add Dismiss and sync failure', async (
             (account) => account.id === 'manual-savings',
         ),
     }));
+    expect(finalState.lastSync).toBe(syncedAt);
+    // lastResult still from second sync (partial) — 503 didn't overwrite it
+    expect(finalState.lastResultIds).toEqual(['w-keep']);
     expect(finalState.addedIds).toEqual(['w-add']);
     expect(finalState.excluded).toContain('w-dismiss');
     expect(finalState.manualTracked).toMatchObject({
