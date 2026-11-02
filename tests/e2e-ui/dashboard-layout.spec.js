@@ -1712,3 +1712,417 @@ test('CoinTracker sync failure preserves existing accounts', async ({
     expect(await snapshot()).toEqual(before);
     expect(syncCalls).toBe(1);
 });
+
+test('CoinTracker parent journey composes Add Dismiss and sync failure', async ({
+    page,
+}) => {
+    const syncedAt = new Date().toISOString();
+    const trackedAddress = '0x3333333333333333333333333333333333333333';
+    const wallet = (providerId, name, kind, chain, address, usdValue) => ({
+        providerId,
+        name,
+        kind,
+        chains: [chain],
+        addresses: [address],
+        holdings: [],
+        usdValue,
+    });
+    const wallets = [
+        wallet(
+            'w-add',
+            'New Ethereum wallet',
+            'wallet',
+            'Ethereum',
+            '0x1111111111111111111111111111111111111111',
+            1250,
+        ),
+        wallet(
+            'w-dismiss',
+            'New Bitcoin account',
+            'exchange',
+            'Bitcoin',
+            'bc1qdismisscandidate',
+            2200,
+        ),
+        wallet(
+            'w-tracked',
+            'Already tracked wallet',
+            'wallet',
+            'Ethereum',
+            trackedAddress,
+            3300,
+        ),
+    ];
+
+    await page.route('**/api/sync/cointracker/status', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ configured: true, connected: true }),
+        }),
+    );
+
+    // First sync: full response with all three wallets
+    let syncCallCount = 0;
+    await page.route('**/api/sync/cointracker/sync', async (route) => {
+        const request = route.request();
+        expect(request.method()).toBe('POST');
+        expect(request.postDataJSON().token).toBe('e2e-fake-token');
+        syncCallCount += 1;
+        if (syncCallCount === 1) {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    status: 'success',
+                    tool: 'balances',
+                    wallets,
+                    syncedAt,
+                    partial: false,
+                    skippedProviderIds: [],
+                    warnings: [],
+                }),
+            });
+        } else if (syncCallCount === 2) {
+            // Second sync: partial response with only w-keep
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    status: 'success',
+                    tool: 'balances',
+                    wallets: [
+                        wallet(
+                            'w-keep',
+                            'Unrelated Ethereum wallet',
+                            'wallet',
+                            'Ethereum',
+                            '0x2222222222222222222222222222222222222222',
+                            900,
+                        ),
+                    ],
+                    syncedAt,
+                    partial: true,
+                    skippedProviderIds: ['w-add', 'w-dismiss', 'w-tracked'],
+                    warnings: ['partial sync'],
+                }),
+            });
+        } else {
+            // Third sync: non-2xx failure
+            await route.fulfill({
+                status: 503,
+                contentType: 'application/json',
+                body: JSON.stringify({ error: 'provider unavailable' }),
+            });
+        }
+    });
+
+    // Seed state: manual crypto matching trackedAddress, unrelated savings, empty exclusions
+    await page.evaluate(
+        async ({ syncedAt, trackedAddress }) => {
+            localStorage.setItem('fire_cointracker_token', 'e2e-fake-token');
+            localStorage.setItem('fire_cointracker_last_sync', syncedAt);
+            state.customAccounts = [
+                {
+                    id: 'manual-tracked',
+                    type: 'Crypto',
+                    name: 'Manual tracked wallet',
+                    identifier: trackedAddress,
+                    value: 600,
+                    apy: 0,
+                },
+                {
+                    id: 'manual-savings',
+                    type: 'Savings',
+                    name: 'Emergency Savings',
+                    value: 9000,
+                    apy: 4.5,
+                },
+            ];
+            state.coinTrackerExcluded = [];
+            await globalThis.saveState();
+        },
+        { syncedAt, trackedAddress },
+    );
+
+    // Reload with mocks installed
+    await page.reload();
+    await dismissPrivacyModal(page);
+    await page.locator('#btn-tab-settings').click();
+    await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
+
+    // 1. Initial full sync: source/freshness visible; tracked-address candidate absent; no suggestion auto-added
+    const syncResponse1 = page.waitForResponse(
+        (response) =>
+            response.url().includes('/api/sync/cointracker/sync') &&
+            response.request().method() === 'POST',
+    );
+    await page.locator('#btn-cointracker-sync').click();
+    await syncResponse1;
+
+    const suggestions = page.locator('#cointracker-suggestions');
+    await expect(suggestions).toBeVisible();
+    await expect(suggestions).toContainText('Source: CoinTracker');
+    await expect(suggestions).toContainText('Last synced:');
+    await expect(
+        page.locator('[data-ct-suggestion-add="w-add"]'),
+    ).toBeVisible();
+    await expect(
+        page.locator('[data-ct-suggestion-add="w-dismiss"]'),
+    ).toBeVisible();
+    await expect(
+        page.locator('[data-ct-suggestion-add="w-tracked"]'),
+    ).toHaveCount(0);
+
+    const beforeSync = await page.evaluate(() =>
+        state.customAccounts.map((account) => ({
+            id: account.id,
+            name: account.name,
+            type: account.type,
+            identifier: account.identifier || null,
+            value: account.value,
+            source: account.source || null,
+        })),
+    );
+    expect(beforeSync).toEqual([
+        {
+            id: 'manual-tracked',
+            name: 'Manual tracked wallet',
+            type: 'Crypto',
+            identifier: trackedAddress,
+            value: 600,
+            source: null,
+        },
+        {
+            id: 'manual-savings',
+            name: 'Emergency Savings',
+            type: 'Savings',
+            identifier: null,
+            value: 9000,
+            source: null,
+        },
+    ]);
+
+    // 2. Explicitly Add one candidate (w-add) and Dismiss another (w-dismiss)
+    await page.locator('[data-ct-suggestion-add="w-add"]').click();
+    await expect
+        .poll(() =>
+            page.evaluate(() =>
+                state.customAccounts.some(
+                    (account) =>
+                        account.source === 'cointracker' &&
+                        String(account.cointracker?.providerId) === 'w-add',
+                ),
+            ),
+        )
+        .toBe(true);
+
+    const dismissBtn = page.locator('[data-ct-suggestion-dismiss="w-dismiss"]');
+    await expect(dismissBtn).toBeVisible();
+    await dismissBtn.click();
+    await expect
+        .poll(() => page.evaluate(() => state.coinTrackerExcluded || []))
+        .toContain('w-dismiss');
+
+    // Assert only selected provider ID added, dismissed ID excluded, unrelated manual rows unchanged
+    const afterAddDismiss = await page.evaluate(() => ({
+        addedIds: state.customAccounts
+            .filter((account) => account.source === 'cointracker')
+            .map((account) => String(account.cointracker?.providerId))
+            .sort(),
+        excluded: state.coinTrackerExcluded || [],
+        manualTracked: state.customAccounts.find(
+            (account) => account.id === 'manual-tracked',
+        ),
+        manualSavings: state.customAccounts.find(
+            (account) => account.id === 'manual-savings',
+        ),
+    }));
+    expect(afterAddDismiss.addedIds).toEqual(['w-add']);
+    expect(afterAddDismiss.excluded).toContain('w-dismiss');
+    expect(afterAddDismiss.manualTracked).toMatchObject({
+        id: 'manual-tracked',
+        name: 'Manual tracked wallet',
+        type: 'Crypto',
+        identifier: trackedAddress,
+        value: 600,
+    });
+    expect(afterAddDismiss.manualSavings).toMatchObject({
+        id: 'manual-savings',
+        name: 'Emergency Savings',
+        type: 'Savings',
+        value: 9000,
+        apy: 4.5,
+    });
+
+    // 3. Repeat a mocked sync (partial response) and reload; added wallet remains, dismissed stays absent, manual rows unchanged
+    const syncResponse2 = page.waitForResponse(
+        (response) =>
+            response.url().includes('/api/sync/cointracker/sync') &&
+            response.request().method() === 'POST',
+    );
+    await page.locator('#btn-cointracker-sync').click();
+    await syncResponse2;
+
+    const afterPartialSync = await page.evaluate(() => ({
+        addedIds: state.customAccounts
+            .filter((account) => account.source === 'cointracker')
+            .map((account) => String(account.cointracker?.providerId))
+            .sort(),
+        excluded: state.coinTrackerExcluded || [],
+        manualTracked: state.customAccounts.find(
+            (account) => account.id === 'manual-tracked',
+        ),
+        manualSavings: state.customAccounts.find(
+            (account) => account.id === 'manual-savings',
+        ),
+    }));
+    expect(afterPartialSync.addedIds).toEqual(['w-add']);
+    expect(afterPartialSync.excluded).toContain('w-dismiss');
+    expect(afterPartialSync.manualTracked).toMatchObject({
+        id: 'manual-tracked',
+        name: 'Manual tracked wallet',
+        type: 'Crypto',
+        identifier: trackedAddress,
+        value: 600,
+    });
+    expect(afterPartialSync.manualSavings).toMatchObject({
+        id: 'manual-savings',
+        name: 'Emergency Savings',
+        type: 'Savings',
+        value: 9000,
+        apy: 4.5,
+    });
+
+    // Reload and verify state survives
+    const finalStatusResponse = page.waitForResponse(
+        (response) =>
+            response.url().includes('/api/sync/cointracker/status') &&
+            response.request().method() === 'GET',
+    );
+    await page.reload();
+    await finalStatusResponse;
+    await page.waitForLoadState('networkidle');
+    await dismissPrivacyModal(page);
+    await page.locator('#btn-tab-settings').click();
+    await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
+
+    const afterReload = await page.evaluate(() => ({
+        addedIds: state.customAccounts
+            .filter((account) => account.source === 'cointracker')
+            .map((account) => String(account.cointracker?.providerId))
+            .sort(),
+        excluded: state.coinTrackerExcluded || [],
+        manualTracked: state.customAccounts.find(
+            (account) => account.id === 'manual-tracked',
+        ),
+        manualSavings: state.customAccounts.find(
+            (account) => account.id === 'manual-savings',
+        ),
+    }));
+    expect(afterReload.addedIds).toEqual(['w-add']);
+    expect(afterReload.excluded).toContain('w-dismiss');
+    expect(afterReload.manualTracked).toMatchObject({
+        id: 'manual-tracked',
+        name: 'Manual tracked wallet',
+        type: 'Crypto',
+        identifier: trackedAddress,
+        value: 600,
+    });
+    expect(afterReload.manualSavings).toMatchObject({
+        id: 'manual-savings',
+        name: 'Emergency Savings',
+        type: 'Savings',
+        value: 9000,
+        apy: 4.5,
+    });
+
+    // 4. Exercise a deterministic partial response (already did above) and subsequent non-2xx sync failure
+    const syncResponse3 = page.waitForResponse(
+        (response) =>
+            response.url().includes('/api/sync/cointracker/sync') &&
+            response.request().method() === 'POST',
+    );
+    await page.locator('#btn-cointracker-sync').click();
+    const response3 = await syncResponse3;
+    expect(response3.status()).toBe(503);
+    await expect(page.locator('#cointracker-status')).toContainText(
+        'Sync failed: provider unavailable',
+    );
+    await expect(page.locator('#btn-cointracker-sync')).toBeEnabled();
+
+    // Verify failure does not remove/overwrite unrelated accounts or erase exclusions/prior sync result
+    const afterFailure = await page.evaluate(() => ({
+        addedIds: state.customAccounts
+            .filter((account) => account.source === 'cointracker')
+            .map((account) => String(account.cointracker?.providerId))
+            .sort(),
+        excluded: state.coinTrackerExcluded || [],
+        manualTracked: state.customAccounts.find(
+            (account) => account.id === 'manual-tracked',
+        ),
+        manualSavings: state.customAccounts.find(
+            (account) => account.id === 'manual-savings',
+        ),
+    }));
+    expect(afterFailure.addedIds).toEqual(['w-add']);
+    expect(afterFailure.excluded).toContain('w-dismiss');
+    expect(afterFailure.manualTracked).toMatchObject({
+        id: 'manual-tracked',
+        name: 'Manual tracked wallet',
+        type: 'Crypto',
+        identifier: trackedAddress,
+        value: 600,
+    });
+    expect(afterFailure.manualSavings).toMatchObject({
+        id: 'manual-savings',
+        name: 'Emergency Savings',
+        type: 'Savings',
+        value: 9000,
+        apy: 4.5,
+    });
+
+    // Final reload to ensure state survives
+    const finalStatusResponse2 = page.waitForResponse(
+        (response) =>
+            response.url().includes('/api/sync/cointracker/status') &&
+            response.request().method() === 'GET',
+    );
+    await page.reload();
+    await finalStatusResponse2;
+    await page.waitForLoadState('networkidle');
+    await dismissPrivacyModal(page);
+    await page.locator('#btn-tab-settings').click();
+    await expect(page.locator('#btn-cointracker-sync')).toBeVisible();
+
+    const finalState = await page.evaluate(() => ({
+        addedIds: state.customAccounts
+            .filter((account) => account.source === 'cointracker')
+            .map((account) => String(account.cointracker?.providerId))
+            .sort(),
+        excluded: state.coinTrackerExcluded || [],
+        manualTracked: state.customAccounts.find(
+            (account) => account.id === 'manual-tracked',
+        ),
+        manualSavings: state.customAccounts.find(
+            (account) => account.id === 'manual-savings',
+        ),
+    }));
+    expect(finalState.addedIds).toEqual(['w-add']);
+    expect(finalState.excluded).toContain('w-dismiss');
+    expect(finalState.manualTracked).toMatchObject({
+        id: 'manual-tracked',
+        name: 'Manual tracked wallet',
+        type: 'Crypto',
+        identifier: trackedAddress,
+        value: 600,
+    });
+    expect(finalState.manualSavings).toMatchObject({
+        id: 'manual-savings',
+        name: 'Emergency Savings',
+        type: 'Savings',
+        value: 9000,
+        apy: 4.5,
+    });
+    expect(syncCallCount).toBe(3);
+});
