@@ -290,33 +290,27 @@ describe('Stripe API key auth boundary', () => {
                 path.join(os.tmpdir(), 'fire-stripe-auth-boundary-'),
             );
             const apiKey = 'fire-test-api-key';
-            const script = \`
-                const app = require(\${JSON.stringify(path.resolve('app/server.js'))});
-                const server = app.listen(0, '127.0.0.1', async () => {
-                    const port = server.address().port;
-                    const url = \`http://127.0.0.1:\${port}/api/sync/stripe/status\`;
-                    try {
-                        const unauthenticated = await fetch(url);
-                        const unauthenticatedBody = await unauthenticated.json();
-                        const authenticated = await fetch(url, {
-                            headers: { 'x-api-key': process.env.FIRE_API_KEY },
-                        });
-                        const authenticatedBody = await authenticated.json();
-                        console.log(JSON.stringify({
-                            unauthenticatedStatus: unauthenticated.status,
-                            unauthenticatedBody,
-                            authenticatedStatus: authenticated.status,
-                            authenticatedBody,
-                        }));
-                    } catch (error) {
-                        console.error(error.message);
-                        process.exitCode = 1;
-                    } finally {
-                        server.closeAllConnections();
-                        server.close();
-                    }
-                });
-            \`;
+            const serverPath = JSON.stringify(path.resolve('app/server.js'));
+            const script = [
+                'const app = require(' + serverPath + ');',
+                "const server = app.listen(0, '127.0.0.1', async () => {",
+                "  const port = server.address().port;",
+                "  const url = 'http://127.0.0.1:' + port + '/api/sync/stripe/status';",
+                '  try {',
+                '    const unauthenticated = await fetch(url);',
+                '    const unauthenticatedBody = await unauthenticated.json();',
+                '    const authenticated = await fetch(url, { headers: { "x-api-key": process.env.FIRE_API_KEY } });',
+                '    const authenticatedBody = await authenticated.json();',
+                '    console.log(JSON.stringify({ unauthenticatedStatus: unauthenticated.status, unauthenticatedBody, authenticatedStatus: authenticated.status, authenticatedBody }));',
+                '  } catch (error) {',
+                '    console.error(error.message);',
+                '    process.exitCode = 1;',
+                '  } finally {',
+                '    server.closeAllConnections();',
+                '    server.close();',
+                '  }',
+                '});',
+            ].join(String.fromCharCode(10));
             const env = {
                 ...process.env,
                 FIRE_API_KEY: apiKey,
@@ -334,8 +328,12 @@ describe('Stripe API key auth boundary', () => {
                     encoding: 'utf8',
                     timeout: 45000,
                 });
-                expect(result.status).toBe(0, result.stderr);
-                const output = JSON.parse(result.stdout.trim().split('\\n').at(-1));
+                if (result.status !== 0) {
+                    throw new Error(result.stderr || result.error?.message || 'Auth test server exited unexpectedly.');
+                }
+                const output = JSON.parse(
+                    result.stdout.trim().split(String.fromCharCode(10)).at(-1),
+                );
                 expect(output.unauthenticatedStatus).toBe(401);
                 expect(output.unauthenticatedBody).toEqual({ error: 'Unauthorized.' });
                 expect(output.authenticatedStatus).toBe(200);
@@ -352,4 +350,3 @@ describe('Stripe API key auth boundary', () => {
         60000,
     );
 });
-
