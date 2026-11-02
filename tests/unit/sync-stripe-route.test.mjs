@@ -8,6 +8,7 @@ import {
     it,
     vi,
 } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -280,3 +281,75 @@ describe('DELETE /api/sync/stripe/disconnect', () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 });
+
+describe('Stripe API key auth boundary', () => {
+    it(
+        'requires x-api-key for the status route when auth is enabled',
+        () => {
+            const authDataDir = fs.mkdtempSync(
+                path.join(os.tmpdir(), 'fire-stripe-auth-boundary-'),
+            );
+            const apiKey = 'fire-test-api-key';
+            const script = \`
+                const app = require(\${JSON.stringify(path.resolve('app/server.js'))});
+                const server = app.listen(0, '127.0.0.1', async () => {
+                    const port = server.address().port;
+                    const url = \`http://127.0.0.1:\${port}/api/sync/stripe/status\`;
+                    try {
+                        const unauthenticated = await fetch(url);
+                        const unauthenticatedBody = await unauthenticated.json();
+                        const authenticated = await fetch(url, {
+                            headers: { 'x-api-key': process.env.FIRE_API_KEY },
+                        });
+                        const authenticatedBody = await authenticated.json();
+                        console.log(JSON.stringify({
+                            unauthenticatedStatus: unauthenticated.status,
+                            unauthenticatedBody,
+                            authenticatedStatus: authenticated.status,
+                            authenticatedBody,
+                        }));
+                    } catch (error) {
+                        console.error(error.message);
+                        process.exitCode = 1;
+                    } finally {
+                        server.closeAllConnections();
+                        server.close();
+                    }
+                });
+            \`;
+            const env = {
+                ...process.env,
+                FIRE_API_KEY: apiKey,
+                FIRE_DATA_DIR: authDataDir,
+                FIRE_DB_FILE: path.join(authDataDir, 'db.json'),
+                SESSION_SECRET: 'fire-stripe-auth-test-session-secret',
+                SYNC_MASTER_KEY: TEST_MASTER_KEY,
+                NODE_ENV: 'test',
+            };
+            delete env.FIRE_AUTH_DISABLED;
+
+            try {
+                const result = spawnSync(process.execPath, ['-e', script], {
+                    env,
+                    encoding: 'utf8',
+                    timeout: 45000,
+                });
+                expect(result.status).toBe(0, result.stderr);
+                const output = JSON.parse(result.stdout.trim().split('\\n').at(-1));
+                expect(output.unauthenticatedStatus).toBe(401);
+                expect(output.unauthenticatedBody).toEqual({ error: 'Unauthorized.' });
+                expect(output.authenticatedStatus).toBe(200);
+                expect(output.authenticatedBody).toMatchObject({
+                    configured: true,
+                    connected: false,
+                    webhookConfigured: false,
+                });
+                expect(JSON.stringify(output.authenticatedBody)).not.toContain(apiKey);
+            } finally {
+                fs.rmSync(authDataDir, { recursive: true, force: true });
+            }
+        },
+        60000,
+    );
+});
+
