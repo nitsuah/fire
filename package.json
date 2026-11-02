@@ -28,13 +28,14 @@
     "fast-uri": ">=3.1.9",
     "ip-address": ">=10.7.4",
     "body-parser": ">=2.4.0",
-    "zod": ">=4.6.6"
+    "zod": ">=4.6.6",
+    "minimatch": ">=11.0.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@playwright/test": "1.64.1",
     "@vitest/coverage-v8": "^5.0.3",
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.7",
     "globals": "^17.13.0",
