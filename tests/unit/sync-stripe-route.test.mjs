@@ -299,9 +299,16 @@ describe('Stripe API key auth boundary', () => {
                 '  try {',
                 '    const unauthenticated = await fetch(url);',
                 '    const unauthenticatedBody = await unauthenticated.json();',
-                '    const authenticated = await fetch(url, { headers: { "x-api-key": process.env.FIRE_API_KEY } });',
+                '    const authenticated = await fetch(url, {',
+                '      headers: { "x-api-key": process.env.FIRE_API_KEY },',
+                '    });',
                 '    const authenticatedBody = await authenticated.json();',
-                '    console.log(JSON.stringify({ unauthenticatedStatus: unauthenticated.status, unauthenticatedBody, authenticatedStatus: authenticated.status, authenticatedBody }));',
+                '    console.log(JSON.stringify({',
+                '      unauthenticatedStatus: unauthenticated.status,',
+                '      unauthenticatedBody,',
+                '      authenticatedStatus: authenticated.status,',
+                '      authenticatedBody,',
+                '    }));',
                 '  } catch (error) {',
                 '    console.error(error.message);',
                 '    process.exitCode = 1;',
@@ -329,13 +336,16 @@ describe('Stripe API key auth boundary', () => {
                     timeout: 45000,
                 });
                 if (result.status !== 0) {
-                    throw new Error(result.stderr || result.error?.message || 'Auth test server exited unexpectedly.');
+                    const message = result.stderr || result.error?.message || 'Auth test server exited unexpectedly.';
+                    throw new Error(message);
                 }
                 const output = JSON.parse(
                     result.stdout.trim().split(String.fromCharCode(10)).at(-1),
                 );
                 expect(output.unauthenticatedStatus).toBe(401);
-                expect(output.unauthenticatedBody).toEqual({ error: 'Unauthorized.' });
+                expect(output.unauthenticatedBody).toEqual({
+                    error: 'Unauthorized.',
+                });
                 expect(output.authenticatedStatus).toBe(200);
                 expect(output.authenticatedBody).toMatchObject({
                     configured: true,
