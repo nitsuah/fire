@@ -8,6 +8,7 @@ const { integrateWebhookData } = require('../lib/webhook-integration');
 const router = express.Router();
 const ebayRouter = require('./ebay');
 const plaidRouter = require('./plaid');
+const stripeRouter = require('./stripe');
 const coinTrackerRouter = require('./cointracker');
 const etsyRouter = require('./etsy');
 const SUPPORTED_WEBHOOK_TYPES = [
@@ -296,5 +297,6 @@ router.use(ebayRouter);
 router.use(plaidRouter);
 router.use(coinTrackerRouter);
 router.use(etsyRouter);
+router.use(stripeRouter);
 
 module.exports = router;
