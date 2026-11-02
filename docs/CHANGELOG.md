@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
+
 ### Added
 
 - Etsy (hosted): persist a sanitized last-sync outcome in browser storage so failures survive reloads; clear it on success, disconnect, lost grant, or reconnect (#321).
