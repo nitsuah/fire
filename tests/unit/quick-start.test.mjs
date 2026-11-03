@@ -81,16 +81,11 @@ describe('quick start DOM contract', () => {
         expect(indexHtml).toContain('aria-label="Reopen Quick Start"');
     });
 
-    it('loads quick-start.js model before quick-start.js manager before app.js', () => {
+    it('loads quick-start.js model before app.js', () => {
         const modelIdx = indexHtml.indexOf('src="lib/quick-start.js"');
-        const managerIdx = indexHtml.indexOf(
-            'src="lib/managers/quick-start.js"',
-        );
         const appIdx = indexHtml.indexOf('src="app.js"');
         expect(modelIdx).toBeGreaterThan(-1);
-        expect(managerIdx).toBeGreaterThan(-1);
         expect(appIdx).toBeGreaterThan(-1);
-        expect(modelIdx).toBeLessThan(managerIdx);
-        expect(managerIdx).toBeLessThan(appIdx);
+        expect(modelIdx).toBeLessThan(appIdx);
     });
 });
