@@ -53,3 +53,44 @@ describe('quickStartProgress', () => {
         ).toBe(true);
     });
 });
+
+describe('quick start DOM contract', () => {
+    const requiredIds = [
+        'quick-start-card',
+        'quick-start-title',
+        'quick-start-progress',
+        'quick-start-steps',
+        'quick-start-dismiss',
+        'quick-start-reopen',
+    ];
+
+    it('has all required element IDs in tab-dashboard', () => {
+        for (const id of requiredIds) {
+            expect(indexHtml).toContain(`id="${id}"`);
+        }
+    });
+
+    it('card and reopen button start hidden', () => {
+        expect(indexHtml).toContain('id="quick-start-card" hidden');
+        expect(indexHtml).toContain('id="quick-start-reopen" hidden');
+    });
+
+    it('buttons have accessible names and aria-controls', () => {
+        expect(indexHtml).toContain('aria-label="Dismiss Quick Start"');
+        expect(indexHtml).toContain('aria-controls="quick-start-card"');
+        expect(indexHtml).toContain('aria-label="Reopen Quick Start"');
+    });
+
+    it('loads quick-start.js model before quick-start.js manager before app.js', () => {
+        const modelIdx = indexHtml.indexOf('src="lib/quick-start.js"');
+        const managerIdx = indexHtml.indexOf(
+            'src="lib/managers/quick-start.js"',
+        );
+        const appIdx = indexHtml.indexOf('src="app.js"');
+        expect(modelIdx).toBeGreaterThan(-1);
+        expect(managerIdx).toBeGreaterThan(-1);
+        expect(appIdx).toBeGreaterThan(-1);
+        expect(modelIdx).toBeLessThan(managerIdx);
+        expect(managerIdx).toBeLessThan(appIdx);
+    });
+});
