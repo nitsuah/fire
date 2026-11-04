@@ -12,9 +12,7 @@ describe('Stripe read-only HTTP boundary', () => {
             source.matchAll(/https:\/\/api\.stripe\.com\/v1\/[A-Za-z0-9_/-]+/g),
             ([url]) => url,
         );
-        expect(urls).toEqual([
-            'https://api.stripe.com/v1/balance_transactions',
-        ]);
+        expect(urls).toEqual(['/v1/balance_transactions']);
         expect(source).toMatch(/method:\s*['"]GET['"]/);
         expect(source).not.toMatch(
             /method:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/i,
