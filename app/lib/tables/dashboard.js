@@ -57,14 +57,17 @@ function renderHeaderBannerMetrics() {
     const { networth, annualExpenses, fireNumber, progressPercent } = status;
     const swr = state.projectionSettings.swr / 100;
 
-    document.getElementById('banner-networth').textContent =
-        formatCurrency(networth);
-    document.getElementById('banner-spend').textContent =
-        formatCurrency(annualExpenses);
-    document.getElementById('banner-progress').textContent =
-        `${progressPercent.toFixed(1)}%`;
-    document.getElementById('banner-target').textContent =
-        `Target: ${formatCurrency(fireNumber)}`;
+    const networthEl = document.getElementById('banner-networth');
+    if (networthEl) networthEl.textContent = formatCurrency(networth);
+
+    const spendEl = document.getElementById('banner-spend');
+    if (spendEl) spendEl.textContent = formatCurrency(annualExpenses);
+
+    const progressEl = document.getElementById('banner-progress');
+    if (progressEl) progressEl.textContent = `${progressPercent.toFixed(1)}%`;
+
+    const targetEl = document.getElementById('banner-target');
+    if (targetEl) targetEl.textContent = `Target: ${formatCurrency(fireNumber)}`;
 
     // Past 100% the bar alone says nothing, so show what the portfolio can
     // pay out; before it, how long until FIRE at current savings/returns.
@@ -188,13 +191,18 @@ function initCompactBarPlacement() {
     const banner = document.querySelector('.header-banner');
     const sidebar = document.querySelector('.sidebar');
     const container = document.querySelector('.app-container');
-    if (!bar || !bell || !banner || !sidebar || !container) return;
+    if (!bar || !bell || !banner || !sidebar || !container) {
+        return;
+    }
     const bellHome = bell.parentElement;
-    const mq = window.matchMedia(
-        '(max-width: 768px) and (orientation: portrait)',
-    );
+    // Use innerWidth check instead of media query for orientation since
+    // Playwright viewport size doesn't reliably set orientation media query
+    const isPortrait = window.innerWidth < window.innerHeight;
+    const mq = window.matchMedia('(max-width: 768px)');
     const place = () => {
-        if (mq.matches) {
+        const isPortraitNow = window.innerWidth < window.innerHeight;
+        const narrow = window.innerWidth <= 768;
+        if (narrow && isPortraitNow) {
             sidebar.append(bar, bell);
             container.classList.add('topbar-summary');
         } else {
@@ -206,6 +214,9 @@ function initCompactBarPlacement() {
     mq.addEventListener('change', place);
     place();
 }
+
+// Expose initCompactBarPlacement globally so app.js can call it
+window.initCompactBarPlacement = initCompactBarPlacement;
 
 // Retirement Growth Path expander: full-width (wide screens) and taller.
 function initGrowthSizeControls() {

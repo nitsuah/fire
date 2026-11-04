@@ -178,7 +178,6 @@ function refreshAllUI() {
     calculateEbayProfit();
 
     renderHeaderBannerMetrics();
-    renderAllocMiniBarsBanner();
 
     renderDashboardTopPositionsTable();
     renderDashboardLiquidPanel();

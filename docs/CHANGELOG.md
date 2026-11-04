@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
 
+### Removed
+- Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).
+
 ### Added
 
 - Etsy (hosted): persist a sanitized last-sync outcome in browser storage so failures survive reloads; clear it on success, disconnect, lost grant, or reconnect (#321).
