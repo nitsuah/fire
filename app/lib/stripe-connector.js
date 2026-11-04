@@ -6,6 +6,7 @@ const { stripeBalanceTransactionsToEntries } = require('./stripe-canonical');
 const STRIPE_BALANCE_TRANSACTIONS_URL =
     'https://api.stripe.com/v1/balance_transactions';
 const PAGE_LIMIT = 100;
+// Bound one call; the caller can resume with the returned nextCursor.
 const MAX_PAGES = 10;
 
 function errorForStatus(status) {
@@ -38,6 +39,7 @@ async function fetchBalanceTransactions({
         return { error: 'unauthorized' };
     }
     if (typeof fetchImpl !== 'function') return { error: 'provider_error' };
+    const bearerKey = key.trim();
 
     const transactions = [];
     let currentCursor =
@@ -57,7 +59,7 @@ async function fetchBalanceTransactions({
             response = await fetchImpl(url.toString(), {
                 method: 'GET',
                 headers: {
-                    Authorization: `Bearer ${key}`,
+                    Authorization: `Bearer ${bearerKey}`,
                     Accept: 'application/json',
                 },
             });
