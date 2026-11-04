@@ -212,7 +212,9 @@ function initCompactBarPlacement() {
         }
     };
     mq.addEventListener('change', place);
-    window.matchMedia('(orientation: portrait)').addEventListener('change', place);
+    window
+        .matchMedia('(orientation: portrait)')
+        .addEventListener('change', place);
     place();
 }
 
