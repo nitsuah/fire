@@ -722,12 +722,14 @@ test.describe('Summary bar — top bar placement', () => {
             ).toBeVisible();
             await expect(page.locator('.header-banner')).toBeHidden();
 
-            // Rotate within the narrow breakpoint: placement must still follow orientation.
+            // Rotate within the narrow breakpoint; placement must follow orientation.
             await page.setViewportSize({ width: 740, height: 360 });
             await expect(
                 page.locator('.header-banner #compact-fire-bar'),
             ).toBeVisible();
-            await expect(page.locator('.sidebar #compact-fire-bar')).toHaveCount(0);
+            await expect(
+                page.locator('.sidebar #compact-fire-bar'),
+            ).toHaveCount(0);
 
             await page.setViewportSize({ width: 390, height: 844 });
             await expect(
@@ -1240,7 +1242,7 @@ test.describe('Side Gig Ledger — eBay report upload', () => {
     test.beforeEach(async ({ page }) => {
         await page.evaluate(async () => {
             state.sideGigLedger = [];
-            await saveState();
+            await globalThis.saveState();
             refreshAllUI();
         });
     });
