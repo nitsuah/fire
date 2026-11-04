@@ -7,14 +7,12 @@ const source = readFileSync(
 );
 
 describe('Stripe read-only HTTP boundary', () => {
-    it('uses only GET on the allowlisted balance-transactions endpoint', () => {
-        const stripeUrls = [
-            ...source.matchAll(
-                /https:\/\/api\.stripe\.com\/v1\/[A-Za-z0-9_/-]+/g,
-            ),
-        ].map(([url]) => url);
-
-        expect(stripeUrls).toEqual([
+    it('uses only GET on the allowlisted endpoint', () => {
+        const urls = Array.from(
+            source.matchAll(/https:\/\/api\.stripe\.com\/v1\/[A-Za-z0-9_/-]+/g),
+            ([url]) => url,
+        );
+        expect(urls).toEqual([
             'https://api.stripe.com/v1/balance_transactions',
         ]);
         expect(source).toMatch(/method:\s*['"]GET['"]/);
@@ -23,7 +21,7 @@ describe('Stripe read-only HTTP boundary', () => {
         );
     });
 
-    it('does not access token storage or log keys/provider payloads', () => {
+    it('does not use token storage or log secrets/provider payloads', () => {
         expect(source).not.toMatch(
             /\b(?:getTokenFile|loadTokens|saveTokens|token-store)\b/,
         );
