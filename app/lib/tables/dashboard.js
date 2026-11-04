@@ -67,7 +67,8 @@ function renderHeaderBannerMetrics() {
     if (progressEl) progressEl.textContent = `${progressPercent.toFixed(1)}%`;
 
     const targetEl = document.getElementById('banner-target');
-    if (targetEl) targetEl.textContent = `Target: ${formatCurrency(fireNumber)}`;
+    if (targetEl)
+        targetEl.textContent = `Target: ${formatCurrency(fireNumber)}`;
 
     // Past 100% the bar alone says nothing, so show what the portfolio can
     // pay out; before it, how long until FIRE at current savings/returns.
@@ -195,9 +196,8 @@ function initCompactBarPlacement() {
         return;
     }
     const bellHome = bell.parentElement;
-    // Use innerWidth check instead of media query for orientation since
-    // Playwright viewport size doesn't reliably set orientation media query
-    const isPortrait = window.innerWidth < window.innerHeight;
+    // Re-evaluate on width and orientation changes. The width query alone
+    // does not fire for rotations that remain within the narrow breakpoint.
     const mq = window.matchMedia('(max-width: 768px)');
     const place = () => {
         const isPortraitNow = window.innerWidth < window.innerHeight;
@@ -212,6 +212,7 @@ function initCompactBarPlacement() {
         }
     };
     mq.addEventListener('change', place);
+    window.matchMedia('(orientation: portrait)').addEventListener('change', place);
     place();
 }
 
