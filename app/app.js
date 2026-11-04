@@ -100,7 +100,7 @@ const CSP_ACTIONS = new Set([
     'startEditAccount', 'deleteAccount', 'startEditCD', 'deleteCD', 'saveEditVehicle',
     'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate', 'saveEditAccount',
     'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
-    'toggleChaos', 'rerollChaos',
+    'toggleChaos', 'rerollChaos', 'toggleChaosProfile',
     'saveChaosProfile', 'clearChaosProfile',
 ]);
 
