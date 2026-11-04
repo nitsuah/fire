@@ -47,7 +47,7 @@ async function fetchBalanceTransactions({
     let nextCursor = currentCursor;
 
     for (let page = 0; page < MAX_PAGES; page += 1) {
-        const url = new URL(STRIPE_BALANCE_TRANSACTIONS_URL);
+        const url = new globalThis.URL(STRIPE_BALANCE_TRANSACTIONS_URL);
         url.searchParams.set('limit', String(PAGE_LIMIT));
         if (currentCursor) {
             url.searchParams.set('starting_after', currentCursor);
