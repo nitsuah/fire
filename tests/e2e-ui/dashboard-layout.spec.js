@@ -488,6 +488,12 @@ test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)',
         });
         expect(hitPoint).toBeTruthy();
         await page.mouse.click(hitPoint.x, hitPoint.y);
+        // Wait for drill-down animation to complete
+        await page.waitForFunction(
+            () =>
+                window.assetAllocationChart &&
+                !window.Chart.animator.running(window.assetAllocationChart),
+        );
 
         await expect(page.locator('#alloc-back-btn')).toBeVisible();
         await expect(page.locator('#alloc-breadcrumb-title')).toContainText(
@@ -816,6 +822,49 @@ test.describe('Insights — additional watchers', () => {
         });
         await expect(page.locator('#divs-suggestion-block')).toContainText(
             'Precious Metals Share',
+        );
+    });
+
+    test('CD Maturity Concentration tile appears when >60% of CD value in 90-day window', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            localStorage.removeItem('fire_dismissed_div_tips');
+            state.cds = [
+                { id: 'cd1', bank: 'Bank A', principal: 50000, rate: 5, maturity: '2027-01-15', startDate: '2026-01-15' },
+                { id: 'cd2', bank: 'Bank B', principal: 30000, rate: 4.5, maturity: '2027-02-15', startDate: '2026-02-15' },
+                { id: 'cd3', bank: 'Bank C', principal: 10000, rate: 4, maturity: '2027-03-15', startDate: '2026-03-15' },
+                { id: 'cd4', bank: 'Bank D', principal: 5000, rate: 4, maturity: '2028-01-01', startDate: '2027-01-01' },
+            ];
+            state.customAccounts = [
+                { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 100000 },
+            ];
+            renderDiversificationSuggestions();
+        });
+        await expect(page.locator('#divs-suggestion-block')).toContainText(
+            'CD Maturity Concentration',
+        );
+        await expect(page.locator('#divs-suggestion-block')).toContainText(
+            'reinvestment timing risk',
+        );
+    });
+
+    test('CD Maturity Concentration tile hidden with fewer than 3 CDs or spread-out ladder', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            localStorage.removeItem('fire_dismissed_div_tips');
+            state.cds = [
+                { id: 'cd1', bank: 'Bank A', principal: 50000, rate: 5, maturity: '2027-01-15', startDate: '2026-01-15' },
+                { id: 'cd2', bank: 'Bank B', principal: 30000, rate: 4.5, maturity: '2028-02-15', startDate: '2027-02-15' },
+            ];
+            state.customAccounts = [
+                { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 100000 },
+            ];
+            renderDiversificationSuggestions();
+        });
+        await expect(page.locator('#divs-suggestion-block')).not.toContainText(
+            'CD Maturity Concentration',
         );
     });
 });
