@@ -9,7 +9,7 @@ const source = readFileSync(
 describe('Stripe read-only HTTP boundary', () => {
     it('uses only GET on the allowlisted endpoint', () => {
         const urls = Array.from(
-            source.matchAll(/https:\/\/api\.stripe\.com\/v1\/[A-Za-z0-9_/-]+/g),
+            source.matchAll(/\/v1\/[A-Za-z0-9_/-]+/g),
             ([url]) => url,
         );
         expect(urls).toEqual(['/v1/balance_transactions']);
