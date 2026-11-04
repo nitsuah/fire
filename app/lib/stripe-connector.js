@@ -15,13 +15,18 @@ function errorForStatus(status) {
 }
 
 function mappedResult(transactions, nextCursor, partial, error) {
-    const mapped = stripeBalanceTransactionsToEntries(transactions);
     return {
-        ...mapped,
+        ...stripeBalanceTransactionsToEntries(transactions),
         nextCursor,
         partial,
         ...(error ? { error } : {}),
     };
+}
+
+function failure(transactions, nextCursor, page, error) {
+    return page === 0
+        ? { error }
+        : mappedResult(transactions, nextCursor, true, error);
 }
 
 async function fetchBalanceTransactions({
@@ -32,9 +37,7 @@ async function fetchBalanceTransactions({
     if (typeof key !== 'string' || !key.trim()) {
         return { error: 'unauthorized' };
     }
-    if (typeof fetchImpl !== 'function') {
-        return { error: 'provider_error' };
-    }
+    if (typeof fetchImpl !== 'function') return { error: 'provider_error' };
 
     const transactions = [];
     let currentCursor =
@@ -49,6 +52,7 @@ async function fetchBalanceTransactions({
         }
 
         let response;
+        let payload;
         try {
             response = await fetchImpl(url.toString(), {
                 method: 'GET',
@@ -57,47 +61,24 @@ async function fetchBalanceTransactions({
                     Accept: 'application/json',
                 },
             });
-        } catch {
-            if (page === 0) return { error: 'provider_error' };
-            return mappedResult(
-                transactions,
-                nextCursor,
-                true,
-                'provider_error',
-            );
-        }
-
-        if (!response?.ok) {
-            const error = errorForStatus(response?.status);
-            if (page === 0) return { error };
-            return mappedResult(transactions, nextCursor, true, error);
-        }
-
-        let payload;
-        try {
+            if (!response?.ok) {
+                return failure(
+                    transactions,
+                    nextCursor,
+                    page,
+                    errorForStatus(response?.status),
+                );
+            }
             payload = await response.json();
         } catch {
-            if (page === 0) return { error: 'provider_error' };
-            return mappedResult(
-                transactions,
-                nextCursor,
-                true,
-                'provider_error',
-            );
+            return failure(transactions, nextCursor, page, 'provider_error');
         }
 
         if (
-            !payload ||
-            !Array.isArray(payload.data) ||
+            !Array.isArray(payload?.data) ||
             typeof payload.has_more !== 'boolean'
         ) {
-            if (page === 0) return { error: 'provider_error' };
-            return mappedResult(
-                transactions,
-                nextCursor,
-                true,
-                'provider_error',
-            );
+            return failure(transactions, nextCursor, page, 'provider_error');
         }
 
         transactions.push(...payload.data);
@@ -105,19 +86,11 @@ async function fetchBalanceTransactions({
             return mappedResult(transactions, null, false);
         }
 
-        const lastTransactionId = payload.data.at(-1)?.id;
-        if (typeof lastTransactionId !== 'string' || !lastTransactionId) {
-            if (page === 0) return { error: 'provider_error' };
-            return mappedResult(
-                transactions,
-                nextCursor,
-                true,
-                'provider_error',
-            );
+        const lastId = payload.data.at(-1)?.id;
+        if (typeof lastId !== 'string' || !lastId) {
+            return failure(transactions, nextCursor, page, 'provider_error');
         }
-
-        currentCursor = lastTransactionId;
-        nextCursor = lastTransactionId;
+        currentCursor = nextCursor = lastId;
     }
 
     return mappedResult(transactions, nextCursor, true);
