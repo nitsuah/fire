@@ -217,6 +217,102 @@ function saveChaosMode() {
     }
 }
 
+// Household profile for Chaos mode event filtering
+// Only three explicit answers: pets, children, housing.
+// Stored in state.chaosProfile and persisted via saveState().
+
+function getChaosProfileSelectors() {
+    return {
+        pets: document.querySelector('[data-key="pets"]'),
+        children: document.querySelector('[data-key="children"]'),
+        housing: document.querySelector('[data-key="housing"]'),
+    };
+}
+
+function rehydrateChaosProfile() {
+    const profile = state.chaosProfile;
+    if (!profile) return;
+    const selectors = getChaosProfileSelectors();
+    Object.entries(selectors).forEach(([key, select]) => {
+        if (select && profile[key]) {
+            select.value = profile[key];
+        }
+    });
+    const btn = document.querySelector('.chaos-profile-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+}
+
+function setChaosProfileVisibility(visible) {
+    const panel = document.getElementById('chaos-profile-panel');
+    const btn = document.querySelector('.chaos-profile-btn');
+    if (!panel) return;
+    panel.hidden = !visible;
+    if (btn) {
+        btn.hidden = !chaosMode.enabled;
+        btn.setAttribute('aria-expanded', visible.toString());
+    }
+}
+
+function syncChaosProfilePanel() {
+    const visible = chaosMode.enabled;
+    setChaosProfileVisibility(visible);
+    if (visible) {
+        rehydrateChaosProfile();
+    }
+}
+
+window.saveChaosProfile = function (key, value) {
+    if (!state.chaosProfile) state.chaosProfile = {};
+    if (!value || value === '') {
+        delete state.chaosProfile[key];
+        if (Object.keys(state.chaosProfile).length === 0) {
+            state.chaosProfile = null;
+        }
+    } else {
+        state.chaosProfile[key] = value;
+    }
+    saveState();
+    calculateAndRenderProjections();
+};
+
+window.clearChaosProfile = function () {
+    state.chaosProfile = null;
+    const selectors = getChaosProfileSelectors();
+    Object.values(selectors).forEach((select) => {
+        if (select) select.value = '';
+    });
+    const btn = document.querySelector('.chaos-profile-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    saveState();
+    calculateAndRenderProjections();
+};
+
+window.toggleChaosProfile = function () {
+    const panel = document.getElementById('chaos-profile-panel');
+    const btn = document.querySelector('.chaos-profile-btn');
+    if (!panel || !btn) return;
+    const visible = panel.hidden;
+    panel.hidden = !visible;
+    btn.setAttribute('aria-expanded', visible.toString());
+    if (visible) {
+        rehydrateChaosProfile();
+    }
+};
+
+// Hook into toggleChaos to sync panel visibility
+const originalToggleChaos = window.toggleChaos;
+window.toggleChaos = function () {
+    originalToggleChaos();
+    syncChaosProfilePanel();
+};
+
+// Hook into rerollChaos to sync panel visibility
+const originalRerollChaos = window.rerollChaos;
+window.rerollChaos = function () {
+    originalRerollChaos();
+    syncChaosProfilePanel();
+};
+
 function syncChaosButtons() {
     document.querySelectorAll('.chaos-btn').forEach((btn) => {
         btn.classList.toggle('active', chaosMode.enabled);

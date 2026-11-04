@@ -1491,9 +1491,13 @@
                                 <button class="scenario-btn" data-offset="2" data-csp-click-action="applyScenario" data-csp-click-value="2">🐂 Bull (+2%)</button>
                                 <button type="button" class="chaos-btn" data-csp-click-action="toggleChaos" aria-pressed="false" title="Chaos mode: sprinkle realistic random life events (surgery, new job, windfall…) onto the projection">🌪️ Chaos</button>
                                 <button type="button" class="chaos-reroll-btn" data-csp-click-action="rerollChaos" hidden title="Roll a different set of life events" aria-label="Reroll life events">🎲</button>
+                                <button type="button" class="chaos-profile-btn" data-csp-click-action="toggleChaosProfile" hidden title="Tailor chaos events to your household" aria-label="Tailor chaos events to your household" aria-expanded="false">👤</button>
                             </div>
                             <div class="chaos-panel" id="chaos-profile-panel" hidden>
-                                <h3>Tailor to my household</h3>
+                                <div class="chaos-panel-header">
+                                    <h3>Tailor to my household</h3>
+                                    <button type="button" class="close-btn" data-csp-click-action="toggleChaosProfile" aria-label="Close household profile">✕</button>
+                                </div>
                                 <div class="form-group">
                                     <label>Pets</label>
                                     <select data-csp-change-action="saveChaosProfile" data-key="pets">
