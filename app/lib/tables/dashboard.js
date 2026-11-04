@@ -669,6 +669,39 @@ const DIVERSIFICATION_TIPS = [
         ],
     },
     {
+        id: 'early-retirement-cash-buffer',
+        title: 'Early-Retirement Cash Buffer',
+        icon: '🛡️',
+        check: ({ fireReached, cdsPct, cashPct, nw, annualExpenses }) => {
+            if (!fireReached || annualExpenses <= 0) return false;
+            const cdsValue = (cdsPct / 100) * nw;
+            const cashValue = (cashPct / 100) * nw;
+            const bufferYears = (cashValue + cdsValue) / annualExpenses;
+            return bufferYears < 2;
+        },
+        severity: 'warning',
+        message: ({ fireReached, cdsPct, cashPct, nw, annualExpenses }) => {
+            if (!fireReached || annualExpenses <= 0) return '';
+            const cdsValue = (cdsPct / 100) * nw;
+            const cashValue = (cashPct / 100) * nw;
+            const bufferYears = (cashValue + cdsValue) / annualExpenses;
+            const shortfallYears = (2 - bufferYears).toFixed(1);
+            return `Cash + CDs cover only ${bufferYears.toFixed(1)} years of expenses (shortfall: ${shortfallYears} years to reach 2-year buffer). Sequence-of-returns risk is highest in early retirement. This is general guidance, not personalized financial advice.`;
+        },
+        links: [
+            {
+                label: 'Sequence of Returns Risk',
+                url: 'https://www.investopedia.com/terms/s/sequence-risk.asp',
+                external: true,
+            },
+            {
+                label: 'Cash Buffer in Retirement',
+                url: 'https://www.kitces.com/blog/cash-reserve-bucket-strategy-retirement-distribution-planning/',
+                external: true,
+            },
+        ],
+    },
+    {
         id: 'aggressive-swr',
         title: 'Aggressive Withdrawal Rate',
         icon: '🎯',

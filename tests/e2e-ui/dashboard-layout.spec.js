@@ -867,6 +867,70 @@ test.describe('Insights — additional watchers', () => {
             'CD Maturity Concentration',
         );
     });
+
+    test('Early-Retirement Cash Buffer tile appears when FIRE reached and cash+CDs < 2x annual expenses', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            localStorage.removeItem('fire_dismissed_div_tips');
+            state.projectionSettings = { swr: 4 };
+            state.customAccounts = [
+                { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 50000 },
+                { id: 'e2e-b', name: 'Brokerage', type: 'Brokerage', value: 1200000 },
+                { id: 'e2e-o', name: 'Other Assets', type: 'Other', value: 700000 },
+            ];
+            state.cds = [
+                { id: 'cd1', bank: 'Bank A', principal: 50000, rate: 5, maturity: '2027-01-15', startDate: '2026-01-15' },
+            ];
+            state.realEstate = [
+                { id: 're1', propertyType: 'Primary Residence', marketValue: 500000, mortgageBalance: 200000 },
+            ];
+            state.expenses = {
+                housing: 2500,
+                utilities: 400,
+                food: 800,
+                transport: 600,
+                healthcare: 300,
+                discretionary: 400,
+            };
+            state.insurances = {
+                car: { amt: 600, freq: '6month' },
+                home: { amt: 200, freq: 'monthly' },
+            };
+            state.taxRate = 25;
+            state.importedPositions = [];
+            renderDiversificationSuggestions();
+        });
+        await expect(page.locator('#divs-suggestion-block')).toContainText(
+            'Early-Retirement Cash Buffer',
+        );
+        await expect(page.locator('#divs-suggestion-block')).toContainText(
+            'Sequence-of-returns risk',
+        );
+    });
+
+    test('Early-Retirement Cash Buffer tile hidden when FIRE not reached', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            localStorage.removeItem('fire_dismissed_div_tips');
+            state.projectionSettings = { swr: 4 };
+            state.customAccounts = [
+                { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 50000 },
+            ];
+            state.cds = [
+                { id: 'cd1', bank: 'Bank A', principal: 50000, rate: 5, maturity: '2027-01-15', startDate: '2026-01-15' },
+            ];
+            state.expenses = {
+                monthly: 5000,
+                categories: { Housing: 30000, Food: 10000, Transport: 5000, Other: 5000 },
+            };
+            renderDiversificationSuggestions();
+        });
+        await expect(page.locator('#divs-suggestion-block')).not.toContainText(
+            'Early-Retirement Cash Buffer',
+        );
+    });
 });
 
 test.describe('Side Hustle Accelerators', () => {
