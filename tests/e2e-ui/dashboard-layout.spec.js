@@ -623,6 +623,11 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
         await page.locator('#btn-tab-dashboard').click();
 
         await expect(page.locator('#compact-fire-bar')).toBeVisible();
+        await expect(page.locator('#compact-fire-bar')).toHaveAttribute(
+            'aria-valuetext',
+            /^\d+\.\d% of FIRE target$/,
+        );
+        await expect(page.locator('#cfb-pct')).toHaveText(/^\d+\.\d%$/);
         await expect(page.locator('#banner-networth')).toBeHidden();
         await expect(page.locator('#banner-gross-income')).toBeHidden();
         await expect(page.locator('#banner-spend')).toBeHidden();
@@ -716,6 +721,18 @@ test.describe('Summary bar — top bar placement', () => {
                 page.locator('.sidebar .notif-bell-wrap'),
             ).toBeVisible();
             await expect(page.locator('.header-banner')).toBeHidden();
+
+            // Rotate within the narrow breakpoint: placement must still follow orientation.
+            await page.setViewportSize({ width: 740, height: 360 });
+            await expect(
+                page.locator('.header-banner #compact-fire-bar'),
+            ).toBeVisible();
+            await expect(page.locator('.sidebar #compact-fire-bar')).toHaveCount(0);
+
+            await page.setViewportSize({ width: 390, height: 844 });
+            await expect(
+                page.locator('.sidebar #compact-fire-bar'),
+            ).toBeVisible();
         });
     });
 
