@@ -20,7 +20,7 @@ const transaction = (id, overrides = {}) => ({
 });
 
 describe('fetchBalanceTransactions', () => {
-    it('paginates with limit 100 and returns canonical entries/skips', async () => {
+    it('paginates and maps canonical entries/skips', async () => {
         const fetchImpl = vi
             .fn()
             .mockResolvedValueOnce(
@@ -84,7 +84,7 @@ describe('fetchBalanceTransactions', () => {
         ).resolves.toEqual({ error });
     });
 
-    it('returns mapped rows and a continuation cursor on page-two failure', async () => {
+    it('returns partial rows and a cursor on page-two failure', async () => {
         const fetchImpl = vi
             .fn()
             .mockResolvedValueOnce(
