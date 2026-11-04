@@ -602,6 +602,32 @@ The site is public, so the function is locked with an owner key:
 
 ---
 
+## Stripe (Self-hosted, read-only balance-transaction client)
+
+**Purpose:** Store a restricted Stripe key for a future read-only balance-transaction import.  
+**Status:** Self-hosted credential/status routes are implemented. The read-only client is tracked separately by #346; no sync endpoint, sync outcome, or UI integration is available yet.  
+**Auth type:** Stripe restricted API key (`rk_test_…` or `rk_live_…`); do not use a full secret key (`sk_…`).
+
+### Setup
+
+1. Create a Stripe restricted key with only the balance-transaction read permission needed by the connector.
+2. Set `SYNC_MASTER_KEY` to 64 hexadecimal characters; it is required for encrypted local credential storage.
+3. Keep the existing `FIRE_API_KEY` configured. The self-hosted `/api/sync/*` routes use Fire's API-key boundary.
+
+### Self-hosted API
+
+| Path | Behavior |
+| --- | --- |
+| `GET /api/sync/stripe/status` | Reports local `configured`, `connected`, `webhookConfigured`, and `lastUpdated`; it does not contact Stripe or validate a key with the provider. |
+| `POST /api/sync/stripe/credentials` | Stores `restrictedKey` and optional `webhookSigningSecret`. Only these fields are accepted; the response is status-only and does not return secrets. |
+| `DELETE /api/sync/stripe/disconnect` | Deletes the local encrypted credential record. It does not revoke the key at Stripe; remote revocation is an owner action. |
+
+Credentials are stored in the self-hosted `tokens-stripe.json` record under the configured data directory through the existing AES-256-GCM token store. The restricted key and optional webhook secret are not placed in browser storage. Hosted Netlify has no Stripe function or credential store; do not configure Stripe secrets there.
+
+`webhookConfigured` is a local presence/format signal only. There is no webhook endpoint or sync outcome in the current implementation.
+
+---
+
 ## Alpha Vantage / Polygon.io (Stock Prices)
 
 **Purpose:** Stable, API-key-gated alternative to Yahoo Finance's crumb-based scraping.  
