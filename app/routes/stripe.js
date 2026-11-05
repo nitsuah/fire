@@ -201,9 +201,7 @@ router.post('/stripe/sync', async (req, res) => {
           ? 'provider_error'
           : null;
     const entries = Array.isArray(result?.entries) ? result.entries : [];
-    const skipped = Array.isArray(result?.skipped)
-        ? result.skipped.length
-        : 0;
+    const skipped = Array.isArray(result?.skipped) ? result.skipped.length : 0;
     const partial =
         result?.partial === true || Boolean(errorCode && entries.length > 0);
     const at = new Date().toISOString();
