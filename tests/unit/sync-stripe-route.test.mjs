@@ -680,6 +680,89 @@ describe('POST /api/sync/stripe/sync', () => {
             'stripe-txn_first',
         ]);
     });
+
+    it('preserves a skipped-only partial cursor and resumes from it on the next sync', async () => {
+        connectStripe();
+        const firstFetch = vi
+            .fn()
+            .mockResolvedValueOnce(
+                stripeResponse(200, {
+                    data: [
+                        stripeTransaction('txn_payout_only', {
+                            type: 'payout',
+                            amount: -2000,
+                            fee: 0,
+                        }),
+                    ],
+                    has_more: true,
+                }),
+            )
+            .mockResolvedValueOnce(
+                stripeResponse(502, {
+                    error: 'private provider detail must not be stored',
+                }),
+            );
+        vi.stubGlobal('fetch', firstFetch);
+
+        const first = await request(app).post('/api/sync/stripe/sync');
+        const partialTokens = loadTokens('stripe');
+
+        expect(first.status).toBe(206);
+        expect(first.body).toMatchObject({
+            status: 'partial',
+            fetched: 0,
+            added: 0,
+            skipped: 1,
+            partial: true,
+            errorCode: 'provider_error',
+        });
+        expect(
+            new URL(firstFetch.mock.calls[1][0]).searchParams.get(
+                'starting_after',
+            ),
+        ).toBe('txn_payout_only');
+        expect(partialTokens.resumeFrom).toBe('txn_payout_only');
+        expect(partialTokens.lastSyncOutcome).toMatchObject({
+            ok: false,
+            partial: true,
+            fetched: 0,
+            added: 0,
+            skipped: 1,
+            errorCode: 'provider_error',
+        });
+        expect(readState().sideGigLedger).toEqual([]);
+        expect(JSON.stringify(partialTokens)).not.toContain(
+            'private provider detail must not be stored',
+        );
+
+        const secondFetch = vi.fn(async () =>
+            stripeResponse(200, {
+                data: [stripeTransaction('txn_after_payout')],
+                has_more: false,
+            }),
+        );
+        vi.stubGlobal('fetch', secondFetch);
+
+        const second = await request(app).post('/api/sync/stripe/sync');
+
+        expect(second.status).toBe(200);
+        expect(second.body).toMatchObject({
+            status: 'success',
+            fetched: 1,
+            added: 1,
+            skipped: 0,
+            partial: false,
+        });
+        expect(
+            new URL(secondFetch.mock.calls[0][0]).searchParams.get(
+                'starting_after',
+            ),
+        ).toBe('txn_payout_only');
+        expect(loadTokens('stripe').resumeFrom).toBeNull();
+        expect(readState().sideGigLedger.map((entry) => entry.id)).toEqual([
+            'stripe-txn_after_payout',
+        ]);
+    });
 });
 
 describe('Stripe API key auth boundary', () => {
