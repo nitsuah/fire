@@ -11,11 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
-- Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification, sync outcome, and hosted credential storage remain unavailable (#409).
+- Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification and hosted credential storage remain unavailable (#409).
 
 ### Added
 
 - Stripe (self-hosted): add a read-only balance-transaction client with cursor pagination, safe 401/429 errors, and partial-page recovery; no route/UI or credential persistence is added (#346).
+- Stripe (self-hosted): sync read-only balance transactions into the side-gig ledger by canonical transaction ID, preserve manual/Etsy rows, resume partial batches without reporting full success, and record bounded outcomes; payouts remain excluded (#347).
 - Stripe (self-hosted): bound each balance-transaction page fetch to a 10-second deadline; timeout errors are sanitized and later-page failures preserve partial rows/cursor (#454).
 
 - Etsy (hosted): persist a sanitized last-sync outcome in browser storage so failures survive reloads; clear it on success, disconnect, lost grant, or reconnect (#321).
