@@ -460,9 +460,9 @@ describe('POST /api/sync/stripe/sync', () => {
             partial: true,
             errorCode: 'provider_error',
         });
-        expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get('starting_after')).toBe(
-            'txn_first',
-        );
+        expect(
+            new URL(fetchMock.mock.calls[1][0]).searchParams.get('starting_after'),
+        ).toBe('txn_first');
         expect(tokens.resumeFrom).toBe('txn_first');
         expect(tokens.lastSyncedAt).toBeUndefined();
         expect(tokens.lastSyncOutcome).toMatchObject({
