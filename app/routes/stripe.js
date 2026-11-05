@@ -32,37 +32,6 @@ const STRIPE_SYNC_ERROR_CODES = new Set([
     'provider_error',
 ]);
 
-function safeLastSyncOutcome(value) {
-    if (
-        !value ||
-        typeof value !== 'object' ||
-        Array.isArray(value) ||
-        typeof value.at !== 'string' ||
-        !Number.isFinite(Date.parse(value.at)) ||
-        typeof value.ok !== 'boolean'
-    ) {
-        return null;
-    }
-    const count = (n) => (Number.isSafeInteger(n) && n >= 0 ? n : 0);
-    return {
-        at: value.at,
-        ok: value.ok,
-        partial: value.partial === true,
-        fetched: count(value.fetched),
-        added: count(value.added),
-        skipped: count(value.skipped),
-        errorCode: STRIPE_SYNC_ERROR_CODES.has(value.errorCode)
-            ? value.errorCode
-            : null,
-    };
-}
-
-function safeTimestamp(value) {
-    return typeof value === 'string' && Number.isFinite(Date.parse(value))
-        ? value
-        : null;
-}
-
 function stripeStatus() {
     const configured = masterKeyConfigured();
     if (!configured) {
@@ -89,8 +58,8 @@ function stripeStatus() {
         connected,
         webhookConfigured,
         lastUpdated: tokens?._tokenLastUpdated || null,
-        lastSyncedAt: safeTimestamp(tokens?.lastSyncedAt),
-        lastSyncOutcome: safeLastSyncOutcome(tokens?.lastSyncOutcome),
+        lastSyncedAt: tokens?.lastSyncedAt || null,
+        lastSyncOutcome: tokens?.lastSyncOutcome || null,
     };
 }
 
@@ -257,19 +226,14 @@ router.post('/stripe/sync', async (req, res) => {
             });
         }
 
-        const status =
-            errorCode === 'unauthorized'
-                ? 401
-                : errorCode === 'rate_limited'
-                  ? 429
-                  : 502;
-        const message =
-            errorCode === 'unauthorized'
-                ? 'Stripe authorization failed. Reconnect Stripe and try again.'
-                : errorCode === 'rate_limited'
-                  ? 'Stripe rate limit reached. Try again later.'
-                  : 'Stripe sync failed.';
-        return res.status(status).json({ error: message, code: errorCode });
+        const status = {
+            unauthorized: 401,
+            rate_limited: 429,
+            provider_error: 502,
+        }[errorCode];
+        return res
+            .status(status || 502)
+            .json({ error: 'Stripe sync failed.', code: errorCode });
     }
 
     let added = 0;
