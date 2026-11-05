@@ -23,12 +23,14 @@ const PREVIOUS_ENV = {
     FIRE_DATA_DIR: process.env.FIRE_DATA_DIR,
     FIRE_DB_FILE: process.env.FIRE_DB_FILE,
     FIRE_AUTH_DISABLED: process.env.FIRE_AUTH_DISABLED,
+    FIRE_RATE_LIMIT_DISABLED: process.env.FIRE_RATE_LIMIT_DISABLED,
     SYNC_MASTER_KEY: process.env.SYNC_MASTER_KEY,
 };
 
 process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 process.env.FIRE_DB_FILE = TEST_DB_FILE;
 process.env.FIRE_AUTH_DISABLED = 'true';
+process.env.FIRE_RATE_LIMIT_DISABLED = 'true';
 process.env.SYNC_MASTER_KEY = TEST_MASTER_KEY;
 
 let app;
@@ -137,14 +139,11 @@ async function assertStripeStorageFailure({
             state.sideGigLedger = 'invalid-ledger';
         });
     }
+    const failedWritePath = path.join(TEST_DATA_DIR, 'db.json.tmp');
     if (failWrite) {
         vi.spyOn(console, 'error').mockImplementation(() => {});
+        fs.mkdirSync(failedWritePath);
     }
-    const renameSpy = failWrite
-        ? vi.spyOn(fs, 'renameSync').mockImplementationOnce(() => {
-              throw new Error('private filesystem detail');
-          })
-        : null;
     vi.stubGlobal(
         'fetch',
         vi.fn(async () =>
@@ -155,27 +154,32 @@ async function assertStripeStorageFailure({
         ),
     );
 
-    const res = await request(app).post('/api/sync/stripe/sync');
-    const tokens = loadTokens('stripe');
+    try {
+        const res = await request(app).post('/api/sync/stripe/sync');
+        const tokens = loadTokens('stripe');
 
-    if (renameSpy) expect(renameSpy).toHaveBeenCalledTimes(2);
-    expect(res.status).toBe(500);
-    expect(res.body.code).toBe('storage_error');
-    expect(tokens).toMatchObject({
-        lastSyncedAt: '2026-01-02T00:00:00.000Z',
-        resumeFrom: 'txn_resume',
-        lastSyncOutcome: {
-            ok: false,
-            partial: false,
-            fetched: 1,
-            added: 0,
-            errorCode: 'storage_error',
-        },
-    });
-    expect(JSON.stringify(tokens)).not.toContain('Invalid side-gig ledger');
-    expect(JSON.stringify(tokens)).not.toContain('private filesystem detail');
-    if (failWrite) {
-        expect(readState().sideGigLedger).toEqual([]);
+        expect(res.status).toBe(500);
+        expect(res.body.code).toBe('storage_error');
+        expect(tokens).toMatchObject({
+            lastSyncedAt: '2026-01-02T00:00:00.000Z',
+            resumeFrom: 'txn_resume',
+            lastSyncOutcome: {
+                ok: false,
+                partial: false,
+                fetched: 1,
+                added: 0,
+                errorCode: 'storage_error',
+            },
+        });
+        expect(JSON.stringify(tokens)).not.toContain('Invalid side-gig ledger');
+        expect(JSON.stringify(tokens)).not.toContain('private filesystem detail');
+        if (failWrite) {
+            expect(readState().sideGigLedger).toEqual([]);
+        }
+    } finally {
+        if (failWrite) {
+            fs.rmSync(failedWritePath, { recursive: true, force: true });
+        }
     }
 }
 
