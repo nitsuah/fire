@@ -54,6 +54,11 @@ describe('fetchBalanceTransactions', () => {
         expect(result).toMatchObject({ nextCursor: null, partial: false });
         expect(result).not.toHaveProperty('data');
         expect(fetchImpl).toHaveBeenCalledTimes(2);
+        expect(fetchImpl.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+        expect(fetchImpl.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
+        expect(fetchImpl.mock.calls[0][1].signal).not.toBe(
+            fetchImpl.mock.calls[1][1].signal,
+        );
 
         const [firstUrl, firstOptions] = fetchImpl.mock.calls[0];
         expect(new URL(firstUrl).searchParams.get('limit')).toBe('100');
@@ -82,6 +87,47 @@ describe('fetchBalanceTransactions', () => {
         await expect(
             fetchBalanceTransactions({ key: TEST_KEY, fetchImpl }),
         ).resolves.toEqual({ error });
+    });
+
+    it('maps a first-page timeout to a fixed provider error', async () => {
+        const fetchImpl = vi
+            .fn()
+            .mockRejectedValue(
+                new DOMException('secret provider detail', 'TimeoutError'),
+            );
+        await expect(
+            fetchBalanceTransactions({ key: TEST_KEY, fetchImpl }),
+        ).resolves.toEqual({ error: 'provider_error' });
+        expect(fetchImpl.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('preserves partial rows and cursor when a later page times out', async () => {
+        const fetchImpl = vi
+            .fn()
+            .mockResolvedValueOnce(
+                response(200, {
+                    data: [transaction('txn_1')],
+                    has_more: true,
+                }),
+            )
+            .mockRejectedValueOnce(
+                new DOMException('secret provider detail', 'TimeoutError'),
+            );
+        const result = await fetchBalanceTransactions({
+            key: TEST_KEY,
+            fetchImpl,
+        });
+
+        expect(result.entries.map((entry) => entry.id)).toEqual([
+            'stripe-txn_1',
+        ]);
+        expect(result).toMatchObject({
+            nextCursor: 'txn_1',
+            partial: true,
+            error: 'provider_error',
+        });
+        expect(JSON.stringify(result)).not.toContain('secret provider detail');
+        expect(fetchImpl.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
     });
 
     it('returns partial rows and a cursor on page-two failure', async () => {
