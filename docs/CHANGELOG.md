@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Stripe (self-hosted): add a read-only balance-transaction client with cursor pagination, safe 401/429 errors, and partial-page recovery; no route/UI or credential persistence is added (#346).
-- Stripe (self-hosted): sync read-only balance transactions into the side-gig ledger by canonical transaction ID, preserve manual/Etsy rows, resume partial pages, and record sanitized outcomes; payouts remain excluded (#347).
+- Stripe (self-hosted): sync read-only balance transactions into the side-gig ledger by canonical transaction ID, preserve manual/Etsy rows, resume partial batches without reporting full success, and record bounded outcomes; payouts remain excluded (#347).
 
 - Etsy (hosted): persist a sanitized last-sync outcome in browser storage so failures survive reloads; clear it on success, disconnect, lost grant, or reconnect (#321).
 - eBay (hosted): persist a sanitized last-sync outcome in browser storage; failures survive reloads, success replaces failure, and OAuth reconnect or lost grant clears stale state (#326).
