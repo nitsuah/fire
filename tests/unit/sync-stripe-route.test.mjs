@@ -331,11 +331,10 @@ describe('POST /api/sync/stripe/credentials', () => {
             ...previous,
         });
 
-        let res = await request(app).post('/api/sync/stripe/credentials')
-            .send({
-                restrictedKey: CREDENTIALS.restrictedKey,
-                webhookSigningSecret: 'whsec_updatedWebhook456',
-            });
+        let res = await request(app).post('/api/sync/stripe/credentials').send({
+            restrictedKey: CREDENTIALS.restrictedKey,
+            webhookSigningSecret: 'whsec_updatedWebhook456',
+        });
         expect(res.status).toBe(200);
         expect(loadTokens('stripe')).toMatchObject({
             restrictedKey: CREDENTIALS.restrictedKey,

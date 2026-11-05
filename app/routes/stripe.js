@@ -334,7 +334,9 @@ router.post('/stripe/sync', async (req, res) => {
             return connectionChangedResponse(res);
         }
         try {
-            if (!recordStripeStorageFailure(tokens, at, entries.length, skipped)) {
+            if (
+                !recordStripeStorageFailure(tokens, at, entries.length, skipped)
+            ) {
                 return connectionChangedResponse(res);
             }
         } catch {
@@ -349,7 +351,9 @@ router.post('/stripe/sync', async (req, res) => {
     }
     if (!writeOk) {
         try {
-            if (!recordStripeStorageFailure(tokens, at, entries.length, skipped)) {
+            if (
+                !recordStripeStorageFailure(tokens, at, entries.length, skipped)
+            ) {
                 return connectionChangedResponse(res);
             }
         } catch {
