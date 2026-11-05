@@ -8,6 +8,7 @@ const STRIPE_BALANCE_TRANSACTIONS_URL =
 const PAGE_LIMIT = 100;
 // Bound one call; the caller can resume with the returned nextCursor.
 const MAX_PAGES = 10;
+const PAGE_TIMEOUT_MS = 10_000;
 
 function errorForStatus(status) {
     if (status === 401) return 'unauthorized';
@@ -57,6 +58,7 @@ async function fetchBalanceTransactions({
         let payload;
         try {
             response = await fetchImpl(url.toString(), {
+                signal: globalThis.AbortSignal.timeout(PAGE_TIMEOUT_MS),
                 method: 'GET',
                 headers: {
                     Authorization: `Bearer ${bearerKey}`,
