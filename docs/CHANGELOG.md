@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
-- Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification, sync outcome, and hosted credential storage remain unavailable (#409).
+- Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification and hosted credential storage remain unavailable (#409).
 
 ### Added
 

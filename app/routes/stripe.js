@@ -32,6 +32,42 @@ const STRIPE_SYNC_ERROR_CODES = new Set([
     'provider_error',
 ]);
 
+function stripeCredentialsMatch(current, snapshot) {
+    return (
+        current &&
+        current.restrictedKey === snapshot.restrictedKey &&
+        current.webhookSigningSecret === snapshot.webhookSigningSecret
+    );
+}
+
+function saveStripeSyncTokensIfCurrent(snapshot, updates) {
+    const current = loadTokens('stripe');
+    if (!stripeCredentialsMatch(current, snapshot)) return false;
+    saveTokens('stripe', { ...current, ...updates });
+    return true;
+}
+
+function connectionChangedResponse(res) {
+    return res.status(409).json({
+        error: 'Stripe connection changed during sync. Retry.',
+        code: 'connection_changed',
+    });
+}
+
+function recordStripeStorageFailure(tokens, at, fetched, skipped) {
+    return saveStripeSyncTokensIfCurrent(tokens, {
+        lastSyncOutcome: {
+            at,
+            ok: false,
+            partial: false,
+            fetched,
+            added: 0,
+            skipped,
+            errorCode: 'storage_error',
+        },
+    });
+}
+
 function stripeStatus() {
     const configured = masterKeyConfigured();
     if (!configured) {
@@ -140,14 +176,26 @@ router.post('/stripe/credentials', (req, res) => {
         }
     }
 
+    const restrictedKey = body.restrictedKey.trim();
+    const sameKey = existing?.restrictedKey === restrictedKey;
     const tokens = {
-        restrictedKey: body.restrictedKey.trim(),
+        restrictedKey,
         ...(hasWebhookSecret
             ? { webhookSigningSecret }
             : existing?.webhookSigningSecret
               ? { webhookSigningSecret: existing.webhookSigningSecret }
               : {}),
-        configuredAt: new Date().toISOString(),
+        configuredAt:
+            sameKey && typeof existing.configuredAt === 'string'
+                ? existing.configuredAt
+                : new Date().toISOString(),
+        ...(sameKey
+            ? {
+                  lastSyncedAt: existing.lastSyncedAt,
+                  resumeFrom: existing.resumeFrom,
+                  lastSyncOutcome: existing.lastSyncOutcome,
+              }
+            : {}),
     };
 
     try {
@@ -217,7 +265,13 @@ router.post('/stripe/sync', async (req, res) => {
             errorCode,
         };
         try {
-            saveTokens('stripe', { ...tokens, lastSyncOutcome: outcome });
+            if (
+                !saveStripeSyncTokensIfCurrent(tokens, {
+                    lastSyncOutcome: outcome,
+                })
+            ) {
+                return connectionChangedResponse(res);
+            }
         } catch {
             return res.status(500).json({
                 error: 'Failed to record Stripe sync outcome.',
@@ -238,6 +292,13 @@ router.post('/stripe/sync', async (req, res) => {
     let writeOk;
     try {
         writeOk = await mutateState((state) => {
+            if (!stripeCredentialsMatch(loadTokens('stripe'), tokens)) {
+                const error = new Error(
+                    'Stripe connection changed during sync.',
+                );
+                error.code = 'stripe_connection_changed';
+                throw error;
+            }
             if (state.sideGigLedger == null) state.sideGigLedger = [];
             if (!Array.isArray(state.sideGigLedger)) {
                 throw new Error('Invalid side-gig ledger.');
@@ -261,15 +322,58 @@ router.post('/stripe/sync', async (req, res) => {
                 ids.add(entry.id);
                 added++;
             }
+            if (added > 0) {
+                const currentRevision = Number.isInteger(state.stateRevision)
+                    ? state.stateRevision
+                    : 0;
+                state.stateRevision = currentRevision + 1;
+            }
         });
-    } catch {
+    } catch (error) {
+        if (error?.code === 'stripe_connection_changed') {
+            return connectionChangedResponse(res);
+        }
+        try {
+            if (
+                !recordStripeStorageFailure(
+                    tokens,
+                    at,
+                    entries.length,
+                    skipped,
+                )
+            ) {
+                return connectionChangedResponse(res);
+            }
+        } catch {
+            return res.status(500).json({
+                error: 'Failed to record Stripe sync outcome.',
+            });
+        }
         return res.status(500).json({
             error: 'Failed to save Stripe transactions.',
+            code: 'storage_error',
         });
     }
     if (!writeOk) {
+        try {
+            if (
+                !recordStripeStorageFailure(
+                    tokens,
+                    at,
+                    entries.length,
+                    skipped,
+                )
+            ) {
+                return connectionChangedResponse(res);
+            }
+        } catch {
+            return res.status(500).json({
+                error: 'Failed to record Stripe sync outcome.',
+            });
+        }
         return res.status(500).json({
             error: 'Failed to save Stripe transactions.',
+            code: 'storage_error',
         });
     }
 
@@ -290,12 +394,15 @@ router.post('/stripe/sync', async (req, res) => {
         : undefined;
 
     try {
-        saveTokens('stripe', {
-            ...tokens,
-            ...(complete ? { lastSyncedAt: at } : {}),
-            resumeFrom,
-            lastSyncOutcome: outcome,
-        });
+        if (
+            !saveStripeSyncTokensIfCurrent(tokens, {
+                ...(complete ? { lastSyncedAt: at } : {}),
+                resumeFrom,
+                lastSyncOutcome: outcome,
+            })
+        ) {
+            return connectionChangedResponse(res);
+        }
     } catch {
         return res.status(500).json({
             error: 'Failed to record Stripe sync outcome.',
