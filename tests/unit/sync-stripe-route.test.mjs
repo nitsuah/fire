@@ -331,8 +331,7 @@ describe('POST /api/sync/stripe/credentials', () => {
             ...previous,
         });
 
-        let res = await request(app)
-            .post('/api/sync/stripe/credentials')
+        let res = await request(app).post('/api/sync/stripe/credentials')
             .send({
                 restrictedKey: CREDENTIALS.restrictedKey,
                 webhookSigningSecret: 'whsec_updatedWebhook456',
