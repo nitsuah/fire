@@ -758,7 +758,7 @@ describe('POST /api/sync/stripe/sync', () => {
                 'starting_after',
             ),
         ).toBe('txn_payout_only');
-        expect(loadTokens('stripe').resumeFrom).toBeNull();
+        expect(loadTokens('stripe').resumeFrom).toBeUndefined();
         expect(readState().sideGigLedger.map((entry) => entry.id)).toEqual([
             'stripe-txn_after_payout',
         ]);
