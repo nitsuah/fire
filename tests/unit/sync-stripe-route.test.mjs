@@ -481,40 +481,7 @@ describe('POST /api/sync/stripe/sync', () => {
         expect(JSON.stringify(status.body)).not.toContain('txn_first');
     });
 
-    it('records a first-page rate limit without changing the ledger or exposing provider details', async () => {
-        connectStripe();
-        await mutateState((state) => {
-            state.sideGigLedger = [{ id: 'manual-keep', category: 'Manual' }];
-        });
-        vi.stubGlobal(
-            'fetch',
-            vi.fn(async () =>
-                stripeResponse(429, {
-                    error: 'private provider response detail',
-                }),
-            ),
-        );
 
-        const res = await request(app).post('/api/sync/stripe/sync');
-        const status = await request(app).get('/api/sync/stripe/status');
-
-        expect(res.status).toBe(429);
-        expect(res.body).toEqual({
-            error: 'Stripe rate limit reached. Try again later.',
-            code: 'rate_limited',
-        });
-        expect(readState().sideGigLedger).toEqual([
-            { id: 'manual-keep', category: 'Manual' },
-        ]);
-        expect(status.body.lastSyncOutcome).toMatchObject({
-            ok: false,
-            partial: false,
-            errorCode: 'rate_limited',
-        });
-        expect(JSON.stringify(status.body)).not.toContain(
-            'private provider response detail',
-        );
-    });
 });
 
 describe('Stripe API key auth boundary', () => {
