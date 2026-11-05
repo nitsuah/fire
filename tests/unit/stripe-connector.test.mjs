@@ -90,9 +90,11 @@ describe('fetchBalanceTransactions', () => {
     });
 
     it('maps a first-page timeout to a fixed provider error', async () => {
-        const fetchImpl = vi.fn().mockRejectedValue(
-            new DOMException('secret provider detail', 'TimeoutError'),
-        );
+        const fetchImpl = vi
+            .fn()
+            .mockRejectedValue(
+                new DOMException('secret provider detail', 'TimeoutError'),
+            );
         await expect(
             fetchBalanceTransactions({ key: TEST_KEY, fetchImpl }),
         ).resolves.toEqual({ error: 'provider_error' });
