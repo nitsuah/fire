@@ -372,7 +372,6 @@ describe('POST /api/sync/stripe/sync', () => {
                 (entry) => entry.id === 'stripe-txn_shared',
             ).platform,
         ).toBe('Stripe');
-        const status = await request(app).get('/api/sync/stripe/status');
         expect(status.body.lastSyncedAt).toBe(second.body.syncedAt);
         expect(status.body.lastSyncOutcome).toMatchObject({
             ok: true,
@@ -452,7 +451,9 @@ describe('POST /api/sync/stripe/sync', () => {
             errorCode: 'provider_error',
         });
         expect(
-            new URL(fetchMock.mock.calls[1][0]).searchParams.get('starting_after'),
+            new URL(fetchMock.mock.calls[1][0]).searchParams.get(
+                'starting_after',
+            ),
         ).toBe('txn_first');
         expect(tokens.resumeFrom).toBe('txn_first');
         expect(tokens.lastSyncOutcome).toMatchObject({
