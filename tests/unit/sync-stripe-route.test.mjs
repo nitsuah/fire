@@ -172,7 +172,9 @@ async function assertStripeStorageFailure({
             },
         });
         expect(JSON.stringify(tokens)).not.toContain('Invalid side-gig ledger');
-        expect(JSON.stringify(tokens)).not.toContain('private filesystem detail');
+        expect(JSON.stringify(tokens)).not.toContain(
+            'private filesystem detail',
+        );
         if (failWrite) {
             expect(readState().sideGigLedger).toEqual([]);
         }
