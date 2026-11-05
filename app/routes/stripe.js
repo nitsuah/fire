@@ -224,8 +224,10 @@ router.post('/stripe/sync', async (req, res) => {
         result = { error: 'provider_error' };
     }
 
-    const errorCode = STRIPE_SYNC_ERROR_CODES.has(result?.error)
-        ? result.error
+    const errorCode = result?.error
+        ? STRIPE_SYNC_ERROR_CODES.has(result.error)
+            ? result.error
+            : 'provider_error'
         : !Array.isArray(result?.entries)
           ? 'provider_error'
           : null;
