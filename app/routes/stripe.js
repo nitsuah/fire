@@ -206,7 +206,7 @@ router.post('/stripe/sync', async (req, res) => {
         result?.partial === true || Boolean(errorCode && entries.length > 0);
     const at = new Date().toISOString();
 
-    if (errorCode && entries.length === 0) {
+    if (errorCode && entries.length === 0 && !partial) {
         const outcome = {
             at,
             ok: false,
