@@ -34,10 +34,14 @@ process.env.SYNC_MASTER_KEY = TEST_MASTER_KEY;
 let app;
 let getTokenFile;
 let loadTokens;
+let saveTokens;
+let readState;
+let mutateState;
 
 beforeAll(async () => {
-    ({ getTokenFile, loadTokens } =
+    ({ getTokenFile, loadTokens, saveTokens } =
         await import('../../app/lib/token-store.js'));
+    ({ readState, mutateState } = await import('../../app/lib/db.js'));
     app = (await import('../../app/server.js')).default;
 });
 
@@ -45,7 +49,10 @@ beforeEach(() => {
     process.env.SYNC_MASTER_KEY = TEST_MASTER_KEY;
 });
 
-afterEach(() => {
+afterEach(async () => {
+    await mutateState((state) => {
+        state.sideGigLedger = [];
+    });
     try {
         fs.unlinkSync(getTokenFile('stripe'));
     } catch (err) {
@@ -69,6 +76,30 @@ const CREDENTIALS = {
     webhookSigningSecret: 'whsec_fakeWebhook123',
 };
 
+const stripeTransaction = (id, overrides = {}) => ({
+    id,
+    type: 'charge',
+    currency: 'usd',
+    amount: 2000,
+    fee: 200,
+    created: 1_700_000_000,
+    description: 'Imported Stripe sale',
+    ...overrides,
+});
+
+const stripeResponse = (status, body) =>
+    new Response(JSON.stringify(body), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+    });
+
+function connectStripe(extra = {}) {
+    saveTokens('stripe', {
+        restrictedKey: CREDENTIALS.restrictedKey,
+        ...extra,
+    });
+}
+
 describe('GET /api/sync/stripe/status', () => {
     it('reports a fresh self-hosted install without exposing credentials', async () => {
         const res = await request(app).get('/api/sync/stripe/status');
@@ -80,6 +111,8 @@ describe('GET /api/sync/stripe/status', () => {
             connected: false,
             webhookConfigured: false,
             lastUpdated: null,
+            lastSyncedAt: null,
+            lastSyncOutcome: null,
         });
         expect(JSON.stringify(res.body)).not.toContain('rk_test_');
         expect(JSON.stringify(res.body)).not.toContain('whsec_');
@@ -116,6 +149,8 @@ describe('GET /api/sync/stripe/status', () => {
             connected: false,
             webhookConfigured: false,
             lastUpdated: null,
+            lastSyncedAt: null,
+            lastSyncOutcome: null,
         });
 
         process.env.SYNC_MASTER_KEY = 'invalid';
@@ -272,6 +307,8 @@ describe('DELETE /api/sync/stripe/disconnect', () => {
             connected: false,
             webhookConfigured: false,
             lastUpdated: null,
+            lastSyncedAt: null,
+            lastSyncOutcome: null,
         });
         expect(fs.existsSync(getTokenFile('stripe'))).toBe(false);
 
@@ -279,6 +316,204 @@ describe('DELETE /api/sync/stripe/disconnect', () => {
         expect(res.status).toBe(200);
         expect(res.body.connected).toBe(false);
         expect(fetchMock).not.toHaveBeenCalled();
+    });
+});
+
+describe('POST /api/sync/stripe/sync', () => {
+    it('requires a valid connected restricted key before calling Stripe', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+
+        const res = await request(app).post('/api/sync/stripe/sync');
+
+        expect(res.status).toBe(401);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('merges by canonical id idempotently and preserves manual/Etsy rows', async () => {
+        connectStripe();
+        await mutateState((state) => {
+            state.sideGigLedger = [
+                { id: 'manual-1', category: 'Manual' },
+                {
+                    id: 'etsy-txn_shared',
+                    platform: 'Etsy',
+                    category: 'Etsy',
+                },
+            ];
+        });
+        const fetchMock = vi.fn(async () =>
+            stripeResponse(200, {
+                data: [stripeTransaction('txn_shared')],
+                has_more: false,
+            }),
+        );
+        vi.stubGlobal('fetch', fetchMock);
+
+        const first = await request(app).post('/api/sync/stripe/sync');
+        const second = await request(app).post('/api/sync/stripe/sync');
+
+        expect(first.status).toBe(200);
+        expect(first.body).toMatchObject({
+            status: 'success',
+            fetched: 1,
+            added: 1,
+            skipped: 0,
+            partial: false,
+        });
+        expect(second.status).toBe(200);
+        expect(second.body).toMatchObject({ fetched: 1, added: 0 });
+        expect(readState().sideGigLedger.map((entry) => entry.id)).toEqual([
+            'manual-1',
+            'etsy-txn_shared',
+            'stripe-txn_shared',
+        ]);
+        expect(
+            readState().sideGigLedger.find(
+                (entry) => entry.id === 'stripe-txn_shared',
+            ).platform,
+        ).toBe('Stripe');
+        const status = await request(app).get('/api/sync/stripe/status');
+        expect(status.body.lastSyncedAt).toBe(second.body.syncedAt);
+        expect(status.body.lastSyncOutcome).toMatchObject({
+            ok: true,
+            partial: false,
+            fetched: 1,
+            added: 0,
+            skipped: 0,
+            errorCode: null,
+        });
+        expect(JSON.stringify(status.body)).not.toContain(
+            CREDENTIALS.restrictedKey,
+        );
+        expect(JSON.stringify(status.body)).not.toContain('txn_shared');
+    });
+
+    it('keeps refunds separate and reports skipped payouts without importing them', async () => {
+        connectStripe();
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                stripeResponse(200, {
+                    data: [
+                        stripeTransaction('txn_sale', {
+                            amount: 2500,
+                            fee: 100,
+                        }),
+                        stripeTransaction('txn_refund', {
+                            type: 'refund',
+                            amount: 500,
+                            fee: 0,
+                        }),
+                        stripeTransaction('txn_payout', {
+                            type: 'payout',
+                            amount: -2000,
+                            fee: 0,
+                        }),
+                    ],
+                    has_more: false,
+                }),
+            ),
+        );
+
+        const res = await request(app).post('/api/sync/stripe/sync');
+        const ledger = readState().sideGigLedger;
+
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({ fetched: 2, added: 2, skipped: 1 });
+        expect(ledger.map((entry) => entry.id)).toEqual([
+            'stripe-txn_sale',
+            'stripe-txn_refund',
+        ]);
+        expect(ledger[0].gross).toBe(25);
+        expect(ledger[1].gross).toBe(-5);
+        expect(ledger[1].stripeTxnId).toBe('txn_refund');
+        expect(ledger[1]).not.toHaveProperty('originalSaleId');
+    });
+
+    it('persists a partial batch and resume cursor without reporting full success', async () => {
+        connectStripe();
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce(
+                stripeResponse(200, {
+                    data: [stripeTransaction('txn_first')],
+                    has_more: true,
+                }),
+            )
+            .mockResolvedValueOnce(
+                stripeResponse(502, {
+                    error: 'provider detail must not be stored',
+                }),
+            );
+        vi.stubGlobal('fetch', fetchMock);
+
+        const res = await request(app).post('/api/sync/stripe/sync');
+        const tokens = loadTokens('stripe');
+        const status = await request(app).get('/api/sync/stripe/status');
+
+        expect(res.status).toBe(206);
+        expect(res.body).toMatchObject({
+            status: 'partial',
+            fetched: 1,
+            added: 1,
+            partial: true,
+            errorCode: 'provider_error',
+        });
+        expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get('starting_after')).toBe(
+            'txn_first',
+        );
+        expect(tokens.resumeFrom).toBe('txn_first');
+        expect(tokens.lastSyncedAt).toBeUndefined();
+        expect(tokens.lastSyncOutcome).toMatchObject({
+            ok: false,
+            partial: true,
+            fetched: 1,
+            added: 1,
+            errorCode: 'provider_error',
+        });
+        expect(readState().sideGigLedger.map((entry) => entry.id)).toEqual([
+            'stripe-txn_first',
+        ]);
+        expect(JSON.stringify(status.body)).not.toContain(
+            'provider detail must not be stored',
+        );
+        expect(JSON.stringify(status.body)).not.toContain('txn_first');
+    });
+
+    it('records a first-page rate limit without changing the ledger or exposing provider details', async () => {
+        connectStripe();
+        await mutateState((state) => {
+            state.sideGigLedger = [{ id: 'manual-keep', category: 'Manual' }];
+        });
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                stripeResponse(429, {
+                    error: 'private provider response detail',
+                }),
+            ),
+        );
+
+        const res = await request(app).post('/api/sync/stripe/sync');
+        const status = await request(app).get('/api/sync/stripe/status');
+
+        expect(res.status).toBe(429);
+        expect(res.body).toEqual({
+            error: 'Stripe rate limit reached. Try again later.',
+            code: 'rate_limited',
+        });
+        expect(readState().sideGigLedger).toEqual([
+            { id: 'manual-keep', category: 'Manual' },
+        ]);
+        expect(status.body.lastSyncOutcome).toMatchObject({
+            ok: false,
+            partial: false,
+            errorCode: 'rate_limited',
+        });
+        expect(JSON.stringify(status.body)).not.toContain(
+            'private provider response detail',
+        );
     });
 });
 
