@@ -286,6 +286,11 @@ test.describe('Customizable layout', () => {
     }) => {
         await page.locator('#btn-tab-projections').click();
         const pane = page.locator('#tab-projections');
+        // The pane fades in with a scale/translate animation; reading
+        // boundingBox() mid-animation shifts cards of different heights.
+        await pane.evaluate((el) =>
+            Promise.all(el.getAnimations().map((anim) => anim.finished)),
+        );
         const board = pane.locator('.lm-board');
         const settings = page.locator('#proj-settings-card');
         const chart = page.locator(
