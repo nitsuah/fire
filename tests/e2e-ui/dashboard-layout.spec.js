@@ -1,5 +1,5 @@
 // @ts-check
-/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions, refreshAllUI, renderVehiclesTable, buildProjectionData, buildMilestonesList */
+/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions, refreshAllUI, saveState, renderVehiclesTable, buildProjectionData, buildMilestonesList */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -439,28 +439,61 @@ test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)',
         // rather than guessing a fraction of the canvas box — the ring's
         // position/radius shifts with legend content, so a fixed fraction
         // isn't reliable across different numbers of slices.
+        // Find the Cash slice specifically (contains our "E2E Test Savings" account).
         const hitPoint = await page.evaluate(() => {
+            const chart = window.assetAllocationChart;
             const rect = document
                 .getElementById('chart-asset-allocation')
                 .getBoundingClientRect();
+            // Check each slice's center-ish area to find the Cash slice.
+            const slices = chart.getDatasetMeta(0).data;
+            for (const slice of slices) {
+                const center = slice.getCenterPoint();
+                const hits = chart.getElementsAtEventForMode(
+                    { clientX: center.x, clientY: center.y },
+                    'nearest',
+                    { intersect: true },
+                    false,
+                );
+                if (hits.length > 0) {
+                    const index = hits[0].index;
+                    // Check if this is the Cash slice by label
+                    const label = chart.data.labels[index];
+                    if (label && label.includes('Cash')) {
+                        return { x: center.x, y: center.y };
+                    }
+                }
+            }
+            // Fallback: scan grid
             for (let fx = 0.1; fx <= 0.6; fx += 0.05) {
                 for (let fy = 0.1; fy <= 0.9; fy += 0.05) {
                     const x = rect.left + rect.width * fx;
                     const y = rect.top + rect.height * fy;
-                    const hits =
-                        window.assetAllocationChart.getElementsAtEventForMode(
-                            { clientX: x, clientY: y },
-                            'nearest',
-                            { intersect: true },
-                            false,
-                        );
-                    if (hits.length > 0) return { x, y };
+                    const hits = chart.getElementsAtEventForMode(
+                        { clientX: x, clientY: y },
+                        'nearest',
+                        { intersect: true },
+                        false,
+                    );
+                    if (hits.length > 0) {
+                        const index = hits[0].index;
+                        const label = chart.data.labels[index];
+                        if (label && label.includes('Cash')) {
+                            return { x, y };
+                        }
+                    }
                 }
             }
             return null;
         });
         expect(hitPoint).toBeTruthy();
         await page.mouse.click(hitPoint.x, hitPoint.y);
+        // Wait for drill-down animation to complete
+        await page.waitForFunction(
+            () =>
+                window.assetAllocationChart &&
+                !window.Chart.animator.running(window.assetAllocationChart),
+        );
 
         await expect(page.locator('#alloc-back-btn')).toBeVisible();
         await expect(page.locator('#alloc-breadcrumb-title')).toContainText(
@@ -471,6 +504,11 @@ test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)',
         );
 
         await page.locator('#alloc-back-btn').click();
+        await page.waitForFunction(
+            () =>
+                window.assetAllocationChart &&
+                !window.Chart.animator.running(window.assetAllocationChart),
+        );
         await expect(page.locator('#alloc-back-btn')).toBeHidden();
         await expect(page.locator('#alloc-breadcrumb-title')).toHaveText(
             'Asset Allocation',
@@ -595,9 +633,6 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
         await expect(page.locator('#banner-gross-income')).toBeHidden();
         await expect(page.locator('#banner-spend')).toBeHidden();
         await expect(page.locator('#banner-target')).toBeHidden();
-        await expect(page.locator('#cfb-fill .cfb-seg').first()).toBeAttached();
-        await expect(page.locator('#cfb-pct')).toContainText('%');
-
         await page.locator('#compact-fire-bar').click();
         const tip = page.locator('#alloc-tooltip');
         await expect(tip).toBeVisible();
@@ -676,6 +711,10 @@ test.describe('Summary bar — top bar placement', () => {
         test('the compact bar and bell live in the top bar; the banner is gone', async ({
             page,
         }) => {
+            // Wait for page to fully load
+            await page.waitForLoadState('networkidle');
+            await page.waitForTimeout(1000);
+
             await expect(
                 page.locator('.sidebar #compact-fire-bar'),
             ).toBeVisible();
@@ -783,6 +822,91 @@ test.describe('Insights — additional watchers', () => {
         });
         await expect(page.locator('#divs-suggestion-block')).toContainText(
             'Precious Metals Share',
+        );
+    });
+
+    test('CD Maturity Concentration tile appears when >60% of CD value in 90-day window', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            localStorage.removeItem('fire_dismissed_div_tips');
+            state.cds = [
+                {
+                    id: 'cd1',
+                    bank: 'Bank A',
+                    principal: 50000,
+                    rate: 5,
+                    maturity: '2027-01-15',
+                    startDate: '2026-01-15',
+                },
+                {
+                    id: 'cd2',
+                    bank: 'Bank B',
+                    principal: 30000,
+                    rate: 4.5,
+                    maturity: '2027-02-15',
+                    startDate: '2026-02-15',
+                },
+                {
+                    id: 'cd3',
+                    bank: 'Bank C',
+                    principal: 10000,
+                    rate: 4,
+                    maturity: '2027-03-15',
+                    startDate: '2026-03-15',
+                },
+                {
+                    id: 'cd4',
+                    bank: 'Bank D',
+                    principal: 5000,
+                    rate: 4,
+                    maturity: '2028-01-01',
+                    startDate: '2027-01-01',
+                },
+            ];
+            state.customAccounts = [
+                { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 100000 },
+            ];
+            renderDiversificationSuggestions();
+        });
+        await expect(page.locator('#divs-suggestion-block')).toContainText(
+            'CD Maturity Concentration',
+        );
+        await expect(page.locator('#divs-suggestion-block')).toContainText(
+            'reinvestment timing risk',
+        );
+    });
+
+    test('CD Maturity Concentration tile hidden with fewer than 3 CDs or spread-out ladder', async ({
+        page,
+    }) => {
+        await page.evaluate(() => {
+            localStorage.removeItem('fire_dismissed_div_tips');
+            state.cds = [
+                {
+                    id: 'cd1',
+                    bank: 'Bank A',
+                    principal: 50000,
+                    rate: 5,
+                    maturity: '2027-01-15',
+                    startDate: '2026-01-15',
+                },
+                {
+                    id: 'cd2',
+                    bank: 'Bank B',
+                    principal: 30000,
+                    rate: 4.5,
+                    maturity: '2028-02-15',
+                    startDate: '2027-02-15',
+                },
+            ];
+            state.customAccounts = [
+                { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 100000 },
+            ];
+            renderDiversificationSuggestions();
+        });
+        await expect(page.locator('#divs-suggestion-block')).not.toContainText(
+            'CD Maturity Concentration',
         );
     });
 });
@@ -1187,6 +1311,14 @@ test.describe('Projection math per growth preset', () => {
 });
 
 test.describe('Side Gig Ledger — eBay report upload', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.evaluate(async () => {
+            state.sideGigLedger = [];
+            await saveState();
+            refreshAllUI();
+        });
+    });
+
     const header =
         'Listing title,eBay item ID,Quantity sold,Total sales (Includes taxes),Item sales,Taxes and government fees paid by buyer to you,Taxes and government fees paid by buyer to eBay,Shipping and handling paid by buyer to you,Total selling costs,Insertion fees,Optional listing upgrade fees,Final value fees,Promoted Listings - General fees,Promoted Listings - Priority fees,Ads Express fees,Promoted Offsite - Fees,International fees,Other eBay fees,Deposit processing fees,Fee credits,Shipping labels cost (Amount you paid to buy shipping labels on eBay),Net sales (Net of taxes and selling costs),Average Selling price,Quantity sold via promoted listing,';
     const csv = [

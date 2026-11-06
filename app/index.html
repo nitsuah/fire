@@ -116,7 +116,6 @@
                 <div class="header-metric">
                     <span class="metric-label">Estimated Net Worth</span>
                     <span class="metric-value text-emerald" id="banner-networth">$0.00</span>
-                    <div class="alloc-mini-bars" id="banner-alloc-bars"></div>
                 </div>
                 <div class="header-metric">
                     <span class="metric-label">Annual Income</span>
@@ -145,13 +144,6 @@
                             </div>
                         </span>
                     </span>
-                    <div class="fire-prog-wrap">
-                        <div class="fire-prog-bar csp-i-005" id="banner-fire-bar" >
-                            <span class="fire-prog-pct" id="banner-progress">0.0%</span>
-                        </div>
-                    </div>
-                    <span class="fire-prog-target" id="banner-target">Target: $0.00</span>
-                    <span class="fire-prog-target fire-prog-eta" id="banner-fire-eta"></span>
                 </div>
                 <!-- Minimalist single-bar summary, shown only on narrow widths
                      (see layout.css) in place of the four metric blocks. The
@@ -1510,9 +1502,13 @@
                                 <button class="scenario-btn" data-offset="2" data-csp-click-action="applyScenario" data-csp-click-value="2">🐂 Bull (+2%)</button>
                                 <button type="button" class="chaos-btn" data-csp-click-action="toggleChaos" aria-pressed="false" title="Chaos mode: sprinkle realistic random life events (surgery, new job, windfall…) onto the projection">🌪️ Chaos</button>
                                 <button type="button" class="chaos-reroll-btn" data-csp-click-action="rerollChaos" hidden title="Roll a different set of life events" aria-label="Reroll life events">🎲</button>
+                                <button type="button" class="chaos-profile-btn" data-csp-click-action="toggleChaosProfile" hidden title="Tailor chaos events to your household" aria-label="Tailor chaos events to your household" aria-expanded="false">👤</button>
                             </div>
                             <div class="chaos-panel" id="chaos-profile-panel" hidden>
-                                <h3>Tailor to my household</h3>
+                                <div class="chaos-panel-header">
+                                    <h3>Tailor to my household</h3>
+                                    <button type="button" class="close-btn" data-csp-click-action="toggleChaosProfile" aria-label="Close household profile">✕</button>
+                                </div>
                                 <div class="form-group">
                                     <label>Pets</label>
                                     <select data-csp-change-action="saveChaosProfile" data-key="pets">

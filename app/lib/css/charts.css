@@ -99,21 +99,6 @@
 .scenario-btn:hover { border-color: var(--color-primary); color: var(--color-primary-hover); }
 .scenario-btn.active { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning); }
 
-/* Header: allocation mini bars — organic */
-.alloc-bar-track {
-    display: flex;
-    height: 4px;
-    border-radius: 9999px;
-    overflow: hidden;
-    margin-top: var(--space-xs);
-    gap: 1px;
-}
-
-.alloc-bar-seg {
-    border-radius: 9999px;
-    transition: width 0.4s ease;
-}
-
 /* CD annual yield badge — fluid */
 .cd-yield-badge {
     flex-shrink: 0;
