@@ -26,6 +26,23 @@ describe('ebayStatusBadge', () => {
         expect(b.color).toBe('var(--color-danger)');
     });
 
+    it('keeps failed sync visibly failed when errorCode is absent, null, or empty', () => {
+        for (const lastSyncOutcome of [
+            { ok: false },
+            { ok: false, errorCode: null },
+            { ok: false, errorCode: '' },
+        ]) {
+            const b = ebayStatusBadge({
+                configured: true,
+                connected: true,
+                lastSyncOutcome,
+            });
+            expect(b.label).toBe('Last sync failed');
+            expect(b.color).toBe('var(--color-danger)');
+            expect(b.connectable).toBe(false);
+        }
+    });
+
     it('connected is Connected; an absent outcome is not a failure', () => {
         expect(
             ebayStatusBadge({ configured: true, connected: true }).label,

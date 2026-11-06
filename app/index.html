@@ -166,6 +166,17 @@
                     <div class="dashboard-body">
                         <!-- LEFT COLUMN -->
                         <div class="dash-col-left">
+                            <!-- Quick Start Card -->
+                            <div class="card glass-card" id="quick-start-card" hidden>
+                                <div class="card-title-row">
+                                    <h2 class="card-title" id="quick-start-title">Quick Start</h2>
+                                    <button type="button" class="dismiss-btn" id="quick-start-dismiss" aria-label="Dismiss Quick Start" aria-controls="quick-start-card">✕</button>
+                                </div>
+                                <div id="quick-start-progress" class="quick-start-progress" aria-live="polite"></div>
+                                <ol id="quick-start-steps" class="quick-start-steps"></ol>
+                            </div>
+                            <button type="button" class="reopen-btn" id="quick-start-reopen" hidden aria-label="Reopen Quick Start" aria-controls="quick-start-card">Quick Start</button>
+
                             <!-- Retirement Growth Path -->
                             <div class="card glass-card" id="dash-card-growth">
                                 <div class="card-title-row">
@@ -1861,6 +1872,8 @@
     <script src="lib/managers/spending-upload.js"></script>
     <script src="lib/managers/hustle-accelerators.js"></script>
     <script src="lib/layout-manager.js"></script>
+    <!-- Quick Start Model (must load before manager) -->
+    <script src="lib/quick-start.js"></script>
     <!-- Main Controller Script -->
     <script src="app.js"></script>
     <!-- Taxes & Tax-Loss Harvesting -->
