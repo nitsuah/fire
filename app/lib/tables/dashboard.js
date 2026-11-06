@@ -592,6 +592,116 @@ const DIVERSIFICATION_TIPS = [
         ],
     },
     {
+        id: 'cd-maturity-concentration',
+        title: 'CD Maturity Concentration',
+        icon: '📊',
+        check: ({ cds }) => {
+            if (!cds || cds.length < 3) return false;
+            const now = Date.now();
+            // Get all future CDs with their maturity dates and principal
+            const futureCds = cds
+                .map((cd) => ({
+                    maturity: new Date(cd.maturity).getTime(),
+                    principal: cd.principal || 0,
+                }))
+                .filter((cd) => cd.maturity >= now)
+                .sort((a, b) => a.maturity - b.maturity);
+            if (futureCds.length < 3) return false;
+            const totalValue = futureCds.reduce(
+                (sum, cd) => sum + cd.principal,
+                0,
+            );
+            if (totalValue === 0) return false;
+            // Sliding 90-day window: check if any window has >60% of total CD value
+            const windowMs = 90 * 86400000;
+            for (let i = 0; i < futureCds.length; i++) {
+                const windowStart = futureCds[i].maturity;
+                const windowEnd = windowStart + windowMs;
+                let windowValue = 0;
+                for (
+                    let j = i;
+                    j < futureCds.length && futureCds[j].maturity <= windowEnd;
+                    j++
+                ) {
+                    windowValue += futureCds[j].principal;
+                }
+                if (windowValue / totalValue > 0.6) {
+                    const startDate = new Date(windowStart).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' },
+                    );
+                    const endDate = new Date(windowEnd).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' },
+                    );
+                    return {
+                        windowStart: startDate,
+                        windowEnd: endDate,
+                        pct: ((windowValue / totalValue) * 100).toFixed(0),
+                    };
+                }
+            }
+            return false;
+        },
+        severity: 'warning',
+        message: ({ cds }) => {
+            // Recompute the check to get window details
+            if (!cds || cds.length < 3) return '';
+            const now = Date.now();
+            const futureCds = cds
+                .map((cd) => ({
+                    maturity: new Date(cd.maturity).getTime(),
+                    principal: cd.principal || 0,
+                }))
+                .filter((cd) => cd.maturity >= now)
+                .sort((a, b) => a.maturity - b.maturity);
+            if (futureCds.length < 3) return '';
+            const totalValue = futureCds.reduce(
+                (sum, cd) => sum + cd.principal,
+                0,
+            );
+            if (totalValue === 0) return '';
+            const windowMs = 90 * 86400000;
+            for (let i = 0; i < futureCds.length; i++) {
+                const windowStart = futureCds[i].maturity;
+                const windowEnd = windowStart + windowMs;
+                let windowValue = 0;
+                for (
+                    let j = i;
+                    j < futureCds.length && futureCds[j].maturity <= windowEnd;
+                    j++
+                ) {
+                    windowValue += futureCds[j].principal;
+                }
+                if (windowValue / totalValue > 0.6) {
+                    const startDate = new Date(windowStart).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' },
+                    );
+                    const endDate = new Date(windowEnd).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' },
+                    );
+                    const pct = ((windowValue / totalValue) * 100).toFixed(0);
+                    return `More than ${pct}% of CD value matures between ${startDate} and ${endDate} — reinvestment timing risk. Consider staggering maturities.`;
+                }
+            }
+            return '';
+        },
+        links: [
+            {
+                label: 'CD Ladder Strategy',
+                url: 'https://www.investopedia.com/terms/c/cdladder.asp',
+                external: true,
+            },
+            {
+                label: 'Reinvestment Risk',
+                url: 'https://www.investopedia.com/terms/r/reinvestment-risk.asp',
+                external: true,
+            },
+        ],
+    },
+    {
         id: 'aggressive-swr',
         title: 'Aggressive Withdrawal Rate',
         icon: '🎯',
@@ -723,6 +833,7 @@ function renderDiversificationSuggestions(
             (state.projectionSettings?.swr || 0) > 0 &&
             nw >= annualExpenses / (state.projectionSettings.swr / 100),
         cdsSoon,
+        cds: state.cds || [],
         swr: state.projectionSettings?.swr || 0,
         cryptoPct: (cryptoValue / nw) * 100,
         metalsPct: (metalsValue / nw) * 100,

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Chaos Mode household profile controls: a 👤 toggle opens a panel to save or clear a household profile that persists and rehydrates with Chaos state, and hides when Chaos is off (#399).
+
 - Stripe (self-hosted): add a read-only balance-transaction client with cursor pagination, safe 401/429 errors, and partial-page recovery; no route/UI or credential persistence is added (#346).
 - Stripe (self-hosted): sync read-only balance transactions into the side-gig ledger by canonical transaction ID, preserve manual/Etsy rows, resume partial batches without reporting full success, and record bounded outcomes; payouts remain excluded (#347).
 - Stripe (self-hosted): bound each balance-transaction page fetch to a 10-second deadline; timeout errors are sanitized and later-page failures preserve partial rows/cursor (#454).
@@ -40,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Compact summary bar now reflows when the device rotates within the narrow breakpoint, and the e2e layout test waits for the tab fade-in animation before measuring card positions (fixes flaky `chaos-and-layout.spec.js` "a card alone in its section spans the full width").
 - Side Gig Ledger manual-entry form now stacks with visible labels at tablet/phone widths, and the tax summary wraps without horizontal overflow (#173).
 
 - Expenses: budget hints and Tax Estimator summary rows have explicit spacing and stay within their layout cells at desktop and mobile widths (#168).
