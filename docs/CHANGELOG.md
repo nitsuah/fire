@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Chaos Mode household profile controls: a 👤 toggle opens a panel to save or clear a household profile that persists and rehydrates with Chaos state, and hides when Chaos is off (#399).
+
 - Stripe (self-hosted): add a read-only balance-transaction client with cursor pagination, safe 401/429 errors, and partial-page recovery; no route/UI or credential persistence is added (#346).
 - Stripe (self-hosted): sync read-only balance transactions into the side-gig ledger by canonical transaction ID, preserve manual/Etsy rows, resume partial batches without reporting full success, and record bounded outcomes; payouts remain excluded (#347).
 - Stripe (self-hosted): bound each balance-transaction page fetch to a 10-second deadline; timeout errors are sanitized and later-page failures preserve partial rows/cursor (#454).
