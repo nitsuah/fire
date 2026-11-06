@@ -196,9 +196,8 @@ function initCompactBarPlacement() {
         return;
     }
     const bellHome = bell.parentElement;
-    // Use innerWidth check instead of media query for orientation since
-    // Playwright viewport size doesn't reliably set orientation media query
-    const isPortrait = window.innerWidth < window.innerHeight;
+    // Re-evaluate on width and orientation changes. The width query alone
+    // does not fire for rotations that remain within the narrow breakpoint.
     const mq = window.matchMedia('(max-width: 768px)');
     const place = () => {
         const isPortraitNow = window.innerWidth < window.innerHeight;
@@ -213,6 +212,9 @@ function initCompactBarPlacement() {
         }
     };
     mq.addEventListener('change', place);
+    window
+        .matchMedia('(orientation: portrait)')
+        .addEventListener('change', place);
     place();
 }
 
@@ -695,6 +697,39 @@ const DIVERSIFICATION_TIPS = [
             {
                 label: 'Reinvestment Risk',
                 url: 'https://www.investopedia.com/terms/r/reinvestment-risk.asp',
+                external: true,
+            },
+        ],
+    },
+    {
+        id: 'early-retirement-cash-buffer',
+        title: 'Early-Retirement Cash Buffer',
+        icon: '🛡️',
+        check: ({ fireReached, cdsPct, cashPct, nw, annualExpenses }) => {
+            if (!fireReached || annualExpenses <= 0) return false;
+            const cdsValue = (cdsPct / 100) * nw;
+            const cashValue = (cashPct / 100) * nw;
+            const bufferYears = (cashValue + cdsValue) / annualExpenses;
+            return bufferYears < 2;
+        },
+        severity: 'warning',
+        message: ({ fireReached, cdsPct, cashPct, nw, annualExpenses }) => {
+            if (!fireReached || annualExpenses <= 0) return '';
+            const cdsValue = (cdsPct / 100) * nw;
+            const cashValue = (cashPct / 100) * nw;
+            const bufferYears = (cashValue + cdsValue) / annualExpenses;
+            const shortfallYears = (2 - bufferYears).toFixed(1);
+            return `Cash + CDs cover only ${bufferYears.toFixed(1)} years of expenses (shortfall: ${shortfallYears} years to reach 2-year buffer). Sequence-of-returns risk is highest in early retirement. This is general guidance, not personalized financial advice.`;
+        },
+        links: [
+            {
+                label: 'Sequence of Returns Risk',
+                url: 'https://www.investopedia.com/terms/s/sequence-risk.asp',
+                external: true,
+            },
+            {
+                label: 'Cash Buffer in Retirement',
+                url: 'https://www.kitces.com/blog/cash-reserve-bucket-strategy-retirement-distribution-planning/',
                 external: true,
             },
         ],
