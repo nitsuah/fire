@@ -67,7 +67,8 @@ function renderHeaderBannerMetrics() {
     if (progressEl) progressEl.textContent = `${progressPercent.toFixed(1)}%`;
 
     const targetEl = document.getElementById('banner-target');
-    if (targetEl) targetEl.textContent = `Target: ${formatCurrency(fireNumber)}`;
+    if (targetEl)
+        targetEl.textContent = `Target: ${formatCurrency(fireNumber)}`;
 
     // Past 100% the bar alone says nothing, so show what the portfolio can
     // pay out; before it, how long until FIRE at current savings/returns.
@@ -604,7 +605,10 @@ const DIVERSIFICATION_TIPS = [
                 .filter((cd) => cd.maturity >= now)
                 .sort((a, b) => a.maturity - b.maturity);
             if (futureCds.length < 3) return false;
-            const totalValue = futureCds.reduce((sum, cd) => sum + cd.principal, 0);
+            const totalValue = futureCds.reduce(
+                (sum, cd) => sum + cd.principal,
+                0,
+            );
             if (totalValue === 0) return false;
             // Sliding 90-day window: check if any window has >60% of total CD value
             const windowMs = 90 * 86400000;
@@ -612,13 +616,27 @@ const DIVERSIFICATION_TIPS = [
                 const windowStart = futureCds[i].maturity;
                 const windowEnd = windowStart + windowMs;
                 let windowValue = 0;
-                for (let j = i; j < futureCds.length && futureCds[j].maturity <= windowEnd; j++) {
+                for (
+                    let j = i;
+                    j < futureCds.length && futureCds[j].maturity <= windowEnd;
+                    j++
+                ) {
                     windowValue += futureCds[j].principal;
                 }
                 if (windowValue / totalValue > 0.6) {
-                    const startDate = new Date(windowStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                    const endDate = new Date(windowEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                    return { windowStart: startDate, windowEnd: endDate, pct: (windowValue / totalValue * 100).toFixed(0) };
+                    const startDate = new Date(windowStart).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' },
+                    );
+                    const endDate = new Date(windowEnd).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' },
+                    );
+                    return {
+                        windowStart: startDate,
+                        windowEnd: endDate,
+                        pct: ((windowValue / totalValue) * 100).toFixed(0),
+                    };
                 }
             }
             return false;
@@ -636,20 +654,33 @@ const DIVERSIFICATION_TIPS = [
                 .filter((cd) => cd.maturity >= now)
                 .sort((a, b) => a.maturity - b.maturity);
             if (futureCds.length < 3) return '';
-            const totalValue = futureCds.reduce((sum, cd) => sum + cd.principal, 0);
+            const totalValue = futureCds.reduce(
+                (sum, cd) => sum + cd.principal,
+                0,
+            );
             if (totalValue === 0) return '';
             const windowMs = 90 * 86400000;
             for (let i = 0; i < futureCds.length; i++) {
                 const windowStart = futureCds[i].maturity;
                 const windowEnd = windowStart + windowMs;
                 let windowValue = 0;
-                for (let j = i; j < futureCds.length && futureCds[j].maturity <= windowEnd; j++) {
+                for (
+                    let j = i;
+                    j < futureCds.length && futureCds[j].maturity <= windowEnd;
+                    j++
+                ) {
                     windowValue += futureCds[j].principal;
                 }
                 if (windowValue / totalValue > 0.6) {
-                    const startDate = new Date(windowStart).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                    const endDate = new Date(windowEnd).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                    const pct = (windowValue / totalValue * 100).toFixed(0);
+                    const startDate = new Date(windowStart).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' },
+                    );
+                    const endDate = new Date(windowEnd).toLocaleDateString(
+                        undefined,
+                        { month: 'short', day: 'numeric', year: 'numeric' },
+                    );
+                    const pct = ((windowValue / totalValue) * 100).toFixed(0);
                     return `More than ${pct}% of CD value matures between ${startDate} and ${endDate} — reinvestment timing risk. Consider staggering maturities.`;
                 }
             }
