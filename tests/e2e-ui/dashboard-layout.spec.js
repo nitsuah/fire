@@ -1,5 +1,5 @@
 // @ts-check
-/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions, refreshAllUI, renderVehiclesTable, buildProjectionData, buildMilestonesList */
+/* global state, renderDashboardTopPositionsTable, renderDiversificationSuggestions, refreshAllUI, saveState, renderVehiclesTable, buildProjectionData, buildMilestonesList */
 const { test, expect } = require('@playwright/test');
 
 async function dismissPrivacyModal(page) {
@@ -829,12 +829,42 @@ test.describe('Insights — additional watchers', () => {
         page,
     }) => {
         await page.evaluate(() => {
+            const inDays = (n) =>
+                new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
             localStorage.removeItem('fire_dismissed_div_tips');
             state.cds = [
-                { id: 'cd1', bank: 'Bank A', principal: 50000, rate: 5, maturity: '2027-01-15', startDate: '2026-01-15' },
-                { id: 'cd2', bank: 'Bank B', principal: 30000, rate: 4.5, maturity: '2027-02-15', startDate: '2026-02-15' },
-                { id: 'cd3', bank: 'Bank C', principal: 10000, rate: 4, maturity: '2027-03-15', startDate: '2026-03-15' },
-                { id: 'cd4', bank: 'Bank D', principal: 5000, rate: 4, maturity: '2028-01-01', startDate: '2027-01-01' },
+                {
+                    id: 'cd1',
+                    bank: 'Bank A',
+                    principal: 50000,
+                    rate: 5,
+                    maturity: inDays(60),
+                    startDate: '2026-01-01',
+                },
+                {
+                    id: 'cd2',
+                    bank: 'Bank B',
+                    principal: 30000,
+                    rate: 4.5,
+                    maturity: inDays(90),
+                    startDate: '2026-01-01',
+                },
+                {
+                    id: 'cd3',
+                    bank: 'Bank C',
+                    principal: 10000,
+                    rate: 4,
+                    maturity: inDays(120),
+                    startDate: '2026-01-01',
+                },
+                {
+                    id: 'cd4',
+                    bank: 'Bank D',
+                    principal: 5000,
+                    rate: 4,
+                    maturity: inDays(400),
+                    startDate: '2026-01-01',
+                },
             ];
             state.customAccounts = [
                 { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 100000 },
@@ -853,10 +883,26 @@ test.describe('Insights — additional watchers', () => {
         page,
     }) => {
         await page.evaluate(() => {
+            const inDays = (n) =>
+                new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
             localStorage.removeItem('fire_dismissed_div_tips');
             state.cds = [
-                { id: 'cd1', bank: 'Bank A', principal: 50000, rate: 5, maturity: '2027-01-15', startDate: '2026-01-15' },
-                { id: 'cd2', bank: 'Bank B', principal: 30000, rate: 4.5, maturity: '2028-02-15', startDate: '2027-02-15' },
+                {
+                    id: 'cd1',
+                    bank: 'Bank A',
+                    principal: 50000,
+                    rate: 5,
+                    maturity: inDays(60),
+                    startDate: '2026-01-01',
+                },
+                {
+                    id: 'cd2',
+                    bank: 'Bank B',
+                    principal: 30000,
+                    rate: 4.5,
+                    maturity: inDays(500),
+                    startDate: '2026-01-01',
+                },
             ];
             state.customAccounts = [
                 { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 100000 },
@@ -872,18 +918,42 @@ test.describe('Insights — additional watchers', () => {
         page,
     }) => {
         await page.evaluate(() => {
+            const inDays = (n) =>
+                new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
             localStorage.removeItem('fire_dismissed_div_tips');
             state.projectionSettings = { swr: 4 };
             state.customAccounts = [
                 { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 50000 },
-                { id: 'e2e-b', name: 'Brokerage', type: 'Brokerage', value: 1200000 },
-                { id: 'e2e-o', name: 'Other Assets', type: 'Other', value: 700000 },
+                {
+                    id: 'e2e-b',
+                    name: 'Brokerage',
+                    type: 'Brokerage',
+                    value: 1200000,
+                },
+                {
+                    id: 'e2e-o',
+                    name: 'Other Assets',
+                    type: 'Other',
+                    value: 700000,
+                },
             ];
             state.cds = [
-                { id: 'cd1', bank: 'Bank A', principal: 50000, rate: 5, maturity: '2027-01-15', startDate: '2026-01-15' },
+                {
+                    id: 'cd1',
+                    bank: 'Bank A',
+                    principal: 50000,
+                    rate: 5,
+                    maturity: inDays(60),
+                    startDate: '2026-01-01',
+                },
             ];
             state.realEstate = [
-                { id: 're1', propertyType: 'Primary Residence', marketValue: 500000, mortgageBalance: 200000 },
+                {
+                    id: 're1',
+                    propertyType: 'Primary Residence',
+                    marketValue: 500000,
+                    mortgageBalance: 200000,
+                },
             ];
             state.expenses = {
                 housing: 2500,
@@ -913,17 +983,31 @@ test.describe('Insights — additional watchers', () => {
         page,
     }) => {
         await page.evaluate(() => {
+            const inDays = (n) =>
+                new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
             localStorage.removeItem('fire_dismissed_div_tips');
             state.projectionSettings = { swr: 4 };
             state.customAccounts = [
                 { id: 'e2e-k', name: 'Cash', type: 'Cash', value: 50000 },
             ];
             state.cds = [
-                { id: 'cd1', bank: 'Bank A', principal: 50000, rate: 5, maturity: '2027-01-15', startDate: '2026-01-15' },
+                {
+                    id: 'cd1',
+                    bank: 'Bank A',
+                    principal: 50000,
+                    rate: 5,
+                    maturity: inDays(60),
+                    startDate: '2026-01-01',
+                },
             ];
             state.expenses = {
                 monthly: 5000,
-                categories: { Housing: 30000, Food: 10000, Transport: 5000, Other: 5000 },
+                categories: {
+                    Housing: 30000,
+                    Food: 10000,
+                    Transport: 5000,
+                    Other: 5000,
+                },
             };
             renderDiversificationSuggestions();
         });
