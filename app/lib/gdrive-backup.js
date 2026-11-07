@@ -555,10 +555,22 @@ async function assertBackupFileInFolder(token, fileId) {
 async function downloadAndDecryptBackupWithToken(token, fileId) {
     await assertBackupFileInFolder(token, fileId);
     const accountId = await getAccountId(token);
-    return decryptBackup(
-        await downloadBackupWithToken(token, fileId),
-        accountId,
-    );
+    const raw = await downloadBackupWithToken(token, fileId);
+    // Decrypt or parse failures (corrupt file, other key or account) are a
+    // named 422; coded errors (e.g. legacy refusal) pass through.
+    try {
+        const json = decryptBackup(raw, accountId);
+        JSON.parse(json);
+        return json;
+    } catch (err) {
+        if (err.code) throw err;
+        throw Object.assign(
+            new Error(
+                'This backup could not be decrypted. It may be corrupted, encrypted with a different SYNC_MASTER_KEY, or made by a different Google account.',
+            ),
+            { status: 422, code: 'gdrive_backup_unreadable' },
+        );
+    }
 }
 
 async function uploadBackup(dbJson) {
