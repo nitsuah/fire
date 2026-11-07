@@ -2,15 +2,6 @@
    tables/real-estate.js — Real estate table and stats renderers
    ========================================================================== */
 
-function _reEscHtml(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
 function renderRealEstateTable() {
     const tbody = document.querySelector('#table-real-estate tbody');
     if (!tbody) return;
@@ -38,35 +29,35 @@ function renderRealEstateTable() {
         if (editingRealEstate.includes(re.id)) {
             html += `
             <tr class="position-row">
-                <td><input class="inline-edit-input" id="re-edit-name-${re.id}" value="${escHtml(re.name)}" placeholder="Property Name"></td>
+                <td><input class="inline-edit-input" id="re-edit-name-${escHtml(re.id)}" value="${escHtml(re.name)}" placeholder="Property Name"></td>
                 <td>
-                    <select class="inline-edit-input" id="re-edit-type-${re.id}">
+                    <select class="inline-edit-input" id="re-edit-type-${escHtml(re.id)}">
                         ${['Primary Home', 'Investment', 'Rental', 'Land', 'Commercial'].map((t) => `<option${t === re.type ? ' selected' : ''}>${t}</option>`).join('')}
                     </select>
                 </td>
-                <td><input class="inline-edit-input" id="re-edit-address-${re.id}" value="${escHtml(re.address || '')}" placeholder="Address (optional)"></td>
-                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-market-${re.id}" type="number" value="${re.marketValue}" step="1000"></td>
-                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-mortgage-${re.id}" type="number" value="${re.mortgageBalance}" step="1000"></td>
-                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-purchase-${re.id}" type="number" value="${re.purchasePrice}" step="1000"></td>
-                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-payment-${re.id}" type="number" value="${re.monthlyPayment}" step="100"></td>
+                <td><input class="inline-edit-input" id="re-edit-address-${escHtml(re.id)}" value="${escHtml(re.address || '')}" placeholder="Address (optional)"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-market-${escHtml(re.id)}" type="number" value="${escHtml(re.marketValue)}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-mortgage-${escHtml(re.id)}" type="number" value="${escHtml(re.mortgageBalance)}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-purchase-${escHtml(re.id)}" type="number" value="${escHtml(re.purchasePrice)}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-payment-${escHtml(re.id)}" type="number" value="${escHtml(re.monthlyPayment)}" step="100"></td>
                 <td class="text-right">
-                    <button class="action-btn save-btn" data-csp-click-action="saveEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Save</button>
-                    <button class="action-btn cancel-btn" data-csp-click-action="cancelEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Cancel</button>
+                    <button class="action-btn save-btn" data-csp-click-action="saveEditRealEstate" data-csp-click-value="${escHtml(re.id)}">Save</button>
+                    <button class="action-btn cancel-btn" data-csp-click-action="cancelEditRealEstate" data-csp-click-value="${escHtml(re.id)}">Cancel</button>
                 </td>
             </tr>`;
         } else {
             html += `
             <tr class="position-row">
-                <td class="font-bold">${_reEscHtml(re.name)}</td>
-                <td><span class="tag-badge">${_reEscHtml(re.type)}</span></td>
-                <td class="text-muted csp-text-11">${_reEscHtml(re.address) || '—'}</td>
+                <td class="font-bold">${escHtml(re.name)}</td>
+                <td><span class="tag-badge">${escHtml(re.type)}</span></td>
+                <td class="text-muted csp-text-11">${escHtml(re.address) || '—'}</td>
                 <td class="text-right font-bold">${formatCurrency(re.marketValue || 0)}</td>
                 <td class="text-right csp-dynamic-color" data-csp-color="${equity >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">${formatCurrency(equity)}</td>
                 <td class="text-right text-muted">${(re.purchasePrice || 0) > 0 ? formatCurrency(re.purchasePrice) : '—'}</td>
                 <td class="text-right csp-dynamic-color" data-csp-color="${escHtml(gainStyle.replace(/^color:\s*/, ''))}">${(re.purchasePrice || 0) > 0 ? gainStr : '—'}</td>
                 <td class="text-right">
-                    <button class="action-btn edit-btn" data-csp-click-action="startEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Edit</button>
-                    <button class="action-btn delete-btn" data-csp-click-action="deleteRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Delete</button>
+                    <button class="action-btn edit-btn" data-csp-click-action="startEditRealEstate" data-csp-click-value="${escHtml(re.id)}">Edit</button>
+                    <button class="action-btn delete-btn" data-csp-click-action="deleteRealEstate" data-csp-click-value="${escHtml(re.id)}">Delete</button>
                 </td>
             </tr>`;
         }

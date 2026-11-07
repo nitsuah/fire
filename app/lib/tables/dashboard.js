@@ -141,7 +141,7 @@ function buildCompactBarTooltipHtml() {
     const rows = segments
         .map(
             (s) =>
-                `<div class="at-row"><span class="at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+                `<div class="at-row"><span class="at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${escHtml(s.label)}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
@@ -261,7 +261,7 @@ function renderAllocMiniBarsBanner() {
     el.innerHTML = `<div class="alloc-bar-track">${segments
         .map(
             (s) =>
-                `<div class="alloc-bar-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(1)}" data-csp-color="${escHtml(s.color)}" title="${s.label}: ${s.pct.toFixed(1)}%"></div>`,
+                `<div class="alloc-bar-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(1)}" data-csp-color="${escHtml(s.color)}" title="${escHtml(s.label)}: ${s.pct.toFixed(1)}%"></div>`,
         )
         .join('')}</div>`;
 
@@ -279,7 +279,7 @@ function renderAllocMiniBarsBanner() {
     const tooltipRows = segments
         .map(
             (s) =>
-                `<div class="at-row"><span class="at-dot at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${s.label}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
+                `<div class="at-row"><span class="at-dot at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${escHtml(s.label)}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Total NW</span><span class="at-val">${formatCurrency(total)}</span></div>`;
@@ -304,13 +304,7 @@ function renderAllocMiniBarsBanner() {
     });
 }
 
-function escHtml(s) {
-    return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
+// escHtml comes from lib/html-utils.js (loaded first in index.html).
 
 // Broad-market ETFs that shouldn't trigger single-stock concentration warnings
 const BROAD_MARKET_FUNDS = new Set([
