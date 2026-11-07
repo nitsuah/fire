@@ -425,19 +425,53 @@ describe('vehicles table renderer', () => {
         );
     });
 
-    it('vehicle estimate overlay escapes ampersands in id and value attributes', async () => {
+    it('vehicle estimate overlay escapes API-supplied values in each accept button', async () => {
         const id = 'car&1';
         const env = load(['html-utils.js', 'tables/vehicles.js'], {
             state: { vehicles: [vehicle({ id })] },
-            isBrowserOnlyModeAsync: async () => true,
+            isBrowserOnlyModeAsync: async () => false,
+            // Stub the API response: depreciation, market and suggested values
+            // all carry quote and ampersand characters.
+            fetchJson: async () => ({
+                ok: true,
+                data: {
+                    depreciation: {
+                        value: '12000" x',
+                        low: 10000,
+                        high: 14000,
+                        note: 'note',
+                        citation: 'cite',
+                    },
+                    market: {
+                        estimated: true,
+                        value: "13000' y",
+                        low: 12000,
+                        high: 14000,
+                        source: 'market-src',
+                        note: 'note',
+                        citation: 'cite',
+                    },
+                    suggestedValue: '14000&z',
+                    range: { low: 12000, high: 16000 },
+                },
+            }),
             window: { innerHeight: 800 },
         });
         await env.ctx.window.fetchVehicleEstimate(id);
         const overlay = env.html('veh-est-overlay');
         expect(overlay).toContain('data-vehicle-id="car&amp;1"');
-        expect(overlay).toMatch(/data-vehicle-value="\d+"/);
-        expect(overlay).toContain('data-vehicle-source="depreciation-model"');
-        expect(overlay).not.toContain('car&1"');
+        expect(overlay).toContain(
+            'data-vehicle-value="12000&quot; x" data-vehicle-source="depreciation-model"',
+        );
+        expect(overlay).toContain(
+            'data-vehicle-value="13000&#x27; y" data-vehicle-source="market-src"',
+        );
+        expect(overlay).toContain(
+            'data-vehicle-action="accept-estimate" data-vehicle-id="car&amp;1" data-vehicle-value="14000&amp;z"',
+        );
+        expect(overlay).not.toContain('12000" x');
+        expect(overlay).not.toContain("13000' y");
+        expect(overlay).not.toContain('14000&z');
     });
 });
 
