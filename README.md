@@ -114,6 +114,7 @@ basic local use — the one exception is `FIRE_API_KEY` (or its explicit
 | `FIRE_AUTH_DISABLED` | Set to `true` to run with no API auth at all (local-only use). Leave unset if anyone else could reach the server — see security-hardening.md |
 | `FIRE_ADMIN_KEY` | **Required in production.** Gates `POST /api/admin/rotate-key` via `X-Admin-Key` header |
 | `SYNC_MASTER_KEY` | 64-hex-char key to encrypt `db.json` at rest with AES-256-GCM |
+| `FIRE_ALLOW_LEGACY_BACKUP_RESTORE` | Set to `1` to allow restoring older Google Drive backups that are not bound to an account. Off by default |
 | `SESSION_SECRET` | Secret for signing session cookies (random string; server exits in production if unset) |
 | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | eBay Developer app credentials for Order API sync |
 | `EBAY_ENVIRONMENT` | `sandbox` (default) or `production` |

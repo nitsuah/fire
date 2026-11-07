@@ -174,7 +174,10 @@ router.post('/drive/restore', async (req, res) => {
         });
     } catch (err) {
         console.error('[Backup] Drive restore error:', err);
-        res.status(err.status || 502).json({ error: err.message });
+        res.status(err.status || 502).json({
+            error: err.message,
+            ...(err.code ? { code: err.code } : {}),
+        });
     }
 });
 

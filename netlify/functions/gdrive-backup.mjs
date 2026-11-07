@@ -155,6 +155,11 @@ function errorResponse(err, fallback, extra = {}) {
         return json(401, { error: err.message, code: err.code });
     if (err.code === 'gdrive_backup_unreadable')
         return json(422, { error: err.message, code: err.code, ...extra });
+    if (
+        err.code === 'gdrive_legacy_backup' ||
+        err.code === 'gdrive_plaintext_backup'
+    )
+        return json(422, { error: err.message, code: err.code, ...extra });
     // Not one of this app's backups (wrong folder, or trashed) — see
     // assertBackupFileInFolder. Say so plainly instead of "try again".
     if (err.code === 'gdrive_not_a_backup')
@@ -239,28 +244,35 @@ async function restore(req) {
         // The token can read any Drive file it can see, so prove the ID is
         // one of this app's backups before fetching its contents.
         await gdrive.assertBackupFileInFolder(token, fileId);
+        const encrypted = await gdrive.downloadBackupWithToken(token, fileId);
+        // Only account-bound backups need the account lookup.
+        const accountId = gdrive.isBoundBackup(encrypted)
+            ? await gdrive.getAccountId(token)
+            : undefined;
         return {
             status: 'success',
-            state: decryptRestored(
-                await gdrive.downloadBackupWithToken(token, fileId),
-            ),
+            state: decryptRestored(encrypted, accountId),
         };
     });
 }
 
 // A backup sealed with another key, or a corrupted file, fails the GCM auth
 // check or JSON parsing; either way it is a named 422, not a 502.
-function decryptRestored(encrypted) {
+function decryptRestored(encrypted, accountId) {
     let restored = null;
     try {
-        restored = JSON.parse(gdrive.decryptBackup(encrypted));
-    } catch {
-        /* handled below */
+        restored = JSON.parse(gdrive.decryptBackup(encrypted, accountId));
+    } catch (err) {
+        if (
+            err.code === 'gdrive_legacy_backup' ||
+            err.code === 'gdrive_plaintext_backup'
+        )
+            throw err;
     }
     if (!restored || typeof restored !== 'object' || Array.isArray(restored))
         throw Object.assign(
             new Error(
-                'This backup could not be decrypted. It may be corrupted or encrypted with a different SYNC_MASTER_KEY.',
+                'This backup could not be restored. Possible causes: the file is corrupted; it was encrypted with a different SYNC_MASTER_KEY; or it was made by a different Google account.',
             ),
             { code: 'gdrive_backup_unreadable' },
         );

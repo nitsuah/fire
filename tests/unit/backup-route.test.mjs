@@ -147,3 +147,216 @@ describe('POST /api/backup/drive/restore', () => {
         expect(res.body.error).toMatch(/not authorized/i);
     });
 });
+
+describe('POST /api/backup/drive/restore — account binding', () => {
+    const drive = (storedFile, account) =>
+        vi.fn(async (url, opts) => {
+            const u = String(url);
+            if (new URL(u).host === 'oauth2.googleapis.com')
+                return {
+                    ok: true,
+                    json: async () => ({
+                        access_token: 'at-1',
+                        refresh_token: 'rt-1',
+                        expires_in: 3600,
+                    }),
+                };
+            if (new URL(u).pathname === '/drive/v3/about')
+                return {
+                    ok: true,
+                    json: async () => ({ user: { permissionId: account } }),
+                };
+            if (new URL(u).searchParams.get('fields') === 'id,parents,trashed')
+                return {
+                    ok: true,
+                    json: async () => ({
+                        id: 'file-1',
+                        parents: ['folder-1'],
+                    }),
+                };
+            if (new URL(u).pathname === '/drive/v3/files/file-1')
+                return { ok: true, text: async () => storedFile };
+            throw new Error(`Unexpected fetch: ${u} ${opts?.method || ''}`);
+        });
+
+    async function setup(storedFile, account) {
+        process.env.GDRIVE_CLIENT_ID = 'cid';
+        process.env.GDRIVE_CLIENT_SECRET = 'csecret';
+        process.env.GDRIVE_BACKUP_FOLDER_ID = 'folder-1';
+        process.env.SYNC_MASTER_KEY = 'ab'.repeat(32);
+        const gdrive = (await import('../../app/lib/gdrive-backup.js')).default;
+        vi.stubGlobal('fetch', drive(storedFile, account));
+        await gdrive.exchangeCodeForTokens('code');
+        return gdrive;
+    }
+    const sealed = (gdrive, account, extra = {}) =>
+        JSON.stringify({
+            ...JSON.parse(
+                gdrive.encryptForBackup(
+                    JSON.stringify({ customAccounts: [{ name: 'X' }] }),
+                    account,
+                ),
+            ),
+            ...extra,
+        });
+
+    afterEach(() => {
+        delete process.env.GDRIVE_BACKUP_FOLDER_ID;
+        delete process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE;
+        try {
+            fs.unlinkSync(path.join(TEST_DATA_DIR, 'tokens-gdrive.json'));
+        } catch {
+            /* none written */
+        }
+    });
+
+    async function restore() {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const before = fs.readFileSync(process.env.FIRE_DB_FILE, 'utf8');
+        const res = await request(app)
+            .post('/api/backup/drive/restore')
+            .send({ fileId: 'file-1' });
+        const after = fs.readFileSync(process.env.FIRE_DB_FILE, 'utf8');
+        return { res, unchanged: before === after };
+    }
+
+    it('restores a file sealed for the same account', async () => {
+        const g = await setup('', 'acct-A');
+        vi.stubGlobal('fetch', drive(sealed(g, 'acct-A'), 'acct-A'));
+        const { res } = await restore();
+        expect(res.status).toBe(200);
+    });
+
+    it('returns 422 and leaves state unchanged for another account', async () => {
+        const g = await setup('', 'acct-B');
+        vi.stubGlobal('fetch', drive(sealed(g, 'acct-A'), 'acct-B'));
+        const { res, unchanged } = await restore();
+        expect(res.status).toBe(422);
+        expect(res.body.code).toBe('gdrive_backup_unreadable');
+        expect(res.body.error).not.toMatch(/auth|GCM|unsupported state/i);
+        expect(unchanged).toBe(true);
+    });
+
+    it.each(['null', '"text"', '[1,2]', '42'])(
+        'returns 422 unreadable when the decrypted payload is %s',
+        async (payload) => {
+            process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = '1';
+            const g = await setup('', 'acct-A');
+            vi.stubGlobal(
+                'fetch',
+                drive(g.encryptForBackup(payload), 'acct-A'),
+            );
+            const { res, unchanged } = await restore();
+            expect(res.status).toBe(422);
+            expect(res.body.code).toBe('gdrive_backup_unreadable');
+            expect(unchanged).toBe(true);
+        },
+    );
+
+    it('maps coded crypto errors to unreadable instead of passing them through', async () => {
+        process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = '1';
+        const g = await setup('', 'acct-A');
+        const bad = JSON.stringify({
+            ...JSON.parse(g.encryptForBackup('{"a":1}')),
+            tag: '00',
+        });
+        // Node rejects a short auth tag with an ERR_* coded error.
+        const crypto = await import('node:crypto');
+        let nodeCode;
+        try {
+            crypto
+                .createDecipheriv(
+                    'aes-256-gcm',
+                    Buffer.alloc(32),
+                    Buffer.alloc(12),
+                )
+                .setAuthTag(Buffer.from('00', 'hex'));
+        } catch (err) {
+            nodeCode = err.code;
+        }
+        expect(nodeCode).toMatch(/^ERR_/);
+        vi.stubGlobal('fetch', drive(bad, 'acct-A'));
+        const { res, unchanged } = await restore();
+        expect(res.status).toBe(422);
+        expect(res.body.code).toBe('gdrive_backup_unreadable');
+        expect(unchanged).toBe(true);
+    });
+
+    it.each([
+        ['stripped', (o) => (delete o.v, o)],
+        ['altered', (o) => ((o.v = 3), o)],
+        ['downgraded to 1', (o) => ((o.v = 1), o)],
+    ])(
+        'rejects a v2 file with v %s, with and without the legacy flag',
+        async (_label, mutate) => {
+            const g = await setup('', 'acct-A');
+            const file = JSON.stringify(
+                mutate(JSON.parse(sealed(g, 'acct-A'))),
+            );
+            for (const flag of [undefined, '1']) {
+                if (flag) process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = flag;
+                else delete process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE;
+                vi.stubGlobal('fetch', drive(file, 'acct-A'));
+                const { res, unchanged } = await restore();
+                expect(res.status).toBe(422);
+                expect(unchanged).toBe(true);
+            }
+        },
+    );
+});
+
+describe('POST /api/backup/drive/restore — plaintext and lookups', () => {
+    it('does not need the account lookup for a permitted legacy restore', async () => {
+        const g = (await import('../../app/lib/gdrive-backup.js')).default;
+        process.env.GDRIVE_CLIENT_ID = 'cid';
+        process.env.GDRIVE_CLIENT_SECRET = 'csecret';
+        process.env.GDRIVE_BACKUP_FOLDER_ID = 'folder-1';
+        process.env.SYNC_MASTER_KEY = 'ab'.repeat(32);
+        process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = '1';
+        const legacy = g.encryptForBackup(
+            JSON.stringify({ customAccounts: [] }),
+        );
+        const calls = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) => {
+                const u = new URL(String(url));
+                calls.push(u.pathname);
+                if (u.host === 'oauth2.googleapis.com')
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            access_token: 'at-1',
+                            refresh_token: 'rt-1',
+                            expires_in: 3600,
+                        }),
+                    };
+                if (u.searchParams.get('fields') === 'id,parents,trashed')
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            id: 'file-1',
+                            parents: ['folder-1'],
+                        }),
+                    };
+                if (u.pathname === '/drive/v3/files/file-1')
+                    return { ok: true, text: async () => legacy };
+                throw new Error(`Unexpected fetch: ${u}`);
+            }),
+        );
+        await g.exchangeCodeForTokens('code');
+        try {
+            const res = await request(app)
+                .post('/api/backup/drive/restore')
+                .send({ fileId: 'file-1' });
+            expect(res.status).toBe(200);
+            expect(calls).not.toContain('/drive/v3/about');
+        } finally {
+            delete process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE;
+            delete process.env.GDRIVE_BACKUP_FOLDER_ID;
+            fs.rmSync(path.join(TEST_DATA_DIR, 'tokens-gdrive.json'), {
+                force: true,
+            });
+        }
+    });
+});

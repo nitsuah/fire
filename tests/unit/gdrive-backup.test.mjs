@@ -145,6 +145,13 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
             'fetch',
             vi.fn(async (url, opts) => {
                 const u = String(url);
+                if (u.includes('/drive/v3/about'))
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            user: { permissionId: 'acct-A' },
+                        }),
+                    };
                 if (u.includes('/upload/drive/v3/files')) {
                     capturedBody = opts.body;
                     return { ok: true, json: async () => ({ id: 'file-123' }) };
@@ -185,6 +192,13 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
             'fetch',
             vi.fn(async (url) => {
                 const u = String(url);
+                if (u.includes('/drive/v3/about'))
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            user: { permissionId: 'acct-A' },
+                        }),
+                    };
                 if (u.includes('/drive/v3/files/file-123')) {
                     if (u.includes('fields=id,parents,trashed')) {
                         return {
@@ -210,6 +224,13 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
             'fetch',
             vi.fn(async (url) => {
                 const u = String(url);
+                if (u.includes('/drive/v3/about'))
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            user: { permissionId: 'acct-A' },
+                        }),
+                    };
                 if (u.includes('/upload/drive/v3/files')) {
                     return { ok: true, json: async () => ({ id: 'file-123' }) };
                 }
@@ -217,7 +238,10 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
                     return {
                         ok: true,
                         text: async () =>
-                            gdrive.encryptForBackup(JSON.stringify({ x: 1 })),
+                            gdrive.encryptForBackup(
+                                JSON.stringify({ x: 1 }),
+                                'acct-A',
+                            ),
                     };
                 }
                 throw new Error(`Unexpected fetch: ${u}`);
@@ -234,6 +258,13 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
             'fetch',
             vi.fn(async (url) => {
                 const u = String(url);
+                if (u.includes('/drive/v3/about'))
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            user: { permissionId: 'acct-A' },
+                        }),
+                    };
                 if (u.includes('/upload/drive/v3/files')) {
                     return { ok: true, json: async () => ({ id: 'file-123' }) };
                 }
@@ -255,6 +286,13 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
             'fetch',
             vi.fn(async (url, opts) => {
                 const u = String(url);
+                if (u.includes('/drive/v3/about'))
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            user: { permissionId: 'acct-A' },
+                        }),
+                    };
                 if (opts?.method === 'DELETE') {
                     deleted.push(u);
                     return { ok: true, status: 204 };
@@ -281,6 +319,13 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
             'fetch',
             vi.fn(async (url, opts) => {
                 const u = String(url);
+                if (u.includes('/drive/v3/about'))
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            user: { permissionId: 'acct-A' },
+                        }),
+                    };
                 if (opts?.method === 'DELETE')
                     return { ok: false, status: 403 };
                 if (u.includes('/upload/drive/v3/files')) {
