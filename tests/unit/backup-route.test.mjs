@@ -237,6 +237,51 @@ describe('POST /api/backup/drive/restore — account binding', () => {
         expect(unchanged).toBe(true);
     });
 
+    it.each(['null', '"text"', '[1,2]', '42'])(
+        'returns 422 unreadable when the decrypted payload is %s',
+        async (payload) => {
+            process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = '1';
+            const g = await setup('', 'acct-A');
+            vi.stubGlobal(
+                'fetch',
+                drive(g.encryptForBackup(payload), 'acct-A'),
+            );
+            const { res, unchanged } = await restore();
+            expect(res.status).toBe(422);
+            expect(res.body.code).toBe('gdrive_backup_unreadable');
+            expect(unchanged).toBe(true);
+        },
+    );
+
+    it('maps coded crypto errors to unreadable instead of passing them through', async () => {
+        process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = '1';
+        const g = await setup('', 'acct-A');
+        const bad = JSON.stringify({
+            ...JSON.parse(g.encryptForBackup('{"a":1}')),
+            tag: '00',
+        });
+        // Node rejects a short auth tag with an ERR_* coded error.
+        const crypto = await import('node:crypto');
+        let nodeCode;
+        try {
+            crypto
+                .createDecipheriv(
+                    'aes-256-gcm',
+                    Buffer.alloc(32),
+                    Buffer.alloc(12),
+                )
+                .setAuthTag(Buffer.from('00', 'hex'));
+        } catch (err) {
+            nodeCode = err.code;
+        }
+        expect(nodeCode).toMatch(/^ERR_/);
+        vi.stubGlobal('fetch', drive(bad, 'acct-A'));
+        const { res, unchanged } = await restore();
+        expect(res.status).toBe(422);
+        expect(res.body.code).toBe('gdrive_backup_unreadable');
+        expect(unchanged).toBe(true);
+    });
+
     it.each([
         ['stripped', (o) => (delete o.v, o)],
         ['altered', (o) => ((o.v = 3), o)],

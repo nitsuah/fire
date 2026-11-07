@@ -295,6 +295,13 @@ function encryptForBackup(json, accountId) {
     });
 }
 
+// Error codes this module throws on purpose while decrypting a backup; any
+// other error (including Node crypto/Buffer errors) is reported as unreadable.
+const PASSTHROUGH_RESTORE_CODES = new Set([
+    'gdrive_legacy_backup',
+    'gdrive_plaintext_backup',
+]);
+
 const legacyRestoreAllowed = () =>
     process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE === '1';
 
@@ -581,10 +588,12 @@ async function downloadAndDecryptBackupWithToken(token, fileId) {
     // named 422; coded errors (e.g. legacy refusal) pass through.
     try {
         const json = decryptBackup(raw, accountId);
-        JSON.parse(json);
+        const parsed = JSON.parse(json);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+            throw new Error('not a state object');
         return json;
     } catch (err) {
-        if (err.code) throw err;
+        if (PASSTHROUGH_RESTORE_CODES.has(err.code)) throw err;
         throw Object.assign(
             new Error(
                 'This backup could not be restored. Possible causes: the file is corrupted; it was encrypted with a different SYNC_MASTER_KEY; or it was made by a different Google account.',
