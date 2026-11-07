@@ -9,10 +9,11 @@ const {
     MAX_SPAN_YEARS,
 } = require('../../app/lib/aggregates.js');
 
-const projectionSource = readFileSync(
-    new URL('../../app/lib/projections.js', import.meta.url),
-    'utf8',
-);
+const projectionSource = ['html-utils.js', 'projections.js']
+    .map((file) =>
+        readFileSync(new URL(`../../app/lib/${file}`, import.meta.url), 'utf8'),
+    )
+    .join('\n;\n');
 
 function createProjectionContext(spanYears = 30, formValues = {}) {
     const elements = new Map();

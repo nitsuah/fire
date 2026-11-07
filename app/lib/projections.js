@@ -444,25 +444,15 @@ function readProjectionSettingsFromForm() {
 
 // Read-only summary shown while the settings form is collapsed — lets users
 // see their current assumptions at a glance without expanding the panel.
-function escapeHTML(text) {
-    if (text === null || text === undefined) return '';
-    return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
 function renderProjSettingsSummary() {
     const el = document.getElementById('proj-settings-summary');
     if (!el) return;
     const s = state.projectionSettings;
     const spanYears = window.FireAggregates.normalizeSpanYears(s.spanYears);
     el.innerHTML = `
-        <span>Age <strong>${escapeHTML(s.currentAge || 30)}</strong> → retire <strong>${escapeHTML(s.retireAge || 60)}</strong></span>
-        <span>Save <strong>${escapeHTML(formatCurrency(s.annualSavings || 0))}</strong>/yr at <strong>${escapeHTML((s.expectedReturn || 0).toFixed(1))}%</strong> return</span>
-        <span>Inflation <strong>${escapeHTML((s.inflationRate || 0).toFixed(1))}%</strong> · SWR <strong>${escapeHTML((s.swr || 4).toFixed(1))}%</strong> · ${escapeHTML(spanYears)}yr span</span>
+        <span>Age <strong>${escHtml(s.currentAge || 30)}</strong> → retire <strong>${escHtml(s.retireAge || 60)}</strong></span>
+        <span>Save <strong>${escHtml(formatCurrency(s.annualSavings || 0))}</strong>/yr at <strong>${escHtml((s.expectedReturn || 0).toFixed(1))}%</strong> return</span>
+        <span>Inflation <strong>${escHtml((s.inflationRate || 0).toFixed(1))}%</strong> · SWR <strong>${escHtml((s.swr || 4).toFixed(1))}%</strong> · ${escHtml(spanYears)}yr span</span>
     `;
 }
 

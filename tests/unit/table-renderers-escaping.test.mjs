@@ -8,8 +8,9 @@ import vm from 'vm';
 // .test.mjs) and the markup they assign to innerHTML is checked for inert output.
 const APP_LIB = path.join(__dirname, '../../app/lib');
 
-const MARKUP = '<img src=x onerror=alert(1)>"quoted"';
-const ESCAPED = '&lt;img src=x onerror=alert(1)&gt;&quot;quoted&quot;';
+const MARKUP = '<img src=x onerror=alert(1)>"quoted" O\'Brien & Sons';
+const ESCAPED =
+    '&lt;img src=x onerror=alert(1)&gt;&quot;quoted&quot; O&#x27;Brien &amp; Sons';
 
 const formatCurrency = (val) => {
     const num = Number(val);
@@ -35,6 +36,7 @@ const makeNode = () => ({
     },
     querySelectorAll: () => [],
     addEventListener() {},
+    getBoundingClientRect: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 });
 
 // Loads the given app/lib scripts (html-utils.js first, for escHtml) into one
@@ -78,6 +80,9 @@ function load(files, extra = {}) {
 function expectInert(markup) {
     expect(markup).not.toContain('<img');
     expect(markup).not.toContain('"quoted"');
+    expect(markup).not.toContain("O'Brien & Sons");
+    expect(markup).toContain('&#x27;');
+    expect(markup).toContain('&amp;');
     expect(markup).toContain(ESCAPED);
 }
 
@@ -391,6 +396,49 @@ describe('vehicles table renderer', () => {
         expect(markup).toContain('Paid Off');
         expect(markup).toContain('id="veh-est-btn-veh-1"');
     });
+
+    it('renderVehiclesTable escapes ampersands in ids so they round-trip', () => {
+        const env = load(['html-utils.js', 'tables/vehicles.js'], {
+            state: { vehicles: [vehicle({ id: 'car&lt;1' })] },
+        });
+        env.run('renderVehiclesTable()');
+        const markup = env.html('#table-vehicles tbody');
+        expect(markup).toContain('data-vehicle-id="car&amp;lt;1"');
+        expect(markup).toContain('data-csp-click-value="car&amp;lt;1"');
+        expect(markup).toContain('id="veh-est-btn-car&amp;lt;1"');
+        expect(markup).not.toContain('car&lt;1');
+    });
+
+    it('renderVehiclesTable edit mode keeps ordinary input ids and values', () => {
+        const env = load(['html-utils.js', 'tables/vehicles.js'], {
+            state: { vehicles: [vehicle()] },
+            editingVehicles: ['veh-1'],
+        });
+        env.run('renderVehiclesTable()');
+        const markup = env.html('#table-vehicles tbody');
+        expect(markup).toContain(
+            'id="veh-edit-year-veh-1" type="number" value="2019"',
+        );
+        expect(markup).toContain('id="veh-edit-make-veh-1" value="Honda"');
+        expect(markup).toContain(
+            'id="veh-edit-mileage-veh-1" type="number" value="42000"',
+        );
+    });
+
+    it('vehicle estimate overlay escapes ampersands in id and value attributes', async () => {
+        const id = 'car&1';
+        const env = load(['html-utils.js', 'tables/vehicles.js'], {
+            state: { vehicles: [vehicle({ id })] },
+            isBrowserOnlyModeAsync: async () => true,
+            window: { innerHeight: 800 },
+        });
+        await env.ctx.window.fetchVehicleEstimate(id);
+        const overlay = env.html('veh-est-overlay');
+        expect(overlay).toContain('data-vehicle-id="car&amp;1"');
+        expect(overlay).toMatch(/data-vehicle-value="\d+"/);
+        expect(overlay).toContain('data-vehicle-source="depreciation-model"');
+        expect(overlay).not.toContain('car&1"');
+    });
 });
 
 describe('real-estate table renderer', () => {
@@ -453,6 +501,19 @@ describe('real-estate table renderer', () => {
         expect(markup).toContain('Duplex');
         expect(markup).toContain('12 Elm St');
         expect(markup).toContain('+$50,000.00');
+    });
+
+    it('renderRealEstateTable edit mode keeps ordinary input ids and values', () => {
+        const env = load(['html-utils.js', 'tables/real-estate.js'], {
+            state: { realEstate: [property()] },
+            editingRealEstate: ['home-1'],
+        });
+        env.run('renderRealEstateTable()');
+        const markup = env.html('#table-real-estate tbody');
+        expect(markup).toContain(
+            'id="re-edit-market-home-1" type="number" value="300000"',
+        );
+        expect(markup).toContain('id="re-edit-name-home-1" value="Duplex"');
     });
 });
 

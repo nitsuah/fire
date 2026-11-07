@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).
 
 ### Fixed
-- Table and projection summaries escape stored text before rendering.
+- Table and projection summaries escape stored text before rendering. The shared `escHtml` in `lib/html-utils.js` (which also escapes single quotes and returns '' for null/undefined) is now the one used everywhere; the duplicate helpers in dashboard, real-estate, tax-harvest and projections were removed.
 
 ### Added
 

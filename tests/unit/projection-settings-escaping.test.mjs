@@ -41,10 +41,9 @@ function loadModule() {
             }).format(Number(v || 0)),
     };
     vm.createContext(ctx);
-    vm.runInContext(
-        fs.readFileSync(path.join(APP_LIB, 'projections.js'), 'utf8'),
-        ctx,
-    );
+    for (const file of ['html-utils.js', 'projections.js']) {
+        vm.runInContext(fs.readFileSync(path.join(APP_LIB, file), 'utf8'), ctx);
+    }
     return { ctx, el };
 }
 
