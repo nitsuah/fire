@@ -243,39 +243,86 @@ async function getOAuthAccessToken() {
 
 // ─── Backup encryption ────────────────────────────────────────────────────────
 
-function encryptForBackup(json) {
+// Backup envelopes: v2 binds the ciphertext to the Drive account that wrote it
+// (GCM additional authenticated data). An envelope without `v` is the older
+// unbound format; it is only restored when explicitly allowed.
+const BACKUP_VERSION = 2;
+
+function backupKey() {
     const masterKey = process.env.SYNC_MASTER_KEY;
     if (!masterKey || !/^[0-9a-fA-F]{64}$/.test(masterKey)) {
         throw new Error(
             'SYNC_MASTER_KEY must be set (64 hex chars) to enable encrypted backup',
         );
     }
-    const key = Buffer.from(masterKey, 'hex');
+    return Buffer.from(masterKey, 'hex');
+}
+
+const backupAad = (accountId) => Buffer.from(`fire-backup:v2:${accountId}`);
+
+// Stable id of the Drive account behind the token.
+async function getAccountId(token) {
+    const res = await fetch(`${GDRIVE_API}/drive/v3/about?fields=user`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) throw await driveError(res, 'Drive account lookup failed');
+    const id = (await res.json())?.user?.permissionId;
+    if (typeof id !== 'string' || !id) {
+        throw Object.assign(new Error('Drive account id unavailable.'), {
+            status: 502,
+        });
+    }
+    return id;
+}
+
+// With an accountId the result is a v2 (bound) envelope; without one it is the
+// legacy unbound format, kept only so older files can be produced in tests.
+function encryptForBackup(json, accountId) {
+    const key = backupKey();
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    if (accountId) cipher.setAAD(backupAad(accountId));
     let enc = cipher.update(json, 'utf8', 'hex');
     enc += cipher.final('hex');
     const tag = cipher.getAuthTag().toString('hex');
     return JSON.stringify({
         enc: true,
+        ...(accountId ? { v: BACKUP_VERSION } : {}),
         iv: iv.toString('hex'),
         tag,
         data: enc,
     });
 }
 
-function decryptBackup(raw) {
+const legacyRestoreAllowed = () =>
+    process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE === '1';
+
+function decryptBackup(raw, accountId) {
     const masterKey = process.env.SYNC_MASTER_KEY;
     if (!masterKey)
         throw new Error('SYNC_MASTER_KEY is required to decrypt a backup');
     const key = Buffer.from(masterKey, 'hex');
     const parsed = JSON.parse(raw);
-    if (!parsed.enc) return raw;
+    const bound = parsed?.enc && parsed.v === BACKUP_VERSION;
+    const isObject =
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed);
+    if (!bound && isObject && !legacyRestoreAllowed()) {
+        throw Object.assign(
+            new Error(
+                'This backup predates account binding and cannot be restored on this deploy.',
+            ),
+            { status: 422, code: 'gdrive_legacy_backup' },
+        );
+    }
+    if (!parsed?.enc) return raw;
+    if (bound && !accountId) throw new Error('Backup account is required');
     const decipher = crypto.createDecipheriv(
         'aes-256-gcm',
         key,
         Buffer.from(parsed.iv, 'hex'),
     );
+    if (bound) decipher.setAAD(backupAad(accountId));
     decipher.setAuthTag(Buffer.from(parsed.tag, 'hex'));
     let dec = decipher.update(parsed.data, 'hex', 'utf8');
     dec += decipher.final('utf8');
@@ -349,7 +396,8 @@ async function getOrCreateFolder(token) {
 
 async function uploadBackupWithToken(token, dbJson) {
     const folderId = await getOrCreateFolder(token);
-    const encrypted = encryptForBackup(dbJson);
+    const accountId = await getAccountId(token);
+    const encrypted = encryptForBackup(dbJson, accountId);
     const date = new Date().toISOString().split('T')[0];
     const fileName = `fire-backup-${date}.json`;
 
@@ -382,7 +430,7 @@ async function uploadBackupWithToken(token, dbJson) {
     // reported when it matches what was sent, so an upload that Drive accepted
     // but stored wrong (or that this key can't decrypt) is never "saved".
     try {
-        await verifyUploadedBackup(token, file.id, dbJson);
+        await verifyUploadedBackup(token, file.id, dbJson, accountId);
     } catch (err) {
         // Don't leave an unverified file for list/restore to offer later.
         const removed = await deleteDriveFile(token, file.id);
@@ -412,7 +460,7 @@ async function deleteDriveFile(token, fileId) {
     }
 }
 
-async function verifyUploadedBackup(token, fileId, expectedJson) {
+async function verifyUploadedBackup(token, fileId, expectedJson, accountId) {
     const fail = (message, status = 502) =>
         Object.assign(new Error(`Backup verification failed: ${message}`), {
             status,
@@ -426,7 +474,7 @@ async function verifyUploadedBackup(token, fileId, expectedJson) {
         if (JSON.parse(raw)?.enc !== true) {
             throw new Error('the stored file is not encrypted');
         }
-        restored = decryptBackup(raw);
+        restored = decryptBackup(raw, accountId);
     } catch (err) {
         throw fail(
             `the uploaded file could not be read back (${err.message})`,
@@ -506,7 +554,11 @@ async function assertBackupFileInFolder(token, fileId) {
 
 async function downloadAndDecryptBackupWithToken(token, fileId) {
     await assertBackupFileInFolder(token, fileId);
-    return decryptBackup(await downloadBackupWithToken(token, fileId));
+    const accountId = await getAccountId(token);
+    return decryptBackup(
+        await downloadBackupWithToken(token, fileId),
+        accountId,
+    );
 }
 
 async function uploadBackup(dbJson) {
@@ -541,6 +593,7 @@ module.exports = {
     refreshTokens,
     encryptForBackup,
     decryptBackup,
+    getAccountId,
     uploadBackupWithToken,
     listBackupsWithToken,
     downloadBackupWithToken,

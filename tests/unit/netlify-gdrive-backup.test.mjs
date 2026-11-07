@@ -67,7 +67,7 @@ const listReq = (blob) =>
     );
 
 // A stand-in Drive: stores uploaded files and serves them back.
-function fakeDrive({ refresh } = {}) {
+function fakeDrive({ refresh, account = 'acct-A' } = {}) {
     const files = new Map();
     const calls = [];
     const fetchMock = vi.fn(async (input, init = {}) => {
@@ -88,6 +88,8 @@ function fakeDrive({ refresh } = {}) {
                 expires_in: 3600,
             });
         }
+        if (url.includes('/drive/v3/about?'))
+            return jsonRes(200, { user: { permissionId: drive.account } });
         if (url.startsWith('https://www.googleapis.com/upload/drive/v3/')) {
             // multipart/related: metadata part, then the media part.
             const parts = init.body.split('--fire_backup_boundary');
@@ -125,7 +127,8 @@ function fakeDrive({ refresh } = {}) {
         return jsonRes(500, { error: `unexpected ${url}` });
     });
     vi.stubGlobal('fetch', fetchMock);
-    return { files, calls, fetchMock };
+    const drive = { files, calls, fetchMock, account };
+    return drive;
 }
 
 const SAMPLE_STATE = {
@@ -290,6 +293,7 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
         const stored = JSON.parse(files.get('file1'));
         expect(stored).toEqual({
             enc: true,
+            v: 2,
             iv: expect.stringMatching(/^[0-9a-f]{24}$/),
             tag: expect.stringMatching(/^[0-9a-f]{32}$/),
             data: expect.stringMatching(/^[0-9a-f]+$/),
@@ -385,7 +389,7 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
         const { files } = fakeDrive();
         files.set(
             'fileA',
-            gdrive.encryptForBackup(JSON.stringify(SAMPLE_STATE)),
+            gdrive.encryptForBackup(JSON.stringify(SAMPLE_STATE), 'acct-A'),
         );
         process.env.SYNC_MASTER_KEY = KEY_B;
         const res = await post('/restore', {
@@ -400,10 +404,73 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
         expect(body.state).toBeUndefined();
     });
 
+    it('restore of a backup from a different account fails cleanly', async () => {
+        const { files } = fakeDrive({ account: 'acct-B' });
+        files.set(
+            'copied',
+            gdrive.encryptForBackup(JSON.stringify(SAMPLE_STATE), 'acct-A'),
+        );
+        const res = await post('/restore', {
+            tokens: sealTokens(freshTokens()),
+            fileId: 'copied',
+        });
+        expect(res.status).toBe(422);
+        const body = await res.json();
+        expect(body.code).toBe('gdrive_backup_unreadable');
+        expect(body.state).toBeUndefined();
+        expect(JSON.stringify(body)).not.toContain('PLAINTEXT-MARKER');
+    });
+
+    it('new backups are written in the bound v2 format', async () => {
+        const { files } = fakeDrive();
+        const tokens = sealTokens(freshTokens());
+        const up = await (
+            await post('', { tokens, state: SAMPLE_STATE })
+        ).json();
+        expect(JSON.parse(files.get(up.fileId)).v).toBe(2);
+    });
+
+    it('restore refuses a legacy unbound backup by default', async () => {
+        const { files } = fakeDrive();
+        files.set(
+            'legacy',
+            gdrive.encryptForBackup(JSON.stringify(SAMPLE_STATE)),
+        );
+        const res = await post('/restore', {
+            tokens: sealTokens(freshTokens()),
+            fileId: 'legacy',
+        });
+        expect(res.status).toBe(422);
+        const body = await res.json();
+        expect(body.code).toBe('gdrive_legacy_backup');
+        expect(body.state).toBeUndefined();
+    });
+
+    it('restore accepts a legacy backup only with FIRE_ALLOW_LEGACY_BACKUP_RESTORE=1, and the next backup is v2', async () => {
+        const { files } = fakeDrive();
+        files.set(
+            'legacy',
+            gdrive.encryptForBackup(JSON.stringify(SAMPLE_STATE)),
+        );
+        process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = '1';
+        try {
+            const tokens = sealTokens(freshTokens());
+            const res = await post('/restore', { tokens, fileId: 'legacy' });
+            expect(res.status).toBe(200);
+            expect((await res.json()).state).toEqual(SAMPLE_STATE);
+            const up = await (
+                await post('', { tokens, state: SAMPLE_STATE })
+            ).json();
+            expect(JSON.parse(files.get(up.fileId)).v).toBe(2);
+        } finally {
+            delete process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE;
+        }
+    });
+
     it('restore of a corrupted backup fails cleanly with JSON', async () => {
         const { files } = fakeDrive();
         const good = JSON.parse(
-            gdrive.encryptForBackup(JSON.stringify(SAMPLE_STATE)),
+            gdrive.encryptForBackup(JSON.stringify(SAMPLE_STATE), 'acct-A'),
         );
         const flipped = (good.data[0] === 'a' ? 'b' : 'a') + good.data.slice(1);
         files.set('tampered', JSON.stringify({ ...good, data: flipped }));

@@ -512,6 +512,7 @@ GDRIVE_CLIENT_ID=                                    # Google OAuth 2.0 Web appl
 GDRIVE_CLIENT_SECRET=                                # Google OAuth 2.0 Web application client secret
 GDRIVE_REDIRECT_URI=                                  # Optional; defaults to the local callback URL (self-hosted) or the request origin (hosted)
 GDRIVE_BACKUP_FOLDER_ID=                              # Optional: Drive folder ID (auto-created if blank)
+FIRE_ALLOW_LEGACY_BACKUP_RESTORE=                    # Optional: set to 1 to restore older backups that are not bound to a Google account
 SYNC_MASTER_KEY=                                      # Required: 64 hex chars (openssl rand -hex 32); encrypts backups and the Drive token
 ```
 
@@ -527,7 +528,7 @@ SYNC_MASTER_KEY=                                      # Required: 64 hex chars (
 - **Token refresh:** when the access token is refreshed, the response carries a resealed `tokens` blob, even if the Drive call then failed.
 - **Errors:** every response is JSON. An unreadable blob returns `401 gdrive_token_invalid` and a revoked grant returns `401 gdrive_revoked`; in both cases the browser drops the blob. A backup encrypted with a different `SYNC_MASTER_KEY`, or a corrupted file, returns `422 gdrive_backup_unreadable`.
 
-Netlify env: `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET` and `SYNC_MASTER_KEY`, plus optional `GDRIVE_REDIRECT_URI` and `GDRIVE_BACKUP_FOLDER_ID`. **Manual step:** add `https://lifefire.netlify.app/api/backup/drive/callback` as an authorized redirect URI on the GCP OAuth client. Without it, Google rejects the connect with `redirect_uri_mismatch`. Backups are encrypted with the deploy's `SYNC_MASTER_KEY`, so a hosted backup can only be restored where that same key is set.
+Netlify env: `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET` and `SYNC_MASTER_KEY`, plus optional `GDRIVE_REDIRECT_URI` and `GDRIVE_BACKUP_FOLDER_ID`. **Manual step:** add `https://lifefire.netlify.app/api/backup/drive/callback` as an authorized redirect URI on the GCP OAuth client. Without it, Google rejects the connect with `redirect_uri_mismatch`. Backups are encrypted with the deploy's `SYNC_MASTER_KEY`, so a hosted backup can only be restored where that same key is set. Backups are also bound to the Google account that wrote them (`v: 2`); backups written before that are refused on restore unless `FIRE_ALLOW_LEGACY_BACKUP_RESTORE=1` is set. The next backup after a legacy restore is written in the bound format.
 
 ### Security Note
 
