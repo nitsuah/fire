@@ -152,7 +152,7 @@ describe('POST /api/backup/drive/restore — account binding', () => {
     const drive = (storedFile, account) =>
         vi.fn(async (url, opts) => {
             const u = String(url);
-            if (u.includes('oauth2.googleapis.com'))
+            if (new URL(u).host === 'oauth2.googleapis.com')
                 return {
                     ok: true,
                     json: async () => ({
@@ -161,12 +161,12 @@ describe('POST /api/backup/drive/restore — account binding', () => {
                         expires_in: 3600,
                     }),
                 };
-            if (u.includes('/drive/v3/about'))
+            if (new URL(u).pathname === '/drive/v3/about')
                 return {
                     ok: true,
                     json: async () => ({ user: { permissionId: account } }),
                 };
-            if (u.includes('fields=id,parents'))
+            if (new URL(u).searchParams.get('fields') === 'id,parents,trashed')
                 return {
                     ok: true,
                     json: async () => ({
@@ -174,7 +174,7 @@ describe('POST /api/backup/drive/restore — account binding', () => {
                         parents: ['folder-1'],
                     }),
                 };
-            if (u.includes('/drive/v3/files/file-1'))
+            if (new URL(u).pathname === '/drive/v3/files/file-1')
                 return { ok: true, text: async () => storedFile };
             throw new Error(`Unexpected fetch: ${u} ${opts?.method || ''}`);
         });
@@ -258,4 +258,60 @@ describe('POST /api/backup/drive/restore — account binding', () => {
             }
         },
     );
+});
+
+describe('POST /api/backup/drive/restore — plaintext and lookups', () => {
+    it('does not need the account lookup for a permitted legacy restore', async () => {
+        const g = (await import('../../app/lib/gdrive-backup.js')).default;
+        process.env.GDRIVE_CLIENT_ID = 'cid';
+        process.env.GDRIVE_CLIENT_SECRET = 'csecret';
+        process.env.GDRIVE_BACKUP_FOLDER_ID = 'folder-1';
+        process.env.SYNC_MASTER_KEY = 'ab'.repeat(32);
+        process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = '1';
+        const legacy = g.encryptForBackup(
+            JSON.stringify({ customAccounts: [] }),
+        );
+        const calls = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) => {
+                const u = new URL(String(url));
+                calls.push(u.pathname);
+                if (u.host === 'oauth2.googleapis.com')
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            access_token: 'at-1',
+                            refresh_token: 'rt-1',
+                            expires_in: 3600,
+                        }),
+                    };
+                if (u.searchParams.get('fields') === 'id,parents,trashed')
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            id: 'file-1',
+                            parents: ['folder-1'],
+                        }),
+                    };
+                if (u.pathname === '/drive/v3/files/file-1')
+                    return { ok: true, text: async () => legacy };
+                throw new Error(`Unexpected fetch: ${u}`);
+            }),
+        );
+        await g.exchangeCodeForTokens('code');
+        try {
+            const res = await request(app)
+                .post('/api/backup/drive/restore')
+                .send({ fileId: 'file-1' });
+            expect(res.status).toBe(200);
+            expect(calls).not.toContain('/drive/v3/about');
+        } finally {
+            delete process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE;
+            delete process.env.GDRIVE_BACKUP_FOLDER_ID;
+            fs.rmSync(path.join(TEST_DATA_DIR, 'tokens-gdrive.json'), {
+                force: true,
+            });
+        }
+    });
 });

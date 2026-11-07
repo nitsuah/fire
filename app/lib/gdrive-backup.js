@@ -298,6 +298,16 @@ function encryptForBackup(json, accountId) {
 const legacyRestoreAllowed = () =>
     process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE === '1';
 
+// True for a v2 (account-bound) envelope; unparsable input is not.
+function isBoundBackup(raw) {
+    try {
+        const parsed = JSON.parse(raw);
+        return Boolean(parsed?.enc) && parsed.v === BACKUP_VERSION;
+    } catch {
+        return false;
+    }
+}
+
 function decryptBackup(raw, accountId) {
     const masterKey = process.env.SYNC_MASTER_KEY;
     if (!masterKey)
@@ -307,6 +317,14 @@ function decryptBackup(raw, accountId) {
     const bound = parsed?.enc && parsed.v === BACKUP_VERSION;
     const isObject =
         parsed && typeof parsed === 'object' && !Array.isArray(parsed);
+    if (isObject && !parsed.enc) {
+        throw Object.assign(
+            new Error(
+                'This backup is a plaintext file, not an encrypted backup, and cannot be restored.',
+            ),
+            { status: 422, code: 'gdrive_plaintext_backup' },
+        );
+    }
     if (!bound && isObject && !legacyRestoreAllowed()) {
         throw Object.assign(
             new Error(
@@ -554,8 +572,11 @@ async function assertBackupFileInFolder(token, fileId) {
 
 async function downloadAndDecryptBackupWithToken(token, fileId) {
     await assertBackupFileInFolder(token, fileId);
-    const accountId = await getAccountId(token);
     const raw = await downloadBackupWithToken(token, fileId);
+    // Only account-bound backups need the account lookup.
+    const accountId = isBoundBackup(raw)
+        ? await getAccountId(token)
+        : undefined;
     // Decrypt or parse failures (corrupt file, other key or account) are a
     // named 422; coded errors (e.g. legacy refusal) pass through.
     try {
@@ -566,7 +587,7 @@ async function downloadAndDecryptBackupWithToken(token, fileId) {
         if (err.code) throw err;
         throw Object.assign(
             new Error(
-                'This backup could not be decrypted. It may be corrupted, encrypted with a different SYNC_MASTER_KEY, or made by a different Google account.',
+                'This backup could not be restored. Possible causes: the file is corrupted; it was encrypted with a different SYNC_MASTER_KEY; or it was made by a different Google account.',
             ),
             { status: 422, code: 'gdrive_backup_unreadable' },
         );
@@ -606,6 +627,7 @@ module.exports = {
     encryptForBackup,
     decryptBackup,
     getAccountId,
+    isBoundBackup,
     uploadBackupWithToken,
     listBackupsWithToken,
     downloadBackupWithToken,

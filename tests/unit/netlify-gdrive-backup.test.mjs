@@ -88,7 +88,7 @@ function fakeDrive({ refresh, account = 'acct-A' } = {}) {
                 expires_in: 3600,
             });
         }
-        if (url.includes('/drive/v3/about?'))
+        if (new URL(url).pathname === '/drive/v3/about')
             return jsonRes(200, { user: { permissionId: drive.account } });
         if (url.startsWith('https://www.googleapis.com/upload/drive/v3/')) {
             // multipart/related: metadata part, then the media part.
@@ -464,6 +464,24 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
             expect(JSON.parse(files.get(up.fileId)).v).toBe(2);
         } finally {
             delete process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE;
+        }
+    });
+
+    it('restore of a plaintext file gets a plaintext error even with the legacy flag', async () => {
+        const { files } = fakeDrive();
+        files.set('plain', JSON.stringify(SAMPLE_STATE));
+        const tokens = sealTokens(freshTokens());
+        for (const flag of [undefined, '1']) {
+            if (flag) process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE = flag;
+            try {
+                const res = await post('/restore', { tokens, fileId: 'plain' });
+                expect(res.status).toBe(422);
+                const body = await res.json();
+                expect(body.code).toBe('gdrive_plaintext_backup');
+                expect(body.state).toBeUndefined();
+            } finally {
+                delete process.env.FIRE_ALLOW_LEGACY_BACKUP_RESTORE;
+            }
         }
     });
 
