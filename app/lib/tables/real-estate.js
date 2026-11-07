@@ -38,17 +38,17 @@ function renderRealEstateTable() {
         if (editingRealEstate.includes(re.id)) {
             html += `
             <tr class="position-row">
-                <td><input class="inline-edit-input" id="re-edit-name-${re.id}" value="${escHtml(re.name)}" placeholder="Property Name"></td>
+                <td><input class="inline-edit-input" id="re-edit-name-${escHtml(re.id)}" value="${escHtml(re.name)}" placeholder="Property Name"></td>
                 <td>
-                    <select class="inline-edit-input" id="re-edit-type-${re.id}">
+                    <select class="inline-edit-input" id="re-edit-type-${escHtml(re.id)}">
                         ${['Primary Home', 'Investment', 'Rental', 'Land', 'Commercial'].map((t) => `<option${t === re.type ? ' selected' : ''}>${t}</option>`).join('')}
                     </select>
                 </td>
-                <td><input class="inline-edit-input" id="re-edit-address-${re.id}" value="${escHtml(re.address || '')}" placeholder="Address (optional)"></td>
-                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-market-${re.id}" type="number" value="${re.marketValue}" step="1000"></td>
-                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-mortgage-${re.id}" type="number" value="${re.mortgageBalance}" step="1000"></td>
-                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-purchase-${re.id}" type="number" value="${re.purchasePrice}" step="1000"></td>
-                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-payment-${re.id}" type="number" value="${re.monthlyPayment}" step="100"></td>
+                <td><input class="inline-edit-input" id="re-edit-address-${escHtml(re.id)}" value="${escHtml(re.address || '')}" placeholder="Address (optional)"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-market-${escHtml(re.id)}" type="number" value="${escHtml(re.marketValue)}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-mortgage-${escHtml(re.id)}" type="number" value="${escHtml(re.mortgageBalance)}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-purchase-${escHtml(re.id)}" type="number" value="${escHtml(re.purchasePrice)}" step="1000"></td>
+                <td class="text-right"><input class="inline-edit-input text-right" id="re-edit-payment-${escHtml(re.id)}" type="number" value="${escHtml(re.monthlyPayment)}" step="100"></td>
                 <td class="text-right">
                     <button class="action-btn save-btn" data-csp-click-action="saveEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Save</button>
                     <button class="action-btn cancel-btn" data-csp-click-action="cancelEditRealEstate" data-csp-click-value="${_reEscHtml(re.id)}">Cancel</button>

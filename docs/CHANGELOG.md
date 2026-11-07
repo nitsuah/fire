@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).
 
+### Fixed
+- Table and projection summaries escape stored text before rendering.
+
 ### Added
 
 - Chaos Mode household profile controls: a 👤 toggle opens a panel to save or clear a household profile that persists and rehydrates with Chaos state, and hides when Chaos is off (#399).

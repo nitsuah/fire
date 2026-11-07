@@ -235,9 +235,11 @@ function renderDashboardTopPositionsTable() {
                     pos.id = `pos-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
                 const posKey = pos.id;
                 const isOpen = expandedPositions.has(posKey);
-                const qtyStr = (pos.quantity || 0).toLocaleString(undefined, {
-                    maximumFractionDigits: 3,
-                });
+                const qtyStr = escHtml(
+                    (pos.quantity || 0).toLocaleString(undefined, {
+                        maximumFractionDigits: 3,
+                    }),
+                );
                 const costStr =
                     (pos.costBasis || 0) > 0
                         ? formatCurrency(pos.costBasis)

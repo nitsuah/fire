@@ -190,7 +190,7 @@ function renderMitigations(raw) {
                 }
                 return `<li class="mit-item${on.has(m.id) ? ' is-on' : ''}">
                     <label class="mit-toggle">
-                        <input type="checkbox" data-mitigation="${m.id}"${on.has(m.id) ? ' checked' : ''}>
+                        <input type="checkbox" data-mitigation="${escHtml(m.id)}"${on.has(m.id) ? ' checked' : ''}>
                         <span>I have this</span>
                     </label>
                     <div class="mit-body">

@@ -77,7 +77,7 @@ function renderScenarioComparison() {
 
             const ageCell =
                 age !== null
-                    ? `<strong>Age ${age}</strong>`
+                    ? `<strong>Age ${escHtml(age)}</strong>`
                     : `<span class="text-muted">Not within 80 yrs</span>`;
 
             const deltaCell = r.isBase
@@ -386,7 +386,7 @@ function renderMilestones(
         const isAchieved = startingNw >= m.target || m.isDepletion;
 
         if (m.isDepletion) {
-            yearsRequired = `Money runs out at Age ${m.depletionAge} (${m.depletionAge - currentAge} yrs)`;
+            yearsRequired = `Money runs out at Age ${escHtml(m.depletionAge)} (${m.depletionAge - currentAge} yrs)`;
         } else if (isAchieved) {
             yearsRequired = 'Achieved 🎉';
         } else if (rawData.chaos) {
@@ -394,8 +394,8 @@ function renderMilestones(
             const lastAge = currentAge + rawData.nwData.length - 1;
             yearsRequired =
                 yrs === null
-                    ? `Not reached by Age ${lastAge} 🌪️`
-                    : `${yrs.toFixed(1)} yrs (Age ${currentAge + Math.ceil(yrs)}) 🌪️`;
+                    ? `Not reached by Age ${escHtml(lastAge)} 🌪️`
+                    : `${yrs.toFixed(1)} yrs (Age ${escHtml(currentAge + Math.ceil(yrs))}) 🌪️`;
         } else {
             if (realReturnRate > 0) {
                 const num = m.target * realReturnRate + annualSavings;
@@ -405,13 +405,13 @@ function renderMilestones(
                         Math.log(num / den) / Math.log(1 + realReturnRate);
                     if (yrs > 0 && isFinite(yrs)) {
                         const estAge = currentAge + Math.ceil(yrs);
-                        yearsRequired = `${yrs.toFixed(1)} yrs (Age ${estAge})`;
+                        yearsRequired = `${yrs.toFixed(1)} yrs (Age ${escHtml(estAge)})`;
                     }
                 }
             } else if (annualSavings > 0) {
                 const yrs = (m.target - startingNw) / annualSavings;
                 if (yrs > 0) {
-                    yearsRequired = `${yrs.toFixed(1)} yrs (Age ${currentAge + Math.ceil(yrs)})`;
+                    yearsRequired = `${yrs.toFixed(1)} yrs (Age ${escHtml(currentAge + Math.ceil(yrs))})`;
                 }
             }
         }
