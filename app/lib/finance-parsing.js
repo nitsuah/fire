@@ -466,7 +466,7 @@ function parseSpendingTransactions(rows, overrides = {}) {
         const row = rows[i];
         if (!row || row.length < 2) continue;
 
-        let amount = null;
+        let amount;
         if (format === 'chase' && idxAmount !== -1) {
             const raw = parseFloat(row[idxAmount]);
             if (isNaN(raw) || raw >= 0) continue; // only outflows are spending
