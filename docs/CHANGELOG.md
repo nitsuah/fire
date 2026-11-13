@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Playwright 1.65.0: `@playwright/test`, the CI e2e container, the Journeys image and `config/Dockerfile.playwright` move together; journey baselines refreshed for the #351 summary bar and the separated budget hints.
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
 - Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification and hosted credential storage remain unavailable (#409).
 
