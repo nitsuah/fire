@@ -32,10 +32,12 @@ describe('stripeStatusBadge', () => {
     });
 
     it('hides unknown error codes and handles missing status', () => {
-        expect(stripeStatusBadge({
-            ...connected,
-            lastSyncOutcome: { ok: false, errorCode: '<secret>' },
-        }).label).toBe('Last sync failed');
+        expect(
+            stripeStatusBadge({
+                ...connected,
+                lastSyncOutcome: { ok: false, errorCode: '<secret>' },
+            }).label,
+        ).toBe('Last sync failed');
         expect(stripeStatusBadge()).toMatchObject({
             label: 'Configuration unavailable',
             connectable: false,
@@ -60,9 +62,11 @@ describe('stripeRecoveryHint', () => {
     });
 
     it('returns no hint for a healthy synced connection', () => {
-        expect(stripeRecoveryHint({
-            ...connected,
-            lastSyncedAt: 'now',
-        })).toBeNull();
+        expect(
+            stripeRecoveryHint({
+                ...connected,
+                lastSyncedAt: 'now',
+            }),
+        ).toBeNull();
     });
 });
