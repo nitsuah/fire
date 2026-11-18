@@ -139,6 +139,8 @@ function initCspEventDelegation() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadStateFromServer();
+    // Reconcile persisted mitigation picks against the fully restored household profile.
+    pruneInapplicableMitigations();
     initCspEventDelegation();
     initNavigation();
     initCSVImport();

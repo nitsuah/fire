@@ -119,6 +119,21 @@ window.toggleMitigation = function (id, on) {
     calculateAndRenderProjections();
 };
 
+function pruneInapplicableMitigations() {
+    const unavailable = window.FireChaos.inapplicableMitigationIds(
+        state.chaosProfile || null,
+    );
+    chaosMitigations = chaosMitigations.filter((id) => !unavailable.has(id));
+    try {
+        localStorage.setItem(
+            MITIGATION_STORAGE_KEY,
+            JSON.stringify(chaosMitigations),
+        );
+    } catch {
+        /* storage unavailable — choice just won't persist */
+    }
+}
+
 // What one mitigation is worth in the current Chaos timeline: net worth
 // at the end of the span with vs. without it (premiums included).
 function mitigationValue(chaos, id) {
@@ -148,10 +163,16 @@ function renderMitigations(raw) {
     const FC = window.FireChaos;
     const chaos = raw && raw.chaos;
     const names = Object.fromEntries(FC.CATALOG.map((d) => [d.id, d]));
-    const rows = FC.MITIGATIONS.map((m) => ({
-        m,
-        v: mitigationValue(chaos, m.id),
-    }));
+    const unavailable =
+        typeof FC.inapplicableMitigationIds === 'function'
+            ? FC.inapplicableMitigationIds(state.chaosProfile || null)
+            : new Set();
+    const rows = FC.MITIGATIONS.filter((m) => !unavailable.has(m.id)).map(
+        (m) => ({
+            m,
+            v: mitigationValue(chaos, m.id),
+        }),
+    );
     // Most relevant first: covers events in this timeline, best net value.
     rows.sort(
         (a, b) =>
@@ -264,6 +285,12 @@ function syncChaosProfilePanel() {
 }
 
 window.saveChaosProfile = function (key, value) {
+    // CSP delegation passes the native change event when no explicit value mapping is configured.
+    if (key && typeof key === 'object' && key.target) {
+        value = key.target.value;
+        key = key.target.dataset.key;
+    }
+    if (!key) return;
     if (!state.chaosProfile) state.chaosProfile = {};
     if (!value || value === '') {
         delete state.chaosProfile[key];
@@ -273,6 +300,7 @@ window.saveChaosProfile = function (key, value) {
     } else {
         state.chaosProfile[key] = value;
     }
+    pruneInapplicableMitigations();
     saveState();
     calculateAndRenderProjections();
 };
@@ -283,6 +311,7 @@ window.clearChaosProfile = function () {
     Object.values(selectors).forEach((select) => {
         if (select) select.value = '';
     });
+    pruneInapplicableMitigations();
     saveState();
     calculateAndRenderProjections();
 };
