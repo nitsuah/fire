@@ -85,8 +85,8 @@ function processCSVFile(file) {
             return;
         }
 
-        let source = 'Unknown';
-        let records = 0;
+        let source;
+        let records;
         const headerRowStr = rows[0].join(',').toLowerCase();
 
         if (
@@ -530,7 +530,7 @@ function parseSpendingTransactions(rows, overrides = {}) {
         const row = rows[i];
         if (!row || row.length < 2) continue;
 
-        let amount = null;
+        let amount;
         if (format === 'chase' && idxAmount !== -1) {
             const raw = parseFloat(row[idxAmount]);
             if (isNaN(raw) || raw >= 0) continue;
