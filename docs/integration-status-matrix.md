@@ -90,17 +90,22 @@ hosted (Netlify) deploy unless noted.
 - [ ] **Real sync, eBay.** Run a sync against the live account; the card shows
       the last-sync outcome and it survives a hard refresh and a new browser session.
 - [ ] **Real sync, Etsy.** Same check as eBay.
-- [ ] **Failed sync then recovery.** Force one failure (for example revoke
-      network access or use an expired token), confirm the failed outcome with its
-      error code is shown after reload, then a successful sync clears it.
+- [ ] **Failed sync then recovery.** Force one failure by revoking network
+      access. Confirm the failed outcome with its error code is shown after
+      reload, then a successful sync clears it. Do not use an expired token: a
+      valid refresh token renews it, and a dead grant clears the outcome.
 - [ ] **Provider-side revocation, eBay.** Revoke the app in the eBay account
       settings; the next status or sync shows re-link required, and the stored
       token and outcome are cleared.
 - [ ] **Provider-side revocation, Etsy.** Same check in Etsy's connected apps.
 - [ ] **Disconnect.** Disconnect each connected provider in the card; credentials
       are removed and the UI updates consistently after reload.
-- [ ] **Multiple accounts.** Connect a second account (or user) and confirm
-      each sees only its own status and last-sync outcome.
+- [ ] **One account per provider.** A self-hosted instance stores one token
+      file per provider, so it supports one account per provider. Connect a
+      second account for the same provider and confirm it replaces the first
+      without a duplicate record, and that status and last-sync outcome describe
+      only the current account. Hosted: a second browser profile keeps its own
+      sealed blob and outcome.
 - [ ] **Deployed-like storage.** On the deployed instance, confirm the status
       persists across a redeploy or restart (token store on self-hosted,
       browser blob on hosted).
