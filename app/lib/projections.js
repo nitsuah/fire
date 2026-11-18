@@ -238,8 +238,6 @@ function rehydrateChaosProfile() {
             select.value = profile[key];
         }
     });
-    const btn = document.querySelector('.chaos-profile-btn');
-    if (btn) btn.setAttribute('aria-expanded', 'true');
 }
 
 function setChaosProfileVisibility(visible) {
@@ -254,11 +252,15 @@ function setChaosProfileVisibility(visible) {
 }
 
 function syncChaosProfilePanel() {
-    const visible = chaosMode.enabled;
+    const panel = document.getElementById('chaos-profile-panel');
+    if (!panel) return;
+
+    // Chaos controls whether the profile toggle is available, not whether
+    // the user wants the panel open. Preserve an explicit close across
+    // enable/reroll; turning Chaos off always closes the panel.
+    const visible = chaosMode.enabled && !panel.hidden;
     setChaosProfileVisibility(visible);
-    if (visible) {
-        rehydrateChaosProfile();
-    }
+    if (visible) rehydrateChaosProfile();
 }
 
 window.saveChaosProfile = function (key, value) {
@@ -281,8 +283,6 @@ window.clearChaosProfile = function () {
     Object.values(selectors).forEach((select) => {
         if (select) select.value = '';
     });
-    const btn = document.querySelector('.chaos-profile-btn');
-    if (btn) btn.setAttribute('aria-expanded', 'false');
     saveState();
     calculateAndRenderProjections();
 };
@@ -290,27 +290,13 @@ window.clearChaosProfile = function () {
 window.toggleChaosProfile = function () {
     const panel = document.getElementById('chaos-profile-panel');
     const btn = document.querySelector('.chaos-profile-btn');
-    if (!panel || !btn) return;
+    if (!panel || !btn || !chaosMode.enabled) return;
     const visible = panel.hidden;
     panel.hidden = !visible;
     btn.setAttribute('aria-expanded', visible.toString());
     if (visible) {
         rehydrateChaosProfile();
     }
-};
-
-// Hook into toggleChaos to sync panel visibility
-const originalToggleChaos = window.toggleChaos;
-window.toggleChaos = function () {
-    originalToggleChaos();
-    syncChaosProfilePanel();
-};
-
-// Hook into rerollChaos to sync panel visibility
-const originalRerollChaos = window.rerollChaos;
-window.rerollChaos = function () {
-    originalRerollChaos();
-    syncChaosProfilePanel();
 };
 
 function syncChaosButtons() {
@@ -340,6 +326,20 @@ window.rerollChaos = function () {
     syncChaosButtons();
     renderDashboardProjectionsChart();
     calculateAndRenderProjections();
+};
+
+// Wrap the final implementations, after their assignments, so profile
+// visibility stays synchronized when Chaos is toggled or rerolled.
+const originalToggleChaos = window.toggleChaos;
+window.toggleChaos = function () {
+    originalToggleChaos();
+    syncChaosProfilePanel();
+};
+
+const originalRerollChaos = window.rerollChaos;
+window.rerollChaos = function () {
+    originalRerollChaos();
+    syncChaosProfilePanel();
 };
 
 function setPeriodBtnActive(containerId, windowKey) {
@@ -557,6 +557,7 @@ function initProjectionsManager() {
 
     applyProjectionSettingsToForm();
     syncChaosButtons();
+    syncChaosProfilePanel();
     renderProjSettingsSummary();
     renderProjSettingsPresets();
 
