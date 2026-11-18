@@ -242,10 +242,14 @@ test.describe('Chaos mode', () => {
                 JSON.parse(localStorage.getItem('fire_chaos_mitigations')),
             ),
         ).not.toContain('pet-insurance');
-        await expect(block.locator('[data-mitigation="umbrella"]')).toHaveCount(1);
+        await expect(
+            block.locator('[data-mitigation="umbrella"]'),
+        ).toHaveCount(1);
 
         await page.locator('#btn-tab-projections').click();
-        await page.locator('[data-csp-click-action="clearChaosProfile"]').click();
+        await page
+            .locator('[data-csp-click-action="clearChaosProfile"]')
+            .click();
         await page.locator('#btn-tab-insights').click();
         const restoredPet = block.locator('[data-mitigation="pet-insurance"]');
         await expect(restoredPet).toBeVisible();
