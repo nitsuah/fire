@@ -275,3 +275,85 @@ test('manual Side Gig Ledger form reflows on phone and stays within desktop view
         )
         .toBeLessThanOrEqual(1440);
 });
+
+// #172: native selects were narrower than their selected option, so values
+// read as "New York (NY - State Progres", "Most Categ", "Business / I".
+// Select the longest option of each control and compare the select's width
+// with its intrinsic width (a width:auto copy, which the browser sizes to fit
+// the longest option plus padding and the native arrow).
+test('selected values remain readable', async ({ page }) => {
+    const desc = `E2E select-fit sale ${Date.now()}`;
+    await page.locator('#sg-desc').fill(desc);
+    await page.locator('#sg-revenue').fill('10');
+    await page.locator('#sg-basis').selectOption('business');
+    await page.locator('#form-sidegig-manual button[type="submit"]').click();
+    const ledgerSelect = page
+        .locator('tr', { hasText: desc })
+        .locator('.sg-basis-select');
+    await expect(ledgerSelect).toHaveValue('business');
+
+    const fitOf = (locator) =>
+        locator.evaluate((select) => {
+            let longest = select.options[0];
+            for (const opt of select.options)
+                if (opt.text.length > longest.text.length) longest = opt;
+            select.selectedIndex = longest.index;
+            const probe = select.cloneNode(true);
+            Object.assign(probe.style, {
+                width: 'auto',
+                minWidth: '0',
+                maxWidth: 'none',
+                position: 'absolute',
+                visibility: 'hidden',
+            });
+            select.parentElement.append(probe);
+            const need = probe.getBoundingClientRect().width;
+            probe.remove();
+            const rect = select.getBoundingClientRect();
+            const card = select.closest('.card') || document.body;
+            const cardRect = card.getBoundingClientRect();
+            return {
+                text: longest.text,
+                need,
+                have: rect.width + 1,
+                inCard:
+                    rect.left >= cardRect.left - 1 &&
+                    rect.right <= cardRect.right + 1,
+                inViewport:
+                    rect.left >= 0 && rect.right <= window.innerWidth + 1,
+            };
+        });
+
+    const viewports = [
+        { width: 1440, height: 900 },
+        { width: 390, height: 844 },
+    ];
+    const controls = {
+        sidegig: [
+            ledgerSelect,
+            page.locator('#sg-basis'),
+            page.locator('#ebay-category-rate'),
+        ],
+        expenses: [page.locator('#tax-filing-state')],
+    };
+    for (const [tab, selects] of Object.entries(controls)) {
+        await page.setViewportSize(viewports[0]);
+        await page.locator(`#btn-tab-${tab}`).click();
+        for (const viewport of viewports) {
+            await page.setViewportSize(viewport);
+            for (const select of selects) {
+                await select.scrollIntoViewIfNeeded();
+                const c = await fitOf(select);
+                const label = `${viewport.width}px ${c.text}`;
+                expect(c.need, label).toBeLessThanOrEqual(c.have);
+                expect(c.inCard, label).toBe(true);
+                expect(c.inViewport, label).toBe(true);
+            }
+            await expect
+                .poll(() =>
+                    page.evaluate(() => document.documentElement.scrollWidth),
+                )
+                .toBeLessThanOrEqual(viewport.width);
+        }
+    }
+});
