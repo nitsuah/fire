@@ -141,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed
 
+- CI: repo-health shared kit pinned to `nitsuah/.github@a0df883` (was `7d3c243`), which no longer ships the stale `msgpack` advisory row.
 - `.env.example`: documents `FIRE_ADMIN_KEY` (required in production for key rotation) and adds the optional Etsy block (`ETSY_CLIENT_ID`, `ETSY_SHARED_SECRET`, `ETSY_REDIRECT_URI`). Removes `SECRET_KEY` and `DATABASE_URL`, which nothing in `app/`, `netlify/`, `scripts/` or `config/` reads.
 
 ### 2026-10-14 — CoinTracker asset-level portfolios
