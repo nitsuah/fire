@@ -57,7 +57,9 @@ function stripeRecoveryHint(status = {}) {
     if (outcome?.ok === false) {
         return (
             {
-                unauthorized: 'Check or replace the restricted key.',
+                unauthorized:
+                    'Stripe restricted key was rejected or revoked; ' +
+                    'check or replace it.',
                 rate_limited: 'Wait briefly, then retry the Stripe sync.',
                 storage_error: 'Check DATA_DIR permissions and disk space.',
             }[outcome.errorCode] ||
