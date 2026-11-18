@@ -90,10 +90,13 @@ hosted (Netlify) deploy unless noted.
 - [ ] **Real sync, eBay.** Run a sync against the live account; the card shows
       the last-sync outcome and it survives a hard refresh and a new browser session.
 - [ ] **Real sync, Etsy.** Same check as eBay.
-- [ ] **Failed sync then recovery.** Force one failure by revoking network
-      access. Confirm the failed outcome with its error code is shown after
-      reload, then a successful sync clears it. Do not use an expired token: a
-      valid refresh token renews it, and a dead grant clears the outcome.
+- [ ] **Failed sync then recovery (self-hosted only).** Force one failure by
+      blocking the server's outbound network access to the provider. Confirm
+      the failed outcome ("Last sync failed") is shown after reload; a network
+      failure carries no error code. Then a successful sync clears it. Do not
+      use an expired token: a valid refresh token renews it, and a dead grant
+      clears the outcome. Hosted has no safe way to fail only the function's
+      provider request, so this step is not run there.
 - [ ] **Provider-side revocation, eBay.** Revoke the app in the eBay account
       settings; the next status or sync shows re-link required, and the stored
       token and outcome are cleared.
