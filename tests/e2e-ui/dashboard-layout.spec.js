@@ -1347,11 +1347,19 @@ test.describe('Expenses — budget field labels', () => {
             const hintLocator = label.locator('.expense-label-hint');
             await expect(categoryLocator).toBeVisible();
             await expect(hintLocator).toBeVisible();
-            const category = await categoryLocator.boundingBox();
-            const hint = await hintLocator.boundingBox();
-            const group = await label.evaluate((el) => {
+            // Measure all three boxes in one frame: separate boundingBox()
+            // calls can straddle a scroll/reflow and compare stale positions.
+            const { category, hint, group } = await label.evaluate((el) => {
+                const box = (node) => {
+                    const r = node.getBoundingClientRect();
+                    return { x: r.x, y: r.y, width: r.width, height: r.height };
+                };
                 const rect = el.parentElement.getBoundingClientRect();
-                return { left: rect.left, right: rect.right };
+                return {
+                    category: box(el.querySelector('strong')),
+                    hint: box(el.querySelector('.expense-label-hint')),
+                    group: { left: rect.left, right: rect.right },
+                };
             });
             expect(hint.y).toBeGreaterThan(category.y + category.height);
             expect(hint.x).toBeGreaterThanOrEqual(group.left - 1);
@@ -1359,8 +1367,16 @@ test.describe('Expenses — budget field labels', () => {
 
             const row = page.locator('.tax-summary .stat-item').first();
             await expect(row).toBeVisible();
-            const name = await row.locator('.stat-name').boundingBox();
-            const value = await row.locator('.stat-val').boundingBox();
+            const { name, value } = await row.evaluate((el) => {
+                const box = (node) => {
+                    const r = node.getBoundingClientRect();
+                    return { x: r.x, y: r.y, width: r.width, height: r.height };
+                };
+                return {
+                    name: box(el.querySelector('.stat-name')),
+                    value: box(el.querySelector('.stat-val')),
+                };
+            });
             const horizontalGap = Math.max(
                 value.x - (name.x + name.width),
                 name.x - (value.x + value.width),
