@@ -897,6 +897,16 @@
         },
     ];
 
+    // Maps household answers to mitigations that cannot apply.
+    // Missing or unrecognized answers leave every mitigation available.
+    function inapplicableMitigationIds(profile) {
+        const { pets, housing } = profile || {};
+        const out = new Set();
+        if (pets === 'none') out.add('pet-insurance');
+        if (housing === 'rent') out.add('water-rider');
+        return out;
+    }
+
     const BY_ID = Object.fromEntries(CATALOG.map((d) => [d.id, d]));
 
     const MAX_EVENTS_PER_YEAR = 2;
@@ -1410,6 +1420,7 @@
         newSeed,
         generateEvents,
         excludedEventIds,
+        inapplicableMitigationIds,
         describeExclusions,
         simulate,
         eventsNearIndex,
