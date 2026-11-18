@@ -218,6 +218,47 @@ test.describe('Chaos mode', () => {
         ).toBeChecked();
     });
 
+    test('household profile filters and prunes inapplicable mitigations', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-projections').click();
+        await page.locator('#tab-projections .chaos-btn').click();
+        await page.locator('#tab-projections .chaos-profile-btn').click();
+        await page.locator('#btn-tab-insights').click();
+
+        const block = page.locator('#chaos-mitigations');
+        const pet = block.locator('[data-mitigation="pet-insurance"]');
+        await pet.check();
+        await expect(pet).toBeChecked();
+
+        await page.locator('#btn-tab-projections').click();
+        await page.locator('[data-key="pets"]').selectOption('none');
+        await page.locator('#btn-tab-insights').click();
+        await expect(
+            block.locator('[data-mitigation="pet-insurance"]'),
+        ).toHaveCount(0);
+        expect(
+            await page.evaluate(() =>
+                JSON.parse(localStorage.getItem('fire_chaos_mitigations')),
+            ),
+        ).not.toContain('pet-insurance');
+        await expect(block.locator('[data-mitigation="umbrella"]')).toHaveCount(1);
+
+        await page.locator('#btn-tab-projections').click();
+        await page.locator('[data-csp-click-action="clearChaosProfile"]').click();
+        await page.locator('#btn-tab-insights').click();
+        const restoredPet = block.locator('[data-mitigation="pet-insurance"]');
+        await expect(restoredPet).toBeVisible();
+        await expect(restoredPet).not.toBeChecked();
+
+        await page.locator('#btn-tab-projections').click();
+        await page.locator('[data-key="housing"]').selectOption('rent');
+        await page.locator('#btn-tab-insights').click();
+        await expect(
+            block.locator('[data-mitigation="water-rider"]'),
+        ).toHaveCount(0);
+    });
+
     test('Bear / Base / Bull pass numeric offsets (CSP delegation sends strings)', async ({
         page,
     }) => {
