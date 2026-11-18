@@ -496,6 +496,30 @@ describe('household profile', () => {
         ).toBe(0);
     });
 
+    it('maps household answers to inapplicable mitigations', () => {
+        expect([...FC.inapplicableMitigationIds({ pets: 'none' })]).toEqual([
+            'pet-insurance',
+        ]);
+        expect([...FC.inapplicableMitigationIds({ housing: 'rent' })]).toEqual([
+            'water-rider',
+        ]);
+        expect([
+            ...FC.inapplicableMitigationIds({
+                pets: 'none',
+                housing: 'rent',
+            }),
+        ]).toEqual(['pet-insurance', 'water-rider']);
+    });
+
+    it('keeps mitigations available for missing or compatible answers', () => {
+        expect(FC.inapplicableMitigationIds({ pets: 'cat' }).size).toBe(0);
+        expect(FC.inapplicableMitigationIds({ pets: 'dog' }).size).toBe(0);
+        expect(FC.inapplicableMitigationIds({ housing: 'own' }).size).toBe(0);
+        expect(FC.inapplicableMitigationIds({}).size).toBe(0);
+        expect(FC.inapplicableMitigationIds(null).size).toBe(0);
+        expect(FC.inapplicableMitigationIds(undefined).size).toBe(0);
+    });
+
     it('describeExclusions mirrors excludedEventIds for UI', () => {
         expect(FC.describeExclusions({ pets: 'none' })).toEqual(['pet events']);
         expect(FC.describeExclusions({ pets: 'cat' })).toEqual(['dog events']);
