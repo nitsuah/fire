@@ -297,6 +297,12 @@
     transition: var(--transition-fast);
 }
 
+/* A select whose options are long (e.g. eBay category) takes the whole grid
+   row so the selected value is not cut off (#172). */
+.form-group-wide {
+    grid-column: 1 / -1;
+}
+
 .form-group input:focus,
 .form-group select:focus {
     border-color: var(--color-primary);
@@ -1564,6 +1570,10 @@
     padding: 6px 30px 6px 9px;
 }
 .sg-basis-select {
+    /* Size to the longest tag ("Business / bought to resell") instead of
+       the cell, so the selected tag is never cut off (#172). The ledger
+       table already scrolls horizontally inside .table-container. */
+    width: auto;
     min-width: 150px;
     padding: 5px 28px 5px 8px;
 }
