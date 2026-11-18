@@ -141,6 +141,64 @@ test.describe('Chaos mode', () => {
         await expect(profileBtn).toHaveAttribute('aria-expanded', 'false');
     });
 
+    test('household profile answers persist across reload and clear to Skip', async ({
+        page,
+    }) => {
+        // Keep this acceptance test local-only: the app's optional state API
+        // returns 404 so profile persistence is exercised through localStorage.
+        await page.route('**/api/state', (route) =>
+            route.fulfill({ status: 404, body: 'Not available in this test' }),
+        );
+        await page.reload();
+        await page.locator('#btn-tab-projections').click();
+
+        const chaos = page.locator('#tab-projections .chaos-btn');
+        await chaos.click();
+        const profileToggle = page.getByRole('button', {
+            name: 'Tailor chaos events to your household',
+        });
+        const panel = page.locator('#chaos-profile-panel');
+
+        await expect(profileToggle).toHaveAttribute('aria-expanded', 'false');
+        await profileToggle.click();
+        await expect(panel).toBeVisible();
+        await expect(profileToggle).toHaveAttribute('aria-expanded', 'true');
+
+        const waitForProfileSave = () =>
+            page.waitForResponse(
+                (response) =>
+                    response.url().endsWith('/api/state') &&
+                    response.request().method() === 'POST',
+            );
+        const petsSaved = waitForProfileSave();
+        await page.locator('[data-key="pets"]').selectOption('dog');
+        await petsSaved;
+        const childrenSaved = waitForProfileSave();
+        await page.locator('[data-key="children"]').selectOption('yes');
+        await childrenSaved;
+        const housingSaved = waitForProfileSave();
+        await page.locator('[data-key="housing"]').selectOption('own');
+        await housingSaved;
+        await page.reload();
+        await page.locator('#btn-tab-projections').click();
+        await profileToggle.click();
+        await expect(panel).toBeVisible();
+        await expect(page.locator('[data-key="pets"]')).toHaveValue('dog');
+        await expect(page.locator('[data-key="children"]')).toHaveValue('yes');
+        await expect(page.locator('[data-key="housing"]')).toHaveValue('own');
+
+        await panel.getByRole('button', { name: 'Clear answers' }).click();
+        await expect(page.locator('[data-key="pets"]')).toHaveValue('');
+        await expect(page.locator('[data-key="children"]')).toHaveValue('');
+        await expect(page.locator('[data-key="housing"]')).toHaveValue('');
+        const persistedProfile = await page.evaluate(
+            () =>
+                JSON.parse(localStorage.getItem('fire_tracker_state') || '{}')
+                    .chaosProfile,
+        );
+        expect(persistedProfile).toBeNull();
+    });
+
     test('chaos changes net worth only through its events', async ({
         page,
     }) => {
