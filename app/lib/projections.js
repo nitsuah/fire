@@ -163,9 +163,10 @@ function renderMitigations(raw) {
     const FC = window.FireChaos;
     const chaos = raw && raw.chaos;
     const names = Object.fromEntries(FC.CATALOG.map((d) => [d.id, d]));
-    const unavailable = FC.inapplicableMitigationIds(
-        state.chaosProfile || null,
-    );
+    const unavailable =
+        typeof FC.inapplicableMitigationIds === 'function'
+            ? FC.inapplicableMitigationIds(state.chaosProfile || null)
+            : new Set();
     const rows = FC.MITIGATIONS.filter((m) => !unavailable.has(m.id)).map(
         (m) => ({
             m,
