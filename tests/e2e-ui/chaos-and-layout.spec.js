@@ -90,6 +90,57 @@ test.describe('Chaos mode', () => {
         expect(after).not.toContain('Without chaos');
     });
 
+    test('household profile visibility follows Chaos without reopening a closed panel', async ({
+        page,
+    }) => {
+        await page.locator('#btn-tab-projections').click();
+
+        const chaos = page.locator('#tab-projections .chaos-btn');
+        const profileBtn = page.locator('#tab-projections .chaos-profile-btn');
+        const panel = page.locator('#chaos-profile-panel');
+
+        await expect(profileBtn).toBeHidden();
+        await expect(panel).toBeHidden();
+        await expect(profileBtn).toHaveAttribute(
+            'aria-controls',
+            'chaos-profile-panel',
+        );
+        await expect(profileBtn).toHaveAttribute('aria-expanded', 'false');
+
+        await chaos.click();
+        await expect(profileBtn).toBeVisible();
+        await expect(panel).toBeHidden();
+        await expect(profileBtn).toHaveAttribute('aria-expanded', 'false');
+
+        await profileBtn.click();
+        await expect(panel).toBeVisible();
+        await expect(profileBtn).toHaveAttribute('aria-expanded', 'true');
+
+        await panel.locator('.close-btn').click();
+        await expect(panel).toBeHidden();
+        await expect(profileBtn).toHaveAttribute('aria-expanded', 'false');
+
+        // Rerolling must preserve the user's explicit close.
+        await page.locator('#tab-projections .chaos-reroll-btn').click();
+        await expect(profileBtn).toBeVisible();
+        await expect(panel).toBeHidden();
+        await expect(profileBtn).toHaveAttribute('aria-expanded', 'false');
+
+        // Turning Chaos off closes even an open panel; turning it back on
+        // makes the toggle available without reopening the panel.
+        await profileBtn.click();
+        await expect(panel).toBeVisible();
+        await chaos.click();
+        await expect(profileBtn).toBeHidden();
+        await expect(panel).toBeHidden();
+        await expect(profileBtn).toHaveAttribute('aria-expanded', 'false');
+
+        await chaos.click();
+        await expect(profileBtn).toBeVisible();
+        await expect(panel).toBeHidden();
+        await expect(profileBtn).toHaveAttribute('aria-expanded', 'false');
+    });
+
     test('chaos changes net worth only through its events', async ({
         page,
     }) => {
