@@ -648,16 +648,16 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
     });
 });
 
-test.describe('Summary bar — desktop keeps the full metrics', () => {
-    test('shows full metric blocks (no compact bar) with bottom padding', async ({
+test.describe('Summary bar — desktop uses the compact bar with income and spend', () => {
+    test('shows the compact bar and income/spend metrics with bottom padding', async ({
         page,
     }) => {
         await seedCashAccount(page, 'E2E Full Precision Seed', '50000');
         await page.locator('#btn-tab-dashboard').click();
-        await expect(page.locator('#banner-networth')).toHaveText(
-            /^-?\$[\d,]+\.\d{2}$/,
-        );
-        await expect(page.locator('#compact-fire-bar')).toBeHidden();
+        await expect(page.locator('#banner-networth')).toBeHidden();
+        await expect(page.locator('#compact-fire-bar')).toBeVisible();
+        await expect(page.locator('#banner-gross-income')).toBeVisible();
+        await expect(page.locator('#banner-spend')).toBeVisible();
         const padBottom = await page
             .locator('.header-banner')
             .evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
