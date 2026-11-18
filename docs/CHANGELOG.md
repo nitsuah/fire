@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Chaos Mode household profiles now filter inapplicable Insights mitigations and prune hidden selections from browser storage (#480).
+
 - Chaos Mode household profile controls: a 👤 toggle opens a panel to save or clear a household profile that persists and rehydrates with Chaos state, and hides when Chaos is off (#399).
 - Insights: add an Early-Retirement Cash Buffer tile (warns when FIRE is reached and cash plus CDs cover under 2 years of expenses) and cover the CD Maturity Concentration tile with e2e tests using relative maturity dates (#335, #336).
 
