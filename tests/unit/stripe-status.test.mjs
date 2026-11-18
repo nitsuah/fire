@@ -28,7 +28,11 @@ describe('stripeStatusBadge', () => {
             false,
         ],
         [
-            { configured: true, connected: true, lastSyncOutcome: { ok: false } },
+            {
+                configured: true,
+                connected: true,
+                lastSyncOutcome: { ok: false },
+            },
             'Last sync failed',
             false,
         ],
@@ -66,7 +70,11 @@ describe('stripeRecoveryHint', () => {
         [{ configured: true, connected: false }, /restricted key/],
         [{ configured: true, connected: true }, /Start a Stripe sync/],
         [
-            { configured: true, connected: true, lastSyncOutcome: { partial: true } },
+            {
+                configured: true,
+                connected: true,
+                lastSyncOutcome: { partial: true },
+            },
             /partial import/,
         ],
         [
