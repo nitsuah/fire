@@ -166,10 +166,12 @@ function renderMitigations(raw) {
     const unavailable = FC.inapplicableMitigationIds(
         state.chaosProfile || null,
     );
-    const rows = FC.MITIGATIONS.filter((m) => !unavailable.has(m.id)).map((m) => ({
-        m,
-        v: mitigationValue(chaos, m.id),
-    }));
+    const rows = FC.MITIGATIONS.filter((m) => !unavailable.has(m.id)).map(
+        (m) => ({
+            m,
+            v: mitigationValue(chaos, m.id),
+        }),
+    );
     // Most relevant first: covers events in this timeline, best net value.
     rows.sort(
         (a, b) =>
