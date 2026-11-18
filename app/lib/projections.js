@@ -119,6 +119,21 @@ window.toggleMitigation = function (id, on) {
     calculateAndRenderProjections();
 };
 
+function pruneInapplicableMitigations() {
+    const unavailable = window.FireChaos.inapplicableMitigationIds(
+        state.chaosProfile || null,
+    );
+    chaosMitigations = chaosMitigations.filter((id) => !unavailable.has(id));
+    try {
+        localStorage.setItem(
+            MITIGATION_STORAGE_KEY,
+            JSON.stringify(chaosMitigations),
+        );
+    } catch {
+        /* storage unavailable — choice just won't persist */
+    }
+}
+
 // What one mitigation is worth in the current Chaos timeline: net worth
 // at the end of the span with vs. without it (premiums included).
 function mitigationValue(chaos, id) {
@@ -148,7 +163,10 @@ function renderMitigations(raw) {
     const FC = window.FireChaos;
     const chaos = raw && raw.chaos;
     const names = Object.fromEntries(FC.CATALOG.map((d) => [d.id, d]));
-    const rows = FC.MITIGATIONS.map((m) => ({
+    const unavailable = FC.inapplicableMitigationIds(
+        state.chaosProfile || null,
+    );
+    const rows = FC.MITIGATIONS.filter((m) => !unavailable.has(m.id)).map((m) => ({
         m,
         v: mitigationValue(chaos, m.id),
     }));
@@ -273,6 +291,7 @@ window.saveChaosProfile = function (key, value) {
     } else {
         state.chaosProfile[key] = value;
     }
+    pruneInapplicableMitigations();
     saveState();
     calculateAndRenderProjections();
 };
@@ -283,6 +302,7 @@ window.clearChaosProfile = function () {
     Object.values(selectors).forEach((select) => {
         if (select) select.value = '';
     });
+    pruneInapplicableMitigations();
     saveState();
     calculateAndRenderProjections();
 };
