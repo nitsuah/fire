@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Integration status matrix: record the remaining live-provider checks (OAuth reconnect, real sync, revocation, multi-account) as a manual checklist; #301 and #302 close on merged code, #262 tracks the live acceptance.
 - Playwright 1.65.0: `@playwright/test`, the CI e2e container, the Journeys image and `config/Dockerfile.playwright` move together; journey baselines refreshed for the #351 summary bar and the separated budget hints.
 - Dev dependencies: `@eslint/js` 10 (its new `no-useless-assignment` findings in the CSV import parsers are fixed), prettier 3.10.1, supertest 7.3.2; express-rate-limit 8.7.4.
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
