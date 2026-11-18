@@ -285,6 +285,12 @@ function syncChaosProfilePanel() {
 }
 
 window.saveChaosProfile = function (key, value) {
+    // CSP delegation passes the native change event when no explicit value mapping is configured.
+    if (key && typeof key === 'object' && key.target) {
+        value = key.target.value;
+        key = key.target.dataset.key;
+    }
+    if (!key) return;
     if (!state.chaosProfile) state.chaosProfile = {};
     if (!value || value === '') {
         delete state.chaosProfile[key];
