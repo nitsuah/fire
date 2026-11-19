@@ -101,7 +101,9 @@ All frames are JSON over the WebSocket. Every frame has `v` (protocol version, `
 
 Limits (decided defaults, D3 in §10): 15 s per call deadline, 4 calls in flight per session, 256 KB per `RESULT` (see paging below; child 1 measures real result sizes first), 30 calls per minute per session. The relay sends WebSocket ping frames every 20 s. The browser answers pings at the protocol level, so background-tab timer throttling does not drop the connection.
 
-**Paging within the 256 KB cap.** The browser, not the relay, keeps results under the cap, because only the browser can measure them. `get_transactions` already takes `from`/`to` date filters and a `limit` (default 200, maximum 1000) and returns rows newest first with a `matched` count. Child 1 adds one optional argument, `offset` (rows to skip in that order). Without `offset` the stdio output is unchanged. In the bridge, if the serialized result would exceed the cap, the browser drops rows from the end of the page until it fits and adds `truncated: true` and `nextOffset`. The agent sees `matched`, the rows returned and `nextOffset`, and asks for the next page with `offset` (or narrows the dates). Every other tool returns aggregates. If child 1 finds one that can exceed the cap, it gets the same `offset`/`nextOffset` rule; `result_too_large` remains only as a last-resort error for a single row too large to send.
+**Paging within the 256 KB cap.** The browser, not the relay, keeps results under the cap, because only the browser can measure them. `get_transactions` already takes `from`/`to` date filters and a `limit` (default 200, maximum 1000) and returns rows newest first with a `matched` count. Child 1 adds one optional argument, `offset` (rows to skip in that order). Without `offset` the stdio output is unchanged. In the bridge, if the serialized result would exceed the cap, the browser drops rows from the end of the page until it fits and sets `truncated: true`. `truncated` means only that: rows were removed to fit the cap. Separately, `nextOffset` (= `offset` + rows returned) is present whenever `matched` is greater than `offset` + rows returned, whether the page ended at `limit` or at the cap. The agent asks for the next page with `offset = nextOffset` (or narrows the dates).
+
+The `byCategory` totals cover every matching row, so dropping rows cannot shrink them. If the result is still over the cap with no rows left, the browser keeps the 50 categories with the largest absolute totals, folds the rest into one `other` entry (count and total), and sets `byCategoryTruncated: true`. `total` and `matched` stay exact. If even that does not fit, the call fails with `result_too_large` and a message telling the agent to narrow the query by date or category. Every other tool returns aggregates. If child 1 finds one that can exceed the cap, it gets the same `offset`/`nextOffset` rule; `result_too_large` remains only as a last-resort error for a single row too large to send.
 
 ---
 
@@ -213,7 +215,7 @@ This is the question the issue asks directly. Assume full control of the relay c
 **Can:**
 
 - In connector mode, **read the tool results of calls made during active sessions**, while they pass through.
-- In connector mode, **return fabricated tool results to the MCP client**, during a session or after the tab is gone, until the access token expires. The browser key authenticates the browser to the relay; nothing signs results for the client, and stock MCP clients could not check such a signature anyway. The agent could therefore be shown false balances or transactions.
+- In connector mode, **return fabricated or altered tool results to the MCP client**, during a session or after the tab is gone, for as long as the client keeps trusting and contacting the relay. Token expiry does not bound this, because a compromised relay decides whether a token is valid. The browser key authenticates the browser to the relay; nothing signs results for the client, and stock MCP clients could not check such a signature anyway. The agent could therefore be shown false balances or transactions.
 - **Issue its own read-only tool calls** during an active session, within the scope the user granted, until the session's expiry. The browser accepts any `CALL` with a valid `seq`, so it cannot tell these from the agent's calls.
 - Deny service: drop or delay calls, end sessions.
 - See metadata: client names, redirect hosts, timing, sizes, tool names, client IPs.
@@ -226,10 +228,15 @@ This is the question the issue asks directly. Assume full control of the relay c
 - Write or change user data. There are no write tools, and the browser enforces that, not the relay.
 - Widen scope, extend a session past the browser's own `expiresAt`, or skip the idle timeout. The browser enforces all three independently.
 - Attach a fake browser to a session, since it lacks the private key. (This does not stop it answering the client itself, as listed above.)
-- Change what the user's own browser shows: fabricated results reach only the agent, and the browser's activity log lists only calls the browser actually answered.
+- Change what the user's own browser shows: fabricated results reach only the agent.
 - In sealed mode, read calls or results at all. It sees metadata only.
 
-**Mitigations for what it can do:** fabricated results are limited to the token's lifetime and show up as answers with no matching entry in the local activity log; sealed mode removes the risk, because the relay cannot produce valid ciphertext. Also: short sessions, scope selection on the consent page, the browser-side rate limit, the visible "Connected agent" banner with a live call counter and Disconnect, the local activity log (calls the agent did not make show up there), and sealed mode for users who need content confidentiality from the relay.
+**Mitigations for what it can do:** the two forms of result tampering differ in what the user can see.
+
+- *Invented calls:* a result for a call the browser never received has no matching entry in the local activity log, so the user can spot it by comparing the log with what the agent reports.
+- *Altered results:* if the relay forwards a real call and changes the answer on the way back, the log shows a matching call. The log records no result content, so it cannot reveal the change. Nothing in connector mode detects this.
+
+Sealed mode removes both, because the relay cannot produce or alter valid ciphertext. Also: short sessions, scope selection on the consent page, the browser-side rate limit, the visible "Connected agent" banner with a live call counter and Disconnect, the local activity log (calls the agent did not make show up there), and sealed mode for users who need content confidentiality from the relay.
 
 ### Other threats
 
@@ -254,7 +261,7 @@ This is the question the issue asks directly. Assume full control of the relay c
 Decided by the owner on 2026-11-19. Children are briefed against these.
 
 - **D1 — Connector mode: accepted, with disclosure.** In connector mode the relay handles plaintext in memory for each call (§5.3). This is the only way to work with connectors added by URL, which was the goal of #266. It is the same trust the hosted deploy already places in Netlify Functions, which pass Plaid, Etsy and CoinTracker responses through in plaintext. The consent page and the privacy policy say so plainly. **Transactions start unticked** on the consent page, because they are the most detailed data and most agent questions (net worth, runway, FIRE date) do not need them. Sealed mode (§5.3) stays in the design but is built only when someone needs it.
-  *Residual risk added in review, for the owner to confirm on #501:* in connector mode a compromised relay can also feed the agent fabricated tool results (§9). The design accepts this under D1 for the same reason, because no stock MCP client can verify results; sealed mode is the path if result integrity matters.
+  *Residual risk added in review, for the owner to confirm on #501:* in connector mode a compromised relay can also feed the agent fabricated or altered tool results for as long as the client keeps using it, and altered answers to real calls are undetectable (§9). The design accepts this under D1 for the same reason, because no stock MCP client can verify results; sealed mode is the path if result integrity matters.
 - **D2 — Relay host: Cloudflare Workers + Durable Objects.** There is no server to patch, each session is isolated in its own object, and WebSockets and in-memory state are native. A Node process on Fly.io would hold every session in one process on a machine that needs patching. Costs: a new Cloudflare account that only the owner can create, and Durable Objects bill for the time a WebSocket stays open, so child 8 confirms current pricing before deploying. Fly.io stays the fallback.
 - **D3 — Defaults.** Session length **30 min by default**, with 15 or 60 selectable on the consent page (a shorter session limits what a stolen token or a compromised relay can do). 10 min idle, 30 s reconnect grace, 30 calls per minute, 256 KB per result. The 256 KB cap is not yet checked against real data: child 1 measures each tool's output on the demo seed and a large ledger, and any tool that can exceed it (likely `get_transactions`) gets paging in child 4.
 
