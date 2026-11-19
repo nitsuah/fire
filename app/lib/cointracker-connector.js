@@ -14,7 +14,7 @@
 // fire only reads wallets and their current balances. P&L, cost basis and
 // tax lots stay in CoinTracker.
 
-const crypto = require('crypto');
+const crypto = require('./node-crypto');
 const { encrypt, decrypt } = require('./crypto-utils');
 
 const MCP_URL =

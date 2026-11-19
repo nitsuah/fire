@@ -11,7 +11,7 @@
 // SYNC_MASTER_KEY). Every outbound call takes an injectable fetch so tests
 // never reach Etsy.
 
-const crypto = require('crypto');
+const crypto = require('./node-crypto');
 const { encrypt, decrypt } = require('./crypto-utils');
 
 const AUTH_URL = 'https://www.etsy.com/oauth/connect';

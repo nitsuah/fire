@@ -15,6 +15,7 @@ export default [
             'app/lib/db.js',
             'app/lib/server-utils.js',
             'app/lib/crypto-utils.js',
+            'app/lib/node-crypto.js',
             'app/lib/webhook-integration.js',
             'app/lib/yahoo-prices.js',
             'app/lib/finance-core.js',

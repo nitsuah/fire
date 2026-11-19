@@ -8,7 +8,7 @@
 // route stores them in the encrypted token store, the Function seals them
 // for the browser.
 
-const crypto = require('crypto');
+const crypto = require('./node-crypto');
 const etsy = require('./etsy-connector');
 
 const COOKIE_NAME = 'etsy_oauth';

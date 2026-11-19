@@ -3,7 +3,7 @@
 // HttpOnly cookie instead of a server session, since Functions are
 // stateless; ebay-callback compares the two.
 
-import crypto from 'crypto';
+import crypto from '../../app/lib/node-crypto.js';
 import ebayConnector from '../../app/lib/ebay-connector.js';
 import {
     json,
