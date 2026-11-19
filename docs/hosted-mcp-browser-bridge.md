@@ -2,7 +2,7 @@
 
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 >
-> **Status:** Proposed. This is a design for review, not an implementation brief (#341).
+> **Status:** Proposed; owner decisions D1–D3 recorded 2026-11-19 (§10). This is a design for review, not an implementation brief (#341).
 > **Last updated:** 2026-11-19
 > **Parent:** #266 (remote MCP). The self-hosted half is #492.
 > **See also:** [security-hardening.md](security-hardening.md), [privacy-policy.md](privacy-policy.md), [prod-plan.md](prod-plan.md#mcp-security-model)
@@ -67,7 +67,7 @@ The design also keeps these invariants:
 | B. Netlify + hosted pub/sub (Ably, Pusher, …) | A third-party channel carries the frames. | **Rejected.** Another processor sees the traffic and needs its own account and keys. It adds a party to the threat model for no gain over C. |
 | C. Small dedicated relay, memory only | One process (or one isolate per session) holds the browser WebSocket and the waiting MCP request in memory and pairs them. | **Chosen.** Nothing is written to disk. A restart drops every session, which is acceptable because sessions are short (C2) and the user re-consents. |
 
-**Relay host (owner decision D2, §10):** the recommendation is **Cloudflare Workers + one Durable Object per bridge session**, using in-memory fields only. It must not call the Durable Object Storage API, and it must not use WebSocket hibernation attachments to hold anything except the session id. A single Node process (on Fly.io or a small VPS) is an equivalent fallback. The protocol core (§4, §7) is a host-agnostic module, so either host, or later the self-hosted Express server, can run it.
+**Relay host (decided, D2 in §10):** **Cloudflare Workers + one Durable Object per bridge session**, using in-memory fields only. It must not call the Durable Object Storage API, and it must not use WebSocket hibernation attachments to hold anything except the session id. A single Node process (on Fly.io or a small VPS) is the fallback if Cloudflare does not work out. The protocol core (§4, §7) is a host-agnostic module, so either host, or later the self-hosted Express server, can run it.
 
 Relay rules that make C1 testable:
 
@@ -91,7 +91,7 @@ All frames are JSON over the WebSocket. Every frame has `v` (protocol version, `
 | `RESULT` | browser → relay | `id`, `ok`, `content` or `error` | Answer to exactly one `CALL` |
 | `END` | either | `reason` | Session over (user disconnect, expiry, revoke) |
 
-Limits (proposed defaults): 15 s per call deadline, 4 calls in flight per session, 256 KB per `RESULT` (larger results return `result_too_large`, and tools that can grow, such as `get_transactions`, must paginate), 30 calls per minute per session. The relay sends WebSocket ping frames every 20 s. The browser answers pings at the protocol level, so background-tab timer throttling does not drop the connection.
+Limits (decided defaults, D3 in §10): 15 s per call deadline, 4 calls in flight per session, 256 KB per `RESULT` (larger results return `result_too_large`, and tools that can grow, such as `get_transactions`, must paginate; child 1 measures real result sizes first), 30 calls per minute per session. The relay sends WebSocket ping frames every 20 s. The browser answers pings at the protocol level, so background-tab timer throttling does not drop the connection.
 
 ---
 
@@ -110,14 +110,14 @@ The relay is both the MCP resource server and the OAuth authorization server. It
 1. The MCP client calls `POST /mcp` without a token and gets `401` with `WWW-Authenticate: Bearer resource_metadata=…`.
 2. The client discovers the endpoints, registers, and sends the user to `GET /authorize?client_id…&code_challenge…&state…&scope…`.
 3. The relay validates the request, keeps it as a **pending authorization** (5 min TTL, random id), and redirects to the app's consent page: `https://fire.nitsuah.io/#/mcp-connect?req=<id>`. The user lands in **their own browser, where the data lives**. If that profile has no fire data, the page says so and stops.
-4. The consent page shows the client name (labelled as self-asserted), the **redirect URI host** (the trustworthy part), the requested tool groups (the user can untick any, for example transactions), and the session length. It is `frame-ancestors 'none'`, as the whole app already is.
+4. The consent page shows the client name (labelled as self-asserted), the **redirect URI host** (the trustworthy part), the requested tool groups (the user can untick any; **transactions start unticked** and must be opted into, per D1), and the session length (30 min by default). It is `frame-ancestors 'none'`, as the whole app already is.
 5. On **Approve**, the consent tab asks the bridge host tab over a same-origin `BroadcastChannel` to open a session. If no fire tab is open, the consent tab becomes the bridge host itself and tells the user to keep it open. The bridge host generates the session key, connects, sends `HELLO` with `pendingAuth=<id>`, and completes `PROVE`.
 6. The relay mints a single-use **authorization code** (60 s TTL) bound to the pending authorization **and** the now-live session id, then the consent tab navigates to the relay's `/authorize/complete`, which `302`s to the registered `redirect_uri` with `code` and `state`.
 7. The client exchanges the code (with the PKCE verifier) at `/token` for an **opaque access token** (256-bit random; the relay keeps only its SHA-256 in memory) whose lifetime is the session's remaining lifetime. **No refresh tokens are issued.** When the session ends, the token is dead, and the client must run the flow again, which again needs the browser.
 
 Binding summary: access token → session id → browser public key → a live, proven WebSocket. Any of the three ending ends the others.
 
-### 5.3 What "end-to-end" can and cannot mean (owner decision D1, §10)
+### 5.3 What "end-to-end" can and cannot mean (decided, D1 in §10)
 
 A standard MCP client terminates TLS at the relay and expects plaintext JSON-RPC back. **So with stock MCP clients the relay necessarily handles tool calls and results in plaintext, in memory, for the duration of each call.** No browser-held key can change that, because the client holds no matching key. The design states this rather than adding a cosmetic encryption layer that the relay itself would decrypt.
 
@@ -134,7 +134,7 @@ Two modes:
 |---|---|---|
 | Pending authorization | 5 min | relay |
 | Authorization code | 60 s, single use | relay |
-| Session hard maximum (and access-token lifetime) | 60 min from approval (user may pick 15/30/60) | relay **and** browser |
+| Session hard maximum (and access-token lifetime) | 30 min from approval by default; the user may pick 15, 30 or 60 | relay **and** browser |
 | Idle timeout (no tool calls) | 10 min | relay **and** browser |
 | Reconnect grace after the WebSocket drops | 30 s, then the session ends | relay |
 | Client registration | 24 h, memory only | relay |
@@ -161,7 +161,7 @@ Two modes:
 | Layer | Threat | Control |
 |---|---|---|
 | OAuth | Code interception or reuse | PKCE `S256` required; codes single use, 60 s; `state` echoed; `redirect_uri` exact match against the registration |
-| OAuth | Stolen access token reused later | Token lives at most as long as the session (≤ 60 min) and dies on disconnect, idle or browser loss; stored only hashed; TLS only |
+| OAuth | Stolen access token reused later | Token lives at most as long as the session (30 min by default, 60 at most) and dies on disconnect, idle or browser loss; stored only hashed; TLS only |
 | WebSocket auth | Replayed `PROVE` | Fresh 128-bit `nonce` per connect, 10 s expiry, signature covers relay origin and session id; a nonce is accepted once |
 | `CALL` frames | Relay (or anything between) replays or reorders a call | Strictly increasing `seq` per session; the browser rejects `seq ≤ last`, an unknown `sid`, or a passed `deadline`; each `id` is answered at most once |
 | `RESULT` frames | Late or duplicate answers | The relay accepts one `RESULT` per outstanding `id`, and drops any that arrive after the deadline or for an unknown `id` |
@@ -222,7 +222,7 @@ This is the question the issue asks directly. Assume full control of the relay c
 |---|---|---|
 | Network attacker | TLS on both hops; HSTS on the app | None beyond TLS |
 | Malicious or prompt-injected agent | Read-only tools; scope selection; rate limit; session lifetime | It can read what the user granted, which is the purpose of the feature |
-| Consent phishing (attacker registers a client and sends the user an authorize link) | The consent page shows the redirect host prominently and labels the client name as unverified; explicit click needed; pending request expires in 5 min | A user who approves an attacker's client leaks the granted scope for ≤ 60 min |
+| Consent phishing (attacker registers a client and sends the user an authorize link) | The consent page shows the redirect host prominently and labels the client name as unverified; explicit click needed; pending request expires in 5 min | A user who approves an attacker's client leaks the granted scope for the session length (30 min by default, 60 at most) |
 | Clickjacking the consent page | `frame-ancestors 'none'` (already set) | None |
 | XSS in the fire app | Existing CSP; the bridge adds only the relay host to `connect-src` | XSS already has the whole state, so the bridge does not widen it, but it must not add a new script source |
 | Stolen session id | `PROVE` with the non-extractable key on every connect | None |
@@ -234,25 +234,27 @@ This is the question the issue asks directly. Assume full control of the relay c
 
 ---
 
-## 10. Owner decisions before implementation
+## 10. Owner decisions
 
-- **D1 — Connector mode disclosure.** Accept that in connector mode the relay handles plaintext in memory per call (§5.3), with disclosure on the consent page and in the privacy policy? *Recommendation: yes. It is the only way to work with connectors added by URL, which was the goal of #266. Sealed mode follows as phase 2.*
-- **D2 — Relay host.** Cloudflare Workers + Durable Objects (recommended: no server to patch, per-session isolation) or a Node process on Fly.io or a VPS. Either needs an account and a deploy step that only the owner can set up.
-- **D3 — Defaults.** 60 min maximum, 10 min idle, 30 s grace, 30 calls/min, 256 KB per result. Change any before children are briefed.
+Decided by the owner on 2026-11-19. Children are briefed against these.
+
+- **D1 — Connector mode: accepted, with disclosure.** In connector mode the relay handles plaintext in memory for each call (§5.3). This is the only way to work with connectors added by URL, which was the goal of #266. It is the same trust the hosted deploy already places in Netlify Functions, which pass Plaid, Etsy and CoinTracker responses through in plaintext. The consent page and the privacy policy say so plainly. **Transactions start unticked** on the consent page, because they are the most detailed data and most agent questions (net worth, runway, FIRE date) do not need them. Sealed mode (§5.3) stays in the design but is built only when someone needs it.
+- **D2 — Relay host: Cloudflare Workers + Durable Objects.** There is no server to patch, each session is isolated in its own object, and WebSockets and in-memory state are native. A Node process on Fly.io would hold every session in one process on a machine that needs patching. Costs: a new Cloudflare account that only the owner can create, and Durable Objects bill for the time a WebSocket stays open, so child 8 confirms current pricing before deploying. Fly.io stays the fallback.
+- **D3 — Defaults.** Session length **30 min by default**, with 15 or 60 selectable on the consent page (a shorter session limits what a stolen token or a compromised relay can do). 10 min idle, 30 s reconnect grace, 30 calls per minute, 256 KB per result. The 256 KB cap is not yet checked against real data: child 1 measures each tool's output on the demo seed and a large ledger, and any tool that can exceed it (likely `get_transactions`) gets paging in child 4.
 
 ---
 
 ## 11. Proposed child issues (not yet created)
 
-Each child is imp-sized, testable on its own, uses `Refs #341`, and must not change the self-hosted `/mcp` or stdio paths. Children 2–5 are pure code with tests, with no deploy. Child 8 waits for D2.
+Each child is imp-sized, testable on its own, uses `Refs #341`, and must not change the self-hosted `/mcp` or stdio paths. Children 2–5 are pure code with tests, with no deploy. Child 8 needs the owner's Cloudflare account (D2).
 
-1. **Extract a browser-safe tool core.** Move `TOOLS` and `handleTool` from `app/mcp-server.mjs` into a module with no Node imports (no `fs`, no `db.js`), used by both the stdio server and the browser. Acceptance: stdio server unchanged; the read-only test covers the new module; a test imports it in a browser-like environment.
+1. **Extract a browser-safe tool core.** Measure each tool's output size on the demo seed and a large ledger (D3), then move `TOOLS` and `handleTool` from `app/mcp-server.mjs` into a module with no Node imports (no `fs`, no `db.js`), used by both the stdio server and the browser. Acceptance: stdio server unchanged; the read-only test covers the new module; a test imports it in a browser-like environment.
 2. **Bridge protocol module.** Frame schemas, `seq`/`id`/`deadline` checks, the `PROVE` message format, and size limits as a pure shared module with test vectors (replayed `seq`, expired deadline, duplicate `id`, oversized result, bad signature).
 3. **Relay: browser sessions.** WebSocket endpoint, `HELLO`/`CHALLENGE`/`PROVE`, ping, reconnect grace, idle and hard expiry, `END`, all in memory, tested with a fake clock. Includes the no-storage import test and the no-payload-logging test.
 4. **Relay: Streamable HTTP `/mcp`.** `initialize`, `tools/list` (filtered to the session scope), `tools/call` forwarded as `CALL`, deadline, in-flight cap, rate limit, error mapping (§6 table), `GET` → `405`.
 5. **Relay: OAuth authorization server.** Protected-resource and AS metadata, in-memory DCR, `/authorize` → consent redirect, `/authorize/complete`, `/token` with PKCE, revocation on session end, no refresh tokens. Tests for every row of the OAuth part of §7.
 6. **Browser: bridge host.** Web Locks leader, session key generation (non-extractable), WebSocket client, independent scope/TTL/idle/rate checks, `seq` checks, local activity log, "Connected agent" banner with Disconnect.
 7. **Browser: consent page.** `#/mcp-connect` route, `BroadcastChannel` handshake with the bridge host, scope selection, redirect-host display, "no data in this browser" state; add the relay host to `connect-src` in `app/_headers`.
-8. **Deploy wiring (after D2).** Relay deploy config, Netlify `200` rewrites for `/mcp` and the OAuth well-known paths, body logging off at the host. Owner-gated: it creates an account and a deployment.
+8. **Deploy wiring (Cloudflare, D2).** Confirm current Durable Objects pricing for open WebSockets before deploying. Wrangler config for the relay, Netlify `200` rewrites for `/mcp` and the OAuth well-known paths, body logging off at the host. Owner-gated: it creates an account and a deployment.
 9. **Docs.** Privacy policy section for the hosted bridge (including the D1 disclosure), README "MCP Server" hosted section, and new rows in the security-hardening MCP checklist.
 10. **Sealed mode (phase 2).** The local `fire-bridge` stdio shim, pairing string, HKDF key derivation and AES-GCM framing (§5.3, §7). Separate, optional, after phase 1 ships.
