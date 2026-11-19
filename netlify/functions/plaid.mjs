@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import crypto from '../../app/lib/node-crypto.js';
 import { parsePlaidTransactions } from '../../app/lib/finance-parsing.js';
 import plaidStatus from '../../app/lib/plaid-status.js';
 

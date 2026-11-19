@@ -7,7 +7,7 @@
 // here: the browser sends the state to back up, and restore hands the
 // decrypted state back for the browser to apply.
 
-import crypto from 'node:crypto';
+import crypto from '../../app/lib/node-crypto.js';
 import gdrive from '../../app/lib/gdrive-backup.js';
 import { encrypt, decrypt } from '../../app/lib/crypto-utils.js';
 import { json, redirect, methodNotAllowed, cookie } from '../lib/http.mjs';

@@ -10,7 +10,7 @@
 // the SPA posts the blob back to /sync, /inspect and /disconnect. No
 // CoinTracker token or data is stored server-side in either runtime.
 
-const crypto = require('crypto');
+const crypto = require('./node-crypto');
 const ct = require('./cointracker-connector');
 
 const COOKIE_NAME = 'cointracker_oauth';

@@ -1,6 +1,6 @@
 'use strict';
 
-const crypto = require('crypto');
+const crypto = require('./node-crypto');
 
 const EBAY_SANDBOX_BASE = 'https://api.sandbox.ebay.com';
 const EBAY_PROD_BASE = 'https://api.ebay.com';

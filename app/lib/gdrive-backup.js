@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+const crypto = require('./node-crypto');
 
 // Transport-agnostic Drive helpers shared by the Express routes
 // (app/routes/backup.js, tokens kept in an encrypted file under DATA_DIR) and

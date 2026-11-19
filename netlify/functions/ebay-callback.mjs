@@ -5,7 +5,7 @@
 // server or in Referer). The browser stores that blob but cannot read it;
 // only ebay-sync can decrypt it. Nothing is stored server-side.
 
-import crypto from 'crypto';
+import crypto from '../../app/lib/node-crypto.js';
 import ebayConnector from '../../app/lib/ebay-connector.js';
 import cryptoUtils from '../../app/lib/crypto-utils.js';
 import {

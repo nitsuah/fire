@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+const crypto = require('./node-crypto');
 const { DATA_DIR } = require('./db');
 const { encrypt, decrypt } = require('./crypto-utils');
 
