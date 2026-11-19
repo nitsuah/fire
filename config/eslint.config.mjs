@@ -29,6 +29,8 @@ export default [
             'app/lib/etsy-connector.js',
             'app/lib/etsy-handlers.js',
             'netlify/**/*.mjs',
+            'cloudflare/**/*.mjs',
+            'functions/**/*.js',
             'app/lib/metals-prices.js',
             'app/lib/net-worth-history.js',
             'app/lib/data-freshness.js',
