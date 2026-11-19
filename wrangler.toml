@@ -1,0 +1,8 @@
+# Cloudflare Pages config for the hosted app (see docs/cloudflare-pages.md).
+# The Pages Functions in functions/ reuse the Netlify Functions, which import
+# Node built-ins (crypto, fs, path), so they need nodejs_compat at bundle time.
+# Vars and secrets live on the Pages project as encrypted secrets, not here.
+name = "lifefire"
+pages_build_output_dir = "app"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]

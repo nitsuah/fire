@@ -15,7 +15,7 @@ is switched.
   `Request -> Response`), so every public URL, OAuth callback and the eBay
   marketplace-account-deletion endpoint stay the same.
   `tests/unit/cloudflare-pages.test.mjs` fails if the two drift.
-- **Runtime:** `nodejs_compat`. Vars and secrets set on the Pages project are
+- **Runtime:** `nodejs_compat`, set in `wrangler.toml` (the Pages build only applies it to the Functions bundle when it is in that file). Vars and secrets set on the Pages project are
   copied into `process.env` before each request.
 - **Local:** `npx wrangler pages dev app --compatibility-flags nodejs_compat`
   with secrets in `.dev.vars` (git-ignored).
