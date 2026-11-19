@@ -233,7 +233,7 @@ This is the question the issue asks directly. Assume full control of the relay c
 
 **Mitigations for what it can do:** the two forms of result tampering differ in what the user can see.
 
-- *Invented calls:* a result for a call the browser never received has no matching entry in the local activity log, so the user can spot it by comparing the log with what the agent reports.
+- *Invented calls:* a result for a call the browser never received has no matching entry in the local activity log. A mismatch between the log and what the agent reports is a possible signal, not a guarantee: the user has to look, and the agent may not say which calls it made.
 - *Altered results:* if the relay forwards a real call and changes the answer on the way back, the log shows a matching call. The log records no result content, so it cannot reveal the change. Nothing in connector mode detects this.
 
 Sealed mode removes both, because the relay cannot produce or alter valid ciphertext. Also: short sessions, scope selection on the consent page, the browser-side rate limit, the visible "Connected agent" banner with a live call counter and Disconnect, the local activity log (calls the agent did not make show up there), and sealed mode for users who need content confidentiality from the relay.
