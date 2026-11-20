@@ -89,3 +89,67 @@ describe('quick start DOM contract', () => {
         expect(modelIdx).toBeLessThan(appIdx);
     });
 });
+
+describe('quick start manager', () => {
+    const {
+        initQuickStart,
+        CONSENT_KEY,
+        DISMISS_KEY,
+    } = require('../../app/lib/managers/quick-start.js');
+
+    function setup(consented) {
+        const store = new Map(consented ? [[CONSENT_KEY, '1']] : []);
+        const mk = () => {
+            const handlers = {};
+            return {
+                hidden: true,
+                handlers,
+                addEventListener: (type, fn) => (handlers[type] = fn),
+            };
+        };
+        const els = {
+            'quick-start-card': mk(),
+            'quick-start-reopen': mk(),
+            'quick-start-dismiss': mk(),
+        };
+        globalThis.document = { getElementById: (id) => els[id] || null };
+        globalThis.localStorage = {
+            getItem: (k) => (store.has(k) ? store.get(k) : null),
+            setItem: (k, v) => store.set(k, String(v)),
+            removeItem: (k) => store.delete(k),
+        };
+        initQuickStart();
+        return { els, store };
+    }
+
+    it('registers the manager after the model and before app.js', () => {
+        const modelIdx = indexHtml.indexOf('src="lib/quick-start.js"');
+        const managerIdx = indexHtml.indexOf(
+            'src="lib/managers/quick-start.js"',
+        );
+        const appIdx = indexHtml.indexOf('src="app.js"');
+        expect(modelIdx).toBeLessThan(managerIdx);
+        expect(managerIdx).toBeLessThan(appIdx);
+    });
+
+    it('keeps the card and reopen button hidden before consent', () => {
+        const { els } = setup(false);
+        expect(els['quick-start-card'].hidden).toBe(true);
+        expect(els['quick-start-reopen'].hidden).toBe(true);
+    });
+
+    it('shows the card after consent, dismisses and reopens', () => {
+        const { els, store } = setup(true);
+        expect(els['quick-start-card'].hidden).toBe(false);
+        expect(els['quick-start-reopen'].hidden).toBe(true);
+        els['quick-start-dismiss'].handlers.click();
+        expect([...store.keys()].sort()).toEqual([CONSENT_KEY, DISMISS_KEY]);
+        expect(store.get(DISMISS_KEY)).toBe('1');
+        expect(els['quick-start-card'].hidden).toBe(true);
+        expect(els['quick-start-reopen'].hidden).toBe(false);
+        els['quick-start-reopen'].handlers.click();
+        expect(store.has(DISMISS_KEY)).toBe(false);
+        expect(els['quick-start-card'].hidden).toBe(false);
+        expect(els['quick-start-reopen'].hidden).toBe(true);
+    });
+});
