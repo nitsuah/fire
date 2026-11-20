@@ -31,6 +31,8 @@ const SHELL_ASSETS = [
     '/lib/finance-parsing.js',
     '/lib/finance-platforms.js',
     '/lib/ebay-connector.js',
+    '/lib/stripe-status.js',
+    '/lib/managers/stripe-card.js',
     '/lib/privacy.js',
     '/lib/notifications.js',
     '/lib/charts/cd-ladder.js',
