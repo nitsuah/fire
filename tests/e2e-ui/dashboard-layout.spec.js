@@ -645,6 +645,9 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
         await expect(tip).toContainText('Net Worth');
         await expect(tip).toContainText('Income / yr');
         await expect(tip).toContainText('Spend / yr');
+        await expect(tip).toContainText('FIRE-eligible assets');
+        await expect(tip).toContainText('FIRE target');
+        await expect(tip).toContainText('FIRE ETA');
     });
 });
 

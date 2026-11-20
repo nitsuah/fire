@@ -18,6 +18,21 @@ function getBannerAllocSegments() {
     return { segments, total };
 }
 
+// Where FIRE target stands: safe-withdrawal cover once reached, else
+// years left. '' no target set. Used by compact bar's panel.
+function fireEtaText(status, swr) {
+    const { networth, annualExpenses, fireNumber, yearsToFire } = status;
+    if (fireNumber <= 0) return '';
+    if (networth >= fireNumber) {
+        const income = networth * swr;
+        const cover = annualExpenses > 0 ? income / annualExpenses : 0;
+        return `Safe withdrawal ${formatCurrency(income)}/yr · ${cover.toFixed(1)}× spend`;
+    }
+    return yearsToFire === null
+        ? 'Not on track at current savings/returns'
+        : `~${yearsToFire} yr${yearsToFire === 1 ? '' : 's'} to FIRE`;
+}
+
 // gross = salary; interest = estimated yearly HYSA + CD interest + crypto
 // staking yield; total is what the Annual Income banner shows. Side hustle
 // stays a separate YTD sub-line since it's actuals-to-date, not an annual
@@ -111,8 +126,21 @@ function buildCompactBarTooltipHtml() {
         )
         .join('');
     const totalRow = `<div class="at-total"><span class="at-label">Net Worth</span><span class="at-val">${formatCurrency(total)}</span></div>`;
+    // FIRE details that used to sit in the removed banner block (#482):
+    // the assets the progress % is measured on, the target, and the ETA.
+    const status = window.FireAggregates.fireStatus(state);
+    const swr = (state.projectionSettings?.swr || 0) / 100;
+    const eta = fireEtaText(status, swr);
+    const fireRows =
+        `<div class="at-row"><span class="at-label">FIRE-eligible assets</span><span class="at-val">${formatCurrency(status.networth)}</span></div>` +
+        (status.fireNumber > 0
+            ? `<div class="at-row"><span class="at-label">FIRE target</span><span class="at-val">${formatCurrency(status.fireNumber)}</span></div>`
+            : '') +
+        (eta
+            ? `<div class="at-row"><span class="at-label">FIRE ETA</span><span class="at-val">${escHtml(eta)}</span></div>`
+            : '');
     const flowRows = `<div class="at-row"><span class="at-label">Income / yr</span><span class="at-val">${formatCurrency(income.total)}</span></div><div class="at-row"><span class="at-label">Interest &amp; yield / yr (est.)</span><span class="at-val">${formatCurrency(income.interest)}</span></div><div class="at-row"><span class="at-label">Side income YTD</span><span class="at-val">${formatCurrency(income.side)}</span></div><div class="at-row"><span class="at-label">Spend / yr</span><span class="at-val">${formatCurrency(annualExpenses)}</span></div>`;
-    return rows + totalRow + flowRows;
+    return rows + totalRow + fireRows + flowRows;
 }
 
 function initCompactFireBar() {
