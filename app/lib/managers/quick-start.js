@@ -43,7 +43,17 @@
             });
         }
 
+        // The layout manager can move the card out of its column and then hide
+        // the emptied column, so keep the reopen control next to the card.
+        function keepReopenBesideCard() {
+            const parent = card.parentNode;
+            if (parent && reopen.parentNode !== parent && parent.insertBefore) {
+                parent.insertBefore(reopen, card.nextSibling || null);
+            }
+        }
+
         function render() {
+            keepReopenBesideCard();
             const consented = !!readKey(CONSENT_KEY);
             const dismissed = readKey(DISMISS_KEY) === '1';
             card.hidden = !consented || dismissed;
@@ -57,6 +67,7 @@
                 /* storage unavailable: dismissal lasts until reload */
             }
             card.hidden = true;
+            keepReopenBesideCard();
             reopen.hidden = !readKey(CONSENT_KEY);
         });
         reopen.addEventListener('click', () => {
@@ -69,6 +80,9 @@
         });
         renderSteps();
         render();
+        // Privacy consent can arrive after init (first visit): let it refresh
+        // visibility without registering the click handlers again.
+        root.refreshQuickStart = render;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
