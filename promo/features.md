@@ -8,7 +8,7 @@ Capture assets live in `promo/out/capture/crops/` after a run (`card-*.png` per-
 |---|---|---|---|---|---|
 | 1 | Retire-date question → answer | "When can I retire?" | Count-up age hook → dashboard reveal | README · Projections | brag-22s, tour-85s |
 | 2 | Net worth dashboard | "Your whole net worth. One dashboard." | `dash.png` swinging in on a 3D tilt, or zooming to the FIRE progress bar | README · Net Worth Dashboard | brag-22s, tour-85s, connect-55s |
-| 3 | Self-hosted, one JSON file | "Your machine." / "Your money. Your machine." | Tagline + `docker compose up fire` chip; `lifefire.netlify.app` big in the outro; "1 file" stat | README intro | brag-22s, tour-85s, yours-60s |
+| 3 | Self-hosted, one JSON file | "Your machine." / "Your money. Your machine." | Tagline + `docker compose up fire` chip; `fire.nitsuah.io` big in the outro; "1 file" stat | README intro | brag-22s, tour-85s, yours-60s |
 | 4 | Every asset type counts (savings, Roth, ENS wallet, gold, CDs, car) | "Everything counts." / "yes, even the Malibu." | `hrow-*.png` + `vrow-1.png` stacking in | README · Net Worth, Precious metals, Crypto | brag-22s, tour-85s |
 | 5 | Bear/bull scenario bands | "Stress-test your retire date." | `proj-base/bear/bull.png` with cursor clicks (`proj:bear`, `proj:bull`) | FEATURES · Bull/Bear Scenario Bands | brag-22s, tour-85s, plan-65s |
 | 6 | MCP server, 16 read-only tools | "Ask Claude about your money." | Terminal + real MCP output (`mcp-status.json`, `mcp-<tool>.json`) | README · MCP Server | brag-22s, tour-85s, insights-60s, hustle-60s, yours-60s |
@@ -34,7 +34,7 @@ Capture assets live in `promo/out/capture/crops/` after a run (`card-*.png` per-
 | 26 | Security defaults (API key, loopback, Caddy HTTPS, CSP/SRI, rate limits) | "Locked down by default." | Bullets beside `card-privacy.png` | README · Security headers, HTTPS | site, yours-60s |
 | 27 | Read-only to real accounts | "Never moves a cent." | "$0 ever moved" stat | README intro | site, tour-85s, yours-60s |
 | 28 | Responsive mobile layout | "Pocket-sized." | `phone-dash.png` in a phone frame | README · Responsive shell | chaos-24s, chaos-60s, yours-60s |
-| 29 | Browser-only live demo | "Try it live." | `lifefire.netlify.app` (outro, large) | netlify.toml, README | every spot, site |
+| 29 | Browser-only live demo | "Try it live." | `fire.nitsuah.io` (outro, large) | netlify.toml, README | every spot, site |
 | 30 | REST API + JSON/CSV export | "Everything's an endpoint." | `card-data.png` + bullets | README · REST API | yours-60s |
 | 31 | PWA packaging | "Install fire." | *(future capture)* install prompt / offline shell | docs/FEATURES.md · Planned | |
 | 32 | 🌪️ Chaos mode (seeded life events on the projection) | "Every retirement plan assumes nothing goes wrong." | `proj-calm.png` → `proj-chaos.png` with a cursor click on Chaos; callouts placed from `chaos.json` | FEATURES · Chaos Mode | chaos-24s, site, tour-85s, chaos-60s |

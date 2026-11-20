@@ -79,6 +79,15 @@ async function loadStripeCard() {
         });
         const data = await res.json().catch(() => null);
 
+        // A 404 means this deployment has no Stripe routes (hosted, not
+        // self-hosted): that is the deployment limitation, not a load failure.
+        if (res.status === 404) {
+            if (myLoadId !== loadCounter) return;
+            lastStripeData = { configured: false };
+            renderStripeCard(lastStripeData);
+            return;
+        }
+
         if (!res.ok || !data || typeof data !== 'object') {
             throw new Error('Invalid response');
         }
