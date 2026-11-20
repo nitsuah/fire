@@ -136,6 +136,7 @@
 - **eBay OAuth Status** — Connection status check with authorize/sync endpoints in Settings page.
 - **Plaid Link Integration** — Plaid Link SDK embedded for bank/Fidelity aggregation; create-link-token and exchange endpoints.
 - **Vehicle Value Estimates** — Estimate overlay with depreciation model and market data sources; accept/save to vehicle record.
+- **Stripe Connection Card** — Self-hosted only; status (not configured / not connected / connected / partial / failed with error code), last-sync display, recovery hints, and confirm-guarded disconnect that deletes the encrypted restricted key (synced side-gig transactions stay).
 
 ## Diversification Intelligence
 

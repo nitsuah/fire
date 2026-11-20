@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Stripe (self-hosted): Settings connection card with five-state status (not configured / not connected / connected / partial / failed with error code), last-sync display from `lastSyncOutcome`/`lastSyncedAt`, recovery hints per state, and confirm-guarded disconnect that deletes the encrypted restricted key (synced side-gig transactions stay). Permissions: read-only restricted key; retention: key stored encrypted until disconnect; no live provider check; webhook handling not implemented (#261, #349).
 - Chaos Mode household profiles now filter inapplicable Insights mitigations and prune hidden selections from browser storage (#480).
 
 - Chaos Mode household profile controls: a 👤 toggle opens a panel to save or clear a household profile that persists and rehydrates with Chaos state, and hides when Chaos is off (#399).
