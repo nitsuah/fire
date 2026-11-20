@@ -281,7 +281,9 @@ test.describe('Stripe connection card', () => {
         await expect(page.locator('#btn-stripe-disconnect')).toBeVisible();
     });
 
-    test('disconnect: error shows message, keeps button', async ({ page }) => {
+    test('disconnect: error shows message in hint, keeps connected state', async ({
+        page,
+    }) => {
         await page.route('**/api/sync/stripe/status', async (route) => {
             await route.fulfill({
                 status: 200,
@@ -311,19 +313,30 @@ test.describe('Stripe connection card', () => {
 
         await openSettings(page);
 
+        // Verify initial connected state
+        await expect(page.locator('#stripe-status')).toHaveText('Connected');
+        await expect(page.locator('#btn-stripe-disconnect')).toBeVisible();
+        await expect(page.locator('#stripe-last-sync')).toContainText(
+            'Last sync:',
+        );
+        await expect(page.locator('#stripe-hint')).toBeHidden();
+
         page.on('dialog', async (dialog) => {
             await dialog.accept();
         });
 
         await page.locator('#btn-stripe-disconnect').click();
 
-        await expect(page.locator('#stripe-status')).toHaveText(
-            /Disconnect failed:/,
-        );
-        await expect(page.locator('#stripe-status')).toHaveCSS(
-            'color',
-            'rgb(244, 63, 94)',
-        );
+        // Status, last-sync, and button should remain exactly as they were (connected state)
+        await expect(page.locator('#stripe-status')).toHaveText('Connected');
         await expect(page.locator('#btn-stripe-disconnect')).toBeVisible();
+        await expect(page.locator('#stripe-last-sync')).toContainText(
+            'Last sync:',
+        );
+        // Error message appears in hint element
+        await expect(page.locator('#stripe-hint')).toHaveText(
+            'Disconnect failed: Internal server error',
+        );
+        await expect(page.locator('#stripe-hint')).toBeVisible();
     });
 });

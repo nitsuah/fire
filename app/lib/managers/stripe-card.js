@@ -4,11 +4,70 @@
    Self-hosted only: GET /api/sync/stripe/status, DELETE /api/sync/stripe/disconnect
    ========================================================================== */
 
-async function loadStripeCard() {
+let lastStripeData = null;
+
+function renderStripeCard(data) {
     const statusEl = document.getElementById('stripe-status');
     const hintEl = document.getElementById('stripe-hint');
     const lastSyncEl = document.getElementById('stripe-last-sync');
     const disconnectBtn = document.getElementById('btn-stripe-disconnect');
+    if (!statusEl) return;
+
+    // Not configured on this deployment (hosted Netlify, etc.)
+    if (data.configured === false) {
+        statusEl.textContent =
+            'Stripe sync is available on self-hosted deployments only';
+        statusEl.style.color = 'var(--color-warning, var(--color-danger))';
+        if (hintEl) {
+            hintEl.textContent =
+                'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
+            hintEl.hidden = false;
+        }
+        if (lastSyncEl) lastSyncEl.hidden = true;
+        if (disconnectBtn) disconnectBtn.hidden = true;
+        return;
+    }
+
+    // Use stripeStatusBadge and stripeRecoveryHint from stripe-status.js
+    const badge = stripeStatusBadge(data);
+    const hint = stripeRecoveryHint(data);
+
+    statusEl.textContent = badge.label;
+    statusEl.style.color = badge.color;
+
+    if (hintEl) {
+        if (hint) {
+            hintEl.textContent = hint;
+            hintEl.hidden = false;
+        } else {
+            hintEl.hidden = true;
+        }
+    }
+
+    // Last sync line
+    if (lastSyncEl) {
+        const last = data.lastSyncOutcome;
+        const lastSyncedAt = data.lastSyncedAt;
+        if (last && last.at) {
+            lastSyncEl.textContent = `Last sync: ${new Date(last.at).toLocaleString()}`;
+            lastSyncEl.hidden = false;
+        } else if (lastSyncedAt) {
+            lastSyncEl.textContent = `Last sync: ${new Date(lastSyncedAt).toLocaleString()}`;
+            lastSyncEl.hidden = false;
+        } else {
+            lastSyncEl.textContent = 'Never synced';
+            lastSyncEl.hidden = false;
+        }
+    }
+
+    // Disconnect button only when connected
+    if (disconnectBtn) {
+        disconnectBtn.hidden = data.connected !== true;
+    }
+}
+
+async function loadStripeCard() {
+    const statusEl = document.getElementById('stripe-status');
     if (!statusEl) return;
 
     try {
@@ -21,76 +80,17 @@ async function loadStripeCard() {
             throw new Error('Invalid response');
         }
 
-        // Not configured on this deployment (hosted Netlify, etc.)
-        if (data.configured === false) {
-            statusEl.textContent =
-                'Stripe sync is available on self-hosted deployments only';
-            statusEl.style.color = 'var(--color-warning, var(--color-danger))';
-            if (hintEl) {
-                hintEl.textContent =
-                    'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
-                hintEl.hidden = false;
-            }
-            if (lastSyncEl) lastSyncEl.hidden = true;
-            if (disconnectBtn) disconnectBtn.hidden = true;
-            return;
-        }
-
-        // Use stripeStatusBadge and stripeRecoveryHint from stripe-status.js
-        const badge = stripeStatusBadge(data);
-        const hint = stripeRecoveryHint(data);
-
-        statusEl.textContent = badge.label;
-        statusEl.style.color = badge.color;
-
-        if (hintEl) {
-            if (hint) {
-                hintEl.textContent = hint;
-                hintEl.hidden = false;
-            } else {
-                hintEl.hidden = true;
-            }
-        }
-
-        // Last sync line
-        if (lastSyncEl) {
-            const last = data.lastSyncOutcome;
-            const lastSyncedAt = data.lastSyncedAt;
-            if (last && last.at) {
-                lastSyncEl.textContent = `Last sync: ${new Date(last.at).toLocaleString()}`;
-                lastSyncEl.hidden = false;
-            } else if (lastSyncedAt) {
-                lastSyncEl.textContent = `Last sync: ${new Date(lastSyncedAt).toLocaleString()}`;
-                lastSyncEl.hidden = false;
-            } else {
-                lastSyncEl.textContent = 'Never synced';
-                lastSyncEl.hidden = false;
-            }
-        }
-
-        // Disconnect button only when connected
-        if (disconnectBtn) {
-            disconnectBtn.hidden = data.connected !== true;
-        }
+        lastStripeData = data;
+        renderStripeCard(data);
     } catch (err) {
-        statusEl.textContent =
-            'Stripe sync is available on self-hosted deployments only';
-        statusEl.style.color = 'var(--color-warning, var(--color-danger))';
-        if (hintEl) {
-            hintEl.textContent =
-                'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
-            hintEl.hidden = false;
-        }
-        if (lastSyncEl) lastSyncEl.hidden = true;
-        if (disconnectBtn) disconnectBtn.hidden = true;
+        // Self-hosted only rendering via renderStripeCard
+        renderStripeCard({ configured: false });
     }
 }
 
 async function disconnectStripe() {
     const statusEl = document.getElementById('stripe-status');
     const hintEl = document.getElementById('stripe-hint');
-    const lastSyncEl = document.getElementById('stripe-last-sync');
-    const disconnectBtn = document.getElementById('btn-stripe-disconnect');
     if (!statusEl) return;
 
     if (
@@ -111,43 +111,15 @@ async function disconnectStripe() {
             throw new Error(data?.error || `HTTP ${res.status}`);
         }
 
-        // Re-render from returned JSON (same logic as loadStripeCard)
-        const badge = stripeStatusBadge(data);
-        const hint = stripeRecoveryHint(data);
-
-        statusEl.textContent = badge.label;
-        statusEl.style.color = badge.color;
-
-        if (hintEl) {
-            if (hint) {
-                hintEl.textContent = hint;
-                hintEl.hidden = false;
-            } else {
-                hintEl.hidden = true;
-            }
-        }
-
-        if (lastSyncEl) {
-            const last = data.lastSyncOutcome;
-            const lastSyncedAt = data.lastSyncedAt;
-            if (last && last.at) {
-                lastSyncEl.textContent = `Last sync: ${new Date(last.at).toLocaleString()}`;
-                lastSyncEl.hidden = false;
-            } else if (lastSyncedAt) {
-                lastSyncEl.textContent = `Last sync: ${new Date(lastSyncedAt).toLocaleString()}`;
-                lastSyncEl.hidden = false;
-            } else {
-                lastSyncEl.textContent = 'Never synced';
-                lastSyncEl.hidden = false;
-            }
-        }
-
-        if (disconnectBtn) {
-            disconnectBtn.hidden = data.connected !== true;
-        }
+        lastStripeData = data;
+        renderStripeCard(data);
     } catch (err) {
-        statusEl.textContent = 'Disconnect failed: ' + err.message;
-        statusEl.style.color = 'var(--color-danger)';
+        // Keep previous state (status, last-sync, button) exactly as they were
+        // Show error only in the hint element
+        if (hintEl) {
+            hintEl.textContent = 'Disconnect failed: ' + err.message;
+            hintEl.hidden = false;
+        }
     }
 }
 
