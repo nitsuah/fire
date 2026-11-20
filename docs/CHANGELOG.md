@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).
 
 ### Fixed
+- Key rotation (`POST /api/admin/rotate-key`) now also re-encrypts the provider token files and local daily backups, all-or-nothing with rollback. Backups already stored in Google Drive keep the old key; run a new Drive backup after rotating.
 - Selects no longer truncate the selected value: shorter Filing State and eBay category option labels, the eBay category select spans the form row, and the Side Gig Ledger tax-tag select sizes to its longest tag (#172).
 - Table and projection summaries escape stored text before rendering. The shared `escHtml` in `lib/html-utils.js` (which also escapes single quotes and returns '' for null/undefined) is now the one used everywhere; the duplicate helpers in dashboard, real-estate, tax-harvest and projections were removed.
 
