@@ -34,18 +34,18 @@ describe('buildQuickStartFacts', () => {
     });
 
     it('privacy true only when privacyAccepted is true', () => {
-        expect(
-            buildQuickStartFacts({ privacyAccepted: true }).privacy,
-        ).toBe(true);
-        expect(
-            buildQuickStartFacts({ privacyAccepted: false }).privacy,
-        ).toBe(false);
-        expect(
-            buildQuickStartFacts({ privacyAccepted: 'yes' }).privacy,
-        ).toBe(false);
-        expect(
-            buildQuickStartFacts({ privacyAccepted: 1 }).privacy,
-        ).toBe(false);
+        expect(buildQuickStartFacts({ privacyAccepted: true }).privacy).toBe(
+            true,
+        );
+        expect(buildQuickStartFacts({ privacyAccepted: false }).privacy).toBe(
+            false,
+        );
+        expect(buildQuickStartFacts({ privacyAccepted: 'yes' }).privacy).toBe(
+            false,
+        );
+        expect(buildQuickStartFacts({ privacyAccepted: 1 }).privacy).toBe(
+            false,
+        );
     });
 
     it('accounts true when either array is non-empty', () => {
@@ -53,7 +53,8 @@ describe('buildQuickStartFacts', () => {
             buildQuickStartFacts({ state: { customAccounts: [{}] } }).accounts,
         ).toBe(true);
         expect(
-            buildQuickStartFacts({ state: { importedPositions: [{}] } }).accounts,
+            buildQuickStartFacts({ state: { importedPositions: [{}] } })
+                .accounts,
         ).toBe(true);
         expect(
             buildQuickStartFacts({
@@ -78,28 +79,40 @@ describe('buildQuickStartFacts', () => {
         expect(
             buildQuickStartFacts({
                 state: {
-                    projectionSettings: { ...DEFAULT_PROJECTION, retireAge: 55 },
+                    projectionSettings: {
+                        ...DEFAULT_PROJECTION,
+                        retireAge: 55,
+                    },
                 },
             }).profile,
         ).toBe(true);
         expect(
             buildQuickStartFacts({
                 state: {
-                    projectionSettings: { ...DEFAULT_PROJECTION, annualSavings: 30000 },
+                    projectionSettings: {
+                        ...DEFAULT_PROJECTION,
+                        annualSavings: 30000,
+                    },
                 },
             }).profile,
         ).toBe(true);
         expect(
             buildQuickStartFacts({
                 state: {
-                    projectionSettings: { ...DEFAULT_PROJECTION, expectedReturn: 7.5 },
+                    projectionSettings: {
+                        ...DEFAULT_PROJECTION,
+                        expectedReturn: 7.5,
+                    },
                 },
             }).profile,
         ).toBe(true);
         expect(
             buildQuickStartFacts({
                 state: {
-                    projectionSettings: { ...DEFAULT_PROJECTION, inflationRate: 3 },
+                    projectionSettings: {
+                        ...DEFAULT_PROJECTION,
+                        inflationRate: 3,
+                    },
                 },
             }).profile,
         ).toBe(true);
@@ -113,14 +126,20 @@ describe('buildQuickStartFacts', () => {
         expect(
             buildQuickStartFacts({
                 state: {
-                    projectionSettings: { ...DEFAULT_PROJECTION, spanYears: 25 },
+                    projectionSettings: {
+                        ...DEFAULT_PROJECTION,
+                        spanYears: 25,
+                    },
                 },
             }).profile,
         ).toBe(true);
         expect(
             buildQuickStartFacts({
                 state: {
-                    projectionSettings: { ...DEFAULT_PROJECTION, currentAge: 35 },
+                    projectionSettings: {
+                        ...DEFAULT_PROJECTION,
+                        currentAge: 35,
+                    },
                 },
             }).profile,
         ).toBe(true);
@@ -135,26 +154,29 @@ describe('buildQuickStartFacts', () => {
 
     it('providers true only for connected === true', () => {
         expect(
-            buildQuickStartFacts({ providerStatuses: [{ connected: true }] }).providers,
+            buildQuickStartFacts({ providerStatuses: [{ connected: true }] })
+                .providers,
         ).toBe(true);
         expect(
-            buildQuickStartFacts({ providerStatuses: [{ configured: true }] }).providers,
+            buildQuickStartFacts({ providerStatuses: [{ configured: true }] })
+                .providers,
         ).toBe(false);
         expect(
-            buildQuickStartFacts({ providerStatuses: [{ connected: false }] }).providers,
+            buildQuickStartFacts({ providerStatuses: [{ connected: false }] })
+                .providers,
         ).toBe(false);
-        expect(
-            buildQuickStartFacts({ providerStatuses: [{}] }).providers,
-        ).toBe(false);
+        expect(buildQuickStartFacts({ providerStatuses: [{}] }).providers).toBe(
+            false,
+        );
         expect(
             buildQuickStartFacts({ providerStatuses: [null] }).providers,
         ).toBe(false);
         expect(
             buildQuickStartFacts({ providerStatuses: [undefined] }).providers,
         ).toBe(false);
-        expect(
-            buildQuickStartFacts({ providerStatuses: [] }).providers,
-        ).toBe(false);
+        expect(buildQuickStartFacts({ providerStatuses: [] }).providers).toBe(
+            false,
+        );
         expect(
             buildQuickStartFacts({ providerStatuses: 'not-array' }).providers,
         ).toBe(false);
@@ -179,33 +201,28 @@ describe('buildQuickStartFacts', () => {
     });
 
     it('explore true for seed positive integer, false otherwise', () => {
+        expect(buildQuickStartFacts({ chaos: { seed: 12345 } }).explore).toBe(
+            true,
+        );
+        expect(buildQuickStartFacts({ chaos: { seed: 1 } }).explore).toBe(true);
+        expect(buildQuickStartFacts({ chaos: { seed: 0 } }).explore).toBe(
+            false,
+        );
+        expect(buildQuickStartFacts({ chaos: { seed: -1 } }).explore).toBe(
+            false,
+        );
+        expect(buildQuickStartFacts({ chaos: { seed: 1.5 } }).explore).toBe(
+            false,
+        );
+        expect(buildQuickStartFacts({ chaos: { enabled: true } }).explore).toBe(
+            false,
+        );
         expect(
-            buildQuickStartFacts({ chaos: { seed: 12345 } }).explore,
+            buildQuickStartFacts({ chaos: { enabled: true, seed: 42 } })
+                .explore,
         ).toBe(true);
-        expect(
-            buildQuickStartFacts({ chaos: { seed: 1 } }).explore,
-        ).toBe(true);
-        expect(
-            buildQuickStartFacts({ chaos: { seed: 0 } }).explore,
-        ).toBe(false);
-        expect(
-            buildQuickStartFacts({ chaos: { seed: -1 } }).explore,
-        ).toBe(false);
-        expect(
-            buildQuickStartFacts({ chaos: { seed: 1.5 } }).explore,
-        ).toBe(false);
-        expect(
-            buildQuickStartFacts({ chaos: { enabled: true } }).explore,
-        ).toBe(false);
-        expect(
-            buildQuickStartFacts({ chaos: { enabled: true, seed: 42 } }).explore,
-        ).toBe(true);
-        expect(
-            buildQuickStartFacts({ chaos: {} }).explore,
-        ).toBe(false);
-        expect(
-            buildQuickStartFacts({ chaos: null }).explore,
-        ).toBe(false);
+        expect(buildQuickStartFacts({ chaos: {} }).explore).toBe(false);
+        expect(buildQuickStartFacts({ chaos: null }).explore).toBe(false);
         expect(buildQuickStartFacts({}).explore).toBe(false);
     });
 

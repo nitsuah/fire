@@ -28,7 +28,8 @@
                 Array.isArray(i.providerStatuses) &&
                 i.providerStatuses.some((x) => x && x.connected === true),
             backup: !!i.driveStatus && i.driveStatus.authorized === true,
-            explore: !!i.chaos && Number.isInteger(i.chaos.seed) && i.chaos.seed > 0,
+            explore:
+                !!i.chaos && Number.isInteger(i.chaos.seed) && i.chaos.seed > 0,
         };
     }
 
