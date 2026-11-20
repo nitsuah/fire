@@ -51,8 +51,8 @@
     },
     {
       "kind": "outro", "title": "Your money. Your machine.", "min": 5,
-      "say": "fire is free and open source. Run it yourself, or try it live at lifefire dot netlify dot app.",
-      "caption": "fire is free and open source. Run it yourself, or try it live at lifefire.netlify.app"
+      "say": "fire is free and open source. Run it yourself, or try it live at fire dot nitsuah dot io.",
+      "caption": "fire is free and open source. Run it yourself, or try it live at fire.nitsuah.io"
     }
   ]
 }
