@@ -213,3 +213,11 @@ describe('quick start manager', () => {
         expect(els['quick-start-reopen'].hidden).toBe(true);
     });
 });
+
+describe('quick start precache', () => {
+    const swText = readFileSync(new URL('../../app/sw.js', import.meta.url), 'utf8');
+    it('precaches both Quick Start scripts in SHELL_ASSETS', () => {
+        expect(swText).toContain("'/lib/quick-start.js'");
+        expect(swText).toContain("'/lib/managers/quick-start.js'");
+    });
+});
