@@ -112,6 +112,7 @@ basic local use — the one exception is `FIRE_API_KEY` (or its explicit
 | `PORT` | Server port (default `3001`) |
 | `FIRE_API_KEY` | **Required by default.** All `/api/*` routes require `X-Api-Key: <value>`. The server refuses to start unless this or `FIRE_AUTH_DISABLED` is set |
 | `FIRE_AUTH_DISABLED` | Set to `true` to run with no API auth at all (local-only use). Leave unset if anyone else could reach the server — see security-hardening.md |
+| `FIRE_BIND_HOST` | Interface the server listens on. Defaults to `127.0.0.1`; the container images set `0.0.0.0` (compose publishes the port on loopback only). Set it explicitly only if you need LAN access and have `FIRE_API_KEY` set |
 | `FIRE_ADMIN_KEY` | **Required in production.** Gates `POST /api/admin/rotate-key` via `X-Admin-Key` header |
 | `SYNC_MASTER_KEY` | 64-hex-char key to encrypt `db.json` at rest with AES-256-GCM |
 | `FIRE_ALLOW_LEGACY_BACKUP_RESTORE` | Set to `1` to allow restoring older Google Drive backups that are not bound to an account. Off by default |
