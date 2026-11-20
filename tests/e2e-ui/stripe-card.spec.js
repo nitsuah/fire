@@ -48,12 +48,16 @@ const statusScenarios = [
             lastSyncOutcome: null,
         },
         assert: async (page) => {
-            await expect(page.locator('#stripe-status')).toHaveText('Not connected');
+            await expect(page.locator('#stripe-status')).toHaveText(
+                'Not connected',
+            );
             await expect(page.locator('#btn-stripe-disconnect')).toBeHidden();
             await expect(page.locator('#stripe-hint')).toHaveText(
                 'Click Connect to link your Stripe account.',
             );
-            await expect(page.locator('#stripe-last-sync')).toHaveText('Never synced');
+            await expect(page.locator('#stripe-last-sync')).toHaveText(
+                'Never synced',
+            );
         },
     },
     {
@@ -67,10 +71,14 @@ const statusScenarios = [
             lastSyncOutcome: null,
         },
         assert: async (page) => {
-            await expect(page.locator('#stripe-status')).toHaveText('Connected');
+            await expect(page.locator('#stripe-status')).toHaveText(
+                'Connected',
+            );
             await expect(page.locator('#btn-stripe-disconnect')).toBeVisible();
             await expect(page.locator('#stripe-hint')).toBeHidden();
-            await expect(page.locator('#stripe-last-sync')).toHaveText('Never synced');
+            await expect(page.locator('#stripe-last-sync')).toHaveText(
+                'Never synced',
+            );
         },
     },
     {
@@ -95,7 +103,9 @@ const statusScenarios = [
             await expect(page.locator('#stripe-hint')).toHaveText(
                 'Last sync failed. Check your connection and try syncing again.',
             );
-            await expect(page.locator('#stripe-last-sync')).toContainText('Last sync:');
+            await expect(page.locator('#stripe-last-sync')).toContainText(
+                'Last sync:',
+            );
             // Ensure no provider message is shown
             const hintText = await page.locator('#stripe-hint').textContent();
             expect(hintText).not.toContain('stripe_auth');
@@ -117,10 +127,14 @@ const statusScenarios = [
             },
         },
         assert: async (page) => {
-            await expect(page.locator('#stripe-status')).toHaveText('Connected');
+            await expect(page.locator('#stripe-status')).toHaveText(
+                'Connected',
+            );
             await expect(page.locator('#btn-stripe-disconnect')).toBeVisible();
             await expect(page.locator('#stripe-hint')).toBeHidden();
-            await expect(page.locator('#stripe-last-sync')).toContainText('Last sync:');
+            await expect(page.locator('#stripe-last-sync')).toContainText(
+                'Last sync:',
+            );
         },
     },
     {
@@ -219,12 +233,16 @@ test.describe('Stripe connection card', () => {
         await page.locator('#btn-stripe-disconnect').click();
 
         // After disconnect, status should show "Not connected"
-        await expect(page.locator('#stripe-status')).toHaveText('Not connected');
+        await expect(page.locator('#stripe-status')).toHaveText(
+            'Not connected',
+        );
         await expect(page.locator('#btn-stripe-disconnect')).toBeHidden();
         await expect(page.locator('#stripe-hint')).toHaveText(
             'Click Connect to link your Stripe account.',
         );
-        await expect(page.locator('#stripe-last-sync')).toHaveText('Never synced');
+        await expect(page.locator('#stripe-last-sync')).toHaveText(
+            'Never synced',
+        );
     });
 
     test('disconnect: cancel keeps connected', async ({ page }) => {
@@ -299,8 +317,13 @@ test.describe('Stripe connection card', () => {
 
         await page.locator('#btn-stripe-disconnect').click();
 
-        await expect(page.locator('#stripe-status')).toHaveText(/Disconnect failed:/);
-        await expect(page.locator('#stripe-status')).toHaveCSS('color', 'rgb(244, 63, 94)');
+        await expect(page.locator('#stripe-status')).toHaveText(
+            /Disconnect failed:/,
+        );
+        await expect(page.locator('#stripe-status')).toHaveCSS(
+            'color',
+            'rgb(244, 63, 94)',
+        );
         await expect(page.locator('#btn-stripe-disconnect')).toBeVisible();
     });
 });

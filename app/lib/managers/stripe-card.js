@@ -23,10 +23,12 @@ async function loadStripeCard() {
 
         // Not configured on this deployment (hosted Netlify, etc.)
         if (data.configured === false) {
-            statusEl.textContent = 'Stripe sync is available on self-hosted deployments only';
+            statusEl.textContent =
+                'Stripe sync is available on self-hosted deployments only';
             statusEl.style.color = 'var(--color-warning, var(--color-danger))';
             if (hintEl) {
-                hintEl.textContent = 'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
+                hintEl.textContent =
+                    'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
                 hintEl.hidden = false;
             }
             if (lastSyncEl) lastSyncEl.hidden = true;
@@ -71,10 +73,12 @@ async function loadStripeCard() {
             disconnectBtn.hidden = data.connected !== true;
         }
     } catch (err) {
-        statusEl.textContent = 'Stripe sync is available on self-hosted deployments only';
+        statusEl.textContent =
+            'Stripe sync is available on self-hosted deployments only';
         statusEl.style.color = 'var(--color-warning, var(--color-danger))';
         if (hintEl) {
-            hintEl.textContent = 'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
+            hintEl.textContent =
+                'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
             hintEl.hidden = false;
         }
         if (lastSyncEl) lastSyncEl.hidden = true;
