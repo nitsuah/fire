@@ -634,7 +634,7 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
             /^\d+\.\d% of FIRE target$/,
         );
         await expect(page.locator('#cfb-pct')).toHaveText(/^\d+\.\d%$/);
-        await expect(page.locator('#banner-networth')).toBeHidden();
+        await expect(page.locator('#banner-networth')).toHaveCount(0);
         await expect(page.locator('#banner-gross-income')).toBeHidden();
         await expect(page.locator('#banner-spend')).toBeHidden();
         await expect(page.locator('#banner-target')).toBeHidden();
@@ -645,6 +645,9 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
         await expect(tip).toContainText('Net Worth');
         await expect(tip).toContainText('Income / yr');
         await expect(tip).toContainText('Spend / yr');
+        await expect(tip).toContainText('FIRE-eligible assets');
+        await expect(tip).toContainText('FIRE target');
+        await expect(tip).toContainText('FIRE ETA');
     });
 });
 
@@ -654,7 +657,7 @@ test.describe('Summary bar — desktop uses the compact bar with income and spen
     }) => {
         await seedCashAccount(page, 'E2E Full Precision Seed', '50000');
         await page.locator('#btn-tab-dashboard').click();
-        await expect(page.locator('#banner-networth')).toBeHidden();
+        await expect(page.locator('#banner-networth')).toHaveCount(0);
         await expect(page.locator('#compact-fire-bar')).toBeVisible();
         await expect(page.locator('#banner-gross-income')).toBeVisible();
         await expect(page.locator('#banner-spend')).toBeVisible();

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings gains a Stripe connection card showing status and last sync, with a confirm-guarded disconnect (#349).
 
 ### Removed
+
+- The Estimated Net Worth block in the summary bar and its renderers; net worth stays in the compact bar tooltip. FIRE-eligible assets, target and ETA move into the compact bar tooltip. Positional banner CSS shifted to match (#482).
 - Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).
 
 ### Fixed
