@@ -19,7 +19,7 @@ that can only fail.
 | eBay | `data/tokens-ebay.json` (encrypted with `SYNC_MASTER_KEY` when set) | browser `localStorage`, sealed blob + sanitized last-sync outcome | `/api/sync/ebay/status`: Express returns configured/connected/lastSyncOutcome; Netlify Function returns `configured` only; hosted connection/outcome state remains browser-local (#326) |
 | Etsy | `data/tokens-etsy.json` | browser `localStorage`, sealed blob + local last-sync outcome | `/api/sync/etsy/status`; hosted function reports `configured`, browser adds its local outcome |
 | Plaid | `data/tokens-plaid.json` | browser, sealed `plaidToken` | `/api/sync/plaid/status` in both runtimes |
-| Stripe | Self-hosted `DATA_DIR/tokens-stripe.json` (AES-256-GCM; `SYNC_MASTER_KEY`) | unavailable — no Netlify function or credential store | `/api/sync/stripe/status`: local configuration/key-format metadata only (#345) |
+| Stripe | Self-hosted `DATA_DIR/tokens-stripe.json` (AES-256-GCM; `SYNC_MASTER_KEY`) | unavailable — no Netlify function or credential store | `/api/sync/stripe/status`: `configured`, `connected`, `lastSyncOutcome`, `lastSyncedAt` (#345, #347) |
 | CoinTracker | none — browser-held in **both** modes | browser `localStorage`, sealed blob | `/api/sync/cointracker/status` in both runtimes (#294) |
 | Google Drive backup | `data/tokens-gdrive.json` | sealed per request, browser-held | `/api/backup/drive/status` in both runtimes |
 
@@ -34,7 +34,7 @@ Its status call therefore takes the blob in an `Authorization` header.
 | eBay | yes — Express and Netlify status function both expose `configured` (#322/#324) | self-hosted token file; hosted sealed blob in browser | self-hosted `lastSyncOutcome` from token store (#323); hosted sanitized browser-local outcome survives reload and is replaced on success (#326) | revoked grant drops token and clears the browser outcome; next status is disconnected; live provider revocation remains unverified |
 | Etsy | yes | token file present | self-hosted `lastSyncOutcome` from token store; hosted browser-local `lastSyncOutcome` survives reload (#321) | known codes surface on sync; hosted dead-grant path clears the browser outcome |
 | Plaid | yes | items present | `lastSync: { at, ok, errorCode }` (#293) | yes — `reauthRequired` from a per-item `lastErrorCode` |
-| Stripe | valid 64-hex `SYNC_MASTER_KEY` | valid restricted key present locally (format only) | none — sync not wired | no live provider check; local format is not a re-auth signal |
+| Stripe | valid 64-hex `SYNC_MASTER_KEY` | valid restricted key present locally (format + stored encrypted) | `lastSyncOutcome: { at, ok, errorCode, partial }`; `lastSyncedAt` | no live provider check; disconnected on revoked grant (local only) |
 | CoinTracker | yes | sealed blob unseals (#294) | client-side `lastSync` key | yes — an unsealable blob is reported disconnected and dropped |
 | Drive backup | yes — `clientConfigured` + `masterKeySet` | server: token file; hosted: `authorized` is always `false` and the browser decides | none | a 401 with `gdrive_token_invalid` drops the sealed grant |
 
@@ -50,7 +50,7 @@ the grant is dead and retrying can never fix it — only the user can.
 | Etsy | `configured: false`, Connect hidden | `connected: false` | `lastSync: null` | `lastSyncOutcome.ok === false` + safe `errorCode` (browser-local when hosted) | revoked grant → token and outcome cleared |
 | eBay | `configured: false`, Connect hidden | `connected: false` | self-hosted: `connected: true`, `lastSync: null`; hosted: connected from sealed browser token, `lastSync: null` | self-hosted: `lastSyncOutcome.ok === false` + safe `errorCode`; hosted browser-local `lastSyncOutcome` survives reload (#326) | revoked grant clears token and outcome; next status is disconnected (live account behavior unverified) |
 | Drive backup | `clientConfigured`/`masterKeySet` false | `authorized: false` | authorized, never backed up | backup error surfaces `driveReason` | 401 `gdrive_token_invalid` drops the grant (hosted suite only) |
-| Stripe | missing/invalid `SYNC_MASTER_KEY` | configured but no valid restricted key | valid local key; sync endpoint not implemented | N/A — no sync outcome | N/A — provider key validity is not checked live |
+| Stripe | missing/invalid `SYNC_MASTER_KEY` | configured but no valid restricted key | valid local key; `lastSyncOutcome`/`lastSyncedAt` shown | `lastSyncOutcome.ok === false` + `errorCode`; `partial` flag when some data missing | N/A — no live provider check; disconnect deletes local key only |
 
 ## Verification status
 
@@ -127,4 +127,4 @@ Filed as follow-ups rather than left implicit:
    grant) but it means the endpoint's `authorized` field must never be trusted
    by a consumer other than the card.
 
-4. **Stripe is self-hosted-only and not yet sync-enabled.** Status reflects local key format/presence and master-key configuration; there is no hosted function, live provider verification, sync route/outcome, or remote key revocation (#345/#346/#409).
+4. **Stripe is self-hosted-only.** Settings card shows status (not configured, not connected, connected never synced, synced, partial, failed with error code), last-sync display from `lastSyncOutcome`/`lastSyncedAt`, recovery hint per state, and confirm-guarded disconnect that deletes the stored key (synced transactions stay). No live provider check; hosted deployments show "available on self-hosted deployments only". Webhook handling is not implemented (#348).
