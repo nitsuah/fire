@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Etsy (hosted): persist a sanitized last-sync outcome in browser storage so failures survive reloads; clear it on success, disconnect, lost grant, or reconnect (#321).
 - eBay (hosted): persist a sanitized last-sync outcome in browser storage; failures survive reloads, success replaces failure, and OAuth reconnect or lost grant clears stale state (#326).
 
+- Docs: `docs/hosted-mcp-browser-bridge.md` proposes the hosted MCP browser bridge: a memory-only relay, browser-held session keys, OAuth bound to a live browser session, short sessions, replay protection, a relay threat model and a proposed split into child issues. Design only; no code (#341).
 - Docs: `docs/stripe-overlap-audit.md` records where a Stripe connector could overlap eBay, Etsy, manual rows and bank deposits, the canonical Stripe key, and the rule that payouts are never income (#261).
 - Docs: add `docs/canonical-transactions.md` describing the current Stripe mapper, source provenance, cross-provider duplicate limits, and the manual user correction path (#344).
 - `scripts/fin-checkin.mjs`: the weekly financial check-in as a script. It pulls net worth, runway, CDs, concentration and price freshness through the read-only MCP code, picks the action item by fixed rules, and makes at most one 9router call to rewrite the templated text (templated fallback when it is down). Flags `--no-model`, `--rates`, `--json`; documented in the README with a Task Scheduler example.
