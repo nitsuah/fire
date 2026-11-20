@@ -10,6 +10,7 @@
 
 const crypto = require('./node-crypto');
 const etsy = require('./etsy-connector');
+const { cleanNonce, nonceSuffix } = require('./oauth-nonce');
 
 const COOKIE_NAME = 'etsy_oauth';
 const COOKIE_PATH = '/api/sync/etsy';
@@ -30,7 +31,7 @@ function notConfigured() {
 
 // authorize is a top-level navigation, so failures go back to the SPA as a
 // fragment rather than leaving the user on a bare JSON page.
-function authorize({ origin }) {
+function authorize({ origin, nonce }) {
     if (!etsy.isConfigured()) {
         notConfigured();
         return { redirect: '/#etsy-error=not_configured' };
@@ -41,7 +42,12 @@ function authorize({ origin }) {
     return {
         redirect: etsy.buildAuthorizationUrl({ redirectUri, state, challenge }),
         cookie: pendingCookie(
-            etsy.sealPending({ state, verifier, redirectUri }),
+            etsy.sealPending({
+                state,
+                verifier,
+                redirectUri,
+                nonce: cleanNonce(nonce),
+            }),
             origin.startsWith('https:'),
         ),
     };
@@ -55,9 +61,14 @@ async function callback(
     fetchImpl = fetch,
 ) {
     const clear = pendingCookie('', origin.startsWith('https:'), 0);
-    const back = (fragment) => ({ redirect: `/#${fragment}`, cookie: clear });
+    let suffix = '';
+    const back = (fragment) => ({
+        redirect: `/#${fragment}${suffix}`,
+        cookie: clear,
+    });
     if (!etsy.isConfigured()) return back('etsy-error=not_configured');
     const pending = etsy.unsealPending(cookieValue);
+    suffix = nonceSuffix(pending?.nonce);
     if (!pending || !etsy.statesMatch(params.get('state'), pending.state)) {
         return back('etsy-error=invalid_state');
     }

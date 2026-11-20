@@ -69,7 +69,10 @@ export default async function handler(req) {
     if (name === 'authorize' || name === 'callback') {
         if (req.method !== 'GET') return methodNotAllowed('GET');
         if (name === 'authorize')
-            return toResponse(handlers.authorize({ origin: url.origin }));
+            return toResponse(handlers.authorize({
+                    origin: url.origin,
+                    nonce: url.searchParams.get('n'),
+                }));
         return toResponse(
             await handlers.callback({
                 params: url.searchParams,

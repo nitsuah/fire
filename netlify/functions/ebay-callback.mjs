@@ -8,6 +8,7 @@
 import crypto from '../../app/lib/node-crypto.js';
 import ebayConnector from '../../app/lib/ebay-connector.js';
 import cryptoUtils from '../../app/lib/crypto-utils.js';
+import oauthNonce from '../../app/lib/oauth-nonce.js';
 import {
     redirect,
     methodNotAllowed,
@@ -19,8 +20,18 @@ import {
 const CLEAR_STATE_COOKIE =
     'ebay_oauth_state=; Path=/api/sync/ebay; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
 
-function back(fragment) {
-    return redirect(`/#${fragment}`, { 'Set-Cookie': CLEAR_STATE_COOKIE });
+// The state cookie is `<state>` or `<state>.<nonce>`; the nonce is echoed in
+// the result fragment so the SPA can match it to the attempt it started.
+function splitStateCookie(value) {
+    const [state, nonce] = String(value || '').split('.');
+    return { state, nonce: oauthNonce.cleanNonce(nonce) };
+}
+
+function backWith(nonce) {
+    return (fragment) =>
+        redirect(`/#${fragment}${oauthNonce.nonceSuffix(nonce)}`, {
+            'Set-Cookie': CLEAR_STATE_COOKIE,
+        });
 }
 
 function statesMatch(a, b) {
@@ -30,6 +41,8 @@ function statesMatch(a, b) {
 
 export default async function handler(req) {
     if (req.method !== 'GET') return methodNotAllowed('GET');
+    const stored = splitStateCookie(cookie(req, 'ebay_oauth_state'));
+    const back = backWith(stored.nonce);
     const missing = missingEnv(OAUTH_ENV);
     if (missing.length) {
         console.error(
@@ -39,7 +52,7 @@ export default async function handler(req) {
     }
     const params = new URL(req.url).searchParams;
     const code = params.get('code');
-    if (!statesMatch(params.get('state'), cookie(req, 'ebay_oauth_state'))) {
+    if (!statesMatch(params.get('state'), stored.state)) {
         return back('ebay-error=invalid_state');
     }
     if (!code) return back('ebay-error=access_denied');
