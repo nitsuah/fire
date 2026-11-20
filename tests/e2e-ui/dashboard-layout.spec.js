@@ -635,8 +635,9 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
         );
         await expect(page.locator('#cfb-pct')).toHaveText(/^\d+\.\d%$/);
         await expect(page.locator('#banner-networth')).toHaveCount(0);
-        await expect(page.locator('#banner-gross-income')).toBeVisible();
-        await expect(page.locator('#banner-spend')).toBeVisible();
+        await expect(page.locator('#banner-gross-income')).toBeHidden();
+        await expect(page.locator('#banner-spend')).toBeHidden();
+        await expect(page.locator('#banner-target')).toBeHidden();
         await page.locator('#compact-fire-bar').click();
         const tip = page.locator('#alloc-tooltip');
         await expect(tip).toBeVisible();
