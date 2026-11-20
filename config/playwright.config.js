@@ -1,5 +1,12 @@
 // @ts-check
 const { defineConfig, devices } = require('@playwright/test');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+// Private data directory for the test server: the DB, token files, backups
+// and anything else the app writes land here, never in the repo's data/.
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fire-playwright-'));
 
 // Real-browser UI regression coverage for the dashboard/projections layout
 // fixes and new widgets in the 2026 roadmap cycle.
@@ -44,10 +51,8 @@ module.exports = defineConfig({
         cwd: __dirname,
         env: {
             PORT: '3011',
-            FIRE_DB_FILE: require('path').join(
-                require('os').tmpdir(),
-                'fire-playwright-test-db.json',
-            ),
+            FIRE_DATA_DIR: TEST_DATA_DIR,
+            FIRE_DB_FILE: path.join(TEST_DATA_DIR, 'db.json'),
             // API auth is required by default as of PROD Phase 3 — this UI
             // suite drives the app unauthenticated, so opt out explicitly.
             FIRE_AUTH_DISABLED: 'true',
