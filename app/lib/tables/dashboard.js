@@ -34,49 +34,15 @@ function getBannerIncome() {
     };
 }
 
-// Where the FIRE target stands: the safe-withdrawal cover once reached, else
-// the years left. '' when no target is set. Used by the banner and the
-// compact bar's panel so they cannot disagree.
-function fireEtaText(status, swr) {
-    const { networth, annualExpenses, fireNumber, yearsToFire } = status;
-    if (fireNumber <= 0) return '';
-    if (networth >= fireNumber) {
-        const income = networth * swr;
-        const cover = annualExpenses > 0 ? income / annualExpenses : 0;
-        return `Safe withdrawal ${formatCurrency(income)}/yr · ${cover.toFixed(1)}× spend`;
-    }
-    return yearsToFire === null
-        ? 'Not on track at current savings/returns'
-        : `~${yearsToFire} yr${yearsToFire === 1 ? '' : 's'} to FIRE`;
-}
-
-// Sets the summary banner's Net Worth / Income / Spend Rate / FIRE Progress
-// text, plus the narrow-width single-bar variant of the same data.
+// Sets the summary banner's Spend Rate / FIRE Progress text, plus the
+// narrow-width single-bar variant of the same data.
 function renderHeaderBannerMetrics() {
     const status = window.FireAggregates.fireStatus(state);
-    const { networth, annualExpenses, fireNumber, progressPercent } = status;
+    const { annualExpenses, fireNumber, progressPercent } = status;
     const swr = state.projectionSettings.swr / 100;
-
-    const networthEl = document.getElementById('banner-networth');
-    if (networthEl) networthEl.textContent = formatCurrency(networth);
 
     const spendEl = document.getElementById('banner-spend');
     if (spendEl) spendEl.textContent = formatCurrency(annualExpenses);
-
-    const progressEl = document.getElementById('banner-progress');
-    if (progressEl) progressEl.textContent = `${progressPercent.toFixed(1)}%`;
-
-    const targetEl = document.getElementById('banner-target');
-    if (targetEl)
-        targetEl.textContent = `Target: ${formatCurrency(fireNumber)}`;
-
-    // Past 100% the bar alone says nothing, so show what the portfolio can
-    // pay out; before it, how long until FIRE at current savings/returns.
-    const etaEl = document.getElementById('banner-fire-eta');
-    if (etaEl) etaEl.textContent = fireEtaText(status, swr);
-
-    const fireBarEl = document.getElementById('banner-fire-bar');
-    if (fireBarEl) fireBarEl.style.width = `${Math.min(progressPercent, 100)}%`;
 
     const income = getBannerIncome();
     const grossIncomeEl = document.getElementById('banner-gross-income');
@@ -248,60 +214,6 @@ function initGrowthSizeControls() {
     btn.addEventListener('click', () =>
         apply(!card.classList.contains('growth-size-wide')),
     );
-}
-
-function renderAllocMiniBarsBanner() {
-    const el = document.getElementById('banner-alloc-bars');
-    if (!el) return;
-    const { segments, total } = getBannerAllocSegments();
-    if (total === 0) {
-        el.innerHTML = '';
-        return;
-    }
-    el.innerHTML = `<div class="alloc-bar-track">${segments
-        .map(
-            (s) =>
-                `<div class="alloc-bar-seg csp-dynamic-bg" data-csp-width="${s.pct.toFixed(1)}" data-csp-color="${escHtml(s.color)}" title="${escHtml(s.label)}: ${s.pct.toFixed(1)}%"></div>`,
-        )
-        .join('')}</div>`;
-
-    el.querySelectorAll('[data-csp-width]').forEach((node) => {
-        node.style.width = `${node.dataset.cspWidth}%`;
-    });
-    el.querySelectorAll('[data-csp-color]').forEach((node) => {
-        node.style.backgroundColor = node.dataset.cspColor;
-    });
-
-    const track = el.querySelector('.alloc-bar-track');
-    const tip = document.getElementById('alloc-tooltip');
-    if (!track || !tip) return;
-
-    const tooltipRows = segments
-        .map(
-            (s) =>
-                `<div class="at-row"><span class="at-dot at-dot csp-dynamic-bg" data-csp-color="${escHtml(s.color)}"></span><span class="at-label">${escHtml(s.label)}</span><span class="at-val">${formatCurrency(s.amt)}</span><span class="at-pct">${s.pct.toFixed(1)}%</span></div>`,
-        )
-        .join('');
-    const totalRow = `<div class="at-total"><span class="at-label">Total NW</span><span class="at-val">${formatCurrency(total)}</span></div>`;
-
-    track.addEventListener('mouseenter', () => {
-        tip.innerHTML = tooltipRows + totalRow;
-        tip.querySelectorAll('[data-csp-color]').forEach((node) => {
-            node.style.backgroundColor = node.dataset.cspColor;
-        });
-        tip.style.display = 'block';
-    });
-    track.addEventListener('mouseleave', () => {
-        tip.style.display = 'none';
-    });
-    track.addEventListener('mousemove', (e) => {
-        const x = e.clientX + 14,
-            y = e.clientY - 10;
-        const vw = window.innerWidth,
-            tw = tip.offsetWidth || 240;
-        tip.style.left = (x + tw > vw ? vw - tw - 8 : x) + 'px';
-        tip.style.top = y + 'px';
-    });
 }
 
 // escHtml comes from lib/html-utils.js (loaded first in index.html).

@@ -634,10 +634,9 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
             /^\d+\.\d% of FIRE target$/,
         );
         await expect(page.locator('#cfb-pct')).toHaveText(/^\d+\.\d%$/);
-        await expect(page.locator('#banner-networth')).toBeHidden();
-        await expect(page.locator('#banner-gross-income')).toBeHidden();
-        await expect(page.locator('#banner-spend')).toBeHidden();
-        await expect(page.locator('#banner-target')).toBeHidden();
+        await expect(page.locator('#banner-networth')).toHaveCount(0);
+        await expect(page.locator('#banner-gross-income')).toBeVisible();
+        await expect(page.locator('#banner-spend')).toBeVisible();
         await page.locator('#compact-fire-bar').click();
         const tip = page.locator('#alloc-tooltip');
         await expect(tip).toBeVisible();
@@ -654,7 +653,7 @@ test.describe('Summary bar — desktop uses the compact bar with income and spen
     }) => {
         await seedCashAccount(page, 'E2E Full Precision Seed', '50000');
         await page.locator('#btn-tab-dashboard').click();
-        await expect(page.locator('#banner-networth')).toBeHidden();
+        await expect(page.locator('#banner-networth')).toHaveCount(0);
         await expect(page.locator('#compact-fire-bar')).toBeVisible();
         await expect(page.locator('#banner-gross-income')).toBeVisible();
         await expect(page.locator('#banner-spend')).toBeVisible();

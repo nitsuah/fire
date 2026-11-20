@@ -45,7 +45,11 @@ test(
                 await accept.click();
                 await expect(accept).toBeHidden();
                 await settle(page);
-                await expect(page.locator('#banner-networth')).toHaveText(
+                await page.locator('#compact-fire-bar').hover();
+                await expect(page.locator('#alloc-tooltip')).toContainText(
+                    'Net Worth',
+                );
+                await expect(page.locator('#alloc-tooltip')).toContainText(
                     '$287,897.50',
                 );
                 await expect(page.locator('#banner-spend')).toHaveText(
