@@ -5,6 +5,7 @@
    ========================================================================== */
 
 let lastStripeData = null;
+let loadCounter = 0;
 
 function renderStripeCard(data) {
     const statusEl = document.getElementById('stripe-status');
@@ -20,7 +21,7 @@ function renderStripeCard(data) {
         statusEl.style.color = 'var(--color-warning, var(--color-danger))';
         if (hintEl) {
             hintEl.textContent =
-                'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
+                'Set SYNC_MASTER_KEY (64 hex characters) on your self-hosted server to enable Stripe sync.';
             hintEl.hidden = false;
         }
         if (lastSyncEl) lastSyncEl.hidden = true;
@@ -70,6 +71,8 @@ async function loadStripeCard() {
     const statusEl = document.getElementById('stripe-status');
     if (!statusEl) return;
 
+    const myLoadId = ++loadCounter;
+
     try {
         const res = await fetch('/api/sync/stripe/status', {
             cache: 'no-store',
@@ -80,11 +83,33 @@ async function loadStripeCard() {
             throw new Error('Invalid response');
         }
 
+        // Ignore stale responses (another load or disconnect started)
+        if (myLoadId !== loadCounter) {
+            return;
+        }
+
         lastStripeData = data;
         renderStripeCard(data);
     } catch (err) {
-        // Self-hosted only rendering via renderStripeCard
-        renderStripeCard({ configured: false });
+        // Ignore stale errors
+        if (myLoadId !== loadCounter) {
+            return;
+        }
+        // Network error, non-OK HTTP, or invalid JSON
+        const hintEl = document.getElementById('stripe-hint');
+        const lastSyncEl = document.getElementById('stripe-last-sync');
+        const disconnectBtn = document.getElementById('btn-stripe-disconnect');
+
+        statusEl.textContent = 'Unable to load Stripe status';
+        statusEl.style.color = 'var(--color-danger)';
+
+        if (hintEl) {
+            hintEl.textContent =
+                'Check the server is running, then reopen Settings to retry.';
+            hintEl.hidden = false;
+        }
+        if (lastSyncEl) lastSyncEl.hidden = true;
+        if (disconnectBtn) disconnectBtn.hidden = true;
     }
 }
 
@@ -100,6 +125,9 @@ async function disconnectStripe() {
     ) {
         return;
     }
+
+    // Invalidate any status load already in flight so it cannot repaint "Connected".
+    loadCounter++;
 
     try {
         const res = await fetch('/api/sync/stripe/disconnect', {

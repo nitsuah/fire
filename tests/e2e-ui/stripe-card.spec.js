@@ -53,7 +53,7 @@ const statusScenarios = [
             );
             await expect(page.locator('#btn-stripe-disconnect')).toBeHidden();
             await expect(page.locator('#stripe-hint')).toHaveText(
-                'Click Connect to link your Stripe account.',
+                'Store a Stripe restricted key via POST /api/sync/stripe/credentials (see docs/integrations.md).',
             );
             await expect(page.locator('#stripe-last-sync')).toHaveText(
                 'Never synced',
@@ -147,7 +147,7 @@ const statusScenarios = [
             );
             await expect(page.locator('#btn-stripe-disconnect')).toBeHidden();
             await expect(page.locator('#stripe-hint')).toHaveText(
-                'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.',
+                'Set SYNC_MASTER_KEY (64 hex characters) on your self-hosted server to enable Stripe sync.',
             );
         },
     },
@@ -238,7 +238,7 @@ test.describe('Stripe connection card', () => {
         );
         await expect(page.locator('#btn-stripe-disconnect')).toBeHidden();
         await expect(page.locator('#stripe-hint')).toHaveText(
-            'Click Connect to link your Stripe account.',
+            'Store a Stripe restricted key via POST /api/sync/stripe/credentials (see docs/integrations.md).',
         );
         await expect(page.locator('#stripe-last-sync')).toHaveText(
             'Never synced',
@@ -338,5 +338,98 @@ test.describe('Stripe connection card', () => {
             'Disconnect failed: Internal server error',
         );
         await expect(page.locator('#stripe-hint')).toBeVisible();
+    });
+
+    test('stale status response after disconnect is ignored', async ({
+        page,
+    }) => {
+        // Initial status: connected
+        let statusResponse = {
+            configured: true,
+            connected: true,
+            webhookConfigured: true,
+            lastUpdated: new Date().toISOString(),
+            lastSyncedAt: '2025-01-15T10:30:00.000Z',
+            lastSyncOutcome: {
+                ok: true,
+                partial: false,
+                at: '2025-01-15T10:30:00.000Z',
+            },
+        };
+
+        await page.route('**/api/sync/stripe/status', async (route) => {
+            // Add delay to simulate slow response
+            await new Promise((r) => setTimeout(r, 500));
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(statusResponse),
+            });
+        });
+
+        // Disconnect returns disconnected state
+        await page.route('**/api/sync/stripe/disconnect', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    configured: true,
+                    connected: false,
+                    webhookConfigured: false,
+                    lastUpdated: new Date().toISOString(),
+                    lastSyncedAt: null,
+                    lastSyncOutcome: null,
+                }),
+            });
+        });
+
+        await openSettings(page);
+
+        // Verify initial connected state
+        await expect(page.locator('#stripe-status')).toHaveText('Connected');
+        await expect(page.locator('#btn-stripe-disconnect')).toBeVisible();
+
+        // Accept confirm and click disconnect
+        page.on('dialog', async (dialog) => {
+            await dialog.accept();
+        });
+
+        await page.locator('#btn-stripe-disconnect').click();
+
+        // Wait for disconnect to complete (status should show Not connected)
+        await expect(page.locator('#stripe-status')).toHaveText(
+            'Not connected',
+        );
+        await expect(page.locator('#btn-stripe-disconnect')).toBeHidden();
+
+        // Now let the delayed status response resolve - it should be ignored
+        // Card should still show disconnected state
+        await new Promise((r) => setTimeout(r, 1000));
+        await expect(page.locator('#stripe-status')).toHaveText(
+            'Not connected',
+        );
+        await expect(page.locator('#btn-stripe-disconnect')).toBeHidden();
+    });
+
+    test('500 response shows load failure message', async ({ page }) => {
+        await page.route('**/api/sync/stripe/status', async (route) => {
+            await route.fulfill({
+                status: 500,
+                contentType: 'application/json',
+                body: JSON.stringify({ error: 'Internal server error' }),
+            });
+        });
+
+        await openSettings(page);
+
+        await expect(page.locator('#stripe-status')).toHaveText(
+            'Unable to load Stripe status',
+        );
+        await expect(page.locator('#stripe-hint')).toHaveText(
+            'Check the server is running, then reopen Settings to retry.',
+        );
+        await expect(page.locator('#stripe-hint')).toBeVisible();
+        await expect(page.locator('#stripe-last-sync')).toBeHidden();
+        await expect(page.locator('#btn-stripe-disconnect')).toBeHidden();
     });
 });
