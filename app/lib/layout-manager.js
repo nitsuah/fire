@@ -108,6 +108,7 @@ const DEFAULT_BOARDS = {
                     'settings:plaid-transaction-sync',
                     'cointracker-card',
                     'settings-marketplaces-card',
+                    'settings-stripe-card',
                 ],
             ],
         ],

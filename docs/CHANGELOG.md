@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dev dependencies: `@eslint/js` 10 (its new `no-useless-assignment` findings in the CSV import parsers are fixed), prettier 3.10.1, supertest 7.3.2; express-rate-limit 8.7.4.
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
 - Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification and hosted credential storage remain unavailable (#409).
+- Settings gains a Stripe connection card showing status and last sync, with a confirm-guarded disconnect (#349).
 
 ### Removed
 - Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).

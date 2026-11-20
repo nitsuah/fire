@@ -1749,6 +1749,24 @@
                             </div>
                         </div>
 
+                        <!-- Stripe Connection -->
+                        <div class="card glass-card settings-card--stripe" id="settings-stripe-card">
+                            <h2 class="card-title">Stripe Connection</h2>
+                            <p class="card-subtitle">Read-only sync of Stripe transactions (charges, refunds, payouts, fees) into the ledger.</p>
+                            <div class="api-connector-panel mt-3">
+                                <div class="connector-header">
+                                    <h3 class="csp-i-012">💳 Stripe</h3>
+                                    <span class="badge-type badge-cd">Read-only</span>
+                                </div>
+                                <p class="text-muted mt-2 csp-i-015" id="stripe-status">Checking status…</p>
+                                <p class="text-muted mt-1 csp-i-015" id="stripe-hint" hidden></p>
+                                <p class="text-muted mt-1 csp-i-015" id="stripe-last-sync" hidden></p>
+                                <div class="grid-organic-2 mt-2">
+                                    <button type="button" class="backup-btn" id="btn-stripe-disconnect" data-stripe-action="disconnect" hidden>Disconnect</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Privacy & Terms -->
                         <div class="card glass-card settings-card--privacy">
                             <h2 class="card-title">Privacy & Terms</h2>
@@ -1844,6 +1862,8 @@
     <script src="lib/ebay-status.js"></script>
     <script src="lib/side-gig.js"></script>
     <script src="lib/etsy-sync.js"></script>
+    <script src="lib/stripe-status.js"></script>
+    <script src="lib/managers/stripe-card.js"></script>
     <script src="lib/cointracker-merge.js"></script>
     <script src="lib/cointracker.js"></script>
     <script src="lib/chaos-events.js"></script>
