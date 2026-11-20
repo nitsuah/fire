@@ -2,6 +2,7 @@
 
 const express = require('express');
 const jsonata = require('jsonata');
+const { evaluateMapping } = require('../lib/jsonata-eval');
 const crypto = require('crypto');
 const { readState, mutateState } = require('../lib/db');
 const { integrateWebhookData } = require('../lib/webhook-integration');
@@ -97,6 +98,11 @@ router.post('/templates', async (req, res) => {
                 .status(400)
                 .json({ error: 'Invalid mapping: must be a string.' });
         }
+        if (req.body.mapping.length > 8192) {
+            return res
+                .status(400)
+                .json({ error: 'Invalid mapping: too long (max 8192 characters).' });
+        }
         try {
             jsonata(req.body.mapping);
         } catch {
@@ -136,6 +142,11 @@ router.put('/templates/:id', async (req, res) => {
             return res
                 .status(400)
                 .json({ error: 'Invalid mapping: must be a string.' });
+        }
+        if (req.body.mapping.length > 8192) {
+            return res
+                .status(400)
+                .json({ error: 'Invalid mapping: too long (max 8192 characters).' });
         }
         try {
             jsonata(req.body.mapping);
@@ -240,17 +251,10 @@ router.post('/webhook/:templateId', async (req, res) => {
     let transformedData = {};
     try {
         if (template.mapping && typeof template.mapping === 'string') {
-            const expression = jsonata(template.mapping);
-            let timeoutHandle;
-            transformedData = await Promise.race([
-                expression.evaluate(req.body),
-                new Promise((_, reject) => {
-                    timeoutHandle = setTimeout(
-                        () => reject(new Error('JSONata evaluation timed out')),
-                        5000,
-                    );
-                }),
-            ]).finally(() => clearTimeout(timeoutHandle));
+            transformedData = await evaluateMapping(
+                template.mapping,
+                req.body,
+            );
         } else {
             transformedData = req.body;
         }
