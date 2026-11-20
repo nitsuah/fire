@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Stripe connection card: a 404 from the status route (a deployment without Stripe routes) shows the self-hosted guidance again instead of "Unable to load Stripe status"; other failures still show the load error.
 - Compact summary bar now reflows when the device rotates within the narrow breakpoint, and the e2e layout test waits for the tab fade-in animation before measuring card positions (fixes flaky `chaos-and-layout.spec.js` "a card alone in its section spans the full width").
 - Side Gig Ledger manual-entry form now stacks with visible labels at tablet/phone widths, and the tax summary wraps without horizontal overflow (#173).
 
