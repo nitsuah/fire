@@ -71,7 +71,7 @@ Not verified here, and not something a code read can establish:
 
 - **Revoking a grant at the provider** (Etsy/eBay/Plaid/Drive dashboards) and
   confirming the next status call flips to re-link. Needs live accounts.
-- **A live Link → exchange → sync run** on `lifefire.netlify.app` for Plaid,
+- **A live Link → exchange → sync run** on `fire.nitsuah.io` for Plaid,
   which `docs/TASKS.md` already tracks as open.
 - **Live eBay provider/account behavior** (credential configuration, OAuth round trip, and provider-side grant revocation) remains unverified; the hosted status function is covered only with synthetic environment values. Keep live acceptance on the checklist below (#262).
 

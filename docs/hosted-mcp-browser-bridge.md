@@ -11,7 +11,7 @@
 
 ## 1. Goal and constraints
 
-A remote agent (for example a Claude connector added by URL) should be able to use fire's read-only MCP tools against the **hosted** deploy (fire.nitsuah.io / lifefire.netlify.app). On the hosted deploy the financial state lives only in the user's browser (`fire_tracker_state` in `localStorage`). The server has no copy and must not get one. The browser tab is the data source, and the server only relays messages in flight.
+A remote agent (for example a Claude connector added by URL) should be able to use fire's read-only MCP tools against the **hosted** deploy (fire.nitsuah.io). On the hosted deploy the financial state lives only in the user's browser (`fire_tracker_state` in `localStorage`). The server has no copy and must not get one. The browser tab is the data source, and the server only relays messages in flight.
 
 The owner approved this constraint set on 2026-11-18. Each constraint is a requirement in this design:
 
