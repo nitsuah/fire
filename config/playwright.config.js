@@ -6,7 +6,9 @@ const path = require('path');
 
 // Private data directory for the test server: the DB, token files, backups
 // and anything else the app writes land here, never in the repo's data/.
-const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fire-playwright-'));
+const TEST_DATA_DIR = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'fire-playwright-'),
+);
 
 // Real-browser UI regression coverage for the dashboard/projections layout
 // fixes and new widgets in the 2026 roadmap cycle.
@@ -21,6 +23,14 @@ const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fire-playwright-'))
 //
 // Starts the app itself (webServer) against an isolated temp DB so it never
 // touches a real data/db.json.
+process.once('exit', () => {
+    try {
+        fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
+    } catch {
+        /* best effort */
+    }
+});
+
 module.exports = defineConfig({
     testDir: '../tests/e2e-ui',
     // One worker: every spec shares the single webServer + temp DB, and the
