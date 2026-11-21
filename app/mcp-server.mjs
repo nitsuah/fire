@@ -8,7 +8,6 @@ import { createRequire } from 'module';
 import { appendFileSync } from 'fs';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
-import { createHash } from 'crypto';
 
 const require = createRequire(import.meta.url);
 // Deliberately does NOT import writeState / mutateState — the MCP server is
@@ -36,11 +35,6 @@ function writeAuditLog(toolName, responseBytes) {
     }
 }
 
-// Node hasher for pagingKey (SHA-256 hex)
-function nodeHasher(input) {
-    return createHash('sha256').update(input).digest('hex');
-}
-
 async function main() {
     initDatabase();
 
@@ -57,9 +51,7 @@ async function main() {
         const { name, arguments: toolArgs = {} } = request.params;
         try {
             const state = readState();
-            const result = handleTool(name, state, toolArgs, {
-                hasher: nodeHasher,
-            });
+            const result = handleTool(name, state, toolArgs);
             const text = JSON.stringify(result, null, 2);
             writeAuditLog(name, Buffer.byteLength(text, 'utf8'));
             return {

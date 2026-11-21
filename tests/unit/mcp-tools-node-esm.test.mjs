@@ -121,8 +121,8 @@ describe('get_transactions legacy output keys', () => {
     });
 });
 
-describe('get_transactions paging error without hasher', () => {
-    it('returns paging_unavailable error when offset/pagingKey requested without hasher', async () => {
+describe('get_transactions paging without an injected hasher', () => {
+    it('pages with the built-in fingerprint and rejects a stale pagingKey', async () => {
         const { handleTool } = await import('../../app/mcp-tools.mjs');
         const sampleState = {
             spendingTransactions: [
@@ -163,14 +163,48 @@ describe('get_transactions paging error without hasher', () => {
             netWorthHistory: [],
             importedFiles: [],
         };
-        const result = handleTool('get_transactions', sampleState, {
-            offset: 1,
-            pagingKey: 'abc',
-            limit: 2,
+        const page1 = handleTool('get_transactions', sampleState, {
+            offset: 0,
+            limit: 1,
         });
-        expect(result).toEqual(
-            expect.objectContaining({ error: 'paging_unavailable' }),
-        );
+        expect(page1.pagingKey).toMatch(/^[0-9a-f]{16}$/);
+        const page2 = handleTool('get_transactions', sampleState, {
+            offset: 1,
+            pagingKey: page1.pagingKey,
+            limit: 1,
+        });
+        expect(page2.transactions.map((t) => t.id)).toEqual(['a']);
+        expect(() =>
+            handleTool('get_transactions', sampleState, {
+                offset: 1,
+                pagingKey: 'abc',
+                limit: 1,
+            }),
+        ).toThrow(/stale_offset/);
+    });
+
+    it('rejects an async hasher instead of storing a Promise as the key', async () => {
+        const { handleTool } = await import('../../app/mcp-tools.mjs');
+        const state = {
+            spendingTransactions: [{ id: 'a', date: '2026-09-02', amount: 1 }],
+        };
+        expect(() =>
+            handleTool(
+                'get_transactions',
+                state,
+                { offset: 0 },
+                {
+                    hasher: async () => 'x',
+                },
+            ),
+        ).toThrow(/synchronously/);
+    });
+
+    it('fingerprints deterministically and distinguishes lists', async () => {
+        const { pagingFingerprint } = await import('../../app/mcp-tools.mjs');
+        expect(pagingFingerprint('a,b')).toBe(pagingFingerprint('a,b'));
+        expect(pagingFingerprint('a,b')).not.toBe(pagingFingerprint('b,a'));
+        expect(pagingFingerprint('')).toBe('cbf29ce484222325');
     });
 });
 

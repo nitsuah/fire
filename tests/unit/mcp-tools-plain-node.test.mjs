@@ -11,15 +11,28 @@ const toolsUrl = pathToFileURL(resolve('app/mcp-tools.mjs')).href;
 
 const script = `
 const m = await import(${JSON.stringify(toolsUrl)});
-const state = { importedPositions: [], customAccounts: [], cds: [], expenses: {},
-  insurances: [], projectionSettings: { swr: 4 }, sideGigLedger: [], transactions: [] };
+const state = { importedPositions: [], customAccounts: [
+    { id: '1', name: 'Checking', type: 'Cash', value: 50000 },
+    { id: '2', name: 'Brokerage', type: 'Brokerage', value: 100000 },
+  ], cds: [], expenses: { housing: 1500 }, insurances: [], projectionSettings: { swr: 4 },
+  sideGigLedger: [], transactions: [] };
+// Valid arguments where a tool's real code path needs them; {} for the rest.
+const ARGS = {
+  simulate_rebalance: { soldAsset: 'equities', amount: 10000, boughtAsset: 'cash' },
+  get_transactions: { offset: 0, limit: 10 },
+};
+const calls = [...m.TOOLS.map((t) => [t.name, ARGS[t.name] ?? {}]), ['simulate_rebalance', { chaos: true }]];
+const binding = /is not a function|undefined|TypeError/;
 const failures = [];
-for (const t of m.TOOLS) {
+for (const [name, args] of calls) {
+  const label = name + (args.chaos ? '(chaos)' : '');
   try {
-    const r = await m.handleTool(t.name, state, {}, {});
-    if (r && typeof r.error === 'string' && /is not a function|undefined|TypeError/.test(r.error)) failures.push(t.name + ': ' + r.error);
+    const r = m.handleTool(name, state, args);
+    if (r && typeof r.error === 'string' && binding.test(r.error)) failures.push(label + ': ' + r.error);
+    // simulate_rebalance must reach its helpers, not stop at input validation.
+    if (name === 'simulate_rebalance' && (!r || r.error)) failures.push(label + ' returned ' + JSON.stringify(r).slice(0, 200));
   } catch (e) {
-    if (e instanceof TypeError) failures.push(t.name + ': ' + e.message);
+    if (e instanceof TypeError || name === 'simulate_rebalance') failures.push(label + ': ' + e.message);
   }
 }
 process.stdout.write(JSON.stringify({ count: m.TOOLS.length, failures }));

@@ -5,7 +5,8 @@
    writes) and reads no environment variables. Its helpers in ./lib are CommonJS, imported
    via their default export (named imports are undefined under native Node ESM);
    the future browser host must bundle them or ship ESM builds (see
-   docs/hosted-mcp-browser-bridge.md). Paging needs an injected SHA-256 hasher.
+   docs/hosted-mcp-browser-bridge.md). handleTool is synchronous; paging keys
+   use a built-in synchronous fingerprint (pagingFingerprint).
    ========================================================================== */
 
 import { buildProjectionData } from './lib/finance-calcs.js';
@@ -371,22 +372,33 @@ export const TOOLS = [
 
 const MAX_PAGE_SIZE = 1000;
 
+const FNV64_OFFSET = 0xcbf29ce484222325n;
+const FNV64_PRIME = 0x100000001b3n;
+const U64 = 0xffffffffffffffffn;
+
+/**
+ * Paging fingerprint: a pagingKey only has to notice that the matched list
+ * changed between pages. It is not a security boundary (the data is the
+ * caller's own), so a synchronous 64-bit FNV-1a works the same in Node and in
+ * a browser, where Web Crypto would make every tool call async.
+ */
+export function pagingFingerprint(text) {
+    let h = FNV64_OFFSET;
+    for (let i = 0; i < text.length; i++) {
+        h ^= BigInt(text.charCodeAt(i));
+        h = (h * FNV64_PRIME) & U64;
+    }
+    return h.toString(16).padStart(16, '0');
+}
+
 function handleTool(name, state, toolArgs = {}, options = {}) {
-    const { hasher = null } = options;
+    // handleTool is synchronous by contract; an injected hasher must be too.
+    const hashFn =
+        typeof options.hasher === 'function'
+            ? options.hasher
+            : pagingFingerprint;
     const pagingRequested =
         toolArgs.offset !== undefined || toolArgs.pagingKey !== undefined;
-    // Use injected hasher for pagingKey computation; fail closed if paging requested without hasher
-    let hashFn = null;
-    if (pagingRequested) {
-        if (!hasher) {
-            return {
-                error: 'paging_unavailable',
-                message:
-                    'SHA-256 hasher required for paging; inject options.hasher',
-            };
-        }
-        hashFn = hasher;
-    }
 
     switch (name) {
         case 'fire_status_summary': {
@@ -837,15 +849,6 @@ function handleTool(name, state, toolArgs = {}, options = {}) {
                 throw new Error('pagingKey is required when offset > 0');
             }
 
-            // Validate hasher if paging requested
-            if (pagingRequested && !hashFn) {
-                return {
-                    error: 'paging_unavailable',
-                    message:
-                        'SHA-256 hasher required for paging; inject options.hasher',
-                };
-            }
-
             // Rows come from CSV imports (locale dates like "9/24/2026") and
             // Plaid (YYYY-MM-DD), so filter on the parsed instant, not a
             // string prefix.
@@ -882,10 +885,16 @@ function handleTool(name, state, toolArgs = {}, options = {}) {
             });
 
             // Compute pagingKey from matched rows (before applying offset/limit)
-            // Only compute if paging was requested (since hashFn is only available then)
             let currentPagingKey = null;
             if (pagingRequested) {
                 currentPagingKey = hashFn(rows.map((r) => r.txn.id).join(','));
+                if (typeof currentPagingKey !== 'string') {
+                    // e.g. an async (Web Crypto) hasher: a Promise key would
+                    // serialize to {} and fail every later page as stale.
+                    throw new Error(
+                        'options.hasher must return a string synchronously',
+                    );
+                }
 
                 // Verify pagingKey if provided
                 if (offset > 0 && pagingKey !== currentPagingKey) {
