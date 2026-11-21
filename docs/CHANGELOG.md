@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Quick Start card controller: shows the Dashboard Quick Start card after privacy consent (no reload needed), with dismiss and a reopen control that stays reachable; step buttons open their tabs (#444).
 - Quick Start card styling (progress, step list with 44px tap targets, dismiss and reopen controls), and both Quick Start scripts are precached by the service worker for offline loads (#440).
+- Quick Start steps now reflect real state: privacy consent, accounts, projection profile, connected providers (only `connected: true` counts), Drive backup and Chaos Mode; recomputed on each render, never stored (#484).
 - Stripe (self-hosted): Settings connection card with five-state status (not configured / not connected / connected / partial / failed with error code), last-sync display from `lastSyncOutcome`/`lastSyncedAt`, recovery hints per state, and confirm-guarded disconnect that deletes the encrypted restricted key (synced side-gig transactions stay). Permissions: read-only restricted key; retention: key stored encrypted until disconnect; no live provider check; webhook handling not implemented (#261, #349).
 - Chaos Mode household profiles now filter inapplicable Insights mitigations and prune hidden selections from browser storage (#480).
 
