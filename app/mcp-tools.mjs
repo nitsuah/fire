@@ -2,7 +2,7 @@
    mcp-tools.mjs — Pure, browser-safe MCP tool definitions and handler.
 
    This module contains NO Node built-in imports (no fs, no db.js, no audit-log
-   writes) and reads no process.env. Its helpers in ./lib are CommonJS, imported
+   writes) and reads no environment variables. Its helpers in ./lib are CommonJS, imported
    via their default export (named imports are undefined under native Node ESM);
    the future browser host must bundle them or ship ESM builds (see
    docs/hosted-mcp-browser-bridge.md). Paging needs an injected SHA-256 hasher.
