@@ -182,6 +182,9 @@ app.use(
 app.post('/api/sync/stripe/webhook', generalLimiter, async (req, res) => {
     res.set('Cache-Control', 'no-store');
 
+    // The signing secret is stored encrypted with SYNC_MASTER_KEY
+    // (token-store -> crypto-utils), so without a valid master key it cannot
+    // be read and the endpoint is not configured.
     if (!/^[0-9a-fA-F]{64}$/.test(process.env.SYNC_MASTER_KEY || '')) {
         return res.status(503).json({ error: 'Stripe webhook not configured' });
     }

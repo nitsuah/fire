@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
     verifyStripeSignature,
     DEFAULT_TOLERANCE_SECONDS,
@@ -296,18 +296,31 @@ describe('verifyStripeSignature', () => {
         expect(result.code).toBe('timestamp_out_of_tolerance');
     });
 
-    it('uses timingSafeEqual (equal-length buffers required)', () => {
-        const timestamp = Math.floor(fixedNow / 1000);
-        const sig = createHmac(payload, secret, timestamp);
-        const header = makeHeader(timestamp, sig);
-
-        const result = verifyStripeSignature({
-            payload,
-            header,
-            secret,
-            now: fixedNow,
-        });
-        expect(result.ok).toBe(true);
+    it('compares signatures with crypto.timingSafeEqual', () => {
+        const spy = vi.spyOn(crypto, 'timingSafeEqual');
+        try {
+            const timestamp = Math.floor(fixedNow / 1000);
+            const sig = createHmac(payload, secret, timestamp);
+            // Same length, last hex digit changed: only a byte compare catches it
+            const wrong = sig.slice(0, -1) + (sig.endsWith('0') ? '1' : '0');
+            const ok = verifyStripeSignature({
+                payload,
+                header: makeHeader(timestamp, sig),
+                secret,
+                now: fixedNow,
+            });
+            const bad = verifyStripeSignature({
+                payload,
+                header: makeHeader(timestamp, wrong),
+                secret,
+                now: fixedNow,
+            });
+            expect(ok.ok).toBe(true);
+            expect(bad.ok).toBe(false);
+            expect(spy).toHaveBeenCalled();
+        } finally {
+            spy.mockRestore();
+        }
     });
 
     it('DEFAULT_TOLERANCE_SECONDS is 300', () => {
