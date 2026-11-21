@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Stripe webhook receiver `POST /api/sync/stripe/webhook` (self-hosted): verifies Stripe signatures with a 5-minute tolerance, fails closed until a signing secret is stored, rate limited (#348).
+- Stripe webhook idempotency (self-hosted): durable event-ID replay protection. After signature verification, `event.id` is looked up in a JSON store under the data directory (atomic write via temp file + rename). Duplicate IDs return `200 { received: true, duplicate: true }` without reprocessing. Store capped at 10,000 entries; entries older than 30 days pruned on write. Event ID validated against `^evt_[A-Za-z0-9_]+$`. Concurrency-safe via in-process promise chain. (#491)
 - Quick Start Hub: six-step card on the Dashboard (privacy, accounts, retirement assumptions, provider, backup, explore), progress from real state on every render, dismissal in `localStorage` with reopen button (#223).
 - Quick Start card controller: shows the Dashboard Quick Start card after privacy consent (no reload needed), with dismiss and a reopen control that stays reachable; step buttons open their tabs (#444).
 - Quick Start card styling (progress, step list with 44px tap targets, dismiss and reopen controls), and both Quick Start scripts are precached by the service worker for offline loads (#440).

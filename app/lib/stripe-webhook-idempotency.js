@@ -1,0 +1,140 @@
+/* global module, require, process, console */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('./node-crypto');
+const { DATA_DIR } = require('./db');
+
+const IDEMPOTENCY_FILE = path.join(DATA_DIR, 'stripe-webhook-idempotency.json');
+const MAX_ENTRIES = 10000;
+const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const EVENT_ID_REGEX = /^evt_[A-Za-z0-9_]+$/;
+
+let _writeChain = Promise.resolve();
+
+function readStore() {
+    if (!fs.existsSync(IDEMPOTENCY_FILE)) {
+        return { entries: [] };
+    }
+    try {
+        const raw = fs.readFileSync(IDEMPOTENCY_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.entries)) {
+            return parsed;
+        }
+    } catch (err) {
+        console.error(
+            '[Stripe Idempotency] Failed to read store:',
+            err.message,
+        );
+    }
+    return { entries: [] };
+}
+
+function writeStore(store) {
+    const tmp = `${IDEMPOTENCY_FILE}.${process.pid}.${Date.now()}.${crypto.randomBytes(8).toString('hex')}.tmp`;
+    try {
+        fs.writeFileSync(tmp, JSON.stringify(store), { mode: 0o600 });
+        fs.renameSync(tmp, IDEMPOTENCY_FILE);
+        return true;
+    } catch (err) {
+        try {
+            if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+        } catch (cleanupErr) {
+            console.error(
+                '[Stripe Idempotency] Failed to clean up temp file:',
+                cleanupErr.message,
+            );
+        }
+        throw err;
+    }
+}
+
+function pruneOldEntries(entries, now = Date.now()) {
+    const cutoff = now - TTL_MS;
+    return entries.filter((e) => e.receivedAt > cutoff);
+}
+
+function enforceCapacity(entries) {
+    if (entries.length > MAX_ENTRIES) {
+        return entries.slice(-MAX_ENTRIES);
+    }
+    return entries;
+}
+
+function validateEventId(eventId) {
+    return typeof eventId === 'string' && EVENT_ID_REGEX.test(eventId);
+}
+
+/**
+ * Check if an event ID has already been processed.
+ * If not, record it and return { processed: true }.
+ * If yes, return { processed: false, duplicate: true }.
+ * Throws on invalid eventId.
+ */
+async function checkAndRecord(eventId, eventType, now = Date.now()) {
+    if (!validateEventId(eventId)) {
+        const err = new Error('Invalid event ID');
+        err.code = 'INVALID_EVENT_ID';
+        throw err;
+    }
+
+    const task = _writeChain.then(async () => {
+        const store = readStore();
+        let entries = store.entries;
+
+        // Check for duplicate
+        const existing = entries.find((e) => e.id === eventId);
+        if (existing) {
+            return { processed: false, duplicate: true };
+        }
+
+        // Record new event
+        entries.push({ id: eventId, type: eventType, receivedAt: now });
+        entries = pruneOldEntries(entries, now);
+        entries = enforceCapacity(entries);
+
+        writeStore({ entries });
+        return { processed: true, duplicate: false };
+    });
+
+    _writeChain = task.catch(() => {}); // recover chain on failure
+    return task;
+}
+
+/**
+ * Get current store stats (for testing/debugging)
+ */
+function getStats() {
+    const store = readStore();
+    return {
+        count: store.entries.length,
+        oldest: store.entries[0]?.receivedAt ?? null,
+        newest: store.entries[store.entries.length - 1]?.receivedAt ?? null,
+    };
+}
+
+/**
+ * Clear the store (for testing)
+ */
+function clearStore() {
+    try {
+        if (fs.existsSync(IDEMPOTENCY_FILE)) fs.unlinkSync(IDEMPOTENCY_FILE);
+    } catch (err) {
+        console.error(
+            '[Stripe Idempotency] Failed to clear store:',
+            err.message,
+        );
+    }
+}
+
+module.exports = {
+    checkAndRecord,
+    validateEventId,
+    getStats,
+    clearStore,
+    EVENT_ID_REGEX,
+    MAX_ENTRIES,
+    TTL_MS,
+};
