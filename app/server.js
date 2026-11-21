@@ -12,6 +12,8 @@ const {
     readState,
     mutateState,
 } = require('./lib/db');
+const { loadTokens } = require('./lib/token-store');
+const { verifyStripeSignature } = require('./lib/stripe-webhook-signature');
 const { recordNetWorthSnapshot } = require('./lib/net-worth-history');
 const { collectLiveQuotes } = require('./lib/server-reprice');
 const { applyLiveValues } = require('./lib/live-values');
@@ -173,6 +175,74 @@ app.use(
     }),
 );
 
+// Stripe webhook (#348). Stripe signs the exact request bytes; the global
+// express.json() above keeps them in req.rawBody via its verify hook. The route
+// is registered before session and API-key auth (Stripe cannot send our key; the
+// signature is the trust boundary) but keeps the general rate limiter.
+app.post('/api/sync/stripe/webhook', generalLimiter, async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+
+    // The signing secret is stored encrypted with SYNC_MASTER_KEY
+    // (token-store -> crypto-utils), so without a valid master key it cannot
+    // be read and the endpoint is not configured.
+    if (!/^[0-9a-fA-F]{64}$/.test(process.env.SYNC_MASTER_KEY || '')) {
+        return res.status(503).json({ error: 'Stripe webhook not configured' });
+    }
+
+    const tokens = loadTokens('stripe');
+    const secret = tokens?.webhookSigningSecret;
+    if (!secret) {
+        return res.status(503).json({ error: 'Stripe webhook not configured' });
+    }
+
+    const header = req.headers['stripe-signature'];
+    if (!header) {
+        console.log('[Stripe Webhook] missing_header');
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    const payload = req.rawBody;
+    if (!payload) {
+        console.log('[Stripe Webhook] missing_body');
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+    const verification = verifyStripeSignature({
+        payload,
+        header,
+        secret,
+    });
+
+    if (!verification.ok) {
+        console.log(`[Stripe Webhook] ${verification.code}`);
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    let event;
+    try {
+        event = JSON.parse(payload.toString());
+    } catch {
+        console.log('[Stripe Webhook] parse_error');
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    // Record minimal sync status if store exists
+    try {
+        const state = readState();
+        if (state && typeof state === 'object') {
+            if (!state.stripeWebhookStatus) state.stripeWebhookStatus = {};
+            state.stripeWebhookStatus.lastWebhookAt = new Date().toISOString();
+            state.stripeWebhookStatus.lastEventType = event.type;
+            mutateState((s) => {
+                s.stripeWebhookStatus = state.stripeWebhookStatus;
+            });
+        }
+    } catch {
+        // Ignore state update failures
+    }
+
+    return res.json({ received: true });
+});
+
 app.use(
     session({
         secret: SESSION_SECRET || 'a-very-secret-key',
@@ -206,6 +276,12 @@ if (!AUTH_DISABLED) {
         // can't send our x-api-key. The verification token / endpoint-URL
         // match (see routes/sync.js) is that endpoint's own trust boundary.
         if (req.path === '/sync/ebay/marketplace-account-deletion') {
+            return next();
+        }
+        // Stripe webhook: Stripe's servers call this directly and can't send
+        // our x-api-key. The signature verification (stripe-webhook-signature.js)
+        // is this endpoint's trust boundary.
+        if (req.path === '/sync/stripe/webhook') {
             return next();
         }
         const key = req.headers['x-api-key'];
