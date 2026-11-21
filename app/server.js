@@ -218,6 +218,7 @@ if (!AUTH_DISABLED) {
 
 app.use('/api', generalLimiter);
 app.use('/api/sync', syncLimiter);
+app.use('/mcp', generalLimiter, require('./routes/mcp'));
 
 initDatabase();
 
