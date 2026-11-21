@@ -130,6 +130,7 @@
   - Click a title to collapse a card. Dashboard ＋ Add widget pins cards from other tabs (keyboard-trapped picker that restores focus), ✕ removes cards, ↺ Reset restores a tab.
   - Persisted per browser (`fire_layout_v2`, migrating v1) in `app/lib/layout-manager.js`. CSP-safe: no inline handlers or style attributes.
 - **Milestone Preset Selector** — 5 financial profiles (Conservative, Standard, Aggressive, Barista FIRE, Coast FIRE) with dynamic targets based on user's income/net worth.
+- **Quick Start Hub** — Appears on the Dashboard only after the privacy notice is accepted; six steps (privacy, accounts, retirement assumptions, provider, backup, explore), the first three required and the last three optional; each step links to the existing tab or the Privacy & Terms control; progress is recomputed from real state on every render and is never stored; a provider counts only when its status endpoint reports `connected: true` (hosted deploys that keep credentials in the browser may under-report); "profile" means at least one projection assumption differs from its default; "explore" means Chaos mode was turned on at least once; dismissal is the only thing stored, in `localStorage` key `fire_quick_start_dismissed` (`'1'`), and a "Quick Start" button reopens the card.
 
 ## Integrations (UI Ready)
 
