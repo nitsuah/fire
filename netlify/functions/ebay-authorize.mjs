@@ -5,6 +5,7 @@
 
 import crypto from '../../app/lib/node-crypto.js';
 import ebayConnector from '../../app/lib/ebay-connector.js';
+import oauthNonce from '../../app/lib/oauth-nonce.js';
 import {
     json,
     redirect,
@@ -23,13 +24,15 @@ export default async function handler(req) {
         return json(503, { error: 'eBay connection is not configured.' });
     }
     const state = crypto.randomBytes(16).toString('hex');
+    const nonce = oauthNonce.cleanNonce(new URL(req.url).searchParams.get('n'));
+    const cookieValue = nonce ? `${state}.${nonce}` : state;
     return redirect(
         ebayConnector.buildAuthorizationUrl(
             process.env.EBAY_REDIRECT_URI,
             state,
         ),
         {
-            'Set-Cookie': `ebay_oauth_state=${state}; Path=/api/sync/ebay; HttpOnly; Secure; SameSite=Lax; Max-Age=600`,
+            'Set-Cookie': `ebay_oauth_state=${cookieValue}; Path=/api/sync/ebay; HttpOnly; Secure; SameSite=Lax; Max-Age=600`,
         },
     );
 }

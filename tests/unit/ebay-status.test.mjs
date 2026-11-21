@@ -156,6 +156,8 @@ function hostedHarness() {
         alert: vi.fn(),
         console,
     });
+    context.crypto = globalThis.crypto;
+    vm.runInContext(source('html-utils.js'), context);
     vm.runInContext(source('ebay-status.js'), context);
     vm.runInContext(source('side-gig.js'), context);
     context.showSideGigToast = vi.fn();
@@ -352,9 +354,9 @@ describe('hosted eBay call-site transitions', () => {
         const { context, values } = hostedHarness();
         context.sessionStorage.setItem(
             'fire_tracker_ebay_connect_pending',
-            '1',
+            'ab'.repeat(16),
         );
-        context.window.location.hash = '#ebay-connected=new-sealed-token';
+        context.window.location.hash = `#ebay-connected=new-sealed-token&n=${'ab'.repeat(16)}`;
         context.checkEbayConnection = vi.fn().mockResolvedValue(undefined);
         context.runEbaySyncNow = vi.fn().mockResolvedValue({ added: 0 });
         await context.consumeEbayOauthFragment();

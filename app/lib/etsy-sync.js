@@ -199,36 +199,26 @@ function startEtsyConnect() {
     // The OAuth state cookie protects Etsy → callback; this marker protects
     // callback → SPA, so a crafted /#etsy-connected=<blob> link can't
     // silently connect someone else's shop in this browser.
-    etsyWrite(ETSY_CONNECT_PENDING_KEY, '1', sessionStorage);
-    window.location.assign('/api/sync/etsy/authorize');
+    oauthStartFlow(ETSY_CONNECT_PENDING_KEY, '/api/sync/etsy/authorize');
 }
 
 // etsy callback returns to /#etsy-connected=<blob|stored> or
 // /#etsy-error=<code>.
 async function consumeEtsyOauthFragment() {
-    const match = (window.location.hash || '').match(
-        /^#etsy-(connected|error)=(.*)$/,
-    );
-    if (!match) return;
-    history.replaceState(
-        null,
-        '',
-        window.location.pathname + window.location.search,
-    );
-    const pending = etsyRead(ETSY_CONNECT_PENDING_KEY, sessionStorage) === '1';
-    etsyWrite(ETSY_CONNECT_PENDING_KEY, null, sessionStorage);
-    if (!pending) {
+    const result = oauthTakeResult('etsy', ETSY_CONNECT_PENDING_KEY);
+    if (!result) return;
+    if (!result.ok) {
         console.warn('[Etsy] Ignored an OAuth result this tab did not start.');
         return;
     }
-    if (match[1] === 'error') {
+    if (result.kind === 'error') {
         showSideGigToast(
-            `Etsy connection failed (${decodeURIComponent(match[2])}). Please try again.`,
+            `Etsy connection failed (${result.value}). Please try again.`,
             'error',
         );
         return;
     }
-    const value = decodeURIComponent(match[2]);
+    const value = result.value;
     if ((await isBrowserOnlyModeAsync()) && value !== 'stored') {
         etsyWrite(ETSY_TOKEN_KEY, value);
         etsyWrite(ETSY_LAST_SYNC_KEY, null);

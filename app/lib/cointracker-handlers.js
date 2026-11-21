@@ -12,6 +12,7 @@
 
 const crypto = require('./node-crypto');
 const ct = require('./cointracker-connector');
+const { cleanNonce, nonceSuffix } = require('./oauth-nonce');
 
 const COOKIE_NAME = 'cointracker_oauth';
 const COOKIE_PATH = '/api/sync/cointracker';
@@ -32,7 +33,7 @@ function notConfigured() {
 
 // authorize is a top-level navigation, so failures go back to the SPA as
 // a fragment rather than leaving the user on a bare JSON page.
-async function authorize({ origin }, fetchImpl = fetch) {
+async function authorize({ origin, nonce }, fetchImpl = fetch) {
     if (!ct.isConfigured()) {
         notConfigured();
         return { redirect: '/#cointracker-error=not_configured' };
@@ -55,7 +56,13 @@ async function authorize({ origin }, fetchImpl = fetch) {
             challenge,
         }),
         cookie: pendingCookie(
-            ct.sealPending({ state, verifier, clientId, redirectUri }),
+            ct.sealPending({
+                state,
+                verifier,
+                clientId,
+                redirectUri,
+                nonce: cleanNonce(nonce),
+            }),
             origin.startsWith('https:'),
         ),
     };
@@ -63,9 +70,14 @@ async function authorize({ origin }, fetchImpl = fetch) {
 
 async function callback({ params, cookieValue, origin }, fetchImpl = fetch) {
     const clear = pendingCookie('', origin.startsWith('https:'), 0);
-    const back = (fragment) => ({ redirect: `/#${fragment}`, cookie: clear });
+    let suffix = '';
+    const back = (fragment) => ({
+        redirect: `/#${fragment}${suffix}`,
+        cookie: clear,
+    });
     if (!ct.isConfigured()) return back('cointracker-error=not_configured');
     const pending = ct.unsealPending(cookieValue);
+    suffix = nonceSuffix(pending?.nonce);
     if (!pending || !ct.statesMatch(params.get('state'), pending.state)) {
         return back('cointracker-error=invalid_state');
     }
