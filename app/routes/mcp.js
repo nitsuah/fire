@@ -6,14 +6,19 @@ const { readState } = require('../lib/db');
 
 const router = express.Router();
 
-// Constant-time token check: MAC both values under a random per-process key so
-// they have equal length for timingSafeEqual and nothing about the key is
-// derivable from timing. This is a comparison, not password storage.
-const COMPARE_KEY = crypto.randomBytes(32);
+// Constant-time token check without hashing the key: copy both values into
+// equal-length buffers so timingSafeEqual always runs over the same span, then
+// also require equal lengths. Only the longer length is observable.
 function tokensMatch(provided, expected) {
-    const mac = (value) =>
-        crypto.createHmac('sha256', COMPARE_KEY).update(value).digest();
-    return crypto.timingSafeEqual(mac(provided), mac(expected));
+    const a = Buffer.from(String(provided), 'utf8');
+    const b = Buffer.from(String(expected), 'utf8');
+    const len = Math.max(a.length, b.length, 1);
+    const pa = Buffer.alloc(len);
+    const pb = Buffer.alloc(len);
+    a.copy(pa);
+    b.copy(pb);
+    const same = crypto.timingSafeEqual(pa, pb);
+    return same && a.length === b.length;
 }
 
 // Cache the dynamic imports
