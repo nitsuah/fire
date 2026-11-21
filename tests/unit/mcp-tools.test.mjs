@@ -2,6 +2,10 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { createRequire } from 'module';
 import path from 'path';
 import os from 'os';
+import { createHash } from 'node:crypto';
+
+// The stdio server injects Node's SHA-256; paging needs it (no weak fallback).
+const SHA = { hasher: (v) => createHash('sha256').update(v).digest('hex') };
 
 process.env.FIRE_DB_FILE = path.join(
     os.tmpdir(),
@@ -130,58 +134,73 @@ describe('get_transactions input validation', () => {
     it('rejects invalid from date format', () => {
         const state = sampleState(sampleTxns);
         expect(() =>
-            handleTool('get_transactions', state, { from: '9/2/2026' }),
+            handleTool('get_transactions', state, { from: '9/2/2026' }, SHA),
         ).toThrow(/YYYY-MM-DD/);
     });
 
     it('rejects invalid to date format', () => {
         const state = sampleState(sampleTxns);
         expect(() =>
-            handleTool('get_transactions', state, { to: '2026-13-45' }),
+            handleTool('get_transactions', state, { to: '2026-13-45' }, SHA),
         ).toThrow(/not a real date/);
     });
 
     it('rejects from after to', () => {
         const state = sampleState(sampleTxns);
         expect(() =>
-            handleTool('get_transactions', state, {
-                from: '2026-10-01',
-                to: '2026-09-01',
-            }),
+            handleTool(
+                'get_transactions',
+                state,
+                {
+                    from: '2026-10-01',
+                    to: '2026-09-01',
+                },
+                SHA,
+            ),
         ).toThrow(/must not be after/);
     });
 
     it('rejects negative offset', () => {
         const state = sampleState(sampleTxns);
         expect(() =>
-            handleTool('get_transactions', state, { offset: -1 }),
+            handleTool('get_transactions', state, { offset: -1 }, SHA),
         ).toThrow();
     });
 
     it('rejects non-integer offset', () => {
         const state = sampleState(sampleTxns);
         expect(() =>
-            handleTool('get_transactions', state, { offset: 1.5 }),
+            handleTool('get_transactions', state, { offset: 1.5 }, SHA),
         ).toThrow();
     });
 
     it('rejects offset > 0 without pagingKey', () => {
         const state = sampleState(sampleTxns);
         expect(() =>
-            handleTool('get_transactions', state, { offset: 10 }),
+            handleTool('get_transactions', state, { offset: 10 }, SHA),
         ).toThrow(/pagingKey is required when offset > 0/);
     });
 
     it('rejects limit > MAX_PAGE_SIZE', () => {
         const state = sampleState(sampleTxns);
         // The tool caps limit at MAX_PAGE_SIZE, doesn't throw
-        const result = handleTool('get_transactions', state, { limit: 2000 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2000 },
+            SHA,
+        );
         expect(result.limit).toBe(MAX_PAGE_SIZE);
     });
 
     it('rejects limit <= 0', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, { limit: 0 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 0 },
+            SHA,
+        );
         // limit <= 0 falls back to default 200
         expect(result.limit).toBe(200);
     });
@@ -189,13 +208,23 @@ describe('get_transactions input validation', () => {
     it('accepts valid offset and pagingKey together', () => {
         const state = sampleState(sampleTxns);
         // First page to get pagingKey
-        const page1 = handleTool('get_transactions', state, { limit: 2 });
+        const page1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         // Second page with offset and pagingKey
-        const page2 = handleTool('get_transactions', state, {
-            offset: 2,
-            pagingKey: page1.pagingKey,
-            limit: 2,
-        });
+        const page2 = handleTool(
+            'get_transactions',
+            state,
+            {
+                offset: 2,
+                pagingKey: page1.pagingKey,
+                limit: 2,
+            },
+            SHA,
+        );
         expect(page2.count).toBe(2);
     });
 });
@@ -216,13 +245,25 @@ describe('get_transactions paging', () => {
         expect(result.total).toBe(150.5);
         expect(result.byCategory.food).toBe(75);
         expect(result.limit).toBe(200);
-        expect(result.pagingKey).toBeDefined();
-        expect(typeof result.pagingKey).toBe('string');
+        // Legacy call (no offset/pagingKey): byte-identical keys, no paging metadata.
+        expect(Object.keys(result).sort()).toEqual([
+            'byCategory',
+            'count',
+            'limit',
+            'matched',
+            'total',
+            'transactions',
+        ]);
     });
 
     it('applies limit', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, { limit: 2 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         expect(result.count).toBe(2);
         expect(result.transactions.map((t) => t.id)).toEqual(['d', 'c']);
         expect(result.matched).toBe(5);
@@ -231,12 +272,22 @@ describe('get_transactions paging', () => {
 
     it('applies offset with valid pagingKey', () => {
         const state = sampleState(sampleTxns);
-        const page1 = handleTool('get_transactions', state, { limit: 2 });
-        const page2 = handleTool('get_transactions', state, {
-            offset: 2,
-            pagingKey: page1.pagingKey,
-            limit: 2,
-        });
+        const page1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
+        const page2 = handleTool(
+            'get_transactions',
+            state,
+            {
+                offset: 2,
+                pagingKey: page1.pagingKey,
+                limit: 2,
+            },
+            SHA,
+        );
         expect(page2.count).toBe(2);
         expect(page2.transactions.map((t) => t.id)).toEqual(['b', 'a']);
         expect(page2.nextOffset).toBe(4);
@@ -244,24 +295,44 @@ describe('get_transactions paging', () => {
 
     it('returns nextOffset when more results available', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, { limit: 2 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         expect(result.nextOffset).toBe(2);
     });
 
     it('does not return nextOffset when at end', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, { limit: 10 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 10 },
+            SHA,
+        );
         expect(result.nextOffset).toBeUndefined();
     });
 
     it('offset beyond end returns empty with nextOffset = null', () => {
         const state = sampleState(sampleTxns);
-        const page1 = handleTool('get_transactions', state, { limit: 2 });
-        const page2 = handleTool('get_transactions', state, {
-            offset: 10,
-            pagingKey: page1.pagingKey,
-            limit: 2,
-        });
+        const page1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
+        const page2 = handleTool(
+            'get_transactions',
+            state,
+            {
+                offset: 10,
+                pagingKey: page1.pagingKey,
+                limit: 2,
+            },
+            SHA,
+        );
         expect(page2.count).toBe(0);
         expect(page2.transactions).toEqual([]);
         expect(page2.matched).toBe(5);
@@ -270,27 +341,52 @@ describe('get_transactions paging', () => {
 
     it('limit 0 falls back to default', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, { limit: 0 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 0 },
+            SHA,
+        );
         expect(result.limit).toBe(200);
         expect(result.count).toBe(5);
     });
 
     it('max limit capped at MAX_PAGE_SIZE', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, { limit: 1500 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 1500 },
+            SHA,
+        );
         expect(result.limit).toBe(MAX_PAGE_SIZE);
     });
 
     it('stable ordering: same input produces same pagingKey', () => {
         const state = sampleState(sampleTxns);
-        const r1 = handleTool('get_transactions', state, { limit: 2 });
-        const r2 = handleTool('get_transactions', state, { limit: 2 });
+        const r1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
+        const r2 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         expect(r1.pagingKey).toBe(r2.pagingKey);
     });
 
     it('pagingKey changes when data changes', () => {
         const state1 = sampleState(sampleTxns);
-        const r1 = handleTool('get_transactions', state1, { limit: 2 });
+        const r1 = handleTool(
+            'get_transactions',
+            state1,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
 
         const moreTxns = [
             ...sampleTxns,
@@ -303,41 +399,71 @@ describe('get_transactions paging', () => {
             },
         ];
         const state2 = sampleState(moreTxns);
-        const r2 = handleTool('get_transactions', state2, { limit: 2 });
+        const r2 = handleTool(
+            'get_transactions',
+            state2,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         expect(r1.pagingKey).not.toBe(r2.pagingKey);
     });
 
     it('throws stale_offset when pagingKey mismatches', () => {
         const state = sampleState(sampleTxns);
-        const page1 = handleTool('get_transactions', state, { limit: 2 });
+        const page1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         const badPagingKey = page1.pagingKey + 'x';
         expect(() =>
-            handleTool('get_transactions', state, {
-                offset: 2,
-                pagingKey: badPagingKey,
-                limit: 2,
-            }),
+            handleTool(
+                'get_transactions',
+                state,
+                {
+                    offset: 2,
+                    pagingKey: badPagingKey,
+                    limit: 2,
+                },
+                SHA,
+            ),
         ).toThrow(/stale_offset/);
     });
 
     it('throws stale_offset when rows deleted between pages', () => {
         const state = sampleState(sampleTxns);
-        const page1 = handleTool('get_transactions', state, { limit: 2 });
+        const page1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         // Delete a row that was in the matched set
         const filteredTxns = sampleTxns.filter((t) => t.id !== 'c');
         const state2 = sampleState(filteredTxns);
         expect(() =>
-            handleTool('get_transactions', state2, {
-                offset: 2,
-                pagingKey: page1.pagingKey,
-                limit: 2,
-            }),
+            handleTool(
+                'get_transactions',
+                state2,
+                {
+                    offset: 2,
+                    pagingKey: page1.pagingKey,
+                    limit: 2,
+                },
+                SHA,
+            ),
         ).toThrow(/stale_offset/);
     });
 
     it('throws stale_offset when rows added between pages', () => {
         const state = sampleState(sampleTxns);
-        const page1 = handleTool('get_transactions', state, { limit: 2 });
+        const page1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         const moreTxns = [
             ...sampleTxns,
             {
@@ -350,37 +476,60 @@ describe('get_transactions paging', () => {
         ];
         const state2 = sampleState(moreTxns);
         expect(() =>
-            handleTool('get_transactions', state2, {
-                offset: 2,
-                pagingKey: page1.pagingKey,
-                limit: 2,
-            }),
+            handleTool(
+                'get_transactions',
+                state2,
+                {
+                    offset: 2,
+                    pagingKey: page1.pagingKey,
+                    limit: 2,
+                },
+                SHA,
+            ),
         ).toThrow(/stale_offset/);
     });
 
     it('filtering by category still returns pagingKey', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, {
-            category: 'food',
-        });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            {
+                offset: 0,
+                category: 'food',
+            },
+            SHA,
+        );
         expect(result.matched).toBe(3);
         expect(result.pagingKey).toBeDefined();
     });
 
     it('filtering by merchant still returns pagingKey', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, {
-            merchant: 'whole',
-        });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            {
+                offset: 0,
+                merchant: 'whole',
+            },
+            SHA,
+        );
         expect(result.matched).toBe(2);
         expect(result.pagingKey).toBeDefined();
     });
 
     it('date filtering still returns pagingKey', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, {
-            from: '2026-09-25',
-        });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            {
+                offset: 0,
+                from: '2026-09-25',
+            },
+            SHA,
+        );
         // Matched count depends on timezone parsing of locale date strings
         // b is '9/20/2026 02:20 AM' which may parse differently
         expect(result.matched).toBeGreaterThanOrEqual(2);
@@ -389,7 +538,12 @@ describe('get_transactions paging', () => {
 
     it('empty result returns empty pagingKey', () => {
         const state = sampleState([]);
-        const result = handleTool('get_transactions', state);
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0 },
+            SHA,
+        );
         expect(result.matched).toBe(0);
         expect(result.pagingKey).toBeDefined();
     });
@@ -712,28 +866,15 @@ describe('all tools input validation and output shape', () => {
     });
 });
 
-describe('mcp-tools module works in browser-like environment (no Node built-ins)', () => {
-    it('does not import Node built-ins', async () => {
-        // The module should be pure ESM with no Node-specific imports
-        // This is verified by the fact that it imports successfully in the test
-        // environment and the stdio server tests pass
-        const source = await import('../../app/mcp-tools.mjs');
-        expect(source.TOOLS).toBeDefined();
-        expect(source.handleTool).toBeDefined();
-    });
-
-    it('can be imported without process.env', async () => {
-        // In a browser, process.env doesn't exist
-        // The module should not crash on import
-        // (already tested by successful import above)
-        expect(true).toBe(true);
-    });
-});
-
 describe('get_transactions output shape with paging', () => {
     it('includes pagingKey in response', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state);
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0 },
+            SHA,
+        );
         expect(result).toHaveProperty('pagingKey');
         expect(typeof result.pagingKey).toBe('string');
         expect(result.pagingKey.length).toBeGreaterThan(0);
@@ -741,44 +882,84 @@ describe('get_transactions output shape with paging', () => {
 
     it('includes nextOffset when more pages available', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, { limit: 1 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 1 },
+            SHA,
+        );
         expect(result).toHaveProperty('nextOffset');
         expect(result.nextOffset).toBe(1);
     });
 
     it('does not include nextOffset when at end', () => {
         const state = sampleState(sampleTxns);
-        const result = handleTool('get_transactions', state, { limit: 10 });
+        const result = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 10 },
+            SHA,
+        );
         expect(result).not.toHaveProperty('nextOffset');
     });
 
     it('pagingKey is deterministic for same data', () => {
         const state = sampleState(sampleTxns);
-        const r1 = handleTool('get_transactions', state, { limit: 2 });
-        const r2 = handleTool('get_transactions', state, { limit: 2 });
+        const r1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
+        const r2 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         expect(r1.pagingKey).toBe(r2.pagingKey);
     });
 
     it('returns at least one row when matched > offset', () => {
         const state = sampleState(sampleTxns);
-        const page1 = handleTool('get_transactions', state, { limit: 2 });
-        const page2 = handleTool('get_transactions', state, {
-            offset: 2,
-            pagingKey: page1.pagingKey,
-            limit: 2,
-        });
+        const page1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
+        const page2 = handleTool(
+            'get_transactions',
+            state,
+            {
+                offset: 2,
+                pagingKey: page1.pagingKey,
+                limit: 2,
+            },
+            SHA,
+        );
         expect(page2.count).toBeGreaterThanOrEqual(1);
     });
 
     it('stale_offset error message includes guidance', () => {
         const state = sampleState(sampleTxns);
-        const page1 = handleTool('get_transactions', state, { limit: 2 });
+        const page1 = handleTool(
+            'get_transactions',
+            state,
+            { offset: 0, limit: 2 },
+            SHA,
+        );
         try {
-            handleTool('get_transactions', state, {
-                offset: 2,
-                pagingKey: page1.pagingKey + 'x',
-                limit: 2,
-            });
+            handleTool(
+                'get_transactions',
+                state,
+                {
+                    offset: 2,
+                    pagingKey: page1.pagingKey + 'x',
+                    limit: 2,
+                },
+                SHA,
+            );
         } catch (err) {
             expect(err.message).toContain('stale_offset');
             expect(err.message).toContain('restart query from offset 0');

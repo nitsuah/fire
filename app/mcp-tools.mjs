@@ -1,11 +1,22 @@
 /* ==========================================================================
    mcp-tools.mjs — Pure, browser-safe MCP tool definitions and handler.
 
-   This module contains NO Node imports (no fs, no db.js, no audit-log writes).
-   It is used by both the stdio server (app/mcp-server.mjs) and the browser.
+   This module contains NO Node built-in imports (no fs, no db.js, no audit-log
+   writes) and reads no process.env. Its helpers in ./lib are CommonJS, imported
+   via their default export (named imports are undefined under native Node ESM);
+   the future browser host must bundle them or ship ESM builds (see
+   docs/hosted-mcp-browser-bridge.md). Paging needs an injected SHA-256 hasher.
    ========================================================================== */
 
 import { buildProjectionData } from './lib/finance-calcs.js';
+import aggregates from './lib/aggregates.js';
+import sideGigTax from './lib/side-gig-tax.js';
+import rebalanceSweep from './lib/rebalance-sweep.js';
+import netWorthHistory from './lib/net-worth-history.js';
+import cointrackerMerge from './lib/cointracker-merge.js';
+import dataFreshness from './lib/data-freshness.js';
+import recurringCharges from './lib/recurring-charges.js';
+
 const {
     fireStatus,
     ASSET_CLASSES,
@@ -16,14 +27,13 @@ const {
     getAnnualExpensesTotal,
     getEstimatedAnnualInterest,
     getAggregateNetWorth,
-} = await import('./lib/aggregates.js');
-const { saleAmounts, summarizeSideGigTax } =
-    await import('./lib/side-gig-tax.js');
-const { sweepRebalances } = await import('./lib/rebalance-sweep.js');
-const { summarizeNetWorthHistory } = await import('./lib/net-worth-history.js');
-const { coinTrackerAddresses } = await import('./lib/cointracker-merge.js');
-const { summarizeDataFreshness } = await import('./lib/data-freshness.js');
-const { detectRecurringCharges } = await import('./lib/recurring-charges.js');
+} = aggregates;
+const { saleAmounts, summarizeSideGigTax } = sideGigTax;
+const { sweepRebalances } = rebalanceSweep;
+const { summarizeNetWorthHistory } = netWorthHistory;
+const { coinTrackerAddresses } = cointrackerMerge;
+const { summarizeDataFreshness } = dataFreshness;
+const { detectRecurringCharges } = recurringCharges;
 
 function computeNetWorthBreakdown(state) {
     let cash = 0,
@@ -169,8 +179,19 @@ export const TOOLS = [
     {
         name: 'get_side_gig_income',
         description:
-            'Side hustle income log grouped by platform with per-platform and overall totals.',
-        inputSchema: { type: 'object', properties: {} },
+            'Side hustle income log grouped by platform with per-platform and overall totals (totals cover every entry; the entries list is capped).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                limit: {
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 1000,
+                    description:
+                        'Max ledger entries to return (default 200). Totals always cover all entries.',
+                },
+            },
+        },
     },
     {
         name: 'get_side_gig_tax_summary',
@@ -352,19 +373,20 @@ const MAX_PAGE_SIZE = 1000;
 
 function handleTool(name, state, toolArgs = {}, options = {}) {
     const { hasher = null } = options;
-
-    // Use injected hasher for pagingKey computation
-    const hashFn =
-        hasher ||
-        ((input) => {
-            // Fallback for environments without crypto — not for production use
-            let hash = 0;
-            for (let i = 0; i < input.length; i++) {
-                hash = (hash << 5) - hash + input.charCodeAt(i);
-                hash |= 0;
-            }
-            return hash.toString(16);
-        });
+    const pagingRequested =
+        toolArgs.offset !== undefined || toolArgs.pagingKey !== undefined;
+    // Use injected hasher for pagingKey computation; fail closed if paging requested without hasher
+    let hashFn = null;
+    if (pagingRequested) {
+        if (!hasher) {
+            return {
+                error: 'paging_unavailable',
+                message:
+                    'SHA-256 hasher required for paging; inject options.hasher',
+            };
+        }
+        hashFn = hasher;
+    }
 
     switch (name) {
         case 'fire_status_summary': {
@@ -617,7 +639,15 @@ function handleTool(name, state, toolArgs = {}, options = {}) {
 
         case 'get_side_gig_income': {
             const ledger = state.sideGigLedger || [];
+            // Apply limit (default 200, max 1000)
+            const limit = Math.min(
+                Math.max(1, Math.floor(toolArgs.limit || 200)),
+                1000,
+            );
+            const limitedLedger = ledger.slice(0, limit);
+            const truncated = ledger.length > limit;
             const byPlatform = {};
+            // Totals always cover the whole ledger; only the entries list is capped.
             for (const entry of ledger) {
                 const platform = entry.category || entry.platform || 'Other';
                 if (!byPlatform[platform]) {
@@ -628,13 +658,14 @@ function handleTool(name, state, toolArgs = {}, options = {}) {
                 byPlatform[platform].net += entry.net || 0;
             }
             return {
-                entries: ledger,
+                entries: limitedLedger,
                 byPlatform,
                 totalNet:
                     Math.round(
                         ledger.reduce((s, e) => s + (e.net || 0), 0) * 100,
                     ) / 100,
                 count: ledger.length,
+                ...(truncated ? { truncated: true } : {}),
             };
         }
 
@@ -806,6 +837,15 @@ function handleTool(name, state, toolArgs = {}, options = {}) {
                 throw new Error('pagingKey is required when offset > 0');
             }
 
+            // Validate hasher if paging requested
+            if (pagingRequested && !hashFn) {
+                return {
+                    error: 'paging_unavailable',
+                    message:
+                        'SHA-256 hasher required for paging; inject options.hasher',
+                };
+            }
+
             // Rows come from CSV imports (locale dates like "9/24/2026") and
             // Plaid (YYYY-MM-DD), so filter on the parsed instant, not a
             // string prefix.
@@ -842,15 +882,17 @@ function handleTool(name, state, toolArgs = {}, options = {}) {
             });
 
             // Compute pagingKey from matched rows (before applying offset/limit)
-            const currentPagingKey = hashFn(
-                rows.map((r) => r.txn.id).join(','),
-            );
+            // Only compute if paging was requested (since hashFn is only available then)
+            let currentPagingKey = null;
+            if (pagingRequested) {
+                currentPagingKey = hashFn(rows.map((r) => r.txn.id).join(','));
 
-            // Verify pagingKey if provided
-            if (offset > 0 && pagingKey !== currentPagingKey) {
-                throw new Error(
-                    'stale_offset: data changed since last page; restart query from offset 0',
-                );
+                // Verify pagingKey if provided
+                if (offset > 0 && pagingKey !== currentPagingKey) {
+                    throw new Error(
+                        'stale_offset: data changed since last page; restart query from offset 0',
+                    );
+                }
             }
 
             const byCategory = {};
@@ -884,11 +926,14 @@ function handleTool(name, state, toolArgs = {}, options = {}) {
                     Object.entries(byCategory).map(([k, v]) => [k, round2(v)]),
                 ),
                 limit,
-                pagingKey: currentPagingKey,
             };
 
-            if (nextOffset !== null) {
-                result.nextOffset = nextOffset;
+            // Only add pagingKey and nextOffset when the caller requested paging
+            if (pagingRequested) {
+                result.pagingKey = currentPagingKey;
+                if (nextOffset !== null) {
+                    result.nextOffset = nextOffset;
+                }
             }
 
             return result;

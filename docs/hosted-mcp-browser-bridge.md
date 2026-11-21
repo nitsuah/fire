@@ -283,3 +283,7 @@ Each child is imp-sized, testable on its own, uses `Refs #341`, and must not cha
 8. **Deploy wiring (Cloudflare, D2).** Confirm current Durable Objects pricing for open WebSockets before deploying. Wrangler config for the relay, Netlify `200` rewrites for `/mcp` and the OAuth well-known paths, body logging off at the host. Owner-gated: it creates an account and a deployment.
 9. **Docs.** Privacy policy section for the hosted bridge (including the D1 disclosure), README "MCP Server" hosted section, and new rows in the security-hardening MCP checklist.
 10. **Sealed mode (phase 2).** The local `fire-bridge` stdio shim, pairing string, HKDF key derivation and AES-GCM framing (§5.3, §7). Separate, optional, after phase 1 ships.
+
+### Tool core loading (#508)
+
+`app/mcp-tools.mjs` is the shared tool core. It has no Node built-ins and reads no `process.env`, but the `app/lib` helpers it imports (`finance-calcs.js`, `aggregates.js`, `cointracker-merge.js` and others) are CommonJS. The browser host must bundle them or provide ESM builds; a native browser cannot evaluate them as-is. Paging (`get_transactions` `offset`/`pagingKey`) requires an injected SHA-256 hasher: Node `crypto` in the stdio server, Web Crypto in the browser. `get_side_gig_income` caps its `entries` list (default 200, max 1000) so a `RESULT` stays within the 256 KB frame limit; its totals always cover the whole ledger.
