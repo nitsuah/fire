@@ -1,25 +1,10 @@
 'use strict';
 
 const express = require('express');
-const crypto = require('crypto');
 const { readState } = require('../lib/db');
+const { tokensMatch } = require('../lib/safe-compare');
 
 const router = express.Router();
-
-// Constant-time token check without hashing the key: copy both values into
-// equal-length buffers so timingSafeEqual always runs over the same span, then
-// also require equal lengths. Only the longer length is observable.
-function tokensMatch(provided, expected) {
-    const a = Buffer.from(String(provided), 'utf8');
-    const b = Buffer.from(String(expected), 'utf8');
-    const len = Math.max(a.length, b.length, 1);
-    const pa = Buffer.alloc(len);
-    const pb = Buffer.alloc(len);
-    a.copy(pa);
-    b.copy(pb);
-    const same = crypto.timingSafeEqual(pa, pb);
-    return same && a.length === b.length;
-}
 
 // Cache the dynamic imports
 let mcpServerModulePromise = null;

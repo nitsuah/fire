@@ -14,6 +14,7 @@ const {
 } = require('./lib/db');
 const { loadTokens } = require('./lib/token-store');
 const { verifyStripeSignature } = require('./lib/stripe-webhook-signature');
+const { tokensMatch } = require('./lib/safe-compare');
 const {
     checkAndRecord,
     validateEventId,
@@ -312,7 +313,7 @@ if (!AUTH_DISABLED) {
             return next();
         }
         const key = req.headers['x-api-key'];
-        if (!key || key !== API_KEY) {
+        if (!tokensMatch(key, API_KEY)) {
             return res.status(401).json({ error: 'Unauthorized.' });
         }
         next();
@@ -337,7 +338,7 @@ app.use('/api/vehicles', vehiclesRouter);
 
 // Key rotation endpoint — requires FIRE_ADMIN_KEY header regardless of FIRE_API_KEY
 app.post('/api/admin/rotate-key', async (req, res) => {
-    if (!ADMIN_KEY || req.headers['x-admin-key'] !== ADMIN_KEY) {
+    if (!ADMIN_KEY || !tokensMatch(req.headers['x-admin-key'], ADMIN_KEY)) {
         return res.status(401).json({ error: 'Unauthorized.' });
     }
     const { newKey } = req.body;
