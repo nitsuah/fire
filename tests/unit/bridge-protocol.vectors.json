@@ -1,0 +1,549 @@
+{
+  "version": 1,
+  "description": "Test vectors for bridge-protocol.mjs. Each vector has: name, input (frame or parameters), expected (validation result or output). Note: null bytes in signing strings are represented as \\u0000 in JSON.",
+  "validFrames": [
+    {
+      "name": "valid HELLO minimal",
+      "frame": {
+        "v": 1,
+        "type": "HELLO",
+        "sid": "test-session-123",
+        "pub": { "kty": "EC", "crv": "P-256", "x": "abc", "y": "def" }
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid HELLO with pendingAuth, scope, expiresAt",
+      "frame": {
+        "v": 1,
+        "type": "HELLO",
+        "sid": "test-session-123",
+        "pub": { "kty": "EC", "crv": "P-256", "x": "abc", "y": "def" },
+        "pendingAuth": "eyJhbGciOiJIUzI1NiJ9...",
+        "scope": ["accounts", "net_worth"],
+        "expiresAt": 1732000000000
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid CHALLENGE",
+      "frame": {
+        "v": 1,
+        "type": "CHALLENGE",
+        "sid": "test-session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "exp": 1732000010000
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid PROVE",
+      "frame": {
+        "v": 1,
+        "type": "PROVE",
+        "sid": "test-session-123",
+        "sig": "base64url-signature-here"
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid READY",
+      "frame": {
+        "v": 1,
+        "type": "READY",
+        "sid": "test-session-123",
+        "expiresAt": 1732000000000,
+        "idleTimeout": 600000,
+        "scope": ["accounts", "net_worth"]
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid CALL",
+      "frame": {
+        "v": 1,
+        "type": "CALL",
+        "sid": "test-session-123",
+        "seq": 1,
+        "id": "0123456789abcdef0123456789abcdef",
+        "deadline": 1732000015000,
+        "tool": "get_net_worth",
+        "args": {}
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid CALL with args",
+      "frame": {
+        "v": 1,
+        "type": "CALL",
+        "sid": "test-session-123",
+        "seq": 2,
+        "id": "fedcba9876543210fedcba9876543210",
+        "deadline": 1732000015000,
+        "tool": "get_transactions",
+        "args": { "from": "2026-01-01", "to": "2026-12-31", "limit": 100 }
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid RESULT success",
+      "frame": {
+        "v": 1,
+        "type": "RESULT",
+        "sid": "test-session-123",
+        "id": "0123456789abcdef0123456789abcdef",
+        "ok": true,
+        "content": { "total": 100000, "breakdown": {} }
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid RESULT error",
+      "frame": {
+        "v": 1,
+        "type": "RESULT",
+        "sid": "test-session-123",
+        "id": "0123456789abcdef0123456789abcdef",
+        "ok": false,
+        "error": "Tool not found"
+      },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "valid END",
+      "frame": {
+        "v": 1,
+        "type": "END",
+        "sid": "test-session-123",
+        "reason": "user_disconnect"
+      },
+      "expect": { "ok": true }
+    }
+  ],
+  "invalidFrames": [
+    {
+      "name": "missing v",
+      "frame": { "type": "HELLO", "sid": "s1", "pub": {} },
+      "expect": { "ok": false, "error": "Unknown protocol version: undefined" }
+    },
+    {
+      "name": "wrong version",
+      "frame": { "v": 2, "type": "HELLO", "sid": "s1", "pub": {} },
+      "expect": { "ok": false, "error": "Unknown protocol version: 2" }
+    },
+    {
+      "name": "missing type",
+      "frame": { "v": 1, "sid": "s1", "pub": {} },
+      "expect": { "ok": false, "error": "Unknown frame type: undefined" }
+    },
+    {
+      "name": "unknown type",
+      "frame": { "v": 1, "type": "UNKNOWN", "sid": "s1" },
+      "expect": { "ok": false, "error": "Unknown frame type: UNKNOWN" }
+    },
+    {
+      "name": "missing sid",
+      "frame": { "v": 1, "type": "HELLO", "pub": {} },
+      "expect": { "ok": false, "error": "Missing or invalid sid" }
+    },
+    {
+      "name": "HELLO missing pub",
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1" },
+      "expect": { "ok": false, "error": "HELLO requires pub (JWK)" }
+    },
+    {
+      "name": "HELLO pub not object",
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": "not-object" },
+      "expect": { "ok": false, "error": "HELLO requires pub (JWK)" }
+    },
+    {
+      "name": "HELLO pendingAuth not string",
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": {}, "pendingAuth": 123 },
+      "expect": { "ok": false, "error": "pendingAuth must be a string" }
+    },
+    {
+      "name": "HELLO scope not array",
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": {}, "scope": "not-array" },
+      "expect": { "ok": false, "error": "scope must be an array of strings" }
+    },
+    {
+      "name": "HELLO scope array with non-string",
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": {}, "scope": ["accounts", 123] },
+      "expect": { "ok": false, "error": "scope must be an array of strings" }
+    },
+    {
+      "name": "HELLO expiresAt not number",
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": {}, "expiresAt": "not-number" },
+      "expect": { "ok": false, "error": "expiresAt must be a finite number" }
+    },
+    {
+      "name": "CHALLENGE missing nonce",
+      "frame": { "v": 1, "type": "CHALLENGE", "sid": "s1", "exp": 123 },
+      "expect": { "ok": false, "error": "CHALLENGE requires nonce" }
+    },
+    {
+      "name": "CHALLENGE nonce not 128-bit hex",
+      "frame": { "v": 1, "type": "CHALLENGE", "sid": "s1", "nonce": "short", "exp": 123 },
+      "expect": { "ok": false, "error": "nonce must be 128-bit hex" }
+    },
+    {
+      "name": "CHALLENGE missing exp",
+      "frame": { "v": 1, "type": "CHALLENGE", "sid": "s1", "nonce": "0123456789abcdef0123456789abcdef" },
+      "expect": { "ok": false, "error": "CHALLENGE requires exp (number)" }
+    },
+    {
+      "name": "PROVE missing sig",
+      "frame": { "v": 1, "type": "PROVE", "sid": "s1" },
+      "expect": { "ok": false, "error": "PROVE requires sig" }
+    },
+    {
+      "name": "PROVE sig not base64url",
+      "frame": { "v": 1, "type": "PROVE", "sid": "s1", "sig": "not-base64url!" },
+      "expect": { "ok": false, "error": "sig must be base64url" }
+    },
+    {
+      "name": "READY missing expiresAt",
+      "frame": { "v": 1, "type": "READY", "sid": "s1", "idleTimeout": 600000, "scope": [] },
+      "expect": { "ok": false, "error": "READY requires expiresAt" }
+    },
+    {
+      "name": "READY missing idleTimeout",
+      "frame": { "v": 1, "type": "READY", "sid": "s1", "expiresAt": 123, "scope": [] },
+      "expect": { "ok": false, "error": "READY requires idleTimeout" }
+    },
+    {
+      "name": "READY missing scope",
+      "frame": { "v": 1, "type": "READY", "sid": "s1", "expiresAt": 123, "idleTimeout": 600000 },
+      "expect": { "ok": false, "error": "READY requires scope array" }
+    },
+    {
+      "name": "READY scope not array",
+      "frame": { "v": 1, "type": "READY", "sid": "s1", "expiresAt": 123, "idleTimeout": 600000, "scope": "not-array" },
+      "expect": { "ok": false, "error": "READY requires scope array" }
+    },
+    {
+      "name": "CALL missing seq",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "deadline": 123, "tool": "t" },
+      "expect": { "ok": false, "error": "CALL requires seq (positive integer)" }
+    },
+    {
+      "name": "CALL seq zero",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "seq": 0, "id": "0123456789abcdef0123456789abcdef", "deadline": 123, "tool": "t" },
+      "expect": { "ok": false, "error": "CALL requires seq (positive integer)" }
+    },
+    {
+      "name": "CALL seq negative",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "seq": -1, "id": "0123456789abcdef0123456789abcdef", "deadline": 123, "tool": "t" },
+      "expect": { "ok": false, "error": "CALL requires seq (positive integer)" }
+    },
+    {
+      "name": "CALL seq not integer",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "seq": 1.5, "id": "0123456789abcdef0123456789abcdef", "deadline": 123, "tool": "t" },
+      "expect": { "ok": false, "error": "CALL requires seq (positive integer)" }
+    },
+    {
+      "name": "CALL missing id",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "seq": 1, "deadline": 123, "tool": "t" },
+      "expect": { "ok": false, "error": "CALL requires id" }
+    },
+    {
+      "name": "CALL id not 128-bit hex",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "seq": 1, "id": "short", "deadline": 123, "tool": "t" },
+      "expect": { "ok": false, "error": "id must be 128-bit hex" }
+    },
+    {
+      "name": "CALL missing deadline",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "seq": 1, "id": "0123456789abcdef0123456789abcdef", "tool": "t" },
+      "expect": { "ok": false, "error": "CALL requires deadline" }
+    },
+    {
+      "name": "CALL missing tool",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "seq": 1, "id": "0123456789abcdef0123456789abcdef", "deadline": 123 },
+      "expect": { "ok": false, "error": "CALL requires tool" }
+    },
+    {
+      "name": "CALL args not object",
+      "frame": { "v": 1, "type": "CALL", "sid": "s1", "seq": 1, "id": "0123456789abcdef0123456789abcdef", "deadline": 123, "tool": "t", "args": "not-object" },
+      "expect": { "ok": false, "error": "CALL args must be an object" }
+    },
+    {
+      "name": "RESULT missing id",
+      "frame": { "v": 1, "type": "RESULT", "sid": "s1", "ok": true, "content": {} },
+      "expect": { "ok": false, "error": "RESULT requires id" }
+    },
+    {
+      "name": "RESULT missing ok",
+      "frame": { "v": 1, "type": "RESULT", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "content": {} },
+      "expect": { "ok": false, "error": "RESULT requires ok (boolean)" }
+    },
+    {
+      "name": "RESULT ok not boolean",
+      "frame": { "v": 1, "type": "RESULT", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": "true", "content": {} },
+      "expect": { "ok": false, "error": "RESULT requires ok (boolean)" }
+    },
+    {
+      "name": "RESULT success missing content",
+      "frame": { "v": 1, "type": "RESULT", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": true },
+      "expect": { "ok": false, "error": "Successful RESULT requires content" }
+    },
+    {
+      "name": "RESULT error missing error",
+      "frame": { "v": 1, "type": "RESULT", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": false },
+      "expect": { "ok": false, "error": "Failed RESULT requires error string" }
+    },
+    {
+      "name": "RESULT error not string",
+      "frame": { "v": 1, "type": "RESULT", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": false, "error": 123 },
+      "expect": { "ok": false, "error": "Failed RESULT requires error string" }
+    },
+    {
+      "name": "END missing reason",
+      "frame": { "v": 1, "type": "END", "sid": "s1" },
+      "expect": { "ok": false, "error": "END requires reason" }
+    },
+    {
+      "name": "END reason not string",
+      "frame": { "v": 1, "type": "END", "sid": "s1", "reason": 123 },
+      "expect": { "ok": false, "error": "END requires reason" }
+    }
+  ],
+  "protocolChecks": [
+    {
+      "name": "checkCallSeq: replayed seq rejected",
+      "fn": "checkCallSeq",
+      "input": { "frame": { "seq": 1 }, "lastSeq": 1 },
+      "expect": { "ok": false, "error": "Replayed or out-of-order seq: 1 <= 1" }
+    },
+    {
+      "name": "checkCallSeq: out of order seq rejected",
+      "fn": "checkCallSeq",
+      "input": { "frame": { "seq": 2 }, "lastSeq": 5 },
+      "expect": { "ok": false, "error": "Replayed or out-of-order seq: 2 <= 5" }
+    },
+    {
+      "name": "checkCallSeq: valid next seq",
+      "fn": "checkCallSeq",
+      "input": { "frame": { "seq": 3 }, "lastSeq": 2 },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "checkCallDeadline: expired deadline rejected",
+      "fn": "checkCallDeadline",
+      "input": { "frame": { "deadline": 1000 }, "now": 2000 },
+      "expect": { "ok": false, "error": "Call deadline passed: 1000 <= 2000" }
+    },
+    {
+      "name": "checkCallDeadline: valid deadline",
+      "fn": "checkCallDeadline",
+      "input": { "frame": { "deadline": 2000 }, "now": 1000 },
+      "expect": { "ok": true }
+    },
+    {
+      "name": "checkResultSize: oversized result rejected",
+      "fn": "checkResultSize",
+      "input": { "isOversized": true },
+      "expect": { "ok": false, "error": "Result too large" }
+    },
+    {
+      "name": "checkResultSize: valid size",
+      "fn": "checkResultSize",
+      "input": { "frame": { "v": 1, "type": "RESULT", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": true, "content": { "x": "small" } } },
+      "expect": { "ok": true }
+    }
+  ],
+  "proveSigning": [
+    {
+      "name": "buildProveSigningString: basic",
+      "input": {
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": ["accounts", "net_worth"],
+        "expiresAt": 1732000000000
+      },
+      "expect": "fire-bridge/v1\u0000https://relay.example.com\u0000session-123\u00000123456789abcdef0123456789abcdef\u0000accounts,net_worth\u00001732000000000"
+    },
+    {
+      "name": "buildProveSigningString: empty scope",
+      "input": {
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": [],
+        "expiresAt": 1732000000000
+      },
+      "expect": "fire-bridge/v1\u0000https://relay.example.com\u0000session-123\u00000123456789abcdef0123456789abcdef\u0000\u00001732000000000"
+    },
+    {
+      "name": "buildProveSigningString: scope sorted",
+      "input": {
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": ["net_worth", "accounts"],
+        "expiresAt": 1732000000000
+      },
+      "expect": "fire-bridge/v1\u0000https://relay.example.com\u0000session-123\u00000123456789abcdef0123456789abcdef\u0000accounts,net_worth\u00001732000000000"
+    },
+    {
+      "name": "verifyProveSigningString: matches",
+      "fn": "verifyProveSigningString",
+      "input": {
+        "signingString": "fire-bridge/v1\u0000https://relay.example.com\u0000session-123\u00000123456789abcdef0123456789abcdef\u0000accounts,net_worth\u00001732000000000",
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": ["accounts", "net_worth"],
+        "expiresAt": 1732000000000
+      },
+      "expect": true
+    },
+    {
+      "name": "verifyProveSigningString: tampered relayOrigin",
+      "fn": "verifyProveSigningString",
+      "input": {
+        "signingString": "fire-bridge/v1\u0000https://evil.example.com\u0000session-123\u00000123456789abcdef0123456789abcdef\u0000accounts,net_worth\u00001732000000000",
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": ["accounts", "net_worth"],
+        "expiresAt": 1732000000000
+      },
+      "expect": false
+    },
+    {
+      "name": "verifyProveSigningString: tampered sid",
+      "fn": "verifyProveSigningString",
+      "input": {
+        "signingString": "fire-bridge/v1\u0000https://relay.example.com\u0000session-456\u00000123456789abcdef0123456789abcdef\u0000accounts,net_worth\u00001732000000000",
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": ["accounts", "net_worth"],
+        "expiresAt": 1732000000000
+      },
+      "expect": false
+    },
+    {
+      "name": "verifyProveSigningString: tampered nonce",
+      "fn": "verifyProveSigningString",
+      "input": {
+        "signingString": "fire-bridge/v1\u0000https://relay.example.com\u0000session-123\u0000fedcba9876543210fedcba9876543210\u0000accounts,net_worth\u00001732000000000",
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": ["accounts", "net_worth"],
+        "expiresAt": 1732000000000
+      },
+      "expect": false
+    },
+    {
+      "name": "verifyProveSigningString: tampered scope",
+      "fn": "verifyProveSigningString",
+      "input": {
+        "signingString": "fire-bridge/v1\u0000https://relay.example.com\u0000session-123\u00000123456789abcdef0123456789abcdef\u0000accounts,transactions\u00001732000000000",
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": ["accounts", "net_worth"],
+        "expiresAt": 1732000000000
+      },
+      "expect": false
+    },
+    {
+      "name": "verifyProveSigningString: tampered expiresAt",
+      "fn": "verifyProveSigningString",
+      "input": {
+        "signingString": "fire-bridge/v1\u0000https://relay.example.com\u0000session-123\u00000123456789abcdef0123456789abcdef\u0000accounts,net_worth\u00001732000000001",
+        "relayOrigin": "https://relay.example.com",
+        "sid": "session-123",
+        "nonce": "0123456789abcdef0123456789abcdef",
+        "scope": ["accounts", "net_worth"],
+        "expiresAt": 1732000000000
+      },
+      "expect": false
+    }
+  ],
+  "frameCreation": [
+    {
+      "name": "createHello",
+      "fn": "createHello",
+      "input": {
+        "pub": { "kty": "EC", "crv": "P-256" },
+        "pendingAuth": "auth-token",
+        "scope": ["accounts"],
+        "expiresAt": 1732000000000
+      },
+      "expect": {
+        "v": 1,
+        "type": "HELLO",
+        "sid": "",
+        "pub": { "kty": "EC", "crv": "P-256" },
+        "pendingAuth": "auth-token",
+        "scope": ["accounts"],
+        "expiresAt": 1732000000000
+      }
+    },
+    {
+      "name": "createChallenge",
+      "fn": "createChallenge",
+      "input": { "sid": "s1", "nonce": "0123456789abcdef0123456789abcdef", "exp": 123 },
+      "expect": { "v": 1, "type": "CHALLENGE", "sid": "s1", "nonce": "0123456789abcdef0123456789abcdef", "exp": 123 }
+    },
+    {
+      "name": "createProve",
+      "fn": "createProve",
+      "input": { "sid": "s1", "sig": "sig-value" },
+      "expect": { "v": 1, "type": "PROVE", "sid": "s1", "sig": "sig-value" }
+    },
+    {
+      "name": "createReady",
+      "fn": "createReady",
+      "input": { "sid": "s1", "expiresAt": 123, "idleTimeout": 600000, "scope": ["accounts"] },
+      "expect": { "v": 1, "type": "READY", "sid": "s1", "expiresAt": 123, "idleTimeout": 600000, "scope": ["accounts"] }
+    },
+    {
+      "name": "createCall",
+      "fn": "createCall",
+      "input": { "sid": "s1", "seq": 1, "id": "0123456789abcdef0123456789abcdef", "deadline": 123, "tool": "get_net_worth", "args": {} },
+      "expect": { "v": 1, "type": "CALL", "sid": "s1", "seq": 1, "id": "0123456789abcdef0123456789abcdef", "deadline": 123, "tool": "get_net_worth", "args": {} }
+    },
+    {
+      "name": "createResult success",
+      "fn": "createResult",
+      "input": { "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": true, "contentOrError": { "total": 100 } },
+      "expect": { "v": 1, "type": "RESULT", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": true, "content": { "total": 100 } }
+    },
+    {
+      "name": "createResult error",
+      "fn": "createResult",
+      "input": { "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": false, "contentOrError": "Tool not found" },
+      "expect": { "v": 1, "type": "RESULT", "sid": "s1", "id": "0123456789abcdef0123456789abcdef", "ok": false, "error": "Tool not found" }
+    },
+    {
+      "name": "createEnd",
+      "fn": "createEnd",
+      "input": { "sid": "s1", "reason": "user_disconnect" },
+      "expect": { "v": 1, "type": "END", "sid": "s1", "reason": "user_disconnect" }
+    }
+  ],
+  "idGeneration": [
+    {
+      "name": "generateId produces 32-char hex",
+      "fn": "generateId",
+      "expectPattern": "^[0-9a-f]{32}$"
+    },
+    {
+      "name": "generateNonce produces 32-char hex",
+      "fn": "generateNonce",
+      "expectPattern": "^[0-9a-f]{32}$"
+    },
+    {
+      "name": "generateId produces different values",
+      "fn": "generateId",
+      "expectUnique": true,
+      "runs": 100
+    }
+  ]
+}
