@@ -153,23 +153,23 @@ describe('quick start manager', () => {
             globalThis._eventHandlers[type] = fn;
         };
         globalThis.FireQuickStart = {
-        STEPS,
-        quickStartProgress: (facts) => {
-            const f = facts || {};
-            const steps = STEPS.map((step) => ({
-                ...step,
-                done: f[step.id] === true,
-            }));
-            return {
-                steps,
-                doneCount: steps.filter((step) => step.done).length,
-                total: steps.length,
-                requiredDone: steps
-                    .filter((step) => !step.optional)
-                    .every((step) => step.done),
-            };
-        },
-    };
+            STEPS,
+            quickStartProgress: (facts) => {
+                const f = facts || {};
+                const steps = STEPS.map((step) => ({
+                    ...step,
+                    done: f[step.id] === true,
+                }));
+                return {
+                    steps,
+                    doneCount: steps.filter((step) => step.done).length,
+                    total: steps.length,
+                    requiredDone: steps
+                        .filter((step) => !step.optional)
+                        .every((step) => step.done),
+                };
+            },
+        };
         globalThis.localStorage = {
             getItem: (k) => (store.has(k) ? store.get(k) : null),
             setItem: (k, v) => store.set(k, String(v)),
@@ -270,7 +270,9 @@ describe('quick start script order', () => {
 
 describe('quick start manager loadFacts', () => {
     const { loadFacts } = require('../../app/lib/managers/quick-start.js');
-    const { buildQuickStartFacts } = require('../../app/lib/quick-start-facts.js');
+    const {
+        buildQuickStartFacts,
+    } = require('../../app/lib/quick-start-facts.js');
 
     function makeFetch(responses) {
         let call = 0;

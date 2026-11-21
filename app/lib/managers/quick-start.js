@@ -45,9 +45,8 @@
             .filter((r) => r.status === 'fulfilled')
             .map((r) => r.value);
 
-        const driveStatus = driveResult && typeof driveResult === 'object'
-            ? driveResult
-            : null;
+        const driveStatus =
+            driveResult && typeof driveResult === 'object' ? driveResult : null;
 
         const privacyAccepted = !!readKey(CONSENT_KEY);
 
