@@ -9,27 +9,39 @@ const { DATA_DIR } = require('./db');
 const IDEMPOTENCY_FILE = path.join(DATA_DIR, 'stripe-webhook-idempotency.json');
 const MAX_ENTRIES = 10000;
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-const EVENT_ID_REGEX = /^evt_[A-Za-z0-9_]+$/;
+// Stripe event IDs are short; the upper bound only stops abuse of the store.
+const EVENT_ID_REGEX = /^evt_[A-Za-z0-9_]{1,255}$/;
 
+// One write chain per process: the store assumes a single server process owns
+// DATA_DIR (as the self-hosted deploy runs). Several processes sharing the file
+// would need a cross-process lock.
 let _writeChain = Promise.resolve();
 
 function readStore() {
     if (!fs.existsSync(IDEMPOTENCY_FILE)) {
         return { entries: [] };
     }
+    // Fail closed: an unreadable store must not look empty, or every past event
+    // would be accepted again. The webhook answers 500, so Stripe retries until
+    // the file is repaired or removed.
+    let parsed;
     try {
-        const raw = fs.readFileSync(IDEMPOTENCY_FILE, 'utf8');
-        const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.entries)) {
-            return parsed;
-        }
+        parsed = JSON.parse(fs.readFileSync(IDEMPOTENCY_FILE, 'utf8'));
     } catch (err) {
         console.error(
-            '[Stripe Idempotency] Failed to read store:',
+            `[Stripe Idempotency] Store ${IDEMPOTENCY_FILE} is unreadable:`,
             err.message,
         );
+        const failure = new Error('Idempotency store unreadable');
+        failure.code = 'STORE_CORRUPT';
+        throw failure;
     }
-    return { entries: [] };
+    if (!parsed || !Array.isArray(parsed.entries)) {
+        const failure = new Error('Idempotency store has an invalid shape');
+        failure.code = 'STORE_CORRUPT';
+        throw failure;
+    }
+    return parsed;
 }
 
 function writeStore(store) {

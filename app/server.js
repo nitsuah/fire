@@ -236,9 +236,12 @@ app.post('/api/sync/stripe/webhook', generalLimiter, async (req, res) => {
     let idempotency;
     try {
         idempotency = await checkAndRecord(event.id, event.type);
-    } catch {
-        // Store unavailable: 500 so Stripe retries later; no detail leaks.
-        console.log('[Stripe Webhook] idempotency_store_error');
+    } catch (err) {
+        // Store unavailable or corrupt: 500 so Stripe retries later; the code
+        // goes to the log only, never to the response.
+        console.log(
+            `[Stripe Webhook] idempotency_store_error code=${err?.code || 'unknown'}`,
+        );
         return res.status(500).json({ error: 'Webhook processing failed' });
     }
     if (!idempotency.processed) {

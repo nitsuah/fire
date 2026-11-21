@@ -179,5 +179,32 @@ describe('stripe-webhook-idempotency', () => {
             const stats = getStats();
             expect(stats.count).toBe(3);
         });
+
+        it('fails closed when the store file is corrupt (no silent replay)', async () => {
+            await checkAndRecord('evt_before_corruption', 'test', now);
+            const file = path.join(
+                TEST_DATA_DIR,
+                'stripe-webhook-idempotency.json',
+            );
+            fs.writeFileSync(file, '{not json');
+            await expect(
+                checkAndRecord('evt_before_corruption', 'test', now),
+            ).rejects.toMatchObject({ code: 'STORE_CORRUPT' });
+            fs.writeFileSync(file, JSON.stringify({ entries: 'nope' }));
+            await expect(
+                checkAndRecord('evt_other', 'test', now),
+            ).rejects.toMatchObject({ code: 'STORE_CORRUPT' });
+            // The chain recovers once the file is repaired
+            fs.unlinkSync(file);
+            expect(
+                (await checkAndRecord('evt_after_repair', 'test', now))
+                    .processed,
+            ).toBe(true);
+        });
+
+        it('rejects an overlong event ID before touching the store', async () => {
+            expect(validateEventId(`evt_${'a'.repeat(255)}`)).toBe(true);
+            expect(validateEventId(`evt_${'a'.repeat(256)}`)).toBe(false);
+        });
     });
 });
