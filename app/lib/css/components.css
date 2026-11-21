@@ -1714,12 +1714,12 @@
     opacity: 0.7;
 }
 
-.quick-start-steps li.optional button::after {
-    content: ' (optional)';
+.quick-start-tag {
     font-size: var(--text-xs);
     color: var(--text-muted);
     margin-left: var(--space-xs);
 }
+
 
 .dismiss-btn {
     background: none;
@@ -1756,9 +1756,19 @@
     transition: var(--transition-fast);
     min-height: 44px;
     min-width: 44px;
-    display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+.reopen-btn:not([hidden]) {
+    display: inline-flex;
+}
+
+/* An author display value would beat the browser's [hidden] rule and leave
+   the control showing next to the open card (#440 review, #398). */
+.reopen-btn[hidden],
+#quick-start-card[hidden] {
+    display: none !important;
 }
 
 .reopen-btn:hover {
@@ -1771,9 +1781,4 @@
         flex-direction: column;
         align-items: stretch;
     }
-    .quick-start-steps li.optional button::after {
-        display: block;
-        margin-left: 0;
-        margin-top: var(--space-xs);
     }
-}

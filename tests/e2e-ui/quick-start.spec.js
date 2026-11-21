@@ -37,7 +37,9 @@ test.describe('Quick Start Hub', () => {
         await expect(stepsList.locator('li')).toHaveCount(6);
 
         const progressText = page.locator('#quick-start-progress');
-        await expect(progressText).toContainText('0 of 6');
+        // Consent completes the privacy step; the seeded demo data can complete
+        // more, so check the format rather than a fixed count.
+        await expect(progressText).toHaveText(/^[1-6] of 6 done$/);
 
         const steps = stepsList.locator('li');
         await expect(steps.nth(0)).toContainText(
@@ -65,25 +67,30 @@ test.describe('Quick Start Hub', () => {
         await page.goto('/');
         await dismissPrivacyModal(page);
 
+        await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(1).click();
         await expect(page.locator('#tab-financial')).toBeVisible();
 
+        await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(2).click();
         await expect(page.locator('#tab-projections')).toBeVisible();
 
+        await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(3).click();
         await expect(page.locator('#tab-settings')).toBeVisible();
 
+        await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(4).click();
         await expect(page.locator('#tab-settings')).toBeVisible();
 
+        await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(5).click();
         await expect(page.locator('#tab-insights')).toBeVisible();
 
+        await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(0).click();
-        await expect(
-            page.getByRole('button', { name: /I Understand.*Continue/i }),
-        ).toBeVisible();
+        // After consent the notice opens in review mode (no Continue button).
+        await expect(page.locator('#privacy-modal-overlay')).toBeVisible();
     });
 
     test('dismiss hides card, shows reopen, persists after reload; reopen restores', async ({

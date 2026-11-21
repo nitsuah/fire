@@ -39,6 +39,7 @@ const ROW_LAYOUTS = {
 // listed (e.g. one added to index.html later) lands in its own row.
 const DEFAULT_BOARDS = {
     'tab-dashboard': [
+        ['1', [['quick-start-card']]],
         ['3', [['dash-card-growth'], ['dash-card-alloc'], ['dash-card-cash']]],
         ['1', [['dash-card-positions']]],
         ['2', [['dash-card-other'], ['dash-card-nw-history']]],
@@ -227,8 +228,12 @@ const LayoutManager = {
             const used = new Set();
             const homeContainers = new Set();
             pane.querySelectorAll('.card').forEach((card) => {
+                // Hidden helper cards stay put, but a card that a controller
+                // shows later (data-lm-adopt, e.g. Quick Start) must be adopted
+                // now, or it is stranded in a column hideEmptiedContainers hides.
                 if (
-                    card.hasAttribute('hidden') ||
+                    (card.hasAttribute('hidden') &&
+                        !card.hasAttribute('data-lm-adopt')) ||
                     card.parentElement.closest('.card')
                 )
                     return;
