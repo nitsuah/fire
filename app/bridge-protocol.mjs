@@ -64,6 +64,8 @@ export function validateHello(frame) {
     if (!frame.pub || typeof frame.pub !== 'object') {
         return { ok: false, error: 'HELLO requires pub (JWK)' };
     }
+    const pubCheck = validatePublicJwk(frame.pub);
+    if (!pubCheck.ok) return pubCheck;
     if (
         frame.pendingAuth !== undefined &&
         typeof frame.pendingAuth !== 'string'
@@ -147,9 +149,10 @@ export function validateReady(frame) {
     }
     if (
         typeof frame.idleTimeout !== 'number' ||
-        !Number.isFinite(frame.idleTimeout)
+        !Number.isFinite(frame.idleTimeout) ||
+        frame.idleTimeout <= 0
     ) {
-        return { ok: false, error: 'READY requires idleTimeout' };
+        return { ok: false, error: 'READY requires a positive idleTimeout' };
     }
     if (
         !Array.isArray(frame.scope) ||
@@ -305,7 +308,9 @@ export function buildProveSigningString(
 }
 
 /**
- * Validates the signing string matches expected values (anti-tampering).
+ * Checks that a signing string is the canonical one for these values (pure
+ * string reconstruction, nothing secret). It does NOT verify a signature:
+ * authenticity of a PROVE frame comes from verifyProve.
  */
 export function verifyProveSigningString(
     signingString,
@@ -341,6 +346,86 @@ export function checkCallSeq(frame, lastSeq) {
 /**
  * Checks CALL deadline hasn't passed.
  */
+/**
+ * A CHALLENGE (and so its nonce) is only answerable before its exp.
+ */
+export function checkChallengeFresh(frame, now = Date.now()) {
+    if (!(frame.exp > now)) {
+        return { ok: false, error: 'Challenge expired' };
+    }
+    return { ok: true };
+}
+
+const B64URL = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * The HELLO key must be a public ECDSA P-256 JWK: kty EC, crv P-256, base64url
+ * x and y, and never the private part (d).
+ */
+export function validatePublicJwk(jwk) {
+    if (!jwk || typeof jwk !== 'object' || Array.isArray(jwk)) {
+        return { ok: false, error: 'pub must be a JWK object' };
+    }
+    if (jwk.kty !== 'EC' || jwk.crv !== 'P-256') {
+        return { ok: false, error: 'pub must be an EC P-256 JWK' };
+    }
+    for (const c of ['x', 'y']) {
+        if (typeof jwk[c] !== 'string' || !B64URL.test(jwk[c])) {
+            return { ok: false, error: `pub.${c} must be base64url` };
+        }
+    }
+    if ('d' in jwk) {
+        return { ok: false, error: 'pub must not contain a private key' };
+    }
+    return { ok: true };
+}
+
+function base64UrlToBytes(text) {
+    const b64 = text.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    const bin = atob(padded);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+}
+
+/**
+ * Verify a PROVE signature: ECDSA P-256 / SHA-256 (WebCrypto, raw r||s) by the
+ * HELLO public key over the canonical signing string rebuilt from the values
+ * the relay expects. Any malformed key, signature or field yields false.
+ * Uses globalThis.crypto.subtle, so it runs in browsers and Node alike.
+ * @returns {Promise<boolean>}
+ */
+export async function verifyProve(
+    sig,
+    pubJwk,
+    { relayOrigin, sid, nonce, scope, expiresAt },
+) {
+    try {
+        if (typeof sig !== 'string' || !B64URL.test(sig)) return false;
+        if (!validatePublicJwk(pubJwk).ok) return false;
+        const message = new TextEncoder().encode(
+            buildProveSigningString(relayOrigin, sid, nonce, scope, expiresAt),
+        );
+        const { kty, crv, x, y } = pubJwk;
+        const key = await globalThis.crypto.subtle.importKey(
+            'jwk',
+            { kty, crv, x, y, ext: true },
+            { name: 'ECDSA', namedCurve: 'P-256' },
+            false,
+            ['verify'],
+        );
+        return await globalThis.crypto.subtle.verify(
+            { name: 'ECDSA', hash: 'SHA-256' },
+            key,
+            base64UrlToBytes(sig),
+            message,
+        );
+    } catch {
+        return false;
+    }
+}
+
 export function checkCallDeadline(frame, now = Date.now()) {
     if (frame.deadline <= now) {
         return {

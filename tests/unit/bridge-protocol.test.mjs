@@ -475,3 +475,139 @@ describe('Bridge Protocol - Edge Cases', () => {
         expect(result.bytes).toBeGreaterThan(0);
     });
 });
+
+describe('Bridge Protocol - PROVE signature (verifyProve)', () => {
+    const { verifyProve, validatePublicJwk, checkChallengeFresh } = bridge;
+    const ctx = {
+        relayOrigin: 'https://relay.example',
+        sid: 's1',
+        nonce: '0123456789abcdef0123456789abcdef',
+        scope: ['net_worth', 'accounts'],
+        expiresAt: 1732000000000,
+    };
+
+    async function keyPair() {
+        const kp = await globalThis.crypto.subtle.generateKey(
+            { name: 'ECDSA', namedCurve: 'P-256' },
+            true,
+            ['sign', 'verify'],
+        );
+        const pub = await globalThis.crypto.subtle.exportKey(
+            'jwk',
+            kp.publicKey,
+        );
+        return { privateKey: kp.privateKey, pub };
+    }
+
+    async function sign(privateKey, c = ctx) {
+        const msg = new TextEncoder().encode(
+            buildProveSigningString(
+                c.relayOrigin,
+                c.sid,
+                c.nonce,
+                c.scope,
+                c.expiresAt,
+            ),
+        );
+        const sig = new Uint8Array(
+            await globalThis.crypto.subtle.sign(
+                { name: 'ECDSA', hash: 'SHA-256' },
+                privateKey,
+                msg,
+            ),
+        );
+        return Buffer.from(sig).toString('base64url');
+    }
+
+    it('accepts a signature by the HELLO key over the expected values', async () => {
+        const { privateKey, pub } = await keyPair();
+        expect(await verifyProve(await sign(privateKey), pub, ctx)).toBe(true);
+    });
+
+    it('rejects a bad signature', async () => {
+        const { privateKey, pub } = await keyPair();
+        const sig = await sign(privateKey);
+        const flipped = (sig[0] === 'A' ? 'B' : 'A') + sig.slice(1);
+        expect(await verifyProve(flipped, pub, ctx)).toBe(false);
+        expect(await verifyProve('not base64url!', pub, ctx)).toBe(false);
+    });
+
+    it('rejects a signature by a different key', async () => {
+        const a = await keyPair();
+        const b = await keyPair();
+        expect(await verifyProve(await sign(a.privateKey), b.pub, ctx)).toBe(
+            false,
+        );
+    });
+
+    it('rejects scope or expiresAt tampered after signing', async () => {
+        const { privateKey, pub } = await keyPair();
+        const sig = await sign(privateKey);
+        expect(
+            await verifyProve(sig, pub, {
+                ...ctx,
+                scope: [...ctx.scope, 'transactions'],
+            }),
+        ).toBe(false);
+        expect(
+            await verifyProve(sig, pub, {
+                ...ctx,
+                expiresAt: ctx.expiresAt + 1,
+            }),
+        ).toBe(false);
+        expect(
+            await verifyProve(sig, pub, { ...ctx, nonce: 'f'.repeat(32) }),
+        ).toBe(false);
+    });
+
+    it('returns false (never throws) for a malformed key', async () => {
+        const { privateKey } = await keyPair();
+        const sig = await sign(privateKey);
+        expect(
+            await verifyProve(
+                sig,
+                { kty: 'EC', crv: 'P-256', x: 'abc', y: 'def' },
+                ctx,
+            ),
+        ).toBe(false);
+        expect(await verifyProve(sig, null, ctx)).toBe(false);
+    });
+
+    it('validatePublicJwk requires a public EC P-256 key', async () => {
+        const { pub } = await keyPair();
+        expect(validatePublicJwk(pub).ok).toBe(true);
+        expect(validatePublicJwk({ kty: 'RSA', n: 'x', e: 'AQAB' }).ok).toBe(
+            false,
+        );
+        expect(
+            validatePublicJwk({ kty: 'EC', crv: 'P-384', x: 'a', y: 'b' }).ok,
+        ).toBe(false);
+        expect(validatePublicJwk({ kty: 'EC', crv: 'P-256', x: 'a' }).ok).toBe(
+            false,
+        );
+        expect(validatePublicJwk({ ...pub, d: 'secret' }).ok).toBe(false);
+        expect(
+            validateFrame({ v: 1, type: 'HELLO', sid: 's1', pub: {} }).ok,
+        ).toBe(false);
+    });
+
+    it('checkChallengeFresh rejects an expired challenge', () => {
+        const now = 1_000_000;
+        expect(checkChallengeFresh({ exp: now + 1 }, now).ok).toBe(true);
+        expect(checkChallengeFresh({ exp: now }, now).ok).toBe(false);
+        expect(checkChallengeFresh({ exp: now - 5 }, now).ok).toBe(false);
+    });
+
+    it('READY rejects a zero or negative idleTimeout', () => {
+        const base = {
+            v: 1,
+            type: 'READY',
+            sid: 's1',
+            expiresAt: 1,
+            scope: [],
+        };
+        expect(validateFrame({ ...base, idleTimeout: 0 }).ok).toBe(false);
+        expect(validateFrame({ ...base, idleTimeout: -1 }).ok).toBe(false);
+        expect(validateFrame({ ...base, idleTimeout: 1000 }).ok).toBe(true);
+    });
+});

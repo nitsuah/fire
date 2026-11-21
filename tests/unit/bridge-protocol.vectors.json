@@ -159,22 +159,22 @@
     },
     {
       "name": "HELLO pendingAuth not string",
-      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": {}, "pendingAuth": 123 },
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": { "kty": "EC", "crv": "P-256", "x": "abc", "y": "def" }, "pendingAuth": 123 },
       "expect": { "ok": false, "error": "pendingAuth must be a string" }
     },
     {
       "name": "HELLO scope not array",
-      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": {}, "scope": "not-array" },
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": { "kty": "EC", "crv": "P-256", "x": "abc", "y": "def" }, "scope": "not-array" },
       "expect": { "ok": false, "error": "scope must be an array of strings" }
     },
     {
       "name": "HELLO scope array with non-string",
-      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": {}, "scope": ["accounts", 123] },
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": { "kty": "EC", "crv": "P-256", "x": "abc", "y": "def" }, "scope": ["accounts", 123] },
       "expect": { "ok": false, "error": "scope must be an array of strings" }
     },
     {
       "name": "HELLO expiresAt not number",
-      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": {}, "expiresAt": "not-number" },
+      "frame": { "v": 1, "type": "HELLO", "sid": "s1", "pub": { "kty": "EC", "crv": "P-256", "x": "abc", "y": "def" }, "expiresAt": "not-number" },
       "expect": { "ok": false, "error": "expiresAt must be a finite number" }
     },
     {
@@ -210,7 +210,7 @@
     {
       "name": "READY missing idleTimeout",
       "frame": { "v": 1, "type": "READY", "sid": "s1", "expiresAt": 123, "scope": [] },
-      "expect": { "ok": false, "error": "READY requires idleTimeout" }
+      "expect": { "ok": false, "error": "READY requires a positive idleTimeout" }
     },
     {
       "name": "READY missing scope",

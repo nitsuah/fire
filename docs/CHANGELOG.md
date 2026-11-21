@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Bridge protocol module (`app/bridge-protocol.mjs`): pure shared protocol for the hosted MCP browser bridge — frame schemas (`HELLO`, `CHALLENGE`, `PROVE`, `READY`, `CALL`, `RESULT`, `END`), `seq`/`id`/`deadline` checks, `PROVE` signing string (`"fire-bridge/v1" ‖ relayOrigin ‖ sid ‖ nonce ‖ scope ‖ expiresAt`), size limits, integrity checks, and test vectors (#509).
+- Bridge protocol module (`app/bridge-protocol.mjs`): pure shared protocol for the hosted MCP browser bridge — frame schemas (`HELLO`, `CHALLENGE`, `PROVE`, `READY`, `CALL`, `RESULT`, `END`), `seq`/`id`/`deadline` checks, `PROVE` signing string (`"fire-bridge/v1" ‖ relayOrigin ‖ sid ‖ nonce ‖ scope ‖ expiresAt`), size limits, `verifyProve` (ECDSA P-256 signature check over the signing string, WebCrypto), public-JWK validation for `HELLO`, challenge expiry, and test vectors (#509).
 - Quick Start Hub: six-step card on the Dashboard (privacy, accounts, retirement assumptions, provider, backup, explore), progress from real state on every render, dismissal in `localStorage` with reopen button (#223).
 - Quick Start card controller: shows the Dashboard Quick Start card after privacy consent (no reload needed), with dismiss and a reopen control that stays reachable; step buttons open their tabs (#444).
 - Quick Start card styling (progress, step list with 44px tap targets, dismiss and reopen controls), and both Quick Start scripts are precached by the service worker for offline loads (#440).
