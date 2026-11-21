@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Quick Start card now actually appears: the layout manager adopts it while hidden (`data-lm-adopt`) and places it first on the Dashboard instead of stranding it in an emptied column; the progress line ("N of 6 done") and real "Optional" labels render, done steps stay clickable, and the reopen control honours `hidden` (#398).
+- e2e-ui: Playwright blocks service workers, so per-test `page.route` mocks are not bypassed by the precaching worker (9 Stripe card scenarios failed on every PR after #484).
 - Stripe connection card: a 404 from the status route (a deployment without Stripe routes) shows the self-hosted guidance again instead of "Unable to load Stripe status"; other failures still show the load error.
 - Compact summary bar now reflows when the device rotates within the narrow breakpoint, and the e2e layout test waits for the tab fade-in animation before measuring card positions (fixes flaky `chaos-and-layout.spec.js` "a card alone in its section spans the full width").
 - Side Gig Ledger manual-entry form now stacks with visible labels at tablet/phone widths, and the tax summary wraps without horizontal overflow (#173).
