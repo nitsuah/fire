@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Self-hosted remote MCP: `POST /mcp` serves the same read-only tools over stateless Streamable HTTP, authenticated with `Authorization: Bearer $FIRE_API_KEY` (constant-time check; 503 when the key is unset, never anonymous). The hosted Netlify deploy has no `/mcp` (#492).
 - Quick Start Hub: six-step card on the Dashboard (privacy, accounts, retirement assumptions, provider, backup, explore), progress from real state on every render, dismissal in `localStorage` with reopen button (#223).
 - Quick Start card controller: shows the Dashboard Quick Start card after privacy consent (no reload needed), with dismiss and a reopen control that stays reachable; step buttons open their tabs (#444).
 - Quick Start card styling (progress, step list with 44px tap targets, dismiss and reopen controls), and both Quick Start scripts are precached by the service worker for offline loads (#440).

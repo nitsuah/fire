@@ -6,6 +6,16 @@ const { readState } = require('../lib/db');
 
 const router = express.Router();
 
+// Constant-time token check: MAC both values under a random per-process key so
+// they have equal length for timingSafeEqual and nothing about the key is
+// derivable from timing. This is a comparison, not password storage.
+const COMPARE_KEY = crypto.randomBytes(32);
+function tokensMatch(provided, expected) {
+    const mac = (value) =>
+        crypto.createHmac('sha256', COMPARE_KEY).update(value).digest();
+    return crypto.timingSafeEqual(mac(provided), mac(expected));
+}
+
 // Cache the dynamic imports
 let mcpServerModulePromise = null;
 let streamableHttpModulePromise = null;
@@ -42,10 +52,7 @@ router.use(async (req, res, next) => {
     }
 
     const token = authHeader.slice(7); // Remove 'Bearer '
-    const expectedHash = crypto.createHash('sha256').update(apiKey).digest();
-    const providedHash = crypto.createHash('sha256').update(token).digest();
-
-    if (!crypto.timingSafeEqual(expectedHash, providedHash)) {
+    if (!tokensMatch(token, apiKey)) {
         res.setHeader('WWW-Authenticate', 'Bearer');
         return res.status(401).json({ error: 'Unauthorized.' });
     }
