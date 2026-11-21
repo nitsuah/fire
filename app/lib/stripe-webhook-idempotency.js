@@ -47,8 +47,17 @@ function readStore() {
 function writeStore(store) {
     const tmp = `${IDEMPOTENCY_FILE}.${process.pid}.${Date.now()}.${crypto.randomBytes(8).toString('hex')}.tmp`;
     try {
-        fs.writeFileSync(tmp, JSON.stringify(store), { mode: 0o600 });
+        // Durable replace: flush the new file, rename it over the old one,
+        // then flush the directory so the rename survives a crash.
+        const fd = fs.openSync(tmp, 'w', 0o600);
+        try {
+            fs.writeSync(fd, JSON.stringify(store));
+            fs.fsyncSync(fd);
+        } finally {
+            fs.closeSync(fd);
+        }
         fs.renameSync(tmp, IDEMPOTENCY_FILE);
+        syncDir(path.dirname(IDEMPOTENCY_FILE));
         return true;
     } catch (err) {
         try {
@@ -60,6 +69,29 @@ function writeStore(store) {
             );
         }
         throw err;
+    }
+}
+
+function syncDir(dir) {
+    let fd;
+    try {
+        fd = fs.openSync(dir, 'r');
+    } catch {
+        return; // platforms that cannot open a directory (Windows) skip this
+    }
+    try {
+        fs.fsyncSync(fd);
+    } catch (err) {
+        // Some filesystems reject fsync on a directory; the data file itself
+        // is already flushed, so only log it.
+        if (
+            err.code !== 'EINVAL' &&
+            err.code !== 'EPERM' &&
+            err.code !== 'EISDIR'
+        )
+            throw err;
+    } finally {
+        fs.closeSync(fd);
     }
 }
 
@@ -94,7 +126,8 @@ async function checkAndRecord(eventId, eventType, now = Date.now()) {
 
     const task = _writeChain.then(async () => {
         const store = readStore();
-        let entries = store.entries;
+        // Expired records no longer count as duplicates (and are dropped).
+        let entries = pruneOldEntries(store.entries, now);
 
         // Check for duplicate
         const existing = entries.find((e) => e.id === eventId);

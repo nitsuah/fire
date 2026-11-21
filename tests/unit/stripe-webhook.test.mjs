@@ -13,7 +13,6 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 import crypto from 'node:crypto';
-import { clearStore } from '../../app/lib/stripe-webhook-idempotency.js';
 
 const TEST_DATA_DIR = fs.mkdtempSync(
     path.join(os.tmpdir(), 'fire-stripe-webhook-test-'),
@@ -37,6 +36,9 @@ process.env.SYNC_MASTER_KEY = TEST_MASTER_KEY;
 let app;
 let getTokenFile;
 let saveTokens;
+// Imported after the env above is set: db.js captures FIRE_DATA_DIR on load.
+let clearStore;
+let readState;
 
 const fixedNow = Date.now();
 
@@ -44,6 +46,9 @@ beforeAll(async () => {
     ({ getTokenFile, saveTokens } =
         await import('../../app/lib/token-store.js'));
     app = (await import('../../app/server.js')).default;
+    ({ clearStore } =
+        await import('../../app/lib/stripe-webhook-idempotency.js'));
+    ({ readState } = await import('../../app/lib/db.js'));
 });
 
 afterAll(() => {
@@ -272,28 +277,24 @@ describe('POST /api/sync/stripe/webhook', () => {
         expect(res.body).toEqual({ received: true });
     });
 
-    // it('records lastWebhookAt and lastEventType in state', async () => {
-    //         const timestamp = Math.floor(fixedNow / 1000);
-    //         const testPayload = makePayload(`evt_state_${testId}`);
-    //         const sig = createHmac(testPayload, secret, timestamp);
-    //         const header = makeHeader(timestamp, sig);
+    it('records lastWebhookAt and lastEventType in state', async () => {
+        const timestamp = Math.floor(fixedNow / 1000);
+        const testPayload = makePayload(`evt_state_${testId}`);
+        const sig = createHmac(testPayload, secret, timestamp);
+        const header = makeHeader(timestamp, sig);
 
-    //         // Send webhook - the route awaits mutateState internally
-    //         await request(app)
-    //             .post('/api/sync/stripe/webhook')
-    //             .send(Buffer.from(testPayload))
-    //             .set('Content-Type', 'application/json')
-    //             .set('Stripe-Signature', header);
+        // The route awaits mutateState before it responds.
+        const res = await request(app)
+            .post('/api/sync/stripe/webhook')
+            .send(testPayload)
+            .set('Content-Type', 'application/json')
+            .set('Stripe-Signature', header);
+        expect(res.status).toBe(200);
 
-    //         // The route internally awaits mutateState, so state should be updated
-    //         // Give it a moment to complete the file write
-    //         await new Promise((r) => setTimeout(r, 100));
-
-    //         const state = readState();
-    //         expect(state.stripeWebhookStatus).toBeDefined();
-    //         expect(state.stripeWebhookStatus.lastWebhookAt).toBeDefined();
-    //         expect(state.stripeWebhookStatus.lastEventType).toBe(
-    //             'payment_intent.succeeded',
-    //         );
-    //     });
+        const state = readState();
+        expect(state.stripeWebhookStatus.lastWebhookAt).toBeDefined();
+        expect(state.stripeWebhookStatus.lastEventType).toBe(
+            'payment_intent.succeeded',
+        );
+    });
 });

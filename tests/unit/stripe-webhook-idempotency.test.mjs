@@ -139,12 +139,40 @@ describe('stripe-webhook-idempotency', () => {
             expect(stats.count).toBe(2);
         });
 
-        it('enforces capacity limit (MAX_ENTRIES)', async () => {
-            // We can't easily test 10000 entries, but we can verify the logic
-            // by checking that the module exports the constant
+        it('enforces capacity limit (MAX_ENTRIES) on a full ledger', async () => {
             const { MAX_ENTRIES } =
                 await import('../../app/lib/stripe-webhook-idempotency.js');
-            expect(MAX_ENTRIES).toBe(10000);
+            const file = path.join(
+                TEST_DATA_DIR,
+                'stripe-webhook-idempotency.json',
+            );
+            const entries = Array.from({ length: MAX_ENTRIES }, (_, i) => ({
+                id: `evt_seed_${i}`,
+                type: 'seed',
+                receivedAt: now - MAX_ENTRIES + i,
+            }));
+            fs.writeFileSync(file, JSON.stringify({ entries }));
+            expect(
+                (await checkAndRecord('evt_newest', 'test', now)).processed,
+            ).toBe(true);
+            const stored = JSON.parse(fs.readFileSync(file, 'utf8')).entries;
+            expect(stored).toHaveLength(MAX_ENTRIES);
+            expect(stored.some((e) => e.id === 'evt_seed_0')).toBe(false);
+            expect(stored.some((e) => e.id === 'evt_newest')).toBe(true);
+        });
+
+        it('does not treat an expired record as a duplicate', async () => {
+            const { TTL_MS } =
+                await import('../../app/lib/stripe-webhook-idempotency.js');
+            await checkAndRecord('evt_old', 'test', now);
+            const later = now + TTL_MS + 1000;
+            expect(
+                (await checkAndRecord('evt_old', 'test', later)).processed,
+            ).toBe(true);
+            // ...while an unexpired record still is one
+            expect(
+                (await checkAndRecord('evt_old', 'test', later + 1)).duplicate,
+            ).toBe(true);
         });
 
         it('survives module reload (durable store)', async () => {
