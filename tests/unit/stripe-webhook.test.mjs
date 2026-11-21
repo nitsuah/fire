@@ -36,6 +36,8 @@ process.env.SYNC_MASTER_KEY = TEST_MASTER_KEY;
 let app;
 let getTokenFile;
 let saveTokens;
+// Imported after the env above is set: db.js captures FIRE_DATA_DIR on load.
+let clearStore;
 let readState;
 
 const fixedNow = Date.now();
@@ -43,8 +45,10 @@ const fixedNow = Date.now();
 beforeAll(async () => {
     ({ getTokenFile, saveTokens } =
         await import('../../app/lib/token-store.js'));
-    ({ readState } = await import('../../app/lib/db.js'));
     app = (await import('../../app/server.js')).default;
+    ({ clearStore } =
+        await import('../../app/lib/stripe-webhook-idempotency.js'));
+    ({ readState } = await import('../../app/lib/db.js'));
 });
 
 afterAll(() => {
@@ -65,6 +69,7 @@ afterEach(() => {
     } catch {
         // ignore
     }
+    clearStore();
     vi.restoreAllMocks();
 });
 
@@ -82,10 +87,14 @@ function makeHeader(timestamp, ...signatures) {
 
 describe('POST /api/sync/stripe/webhook', () => {
     const secret = 'whsec_testsecret123';
-    const payload =
-        '{"id":"evt_test_123","type":"payment_intent.succeeded","data":{}}';
+    let testId = 0;
+
+    function makePayload(id, type = 'payment_intent.succeeded') {
+        return `{"id":"${id}","type":"${type}","data":{}}`;
+    }
 
     beforeEach(async () => {
+        testId++;
         saveTokens('stripe', {
             restrictedKey: 'rk_test_fakekey',
             webhookSigningSecret: secret,
@@ -94,9 +103,10 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('returns 503 when SYNC_MASTER_KEY not configured', async () => {
         delete process.env.SYNC_MASTER_KEY;
+        const testPayload = makePayload(`evt_nomaster_${testId}`);
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(payload)
+            .send(testPayload)
             .set('Content-Type', 'application/json')
             .set(
                 'Stripe-Signature',
@@ -111,9 +121,10 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('returns 503 when no webhook signing secret stored', async () => {
         saveTokens('stripe', { restrictedKey: 'rk_test_fakekey' });
+        const testPayload = makePayload(`evt_nosecret_${testId}`);
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(payload)
+            .send(testPayload)
             .set('Content-Type', 'application/json')
             .set(
                 'Stripe-Signature',
@@ -126,12 +137,13 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('returns 200 for valid signature with string payload', async () => {
         const timestamp = Math.floor(fixedNow / 1000);
-        const sig = createHmac(payload, secret, timestamp);
+        const testPayload = makePayload(`evt_valid_${testId}`);
+        const sig = createHmac(testPayload, secret, timestamp);
         const header = makeHeader(timestamp, sig);
 
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(payload)
+            .send(testPayload)
             .set('Content-Type', 'application/json')
             .set('Stripe-Signature', header);
 
@@ -141,11 +153,14 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('returns 400 for tampered body (different payload but same header)', async () => {
         const timestamp = Math.floor(fixedNow / 1000);
-        const sig = createHmac(payload, secret, timestamp);
+        const testPayload = makePayload(`evt_tampered_${testId}`);
+        const sig = createHmac(testPayload, secret, timestamp);
         const header = makeHeader(timestamp, sig);
 
-        const tamperedPayload =
-            '{"id":"evt_test_123","type":"payment_intent.failed","data":{}}';
+        const tamperedPayload = makePayload(
+            `evt_tampered_${testId}`,
+            'payment_intent.failed',
+        );
 
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
@@ -159,7 +174,8 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('returns 400 for wrong secret', async () => {
         const timestamp = Math.floor(fixedNow / 1000);
-        const sig = createHmac(payload, secret, timestamp);
+        const testPayload = makePayload(`evt_wrongsecret_${testId}`);
+        const sig = createHmac(testPayload, secret, timestamp);
         const header = makeHeader(timestamp, sig);
 
         saveTokens('stripe', {
@@ -169,7 +185,7 @@ describe('POST /api/sync/stripe/webhook', () => {
 
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(payload)
+            .send(testPayload)
             .set('Content-Type', 'application/json')
             .set('Stripe-Signature', header);
 
@@ -179,12 +195,13 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('returns 400 for stale timestamp (>300s)', async () => {
         const timestamp = Math.floor(fixedNow / 1000) - 301;
-        const sig = createHmac(payload, secret, timestamp);
+        const testPayload = makePayload(`evt_stale_${testId}`);
+        const sig = createHmac(testPayload, secret, timestamp);
         const header = makeHeader(timestamp, sig);
 
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(payload)
+            .send(testPayload)
             .set('Content-Type', 'application/json')
             .set('Stripe-Signature', header);
 
@@ -193,9 +210,10 @@ describe('POST /api/sync/stripe/webhook', () => {
     });
 
     it('returns 400 for missing Stripe-Signature header', async () => {
+        const testPayload = makePayload(`evt_noheader_${testId}`);
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(payload)
+            .send(testPayload)
             .set('Content-Type', 'application/json');
 
         expect(res.status).toBe(400);
@@ -204,13 +222,14 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('returns 200 when multiple v1 and one is valid', async () => {
         const timestamp = Math.floor(fixedNow / 1000);
+        const testPayload = makePayload(`evt_multiv1_${testId}`);
         const sig1 = createHmac('wrong', secret, timestamp);
-        const sig2 = createHmac(payload, secret, timestamp);
+        const sig2 = createHmac(testPayload, secret, timestamp);
         const header = `t=${timestamp},v1=${sig1},v1=${sig2}`;
 
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(payload)
+            .send(testPayload)
             .set('Content-Type', 'application/json')
             .set('Stripe-Signature', header);
 
@@ -220,12 +239,13 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('returns 400 for v0-only header', async () => {
         const timestamp = Math.floor(fixedNow / 1000);
-        const sig = createHmac(payload, secret, timestamp);
+        const testPayload = makePayload(`evt_v0_${testId}`);
+        const sig = createHmac(testPayload, secret, timestamp);
         const header = `t=${timestamp},v0=${sig}`;
 
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(payload)
+            .send(testPayload)
             .set('Content-Type', 'application/json')
             .set('Stripe-Signature', header);
 
@@ -238,17 +258,18 @@ describe('POST /api/sync/stripe/webhook', () => {
         // If the body were parsed by JSON middleware and re-stringified,
         // the signature would not match due to formatting differences
         const timestamp = Math.floor(fixedNow / 1000);
-        const sig = createHmac(payload, secret, timestamp);
+        const testPayload = makePayload(`evt_rawbody_${testId}`);
+        const sig = createHmac(testPayload, secret, timestamp);
         const header = makeHeader(timestamp, sig);
 
         // Send as JSON (would be parsed and re-stringified if not using raw)
         const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(JSON.parse(payload)) // This gets stringified by supertest
+            .send(JSON.parse(testPayload)) // This gets stringified by supertest
             .set('Content-Type', 'application/json')
             .set('Stripe-Signature', header);
 
-        // The signature was computed for the exact `payload` string.
+        // The signature was computed for the exact `testPayload` string.
         // If the server parsed and re-stringified, the whitespace/ordering
         // might differ and the signature would fail. With express.raw(),
         // the original bytes are preserved and verification succeeds.
@@ -258,17 +279,19 @@ describe('POST /api/sync/stripe/webhook', () => {
 
     it('records lastWebhookAt and lastEventType in state', async () => {
         const timestamp = Math.floor(fixedNow / 1000);
-        const sig = createHmac(payload, secret, timestamp);
+        const testPayload = makePayload(`evt_state_${testId}`);
+        const sig = createHmac(testPayload, secret, timestamp);
         const header = makeHeader(timestamp, sig);
 
-        await request(app)
+        // The route awaits mutateState before it responds.
+        const res = await request(app)
             .post('/api/sync/stripe/webhook')
-            .send(Buffer.from(payload))
+            .send(testPayload)
             .set('Content-Type', 'application/json')
             .set('Stripe-Signature', header);
+        expect(res.status).toBe(200);
 
         const state = readState();
-        expect(state.stripeWebhookStatus).toBeDefined();
         expect(state.stripeWebhookStatus.lastWebhookAt).toBeDefined();
         expect(state.stripeWebhookStatus.lastEventType).toBe(
             'payment_intent.succeeded',

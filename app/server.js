@@ -14,6 +14,10 @@ const {
 } = require('./lib/db');
 const { loadTokens } = require('./lib/token-store');
 const { verifyStripeSignature } = require('./lib/stripe-webhook-signature');
+const {
+    checkAndRecord,
+    validateEventId,
+} = require('./lib/stripe-webhook-idempotency');
 const { recordNetWorthSnapshot } = require('./lib/net-worth-history');
 const { collectLiveQuotes } = require('./lib/server-reprice');
 const { applyLiveValues } = require('./lib/live-values');
@@ -225,6 +229,29 @@ app.post('/api/sync/stripe/webhook', generalLimiter, async (req, res) => {
         return res.status(400).json({ error: 'Invalid signature' });
     }
 
+    // Validate event.id shape
+    if (!validateEventId(event.id)) {
+        console.log('[Stripe Webhook] invalid_event_id');
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    // Idempotency check: has this event already been processed?
+    let idempotency;
+    try {
+        idempotency = await checkAndRecord(event.id, event.type);
+    } catch (err) {
+        // Store unavailable or corrupt: 500 so Stripe retries later; the code
+        // goes to the log only, never to the response.
+        console.log(
+            `[Stripe Webhook] idempotency_store_error code=${err?.code || 'unknown'}`,
+        );
+        return res.status(500).json({ error: 'Webhook processing failed' });
+    }
+    if (!idempotency.processed) {
+        console.log(`[Stripe Webhook] duplicate_event id=${event.id}`);
+        return res.json({ received: true, duplicate: true });
+    }
+
     // Record minimal sync status if store exists
     try {
         const state = readState();
@@ -232,7 +259,7 @@ app.post('/api/sync/stripe/webhook', generalLimiter, async (req, res) => {
             if (!state.stripeWebhookStatus) state.stripeWebhookStatus = {};
             state.stripeWebhookStatus.lastWebhookAt = new Date().toISOString();
             state.stripeWebhookStatus.lastEventType = event.type;
-            mutateState((s) => {
+            await mutateState((s) => {
                 s.stripeWebhookStatus = state.stripeWebhookStatus;
             });
         }
