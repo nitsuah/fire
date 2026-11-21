@@ -24,6 +24,7 @@ const SHELL_ASSETS = [
     '/lib/side-gig.js',
     '/lib/ebay-status.js',
     '/lib/quick-start.js',
+    '/lib/quick-start-facts.js',
     '/lib/managers/quick-start.js',
     '/lib/csv-import.js',
     '/lib/finance-calcs.js',

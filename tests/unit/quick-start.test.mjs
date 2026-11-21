@@ -138,6 +138,7 @@ describe('quick start manager', () => {
             createElement: (tag) => ({
                 tag,
                 handlers: {},
+                style: {},
                 children: [],
                 addEventListener(type, fn) {
                     this.handlers[type] = fn;
@@ -147,7 +148,28 @@ describe('quick start manager', () => {
                 },
             }),
         };
-        globalThis.FireQuickStart = { STEPS };
+        globalThis.addEventListener = (type, fn) => {
+            globalThis._eventHandlers = globalThis._eventHandlers || {};
+            globalThis._eventHandlers[type] = fn;
+        };
+        globalThis.FireQuickStart = {
+        STEPS,
+        quickStartProgress: (facts) => {
+            const f = facts || {};
+            const steps = STEPS.map((step) => ({
+                ...step,
+                done: f[step.id] === true,
+            }));
+            return {
+                steps,
+                doneCount: steps.filter((step) => step.done).length,
+                total: steps.length,
+                requiredDone: steps
+                    .filter((step) => !step.optional)
+                    .every((step) => step.done),
+            };
+        },
+    };
         globalThis.localStorage = {
             getItem: (k) => (store.has(k) ? store.get(k) : null),
             setItem: (k, v) => store.set(k, String(v)),
@@ -222,5 +244,129 @@ describe('quick start precache', () => {
     it('precaches both Quick Start scripts in SHELL_ASSETS', () => {
         expect(swText).toContain("'/lib/quick-start.js'");
         expect(swText).toContain("'/lib/managers/quick-start.js'");
+    });
+    it('precaches quick-start-facts.js in SHELL_ASSETS', () => {
+        expect(swText).toContain("'/lib/quick-start-facts.js'");
+    });
+});
+
+describe('quick start script order', () => {
+    it('loads quick-start.js, then quick-start-facts.js, then manager, then app.js', () => {
+        const modelIdx = indexHtml.indexOf('src="lib/quick-start.js"');
+        const factsIdx = indexHtml.indexOf('src="lib/quick-start-facts.js"');
+        const managerIdx = indexHtml.indexOf(
+            'src="lib/managers/quick-start.js"',
+        );
+        const appIdx = indexHtml.indexOf('src="app.js"');
+        expect(modelIdx).toBeGreaterThan(-1);
+        expect(factsIdx).toBeGreaterThan(-1);
+        expect(managerIdx).toBeGreaterThan(-1);
+        expect(appIdx).toBeGreaterThan(-1);
+        expect(modelIdx).toBeLessThan(factsIdx);
+        expect(factsIdx).toBeLessThan(managerIdx);
+        expect(managerIdx).toBeLessThan(appIdx);
+    });
+});
+
+describe('quick start manager loadFacts', () => {
+    const { loadFacts } = require('../../app/lib/managers/quick-start.js');
+    const { buildQuickStartFacts } = require('../../app/lib/quick-start-facts.js');
+
+    function makeFetch(responses) {
+        let call = 0;
+        return async () => {
+            const response = responses[call++] || { ok: false };
+            return {
+                ok: response.ok ?? false,
+                json: async () => response.json ?? {},
+            };
+        };
+    }
+
+    beforeEach(() => {
+        globalThis.FireQuickStartFacts = { buildQuickStartFacts };
+    });
+
+    afterEach(() => {
+        delete globalThis.FireQuickStartFacts;
+    });
+
+    it('provider with connected:false leaves providers undone', async () => {
+        globalThis.fetch = makeFetch([
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { authorized: false } },
+        ]);
+        globalThis.localStorage = {
+            getItem: (k) => (k === 'fire_privacy_v1_accepted' ? '1' : null),
+        };
+        globalThis.state = { projectionSettings: {} };
+        const facts = await loadFacts();
+        expect(facts.providers).toBe(false);
+    });
+
+    it('provider with connected:true completes providers', async () => {
+        globalThis.fetch = makeFetch([
+            { ok: true, json: { connected: true } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { authorized: false } },
+        ]);
+        globalThis.localStorage = {
+            getItem: (k) => (k === 'fire_privacy_v1_accepted' ? '1' : null),
+        };
+        globalThis.state = { projectionSettings: {} };
+        const facts = await loadFacts();
+        expect(facts.providers).toBe(true);
+    });
+
+    it('rejected fetch does not throw and leaves providers undone', async () => {
+        globalThis.fetch = makeFetch([
+            { ok: false },
+            { ok: false },
+            { ok: false },
+            { ok: false },
+            { ok: false },
+            { ok: false },
+        ]);
+        globalThis.localStorage = {
+            getItem: (k) => (k === 'fire_privacy_v1_accepted' ? '1' : null),
+        };
+        globalThis.state = { projectionSettings: {} };
+        const facts = await loadFacts();
+        expect(facts.providers).toBe(false);
+    });
+
+    it('uses buildQuickStartFacts from FireQuickStartFacts when available', async () => {
+        globalThis.fetch = makeFetch([
+            { ok: true, json: { connected: true } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { connected: false } },
+            { ok: true, json: { authorized: true } },
+        ]);
+        globalThis.localStorage = {
+            getItem: (k) => {
+                if (k === 'fire_privacy_v1_accepted') return '1';
+                if (k === 'fire_chaos_mode') return '{"seed": 123}';
+                return null;
+            },
+        };
+        globalThis.state = {
+            projectionSettings: { annualSavings: 30000 },
+            customAccounts: [],
+            importedPositions: [],
+        };
+        const facts = await loadFacts();
+        expect(facts.providers).toBe(true);
+        expect(facts.backup).toBe(true);
+        expect(facts.explore).toBe(true);
+        expect(facts.profile).toBe(true);
     });
 });
