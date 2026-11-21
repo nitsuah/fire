@@ -46,16 +46,26 @@ test(
                 await expect(accept).toBeHidden();
                 await settle(page);
                 await expect(page.locator('#quick-start-card')).toBeVisible();
-                await expect(page.locator('#quick-start-progress')).toHaveText(/^[1-5] of 6 done$/);
-                await expect(page.locator('#quick-start-steps li', { hasText: 'Add or import your accounts' })).toHaveClass(/done/);
+                await expect(page.locator('#quick-start-progress')).toHaveText(
+                    /^[1-5] of 6 done$/,
+                );
+                await expect(
+                    page.locator('#quick-start-steps li', {
+                        hasText: 'Add or import your accounts',
+                    }),
+                ).toHaveClass(/done/);
                 await page.locator('#quick-start-dismiss').click();
                 await expect(page.locator('#quick-start-card')).toBeHidden();
                 await expect(page.locator('#quick-start-reopen')).toBeVisible();
-                const dismissed = await page.evaluate(() => localStorage.getItem('fire_quick_start_dismissed'));
+                const dismissed = await page.evaluate(() =>
+                    localStorage.getItem('fire_quick_start_dismissed'),
+                );
                 expect(dismissed).toBe('1');
                 await page.locator('#quick-start-reopen').click();
                 await expect(page.locator('#quick-start-card')).toBeVisible();
-                const reopened = await page.evaluate(() => localStorage.getItem('fire_quick_start_dismissed'));
+                const reopened = await page.evaluate(() =>
+                    localStorage.getItem('fire_quick_start_dismissed'),
+                );
                 expect(reopened).toBeNull();
                 await page.locator('#compact-fire-bar').hover();
                 await expect(page.locator('#alloc-tooltip')).toContainText(
