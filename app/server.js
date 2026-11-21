@@ -2,6 +2,7 @@
 
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const session = require('express-session');
 
 const {
@@ -76,6 +77,20 @@ if (!ADMIN_KEY && IS_PRODUCTION) {
     );
     process.exit(1);
 }
+
+// Constant-time string comparison (hashes first so length differences do not
+// leak and timingSafeEqual always gets equal-length buffers).
+function safeEqual(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const ha = crypto.createHash('sha256').update(a).digest();
+    const hb = crypto.createHash('sha256').update(b).digest();
+    return crypto.timingSafeEqual(ha, hb);
+}
+
+// Interface the server listens on. Loopback by default; container images
+// set FIRE_BIND_HOST=0.0.0.0 (the compose stack publishes the port on
+// 127.0.0.1 only).
+const BIND_HOST = process.env.FIRE_BIND_HOST || '127.0.0.1';
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
 
@@ -185,6 +200,11 @@ app.use(
 app.use(express.static(__dirname));
 app.use('/docs', express.static(path.join(__dirname, '../docs')));
 
+// Limiters run before the key check so repeated bad-key requests are
+// throttled too.
+app.use('/api', generalLimiter);
+app.use('/api/sync', syncLimiter);
+
 if (!AUTH_DISABLED) {
     app.use('/api', (req, res, next) => {
         // Only the callback is a browser-redirect that Google initiates; authorize is user-initiated
@@ -209,15 +229,12 @@ if (!AUTH_DISABLED) {
             return next();
         }
         const key = req.headers['x-api-key'];
-        if (!key || key !== API_KEY) {
+        if (!safeEqual(key, API_KEY)) {
             return res.status(401).json({ error: 'Unauthorized.' });
         }
         next();
     });
 }
-
-app.use('/api', generalLimiter);
-app.use('/api/sync', syncLimiter);
 
 initDatabase();
 
@@ -233,7 +250,7 @@ app.use('/api/vehicles', vehiclesRouter);
 
 // Key rotation endpoint — requires FIRE_ADMIN_KEY header regardless of FIRE_API_KEY
 app.post('/api/admin/rotate-key', async (req, res) => {
-    if (!ADMIN_KEY || req.headers['x-admin-key'] !== ADMIN_KEY) {
+    if (!ADMIN_KEY || !safeEqual(req.headers['x-admin-key'], ADMIN_KEY)) {
         return res.status(401).json({ error: 'Unauthorized.' });
     }
     const { newKey } = req.body;
@@ -331,13 +348,13 @@ module.exports = app;
 if (require.main === module) {
     findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005])
         .then((port) => {
-            const server = app.listen(port, '0.0.0.0', () => {
+            const server = app.listen(port, BIND_HOST, () => {
                 if (port !== PREFERRED_PORT) {
                     console.warn(
                         `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
                     );
                 }
-                console.log(`🔥 fire server running at http://0.0.0.0:${port}`);
+                console.log(`🔥 fire server running at http://${BIND_HOST}:${port}`);
                 refreshYahooCrumb().catch(() => {});
                 // Backup first, so the day's copy is the untouched
                 // start-of-day state.
