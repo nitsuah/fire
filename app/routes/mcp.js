@@ -15,9 +15,8 @@ async function getMcpModules() {
         mcpServerModulePromise = import('../mcp-server.mjs');
     }
     if (!streamableHttpModulePromise) {
-        streamableHttpModulePromise = import(
-            '@modelcontextprotocol/sdk/server/streamableHttp.js'
-        );
+        streamableHttpModulePromise =
+            import('@modelcontextprotocol/sdk/server/streamableHttp.js');
     }
     const [mcpServerModule, streamableHttpModule] = await Promise.all([
         mcpServerModulePromise,
@@ -59,10 +58,10 @@ router.post('/', async (req, res) => {
     const { mcpServerModule, streamableHttpModule } = await getMcpModules();
     const { TOOLS, handleTool } = mcpServerModule;
     const { StreamableHTTPServerTransport } = streamableHttpModule;
-    const { CallToolRequestSchema, ListToolsRequestSchema } = await import(
-        '@modelcontextprotocol/sdk/types.js'
-    );
-    const { Server } = await import('@modelcontextprotocol/sdk/server/index.js');
+    const { CallToolRequestSchema, ListToolsRequestSchema } =
+        await import('@modelcontextprotocol/sdk/types.js');
+    const { Server } =
+        await import('@modelcontextprotocol/sdk/server/index.js');
 
     const server = new Server(
         { name: 'fire-tracker', version: '1.1.0' },
