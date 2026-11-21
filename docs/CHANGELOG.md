@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- MCP hosted browser bridge (child 1): extracted browser-safe tool core into `app/mcp-tools.mjs` with no Node imports, used by both stdio server and browser; added `offset`/`pagingKey` paging to `get_transactions` with bounds (non-negative integers, max page size 1000) and stable ordering; `stale_offset` error when matched rows change between pages; `handleTool` stays synchronous and the paging key uses a built-in fingerprint, so Node and browser hosts agree (#508).
+
 ### Changed
 - Integration status matrix: record the remaining live-provider checks (OAuth reconnect, real sync, revocation, multi-account) as a manual checklist; #301 and #302 close on merged code, #262 tracks the live acceptance.
 - Playwright 1.65.0: `@playwright/test`, the CI e2e container, the Journeys image and `config/Dockerfile.playwright` move together; journey baselines refreshed for the #351 summary bar and the separated budget hints.
@@ -29,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Bridge protocol module (`app/bridge-protocol.mjs`): pure shared protocol for the hosted MCP browser bridge — frame schemas (`HELLO`, `CHALLENGE`, `PROVE`, `READY`, `CALL`, `RESULT`, `END`), `seq`/`id`/`deadline` checks, `PROVE` signing string (`"fire-bridge/v1" ‖ relayOrigin ‖ sid ‖ nonce ‖ scope ‖ expiresAt`), size limits, `verifyProve` (ECDSA P-256 signature check over the signing string, WebCrypto), public-JWK validation for `HELLO`, challenge expiry, and test vectors (#509).
+- Stripe webhook receiver `POST /api/sync/stripe/webhook` (self-hosted): verifies Stripe signatures with a 5-minute tolerance, fails closed until a signing secret is stored, rate limited (#348).
 - Quick Start Hub: six-step card on the Dashboard (privacy, accounts, retirement assumptions, provider, backup, explore), progress from real state on every render, dismissal in `localStorage` with reopen button (#223).
 - Quick Start card controller: shows the Dashboard Quick Start card after privacy consent (no reload needed), with dismiss and a reopen control that stays reachable; step buttons open their tabs (#444).
 - Quick Start card styling (progress, step list with 44px tap targets, dismiss and reopen controls), and both Quick Start scripts are precached by the service worker for offline loads (#440).
