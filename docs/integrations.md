@@ -622,6 +622,7 @@ The site is public, so the function is locked with an owner key:
 | `GET /api/sync/stripe/status` | Reports local `configured`, `connected`, `webhookConfigured`, and `lastUpdated`; it does not contact Stripe or validate a key with the provider. |
 | `POST /api/sync/stripe/credentials` | Stores `restrictedKey` and optional `webhookSigningSecret`. Only these fields are accepted; the response is status-only and does not return secrets. |
 | `DELETE /api/sync/stripe/disconnect` | Deletes the local encrypted credential record. It does not revoke the key at Stripe; remote revocation is an owner action. |
+| `POST /api/sync/stripe/webhook` | Stripe webhook receiver. Verifies the `Stripe-Signature` header (HMAC-SHA256 over the raw body, timing-safe, 5-minute timestamp tolerance) with the stored `webhookSigningSecret`; answers 503 until `SYNC_MASTER_KEY` and a signing secret are configured and a generic 400 on any verification failure. Exempt from session and API-key auth (the signature is the trust boundary), rate limited. Durable event-ID replay protection is #491. |
 
 Credentials are stored in the self-hosted `tokens-stripe.json` record under the configured data directory through the existing AES-256-GCM token store. The restricted key and optional webhook secret are not placed in browser storage. Hosted Netlify has no Stripe function or credential store; do not configure Stripe secrets there.
 
