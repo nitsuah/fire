@@ -13,6 +13,9 @@ const os = require('os');
 // Isolated DB — must be set before server module loads
 const E2E_DB = path.join(os.tmpdir(), `fire-e2e-test-${process.pid}.json`);
 process.env.FIRE_DB_FILE = E2E_DB;
+// Private data dir so token files and backups never land in the repo's data/.
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fire-test-data-'));
+process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 // These flows drive the API unauthenticated — opt out of the
 // now-required-by-default auth (the gate itself is covered by
 // tests/unit/server-hardening.test.js).
@@ -65,6 +68,7 @@ async function resetState(overrides) {
 }
 
 afterAll(() => {
+    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     try {
         fs.unlinkSync(E2E_DB);
     } catch {
