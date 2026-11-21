@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quick Start card controller: shows the Dashboard Quick Start card after privacy consent (no reload needed), with dismiss and a reopen control that stays reachable; step buttons open their tabs (#444).
 - Quick Start card styling (progress, step list with 44px tap targets, dismiss and reopen controls), and both Quick Start scripts are precached by the service worker for offline loads (#440).
 - Quick Start steps now reflect real state: privacy consent, accounts, projection profile, connected providers (only `connected: true` counts), Drive backup and Chaos Mode; recomputed on each render, never stored (#484).
+- Quick Start Hub browser acceptance: `tests/e2e-ui/quick-start.spec.js` covers consent, six steps with progress and optional labels, step navigation, dismiss/reload/reopen, and phone width (#398).
 - Stripe (self-hosted): Settings connection card with five-state status (not configured / not connected / connected / partial / failed with error code), last-sync display from `lastSyncOutcome`/`lastSyncedAt`, recovery hints per state, and confirm-guarded disconnect that deletes the encrypted restricted key (synced side-gig transactions stay). Permissions: read-only restricted key; retention: key stored encrypted until disconnect; no live provider check; webhook handling not implemented (#261, #349).
 - Chaos Mode household profiles now filter inapplicable Insights mitigations and prune hidden selections from browser storage (#480).
 
@@ -61,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Quick Start card now actually appears: the layout manager adopts it while hidden (`data-lm-adopt`) and places it first on the Dashboard instead of stranding it in an emptied column; the progress line ("N of 6 done") and real "Optional" labels render, done steps stay clickable, and the reopen control honours `hidden` (#398).
 - e2e-ui: Playwright blocks service workers, so per-test `page.route` mocks are not bypassed by the precaching worker (9 Stripe card scenarios failed on every PR after #484).
 - Stripe connection card: a 404 from the status route (a deployment without Stripe routes) shows the self-hosted guidance again instead of "Unable to load Stripe status"; other failures still show the load error.
 - Compact summary bar now reflows when the device rotates within the narrow breakpoint, and the e2e layout test waits for the tab fade-in animation before measuring card positions (fixes flaky `chaos-and-layout.spec.js` "a card alone in its section spans the full width").

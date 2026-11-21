@@ -71,8 +71,13 @@ describe('quick start DOM contract', () => {
     });
 
     it('card and reopen button start hidden', () => {
-        expect(indexHtml).toContain('id="quick-start-card" hidden');
-        expect(indexHtml).toContain('id="quick-start-reopen" hidden');
+        // data-lm-adopt lets the layout manager adopt the card while hidden.
+        expect(indexHtml).toContain(
+            'id="quick-start-card" data-lm-adopt hidden',
+        );
+        expect(indexHtml).toContain(
+            'id="quick-start-reopen" data-lm-companion="quick-start-card" hidden',
+        );
     });
 
     it('buttons have accessible names and aria-controls', () => {

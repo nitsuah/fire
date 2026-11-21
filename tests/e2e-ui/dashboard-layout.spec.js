@@ -427,6 +427,9 @@ test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)',
         await page.locator('#btn-tab-dashboard').click();
         const canvas = page.locator('#chart-asset-allocation');
         await expect(canvas).toBeVisible();
+        // The hit point below is in viewport coordinates, so the chart must be
+        // on screen (the Quick Start card now sits above it on the Dashboard).
+        await canvas.scrollIntoViewIfNeeded();
         // Switching tabs redraws the doughnut with an animation; a hit point
         // taken mid-animation can miss the finished ring. Wait it out.
         await page.waitForFunction(

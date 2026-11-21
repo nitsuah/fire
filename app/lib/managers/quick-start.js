@@ -99,14 +99,21 @@
             const model = root.FireQuickStart;
             if (!list || !model) return;
             const progress = model.quickStartProgress(facts);
+            const progressEl = doc.getElementById('quick-start-progress');
+            if (progressEl) {
+                progressEl.textContent = `${progress.doneCount} of ${progress.total} done`;
+            }
             list.textContent = '';
             progress.steps.forEach((step) => {
                 const btn = doc.createElement('button');
                 btn.type = 'button';
                 btn.textContent = step.title;
-                if (step.done) {
-                    btn.disabled = true;
-                    btn.style.opacity = '0.6';
+                // A real text label (not CSS ::after) so it is read out and testable.
+                if (step.optional) {
+                    const tag = doc.createElement('span');
+                    tag.className = 'quick-start-tag';
+                    tag.textContent = 'Optional';
+                    btn.appendChild(tag);
                 }
                 btn.addEventListener('click', () => {
                     const target = doc.getElementById(
@@ -115,6 +122,13 @@
                     if (target) target.click();
                 });
                 const li = doc.createElement('li');
+                // Done steps stay clickable (the privacy step reopens the notice).
+                li.className = [
+                    step.done && 'done',
+                    step.optional && 'optional',
+                ]
+                    .filter(Boolean)
+                    .join(' ');
                 li.appendChild(btn);
                 list.appendChild(li);
             });
