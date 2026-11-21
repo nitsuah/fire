@@ -19,7 +19,36 @@ async function dismissPrivacyModal(page) {
     );
 }
 
+// #398: acceptance runs without network or connector calls. Every status the
+// Quick Start controller reads is stubbed before navigation.
+async function stubStatuses(page) {
+    for (const p of ['ebay', 'etsy', 'plaid', 'cointracker', 'stripe']) {
+        await page.route(`**/api/sync/${p}/status`, (route) =>
+            route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ connected: false }),
+            }),
+        );
+    }
+    await page.route('**/api/backup/drive/status', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                authorized: false,
+                clientConfigured: false,
+                masterKeySet: false,
+            }),
+        }),
+    );
+}
+
 test.describe('Quick Start Hub', () => {
+    test.beforeEach(async ({ page }) => {
+        await stubStatuses(page);
+    });
+
     test('hidden before consent; visible after dismiss', async ({ page }) => {
         await page.goto('/');
         await expect(page.locator('#quick-start-card')).toBeHidden();
@@ -91,6 +120,9 @@ test.describe('Quick Start Hub', () => {
         await page.locator('#quick-start-steps li').nth(0).click();
         // After consent the notice opens in review mode (no Continue button).
         await expect(page.locator('#privacy-modal-overlay')).toBeVisible();
+        await expect(
+            page.getByRole('button', { name: /I Understand.*Continue/i }),
+        ).toHaveCount(0);
     });
 
     test('dismiss hides card, shows reopen, persists after reload; reopen restores', async ({
@@ -122,6 +154,18 @@ test.describe('Quick Start Hub', () => {
                 localStorage.getItem('fire_quick_start_dismissed'),
             ),
         ).resolves.toBeNull();
+    });
+
+    test('reopen survives a board rebuild after dismiss', async ({ page }) => {
+        await page.goto('/');
+        await dismissPrivacyModal(page);
+        await page.locator('#quick-start-dismiss').click();
+        await expect(page.locator('#quick-start-reopen')).toBeVisible();
+        // Customize re-renders the Dashboard board (cells are rebuilt).
+        const pane = page.locator('#tab-dashboard');
+        await pane.locator('[data-lm-tool="edit"]').click();
+        await pane.locator('[data-lm-tool="edit"]').click();
+        await expect(page.locator('#quick-start-reopen')).toBeVisible();
     });
 
     test('at phone viewport card visible and no horizontal overflow', async ({

@@ -75,7 +75,9 @@ describe('quick start DOM contract', () => {
         expect(indexHtml).toContain(
             'id="quick-start-card" data-lm-adopt hidden',
         );
-        expect(indexHtml).toContain('id="quick-start-reopen" hidden');
+        expect(indexHtml).toContain(
+            'id="quick-start-reopen" data-lm-companion="quick-start-card" hidden',
+        );
     });
 
     it('buttons have accessible names and aria-controls', () => {

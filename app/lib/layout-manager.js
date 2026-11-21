@@ -567,6 +567,14 @@ const LayoutManager = {
         const pane = document.getElementById(paneId);
         const editing = pane.classList.contains('lm-editing');
         const rows = this.layout.boards[paneId];
+        // Park companion controls first: clearing the board would detach them,
+        // and the rebuild below re-adds them next to their card.
+        const park = this.parking.get(paneId);
+        if (park) {
+            root.querySelectorAll('[data-lm-companion]').forEach((c) =>
+                park.appendChild(c),
+            );
+        }
         root.textContent = '';
         const gap = (index) => {
             const g = document.createElement('div');
@@ -598,6 +606,15 @@ const LayoutManager = {
                     const node = this.tokenEl(t);
                     if (!node) return;
                     cell.appendChild(node);
+                    // A companion control (e.g. Quick Start's reopen button) lives
+                    // beside its card and must survive this cell being rebuilt.
+                    if (node.id) {
+                        document
+                            .querySelectorAll(
+                                `[data-lm-companion="${node.id}"]`,
+                            )
+                            .forEach((c) => cell.appendChild(c));
+                    }
                     if (!isPh(t)) placed.add(t);
                 });
                 if (editing && !c.length) {
