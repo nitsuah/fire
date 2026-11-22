@@ -363,11 +363,12 @@ app.post('/api/admin/rotate-key', async (req, res) => {
             .json({ error: 'newKey must be 64 hex characters.' });
     }
     try {
-        await rotateMasterKey(newKey);
+        const result = await rotateMasterKey(newKey);
         res.json({
             status: 'success',
+            reencrypted: { tokens: result.tokens, backups: result.backups },
             message:
-                'Database re-encrypted with new key. Update SYNC_MASTER_KEY in your .env.',
+                'Database, provider token files and local backups re-encrypted with the new key. Update SYNC_MASTER_KEY in your .env. Backups already stored in Google Drive keep the old key; run a new Drive backup.',
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
