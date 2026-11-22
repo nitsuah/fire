@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).
 
 ### Fixed
+- Webhook mapping templates are evaluated in a worker thread with memory, time and result-size limits, and template expressions are capped at 8192 characters.
 - The Playwright and journeys test servers, and the server/e2e Vitest suites (`app/server.test.js`, `tests/e2e/*.test.js`), run against a private temporary `FIRE_DATA_DIR`, so test runs never touch the repo's `data/` directory (tokens, backups).
 - Key rotation (`POST /api/admin/rotate-key`) now also re-encrypts the provider token files and local daily backups, all-or-nothing with rollback. Backups already stored in Google Drive keep the old key; run a new Drive backup after rotating.
 - The server listens on loopback by default (`FIRE_BIND_HOST` to change it; container images set it), the `/api` limiters run before the API-key check, and API/admin keys are compared in constant time. Forwarded client addresses are trusted only when `FIRE_TRUST_PROXY` is set (Compose sets it for Caddy).
