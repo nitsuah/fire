@@ -1,6 +1,8 @@
 import crypto from '../../app/lib/node-crypto.js';
 import { parsePlaidTransactions } from '../../app/lib/finance-parsing.js';
 import plaidStatus from '../../app/lib/plaid-status.js';
+import grant from '../../app/lib/grant-cookie.js';
+import { withCookies } from '../lib/http.mjs';
 
 const { REAUTH_CODES } = plaidStatus;
 
@@ -10,6 +12,10 @@ const PLAID_TOKEN_VERSION = 1;
 const PLAID_TOKEN_TTL_SECONDS = 180 * 24 * 60 * 60;
 const GCM_IV_BYTES = 12;
 const GCM_TAG_BYTES = 16;
+// The sealed token lives in HttpOnly cookies scoped to the Plaid routes
+// (app/lib/grant-cookie.js); the browser keeps only the `cookie` marker.
+const GRANT = 'plaid_grant';
+const GRANT_PATH = '/api/sync/plaid';
 
 function json(status, body) {
     return new Response(JSON.stringify(body), {
@@ -157,8 +163,18 @@ function unseal(value) {
     }
 }
 
+// The sealed token: the grant cookie, or a token a browser from before the
+// cookie move still sends (body or x-fire-plaid-token). A bare marker with no
+// cookie means the grant is gone (cleared or expired): the browser should drop it.
 function tokenFromRequest(req, body) {
-    return body?.plaidToken || req.headers.get('x-fire-plaid-token') || '';
+    const legacy =
+        body?.plaidToken || req.headers.get('x-fire-plaid-token') || '';
+    const picked = grant.pickGrant(req.headers.get('cookie'), GRANT, legacy, {
+        raw: true,
+    });
+    if (!picked.sealed && legacy === grant.GRANT_MARKER)
+        throw invalidTokenError();
+    return picked.sealed || '';
 }
 
 async function plaidPost(path, body) {
@@ -274,9 +290,15 @@ async function exchange(req) {
     // list instead of consuming (and losing) the one-time public_token.
     let current = { items: [] };
     let warning = null;
-    if (body.plaidToken) {
+    let prior = '';
+    try {
+        prior = tokenFromRequest(req, body);
+    } catch (err) {
+        if (err.code !== 'INVALID_TOKEN') throw err;
+    }
+    if (prior) {
         try {
-            current = unseal(body.plaidToken);
+            current = unseal(prior);
         } catch (err) {
             if (err.code !== 'INVALID_TOKEN') throw err;
             warning =
@@ -523,7 +545,42 @@ async function readBody(req) {
         .catch(() => ({}));
 }
 
+// Every response that carries a sealed token stores it in the grant cookie and
+// hands the browser only the marker; a dead token clears the cookie.
 export default async function handler(req) {
+    const res = await route(req);
+    const secure = new URL(req.url).protocol === 'https:';
+    let body;
+    try {
+        body = await res.clone().json();
+    } catch {
+        return res;
+    }
+    if (res.status === 401 && body?.code === 'INVALID_TOKEN')
+        return withCookies(
+            res,
+            grant.clearGrantCookies(GRANT, GRANT_PATH, { secure }),
+        );
+    const sealed = body?.plaidToken;
+    if (typeof sealed !== 'string' || !sealed || sealed === grant.GRANT_MARKER)
+        return res;
+    let cookies;
+    try {
+        cookies = grant.grantCookies(GRANT, GRANT_PATH, sealed, {
+            secure,
+            raw: true,
+        });
+    } catch (err) {
+        console.error('[Netlify Plaid] cannot store token:', err.message);
+        return json(500, { error: 'Hosted Plaid request failed.' });
+    }
+    return withCookies(
+        json(res.status, { ...body, plaidToken: grant.GRANT_MARKER }),
+        cookies,
+    );
+}
+
+async function route(req) {
     try {
         const url = new URL(req.url);
         const path = routePath(url.pathname);

@@ -506,6 +506,8 @@ async function syncEbayViaFunction() {
     return { ...data, added };
 }
 
+// Holds only the `cookie` marker: the sealed hosted Plaid token lives in an
+// HttpOnly cookie (netlify/functions/plaid.mjs, app/lib/grant-cookie.js).
 const PLAID_HOSTED_TOKEN_KEY = 'fire_plaid_hosted_token';
 const PLAID_HOSTED_SYNC_KEY = 'fire_plaid_hosted_sync_enabled';
 const PLAID_HOSTED_ACCESS_KEY = 'fire_plaid_hosted_access_key';

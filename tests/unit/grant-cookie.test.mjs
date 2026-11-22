@@ -85,6 +85,28 @@ describe('grant-cookie', () => {
         );
     });
 
+    it('stores an already cookie-safe token as-is in raw mode (hosted Plaid)', () => {
+        const token = '1.aXY.dGFn.Y2lwaGVydGV4dA';
+        const set = grant.grantCookies(
+            'plaid_grant',
+            '/api/sync/plaid',
+            token,
+            {
+                raw: true,
+            },
+        );
+        expect(set[0]).toMatch(
+            /^plaid_grant\.0=1\.aXY\.dGFn\.Y2lwaGVydGV4dA; /,
+        );
+        expect(grant.readGrant(jar(set), 'plaid_grant', { raw: true })).toBe(
+            token,
+        );
+        expect(() =>
+            grant.grantCookies('g', '/p', 'a b;c', { raw: true }),
+        ).toThrow();
+        expect(grant.readGrant('g.0=a%3Bb', 'g', { raw: true })).toBeNull();
+    });
+
     describe('pickGrant', () => {
         const sealed = () => encrypt('{"a":1}');
         const cookieFor = (s) => jar(grant.grantCookies('g', '/p', s));

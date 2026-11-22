@@ -8,7 +8,9 @@
 // A sealed blob is hex `iv:tag:ciphertext`. In the cookie it is re-encoded
 // as base64url (`iv.tag.ciphertext`, a third smaller) and split across
 // numbered chunks (`<name>.0`, `<name>.1`, ...), since one cookie holds
-// about 4 KB and an eBay grant can be larger.
+// about 4 KB and an eBay grant can be larger. A token that is already
+// cookie-safe (hosted Plaid's `1.iv.tag.ciphertext`, all base64url) is stored
+// as-is with `{ raw: true }`.
 
 // Browsers cap one cookie (name, value and attributes) at 4096 bytes; 3800
 // value characters leave room for the name and the ~90-byte attribute suffix.
@@ -23,6 +25,19 @@ const GRANT_MARKER = 'cookie';
 
 const HEX = /^[0-9a-f]+$/i;
 const B64URL = /^[A-Za-z0-9_-]+$/;
+const COOKIE_SAFE = /^[A-Za-z0-9._-]+$/;
+
+function encode(sealed, raw) {
+    if (!raw) return toCookieValue(sealed);
+    if (!COOKIE_SAFE.test(String(sealed)))
+        throw new Error('not a sealed grant');
+    return String(sealed);
+}
+
+function decode(value, raw) {
+    if (!raw) return fromCookieValue(value);
+    return COOKIE_SAFE.test(value) ? value : null;
+}
 
 function toCookieValue(sealed) {
     const parts = String(sealed).split(':');
@@ -57,7 +72,7 @@ function attributes(path, secure, maxAge) {
 }
 
 // The sealed grant from the request's Cookie header, or null.
-function readGrant(cookieHeader, name) {
+function readGrant(cookieHeader, name, { raw = false } = {}) {
     const jar = parseCookies(cookieHeader);
     let joined = '';
     for (let i = 0; i < MAX_CHUNKS; i++) {
@@ -65,13 +80,13 @@ function readGrant(cookieHeader, name) {
         if (!chunk) break;
         joined += chunk;
     }
-    return joined ? fromCookieValue(joined) : null;
+    return joined ? decode(joined, raw) : null;
 }
 
 // Set-Cookie values that store `sealed`. Every chunk slot is written, the
 // unused ones expired, so a shorter grant never leaves a stale tail behind.
-function grantCookies(name, path, sealed, { secure = true } = {}) {
-    const value = toCookieValue(sealed);
+function grantCookies(name, path, sealed, { secure = true, raw = false } = {}) {
+    const value = encode(sealed, raw);
     const chunks = [];
     for (let i = 0; i < value.length; i += CHUNK_CHARS)
         chunks.push(value.slice(i, i + CHUNK_CHARS));
@@ -97,8 +112,8 @@ function clearGrantCookies(name, path, { secure = true } = {}) {
 //  - `stale`: the client sent a blob at all; the caller answers with
 //    GRANT_MARKER so the client overwrites it. When a cookie exists the cookie
 //    wins and is never overwritten with the (possibly older) blob.
-function pickGrant(cookieHeader, name, legacy) {
-    const fromCookie = readGrant(cookieHeader, name);
+function pickGrant(cookieHeader, name, legacy, { raw = false } = {}) {
+    const fromCookie = readGrant(cookieHeader, name, { raw });
     const sentBlob =
         typeof legacy === 'string' && legacy !== '' && legacy !== GRANT_MARKER;
     return {
