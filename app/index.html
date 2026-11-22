@@ -114,10 +114,6 @@
             <!-- Top Summary Banner -->
             <header class="header-banner">
                 <div class="header-metric">
-                    <span class="metric-label">Estimated Net Worth</span>
-                    <span class="metric-value text-emerald" id="banner-networth">$0.00</span>
-                </div>
-                <div class="header-metric">
                     <span class="metric-label">Annual Income</span>
                     <span class="metric-value" id="banner-gross-income">$0</span>
                     <span class="income-sub-line income-sub-interest" id="banner-interest-income" hidden></span>
@@ -167,7 +163,7 @@
                         <!-- LEFT COLUMN -->
                         <div class="dash-col-left">
                             <!-- Quick Start Card -->
-                            <div class="card glass-card" id="quick-start-card" hidden>
+                            <div class="card glass-card" id="quick-start-card" data-lm-adopt hidden>
                                 <div class="card-title-row">
                                     <h2 class="card-title" id="quick-start-title">Quick Start</h2>
                                     <button type="button" class="dismiss-btn" id="quick-start-dismiss" aria-label="Dismiss Quick Start" aria-controls="quick-start-card">✕</button>
@@ -175,7 +171,7 @@
                                 <div id="quick-start-progress" class="quick-start-progress" aria-live="polite"></div>
                                 <ol id="quick-start-steps" class="quick-start-steps"></ol>
                             </div>
-                            <button type="button" class="reopen-btn" id="quick-start-reopen" hidden aria-label="Reopen Quick Start" aria-controls="quick-start-card">Quick Start</button>
+                            <button type="button" class="reopen-btn" id="quick-start-reopen" data-lm-companion="quick-start-card" hidden aria-label="Reopen Quick Start" aria-controls="quick-start-card">Quick Start</button>
 
                             <!-- Retirement Growth Path -->
                             <div class="card glass-card" id="dash-card-growth">
@@ -1749,6 +1745,24 @@
                             </div>
                         </div>
 
+                        <!-- Stripe Connection -->
+                        <div class="card glass-card settings-card--stripe" id="settings-stripe-card">
+                            <h2 class="card-title">Stripe Connection</h2>
+                            <p class="card-subtitle">Read-only sync of Stripe transactions (charges, refunds, payouts, fees) into the ledger.</p>
+                            <div class="api-connector-panel mt-3">
+                                <div class="connector-header">
+                                    <h3 class="csp-i-012">💳 Stripe</h3>
+                                    <span class="badge-type badge-cd">Read-only</span>
+                                </div>
+                                <p class="text-muted mt-2 csp-i-015" id="stripe-status">Checking status…</p>
+                                <p class="text-muted mt-1 csp-i-015" id="stripe-hint" hidden></p>
+                                <p class="text-muted mt-1 csp-i-015" id="stripe-last-sync" hidden></p>
+                                <div class="grid-organic-2 mt-2">
+                                    <button type="button" class="backup-btn" id="btn-stripe-disconnect" data-stripe-action="disconnect" hidden>Disconnect</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Privacy & Terms -->
                         <div class="card glass-card settings-card--privacy">
                             <h2 class="card-title">Privacy & Terms</h2>
@@ -1844,6 +1858,8 @@
     <script src="lib/ebay-status.js"></script>
     <script src="lib/side-gig.js"></script>
     <script src="lib/etsy-sync.js"></script>
+    <script src="lib/stripe-status.js"></script>
+    <script src="lib/managers/stripe-card.js"></script>
     <script src="lib/cointracker-merge.js"></script>
     <script src="lib/cointracker.js"></script>
     <script src="lib/chaos-events.js"></script>
@@ -1878,6 +1894,8 @@
     <script src="lib/layout-manager.js"></script>
     <!-- Quick Start Model (must load before manager) -->
     <script src="lib/quick-start.js"></script>
+    <script src="lib/quick-start-facts.js"></script>
+    <script src="lib/managers/quick-start.js"></script>
     <!-- Main Controller Script -->
     <script src="app.js"></script>
     <!-- Taxes & Tax-Loss Harvesting -->

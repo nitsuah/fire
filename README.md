@@ -198,6 +198,28 @@ Smoke-test locally:
 docker compose exec fire node scripts/test-mcp.mjs
 ```
 
+### Remote (self-hosted HTTP)
+
+The same read-only tools are available over stateless Streamable HTTP at:
+
+```
+POST https://<your-host>/mcp
+Authorization: Bearer $FIRE_API_KEY
+Accept: application/json, text/event-stream
+```
+
+- Requires `FIRE_API_KEY` set in the server environment. Returns `503` if unset.
+- Uses the same `FIRE_API_KEY` as the REST API but **only** accepts `Authorization: Bearer` (the `x-api-key` header is not accepted on `/mcp`).
+- Stateless: a new `Server` + `Transport` is created per request.
+- Tools are identical to the stdio server (all 20 read-only tools).
+- The hosted Netlify deploy has **no `/mcp` endpoint**; this is self-hosted only.
+
+Add to Claude:
+
+```bash
+claude mcp add --transport http fire https://<your-host>/mcp --header "Authorization: Bearer $FIRE_API_KEY"
+```
+
 ---
 
 ## Weekly check-in script

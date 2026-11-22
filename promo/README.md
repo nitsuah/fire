@@ -34,7 +34,7 @@ Requirements: Docker Desktop running, plus network access for Google Fonts and t
 | `voice` / `speed` | Kokoro voice (default `af_heart`) and rate (default 1.05). Run `/opt/tts/bin/python -c "from kokoro_onnx import Kokoro; print(Kokoro('/models/kokoro-v1.0.onnx','/models/voices-v1.0.bin').get_voices())"` in the image to list voices. |
 | `narration` (fixed-timeline spots) | `[{ "t": 3.2, "say": "…" }]`. The build fails if a line runs into the next one or past the end. |
 | `say` on each scene (tour spots) | The scene lasts as long as its line: `max(min, lead + speech + tail)`. |
-| `caption` | On-screen text when it should differ from what's spoken (for example, the URL is spoken as "lifefire dot netlify dot app" but captioned `lifefire.netlify.app`). |
+| `caption` | On-screen text when it should differ from what's spoken (for example, the URL is spoken as "fire dot nitsuah dot io" but captioned `fire.nitsuah.io`). |
 
 ## Tweak
 

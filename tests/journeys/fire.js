@@ -53,7 +53,10 @@ function step(page, title, fn, opts = {}) {
 async function openApp(page) {
     await page.goto('/');
     await page.getByRole('button', { name: /I Understand.*Continue/i }).click();
-    await expect(page.locator('#banner-networth')).not.toHaveText(/^\s*$/);
+    await expect(page.locator('#compact-fire-bar')).toHaveAttribute(
+        'aria-valuetext',
+        /^\d+\.\d% of FIRE target$/,
+    );
     await settle(page);
 }
 

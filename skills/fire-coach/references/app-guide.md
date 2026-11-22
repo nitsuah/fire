@@ -1,7 +1,7 @@
 # Using the fire app
 
 Where things live, so you can send the user straight to the right control.
-Hosted demo: https://lifefire.netlify.app/. Self-hosted: `docker compose up -d`
+Hosted demo: https://fire.nitsuah.io/. Self-hosted: `docker compose up -d`
 → https://localhost.
 
 ## Header (every tab)

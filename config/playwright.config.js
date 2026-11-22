@@ -43,6 +43,9 @@ module.exports = defineConfig({
     use: {
         baseURL: 'http://localhost:3011',
         trace: 'on-first-retry',
+        // A registered service worker forwards fetches itself, and page.route
+        // never sees those, so mocks would race the real server.
+        serviceWorkers: 'block',
     },
     projects: [
         {
