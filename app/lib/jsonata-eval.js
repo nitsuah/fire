@@ -74,11 +74,13 @@ function evaluateMapping(
         );
         // Give an already-posted result a turn to be delivered before treating
         // the exit as a failure (finish() ignores this once settled).
-        worker.once('exit', () =>
+        worker.once('exit', (code) =>
             setImmediate(() =>
                 finish(
                     reject,
-                    new Error('JSONata evaluation ended unexpectedly'),
+                    new Error(
+                        `JSONata evaluation ended unexpectedly (exit code ${code}); it may have exceeded its memory limit`,
+                    ),
                 ),
             ),
         );
