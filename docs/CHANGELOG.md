@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Webhook mapping templates are evaluated in a worker thread with memory, time and result-size limits, and template expressions are capped at 8192 characters.
+- The Playwright and journeys test servers, and the server/e2e Vitest suites (`app/server.test.js`, `tests/e2e/*.test.js`), run against a private temporary `FIRE_DATA_DIR`, so test runs never touch the repo's `data/` directory (tokens, backups).
+- Key rotation (`POST /api/admin/rotate-key`) now also re-encrypts the provider token files and local daily backups, all-or-nothing with rollback. Backups already stored in Google Drive keep the old key; run a new Drive backup after rotating.
 - The server listens on loopback by default (`FIRE_BIND_HOST` to change it; container images set it), the `/api` limiters run before the API-key check, and API/admin keys are compared in constant time. Forwarded client addresses are trusted only when `FIRE_TRUST_PROXY` is set (Compose sets it for Caddy).
 - Selects no longer truncate the selected value: shorter Filing State and eBay category option labels, the eBay category select spans the form row, and the Side Gig Ledger tax-tag select sizes to its longest tag (#172).
 - Table and projection summaries escape stored text before rendering. The shared `escHtml` in `lib/html-utils.js` (which also escapes single quotes and returns '' for null/undefined) is now the one used everywhere; the duplicate helpers in dashboard, real-estate, tax-harvest and projections were removed.

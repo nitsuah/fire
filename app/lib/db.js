@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('./node-crypto');
+const { planReencrypt, applyPlan } = require('./key-rotation');
 
 const DATA_DIR =
     process.env.FIRE_DATA_DIR || path.join(__dirname, '../../data');
@@ -145,19 +146,44 @@ async function rotateMasterKey(newKeyHex) {
     const prevKey = MASTER_KEY;
     const prevEnv = process.env.SYNC_MASTER_KEY;
     const nextKey = Buffer.from(newKeyHex, 'hex');
-    const ok = await mutateState(() => {
-        MASTER_KEY = nextKey;
-        process.env.SYNC_MASTER_KEY = newKeyHex;
-    });
-    if (!ok) {
+    const restoreKey = () => {
         MASTER_KEY = prevKey;
         if (prevEnv === undefined) {
             delete process.env.SYNC_MASTER_KEY;
         } else {
             process.env.SYNC_MASTER_KEY = prevEnv;
         }
+    };
+    let applied = null;
+    let ok;
+    try {
+        ok = await mutateState(() => {
+            // Plan every token file and local backup first (nothing is
+            // written if one cannot be read), then swap the key and rewrite
+            // them synchronously so no other write interleaves.
+            const plan = planReencrypt(
+                DATA_DIR,
+                prevKey,
+                nextKey,
+                path.dirname(DB_FILE),
+            );
+            MASTER_KEY = nextKey;
+            process.env.SYNC_MASTER_KEY = newKeyHex;
+            applied = applyPlan(plan);
+        });
+    } catch (err) {
+        restoreKey();
+        // applyPlan already rolls back its own write failures; this covers
+        // anything that throws after it succeeded.
+        if (applied) applied.rollback();
+        throw err;
+    }
+    if (!ok) {
+        restoreKey();
+        if (applied) applied.rollback();
         throw new Error('Failed to re-encrypt database with new key.');
     }
+    return { tokens: applied.tokens, backups: applied.backups };
 }
 
 module.exports = {
