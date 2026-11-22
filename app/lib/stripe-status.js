@@ -68,8 +68,16 @@ function stripeRecoveryHint(data) {
 
     if (data.connected && last && last.ok === false) {
         const code = last.errorCode;
-        if (code === 'invalid_grant' || code === 'token_revoked') {
+        // The sync records 'unauthorized' when Stripe rejects the restricted key.
+        if (
+            code === 'unauthorized' ||
+            code === 'invalid_grant' ||
+            code === 'token_revoked'
+        ) {
             return 'Stripe access was revoked. Reconnect your Stripe account from Settings.';
+        }
+        if (code === 'storage_error') {
+            return 'Sync results could not be saved. Check DATA_DIR permissions and disk space.';
         }
         if (code === 'rate_limited') {
             return 'Too many requests. Wait a moment and try syncing again.';

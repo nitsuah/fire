@@ -117,6 +117,25 @@ describe('stripeRecoveryHint', () => {
         expect(hint).toMatch(/Reconnect/);
     });
 
+    it('connected with failed sync and unauthorized tells to reconnect', () => {
+        const hint = stripeRecoveryHint({
+            configured: true,
+            connected: true,
+            lastSyncOutcome: { ok: false, errorCode: 'unauthorized' },
+        });
+        expect(hint).toMatch(/revoked/);
+        expect(hint).toMatch(/Reconnect/);
+    });
+
+    it('connected with failed sync and storage_error points at DATA_DIR', () => {
+        const hint = stripeRecoveryHint({
+            configured: true,
+            connected: true,
+            lastSyncOutcome: { ok: false, errorCode: 'storage_error' },
+        });
+        expect(hint).toMatch(/DATA_DIR/);
+    });
+
     it('connected with failed sync and rate_limited tells to wait', () => {
         const hint = stripeRecoveryHint({
             configured: true,
