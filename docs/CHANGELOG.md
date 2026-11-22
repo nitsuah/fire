@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `GET /api/health` reports which integrations are configured (booleans only) (#546).
 - MCP hosted browser bridge (child 1): extracted browser-safe tool core into `app/mcp-tools.mjs` with no Node imports, used by both stdio server and browser; added `offset`/`pagingKey` paging to `get_transactions` with bounds (non-negative integers, max page size 1000) and stable ordering; `stale_offset` error when matched rows change between pages; `handleTool` stays synchronous and the paging key uses a built-in fingerprint, so Node and browser hosts agree (#508).
 
 ### Changed

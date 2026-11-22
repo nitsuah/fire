@@ -300,6 +300,19 @@ app.use('/docs', express.static(path.join(__dirname, '../docs')));
 app.use('/api', generalLimiter);
 app.use('/api/sync', syncLimiter);
 
+// Uptime/post-deploy probe (#546): booleans only, never values, so no key needed.
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        configured: {
+            ebay: Boolean(process.env.EBAY_CLIENT_ID),
+            etsy: Boolean(process.env.ETSY_CLIENT_ID),
+            plaid: Boolean(process.env.PLAID_CLIENT_ID),
+            drive: Boolean(process.env.GDRIVE_CLIENT_ID),
+        },
+    });
+});
+
 if (!AUTH_DISABLED) {
     app.use('/api', (req, res, next) => {
         // Only the callback is a browser-redirect that Google initiates; authorize is user-initiated
