@@ -1,13 +1,5 @@
 # Bugs
 
-> Generated from open `bot:journey` / `bot:review` issues in [nitsuah/fire](https://github.com/nitsuah/fire/issues). Don’t edit this file by hand: fix or close the issue. Updated 2026-11-21 by [the nightly journey run](https://github.com/nitsuah/fire/actions/runs/44879952080).
+> Generated from open `bot:journey` / `bot:review` issues in [nitsuah/fire](https://github.com/nitsuah/fire/issues). Don’t edit this file by hand: fix or close the issue. Updated 2026-11-22 by [the nightly journey run](https://github.com/nitsuah/fire/actions/runs/44997916141).
 
-## app
-
-- [#436](https://github.com/nitsuah/fire/issues/436) saver trims the budget and the spend rate drops › open Expenses: visual-diff _(journey · last seen 2026-11-20)_
-- [#459](https://github.com/nitsuah/fire/issues/459) investor reads and dismisses portfolio insights › open Insights: visual-diff _(journey · last seen 2026-11-20)_
-- [#460](https://github.com/nitsuah/fire/issues/460) first visit: accept the privacy terms and see my net worth › accept the privacy terms: visual-diff _(journey · last seen 2026-11-20)_
-- [#461](https://github.com/nitsuah/fire/issues/461) investor reviews positions and every holding › see top positions with P&L: visual-diff _(journey · last seen 2026-11-20)_
-- [#462](https://github.com/nitsuah/fire/issues/462) planner stress-tests the retirement date › open Projections: visual-diff _(journey · last seen 2026-11-20)_
-- [#463](https://github.com/nitsuah/fire/issues/463) reseller prices an eBay sale and logs it › open Side Hustle Hub: visual-diff _(journey · last seen 2026-11-20)_
-- [#488](https://github.com/nitsuah/fire/issues/488) phone user opens the menu and checks side income › go to Side Hustle Hub: visual-diff _(journey · last seen 2026-11-20)_
+No open bot issues. 🎉
