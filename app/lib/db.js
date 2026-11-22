@@ -173,6 +173,9 @@ async function rotateMasterKey(newKeyHex) {
         });
     } catch (err) {
         restoreKey();
+        // applyPlan already rolls back its own write failures; this covers
+        // anything that throws after it succeeded.
+        if (applied) applied.rollback();
         throw err;
     }
     if (!ok) {
