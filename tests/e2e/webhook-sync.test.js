@@ -19,6 +19,9 @@ const WEBHOOK_DB = path.join(
     `fire-webhook-e2e-test-${process.pid}.json`,
 );
 process.env.FIRE_DB_FILE = WEBHOOK_DB;
+// Private data dir so token files and backups never land in the repo's data/.
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fire-test-data-'));
+process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 // These flows drive the API unauthenticated — opt out of the
 // now-required-by-default auth (the gate itself is covered by
 // tests/unit/server-hardening.test.js).
@@ -80,6 +83,7 @@ afterAll(() => {
     } catch {
         /* ignore */
     }
+    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
 describe('Webhook sync — template CRUD -> ingest -> db.json verification', () => {

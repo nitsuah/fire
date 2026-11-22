@@ -7,6 +7,9 @@ const os = require('os');
 // Use an isolated temp DB for all server tests — must be set before server is required
 const TEST_DB = path.join(os.tmpdir(), `fire-server-test-${process.pid}.json`);
 process.env.FIRE_DB_FILE = TEST_DB;
+// Private data dir so token files and backups never land in the repo's data/.
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fire-test-data-'));
+process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 // These tests exercise routes unauthenticated, not the FIRE_API_KEY gate
 // itself (that's tests/unit/server-hardening.test.js) — opt out of the
 // now-required-by-default auth so /api/* stays reachable without a key.
@@ -53,6 +56,7 @@ afterAll(() => {
     } catch {
         /* ignore */
     }
+    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
 // ─── Static file serving ───────────────────────────────────────────────────────

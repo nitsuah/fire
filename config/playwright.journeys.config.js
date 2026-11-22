@@ -11,7 +11,6 @@
 //   ...add --update-snapshots and mount tests/journeys to refresh baselines
 //   (see tests/journeys/README.md).
 const path = require('path');
-const os = require('os');
 const base = require('./playwright.config.js');
 
 module.exports = {
@@ -56,7 +55,10 @@ module.exports = {
         ...base.webServer,
         env: {
             ...base.webServer.env,
-            FIRE_DB_FILE: path.join(os.tmpdir(), 'fire-journeys-db.json'),
+            FIRE_DB_FILE: path.join(
+                base.webServer.env.FIRE_DATA_DIR,
+                'journeys-db.json',
+            ),
         },
     },
 };
