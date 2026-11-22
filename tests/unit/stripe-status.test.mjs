@@ -12,23 +12,62 @@ const failed = (errorCode) => ({
 
 describe('stripeStatusBadge', () => {
     it.each([
-        [{ configured: false }, 'Not configured', false],
-        [{ ...connected, connected: false }, 'Not connected', true],
-        [connected, 'Connected — never synced', false],
-        [{ ...connected, lastSyncedAt: 'now' }, 'Connected', false],
-        [failed('rate_limited'), 'Last sync failed (rate_limited)', false],
+        [
+            { configured: false },
+            'Not configured',
+            false,
+            'var(--color-warning)',
+        ],
+        [
+            { ...connected, connected: false },
+            'Not connected',
+            true,
+            'var(--text-muted)',
+        ],
+        [connected, 'Connected — never synced', false, 'var(--color-success)'],
+        [
+            { ...connected, lastSyncedAt: 'now' },
+            'Connected',
+            false,
+            'var(--color-success)',
+        ],
+        [
+            failed('rate_limited'),
+            'Last sync failed (rate_limited)',
+            false,
+            'var(--color-danger)',
+        ],
         [
             { ...connected, lastSyncOutcome: { ok: false } },
             'Last sync failed',
             false,
+            'var(--color-danger)',
         ],
         [
             { ...connected, lastSyncOutcome: { partial: true } },
             'Partially synced',
             false,
+            'var(--color-warning)',
         ],
-    ])('maps status to %s', (status, label, connectable) => {
-        expect(stripeStatusBadge(status)).toMatchObject({ label, connectable });
+        [
+            {
+                ...connected,
+                lastSyncOutcome: {
+                    ok: false,
+                    partial: true,
+                    errorCode: 'unauthorized',
+                },
+            },
+            'Partially synced; last sync failed (unauthorized)',
+            false,
+            'var(--color-danger)',
+        ],
+    ])('maps status to %s', (status, label, connectable, color) => {
+        expect(stripeStatusBadge(status)).toEqual({
+            label,
+            connectable,
+            color,
+        });
     });
 
     it('hides unknown error codes and handles missing status', () => {
@@ -57,6 +96,18 @@ describe('stripeRecoveryHint', () => {
         [failed('unauthorized'), /revoked/],
         [failed('rate_limited'), /Wait briefly/],
         [failed('storage_error'), /DATA_DIR/],
+        [
+            {
+                ...connected,
+                lastSyncOutcome: {
+                    ok: false,
+                    partial: true,
+                    errorCode: 'unauthorized',
+                },
+            },
+            /revoked/,
+        ],
+        [failed('constructor'), /server logs/],
     ])('gives bounded guidance for %s', (status, hint) => {
         expect(stripeRecoveryHint(status)).toMatch(hint);
     });
