@@ -16,4 +16,6 @@ CMD ["npm", "test"]
 
 FROM base
 EXPOSE 8080
+# Listen on all container interfaces; the published port is what limits exposure.
+ENV FIRE_BIND_HOST=0.0.0.0
 CMD ["npm", "start"]

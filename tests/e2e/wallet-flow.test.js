@@ -24,6 +24,9 @@ const TEST_DB = path.join(
     `fire-wallet-flow-e2e-${process.pid}.json`,
 );
 process.env.FIRE_DB_FILE = TEST_DB;
+// Private data dir so token files and backups never land in the repo's data/.
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fire-test-data-'));
+process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 process.env.FIRE_AUTH_DISABLED = 'true';
 
 const request = require('supertest');
@@ -54,6 +57,7 @@ afterAll(() => {
     } catch {
         /* ignore */
     }
+    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
 describe('Wallet flow — end-to-end', () => {

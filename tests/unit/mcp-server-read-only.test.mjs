@@ -155,4 +155,20 @@ describe('MCP server tool registry is read-only', () => {
             expect(source).not.toMatch(new RegExp(`\\b${fn}\\s*\\(`));
         }
     });
+
+    it('routes/mcp.js contains no write paths (writeState, mutateState, fs writes, child_process)', () => {
+        const sourcePath = fileURLToPath(
+            new URL('../../app/routes/mcp.js', import.meta.url),
+        );
+        const source = fs.readFileSync(sourcePath, 'utf8');
+        for (const forbidden of [
+            'writeState',
+            'mutateState',
+            'writeFileSync',
+            'appendFileSync',
+            'child_process',
+        ]) {
+            expect(source).not.toContain(forbidden);
+        }
+    });
 });

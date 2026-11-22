@@ -7,7 +7,9 @@ import {
 describe('stripeStatusBadge', () => {
     it('not configured is a warning and not connectable', () => {
         const b = stripeStatusBadge({ configured: false, connected: false });
-        expect(b.label).toMatch(/not configured on this deployment/);
+        expect(b.label).toBe(
+            'Stripe sync available on self-hosted deployments only',
+        );
         expect(b.connectable).toBe(false);
     });
 
@@ -90,8 +92,9 @@ describe('stripeRecoveryHint', () => {
             configured: false,
             connected: false,
         });
-        expect(hint).toMatch(/STRIPE_SECRET_KEY/);
-        expect(hint).toMatch(/Netlify environment/);
+        expect(hint).toMatch(/SYNC_MASTER_KEY/);
+        expect(hint).toMatch(/64 hex characters/);
+        expect(hint).toMatch(/self-hosted server/);
     });
 
     it('connected with failed sync and invalid_grant tells to reconnect', () => {
@@ -112,6 +115,25 @@ describe('stripeRecoveryHint', () => {
         });
         expect(hint).toMatch(/revoked/);
         expect(hint).toMatch(/Reconnect/);
+    });
+
+    it('connected with failed sync and unauthorized tells to reconnect', () => {
+        const hint = stripeRecoveryHint({
+            configured: true,
+            connected: true,
+            lastSyncOutcome: { ok: false, errorCode: 'unauthorized' },
+        });
+        expect(hint).toMatch(/revoked/);
+        expect(hint).toMatch(/Reconnect/);
+    });
+
+    it('connected with failed sync and storage_error points at DATA_DIR', () => {
+        const hint = stripeRecoveryHint({
+            configured: true,
+            connected: true,
+            lastSyncOutcome: { ok: false, errorCode: 'storage_error' },
+        });
+        expect(hint).toMatch(/DATA_DIR/);
     });
 
     it('connected with failed sync and rate_limited tells to wait', () => {
@@ -183,9 +205,11 @@ describe('stripeRecoveryHint', () => {
         ).toBe('');
     });
 
-    it('configured but not connected says to click connect', () => {
+    it('configured but not connected says to store restricted key', () => {
         const hint = stripeRecoveryHint({ configured: true, connected: false });
-        expect(hint).toMatch(/Click Connect/);
+        expect(hint).toMatch(/Store a Stripe restricted key/);
+        expect(hint).toMatch(/POST \/api\/sync\/stripe\/credentials/);
+        expect(hint).toMatch(/docs\/integrations\.md/);
     });
 
     it('unknown configured state tells to configure then connect', () => {

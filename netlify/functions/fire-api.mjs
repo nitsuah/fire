@@ -157,6 +157,18 @@ export default async function handler(req) {
         const path = routePath(url.pathname);
         const method = req.method || 'GET';
 
+        if (path === '/health' && method === 'GET') {
+            return json(200, {
+                status: 'ok',
+                configured: {
+                    ebay: Boolean(process.env.EBAY_CLIENT_ID),
+                    etsy: Boolean(process.env.ETSY_CLIENT_ID),
+                    plaid: Boolean(process.env.PLAID_CLIENT_ID),
+                    drive: Boolean(process.env.GDRIVE_CLIENT_ID),
+                },
+            });
+        }
+
         if (path === '/metals' && method === 'GET') {
             return await handleMetals(url);
         }

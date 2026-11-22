@@ -32,6 +32,7 @@ export default [
             'netlify/**/*.mjs',
             'cloudflare/**/*.mjs',
             'functions/**/*.js',
+            'app/bridge-protocol.mjs',
             'app/lib/metals-prices.js',
             'app/lib/net-worth-history.js',
             'app/lib/data-freshness.js',

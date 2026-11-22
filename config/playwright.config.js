@@ -1,5 +1,14 @@
 // @ts-check
 const { defineConfig, devices } = require('@playwright/test');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+// Private data directory for the test server: the DB, token files, backups
+// and anything else the app writes land here, never in the repo's data/.
+const TEST_DATA_DIR = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'fire-playwright-'),
+);
 
 // Real-browser UI regression coverage for the dashboard/projections layout
 // fixes and new widgets in the 2026 roadmap cycle.
@@ -14,6 +23,14 @@ const { defineConfig, devices } = require('@playwright/test');
 //
 // Starts the app itself (webServer) against an isolated temp DB so it never
 // touches a real data/db.json.
+process.once('exit', () => {
+    try {
+        fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
+    } catch {
+        /* best effort */
+    }
+});
+
 module.exports = defineConfig({
     testDir: '../tests/e2e-ui',
     // One worker: every spec shares the single webServer + temp DB, and the
@@ -26,6 +43,9 @@ module.exports = defineConfig({
     use: {
         baseURL: 'http://localhost:3011',
         trace: 'on-first-retry',
+        // A registered service worker forwards fetches itself, and page.route
+        // never sees those, so mocks would race the real server.
+        serviceWorkers: 'block',
     },
     projects: [
         {
@@ -35,7 +55,7 @@ module.exports = defineConfig({
     ],
     webServer: {
         command: 'node ../app/server.js',
-        url: 'http://localhost:3011',
+        url: 'http://127.0.0.1:3011',
         // Always start our own instance against the isolated temp DB below —
         // if a server already happens to be listening on :3011 (e.g. a local
         // dev server), reusing it would skip our FIRE_DB_FILE env entirely
@@ -44,10 +64,8 @@ module.exports = defineConfig({
         cwd: __dirname,
         env: {
             PORT: '3011',
-            FIRE_DB_FILE: require('path').join(
-                require('os').tmpdir(),
-                'fire-playwright-test-db.json',
-            ),
+            FIRE_DATA_DIR: TEST_DATA_DIR,
+            FIRE_DB_FILE: path.join(TEST_DATA_DIR, 'db.json'),
             // API auth is required by default as of PROD Phase 3 — this UI
             // suite drives the app unauthenticated, so opt out explicitly.
             FIRE_AUTH_DISABLED: 'true',

@@ -56,6 +56,10 @@ function closePrivacyModal() {
 function acceptPrivacy() {
     localStorage.setItem(PRIVACY_ACCEPTED_KEY, Date.now().toString());
     closePrivacyModal();
+    // Quick Start waits for consent; show it now instead of after a reload.
+    if (typeof globalThis.refreshQuickStart === 'function') {
+        globalThis.refreshQuickStart();
+    }
 }
 
 function checkFirstLoad() {

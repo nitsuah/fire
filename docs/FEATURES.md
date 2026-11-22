@@ -130,12 +130,14 @@
   - Click a title to collapse a card. Dashboard ＋ Add widget pins cards from other tabs (keyboard-trapped picker that restores focus), ✕ removes cards, ↺ Reset restores a tab.
   - Persisted per browser (`fire_layout_v2`, migrating v1) in `app/lib/layout-manager.js`. CSP-safe: no inline handlers or style attributes.
 - **Milestone Preset Selector** — 5 financial profiles (Conservative, Standard, Aggressive, Barista FIRE, Coast FIRE) with dynamic targets based on user's income/net worth.
+- **Quick Start Hub** — Appears on the Dashboard only after the privacy notice is accepted; six steps (privacy, accounts, retirement assumptions, provider, backup, explore), the first three required and the last three optional; each step links to the existing tab or the Privacy & Terms control; progress is recomputed from real state on every render and is never stored; a provider counts only when its status endpoint reports `connected: true` (hosted deploys that keep credentials in the browser may under-report); "profile" means at least one projection assumption differs from its default; "explore" means Chaos mode was turned on at least once; dismissal is the only thing stored, in `localStorage` key `fire_quick_start_dismissed` (`'1'`), and a "Quick Start" button reopens the card.
 
 ## Integrations (UI Ready)
 
 - **eBay OAuth Status** — Connection status check with authorize/sync endpoints in Settings page.
 - **Plaid Link Integration** — Plaid Link SDK embedded for bank/Fidelity aggregation; create-link-token and exchange endpoints.
 - **Vehicle Value Estimates** — Estimate overlay with depreciation model and market data sources; accept/save to vehicle record.
+- **Stripe Connection Card** — Self-hosted only; status (not configured / not connected / connected / partial / failed with error code), last-sync display, recovery hints, and confirm-guarded disconnect that deletes the encrypted restricted key (synced side-gig transactions stay).
 
 ## Diversification Intelligence
 
@@ -158,7 +160,7 @@
 
 ## Planned
 
-- **Netlify Plaid backend** — Plaid Link, account/position sync, and transaction sync are served on the hosted deploy by `netlify/functions/plaid.mjs` via the `/api/sync/plaid/*` rewrites (PR #146), with unit coverage and a `netlify.toml` routing test. Express behavior is unchanged. Still outstanding on the `Serve Plaid on the Netlify deploy` task: a live Link → sync run against lifefire.netlify.app and browser smoke coverage.
+- **Netlify Plaid backend** — Plaid Link, account/position sync, and transaction sync are served on the hosted deploy by `netlify/functions/plaid.mjs` via the `/api/sync/plaid/*` rewrites (PR #146), with unit coverage and a `netlify.toml` routing test. Express behavior is unchanged. Still outstanding on the `Serve Plaid on the Netlify deploy` task: a live Link → sync run against fire.nitsuah.io and browser smoke coverage.
 
 - **Tax Drag Estimation Engine** — Custom federal/state bracket support with capital gains configuration.
 - **PWA Packaging** — Offline access and lightweight installable app.

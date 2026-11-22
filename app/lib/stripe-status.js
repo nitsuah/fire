@@ -7,7 +7,7 @@
 function stripeStatusBadge(data) {
     if (data.configured === false) {
         return {
-            label: 'Stripe is not configured on this deployment (STRIPE_SECRET_KEY)',
+            label: 'Stripe sync available on self-hosted deployments only',
             color: 'var(--color-warning, var(--color-danger))',
             connectable: false,
         };
@@ -61,15 +61,23 @@ function stripeStatusBadge(data) {
 
 function stripeRecoveryHint(data) {
     if (data.configured === false) {
-        return 'Set STRIPE_SECRET_KEY in the Netlify environment to enable Stripe sync.';
+        return 'Set SYNC_MASTER_KEY (64 hex characters) on your self-hosted server to enable Stripe sync.';
     }
 
     const last = data.lastSyncOutcome;
 
     if (data.connected && last && last.ok === false) {
         const code = last.errorCode;
-        if (code === 'invalid_grant' || code === 'token_revoked') {
+        // The sync records 'unauthorized' when Stripe rejects the restricted key.
+        if (
+            code === 'unauthorized' ||
+            code === 'invalid_grant' ||
+            code === 'token_revoked'
+        ) {
             return 'Stripe access was revoked. Reconnect your Stripe account from Settings.';
+        }
+        if (code === 'storage_error') {
+            return 'Sync results could not be saved. Check DATA_DIR permissions and disk space.';
         }
         if (code === 'rate_limited') {
             return 'Too many requests. Wait a moment and try syncing again.';
@@ -86,7 +94,7 @@ function stripeRecoveryHint(data) {
     }
 
     if (data.configured === true) {
-        return 'Click Connect to link your Stripe account.';
+        return 'Store a Stripe restricted key via POST /api/sync/stripe/credentials (see docs/integrations.md).';
     }
 
     return 'Configure Stripe in Netlify environment variables, then connect.';
