@@ -100,13 +100,14 @@ function statesMatch(a, b) {
 
 // The PKCE verifier + CSRF state ride in a short-lived HttpOnly cookie,
 // sealed so the browser can't read or forge them.
-function sealPending({ state, verifier, redirectUri }) {
+function sealPending({ state, verifier, redirectUri, nonce = '' }) {
     return encodeURIComponent(
         encrypt(
             JSON.stringify({
                 state,
                 verifier,
                 redirectUri,
+                nonce,
                 exp: Date.now() + PENDING_TTL_MS,
             }),
         ),

@@ -40,7 +40,12 @@ export default async function handler(req) {
     if (post && req.method !== 'POST') return methodNotAllowed('POST');
 
     if (name === 'authorize')
-        return toResponse(await handlers.authorize({ origin }));
+        return toResponse(
+            await handlers.authorize({
+                origin,
+                nonce: url.searchParams.get('n'),
+            }),
+        );
     if (name === 'callback') {
         return toResponse(
             await handlers.callback({

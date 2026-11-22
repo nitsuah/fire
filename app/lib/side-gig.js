@@ -76,8 +76,10 @@ function initSideGigManager() {
     const ebayOauthBtn = document.getElementById('btn-ebay-oauth');
     if (ebayOauthBtn) {
         ebayOauthBtn.addEventListener('click', () => {
-            markEbayConnectPending();
-            window.location.assign('/api/sync/ebay/authorize');
+            oauthStartFlow(
+                EBAY_CONNECT_PENDING_KEY,
+                '/api/sync/ebay/authorize',
+            );
         });
     }
 
@@ -145,26 +147,10 @@ function isApiSyncedEbayEntry(entry) {
     return Boolean(entry?.orderId) && entry.id === `ebay-${entry.orderId}`;
 }
 
-// The OAuth `state` cookie protects eBay → callback; this marker protects
-// callback → SPA, so a crafted /#ebay-connected=<attacker blob> link can't
-// silently connect someone else's eBay account in this browser.
-function markEbayConnectPending() {
-    try {
-        sessionStorage.setItem(EBAY_CONNECT_PENDING_KEY, '1');
-    } catch {
-        /* storage unavailable — the callback will be ignored */
-    }
-}
-
-function takeEbayConnectPending() {
-    try {
-        const pending = sessionStorage.getItem(EBAY_CONNECT_PENDING_KEY);
-        sessionStorage.removeItem(EBAY_CONNECT_PENDING_KEY);
-        return pending === '1';
-    } catch {
-        return false;
-    }
-}
+// The OAuth `state` cookie protects eBay -> callback; a per-attempt nonce
+// (see oauthStartFlow in html-utils.js) protects callback -> SPA, so a
+// crafted /#ebay-connected=<blob> link can't silently connect someone
+// else's eBay account in this browser.
 
 function isBrowserOnlyMode() {
     // deploy-mode.js knows for certain once state.js's /api/state probe has
@@ -225,20 +211,14 @@ async function fetchEbayStatus() {
 
 // ebay-callback returns to /#ebay-connected=<blob> or /#ebay-error=<code>.
 async function consumeEbayOauthFragment() {
-    const hash = window.location.hash || '';
-    const match = hash.match(/^#ebay-(connected|error)=(.*)$/);
-    if (!match) return;
-    history.replaceState(
-        null,
-        '',
-        window.location.pathname + window.location.search,
-    );
-    if (!takeEbayConnectPending()) {
+    const result = oauthTakeResult('ebay', EBAY_CONNECT_PENDING_KEY);
+    if (!result) return;
+    if (!result.ok) {
         console.warn('[eBay] Ignored an OAuth result this tab did not start.');
         return;
     }
-    if (match[1] === 'connected') {
-        writeEbayLocal(EBAY_TOKEN_KEY, decodeURIComponent(match[2]));
+    if (result.kind === 'connected') {
+        writeEbayLocal(EBAY_TOKEN_KEY, result.value);
         ebayWriteOutcome(null, null);
         showSideGigToast('eBay connected — syncing your sales…');
         await checkEbayConnection();
@@ -253,7 +233,7 @@ async function consumeEbayOauthFragment() {
         }
     } else {
         showSideGigToast(
-            `eBay connection failed (${match[2]}). Please try again.`,
+            `eBay connection failed (${result.value}). Please try again.`,
             'error',
         );
     }

@@ -527,31 +527,22 @@ function renderCoinTrackerCard() {
 // by the tab that started the connect, so a crafted link can't attach
 // someone else's CoinTracker account to this browser.
 async function consumeCoinTrackerFragment() {
-    const match = (window.location.hash || '').match(
-        /^#cointracker-(connected|error)=(.*)$/,
-    );
-    if (!match) return false;
-    history.replaceState(
-        null,
-        '',
-        window.location.pathname + window.location.search,
-    );
-    const pending = ctRead(CT_CONNECT_PENDING_KEY, sessionStorage) === '1';
-    ctWrite(CT_CONNECT_PENDING_KEY, null, sessionStorage);
-    if (!pending) {
+    const result = oauthTakeResult('cointracker', CT_CONNECT_PENDING_KEY);
+    if (!result) return false;
+    if (!result.ok) {
         console.warn(
             '[CoinTracker] Ignored an OAuth result this tab did not start.',
         );
         return false;
     }
-    if (match[1] === 'error') {
+    if (result.kind === 'error') {
         ctSetStatus(
-            `CoinTracker connection failed (${decodeURIComponent(match[2])}).`,
+            `CoinTracker connection failed (${result.value}).`,
             'var(--color-danger)',
         );
         return false;
     }
-    ctWrite(CT_TOKEN_KEY, decodeURIComponent(match[2]));
+    ctWrite(CT_TOKEN_KEY, result.value);
     try {
         await runCoinTrackerSync();
     } catch {
@@ -567,8 +558,10 @@ function initCoinTracker() {
         const target = e.target.closest('button');
         if (!target) return;
         if (target.id === 'btn-cointracker-connect') {
-            ctWrite(CT_CONNECT_PENDING_KEY, '1', sessionStorage);
-            window.location.assign('/api/sync/cointracker/authorize');
+            oauthStartFlow(
+                CT_CONNECT_PENDING_KEY,
+                '/api/sync/cointracker/authorize',
+            );
         } else if (target.id === 'btn-cointracker-sync') {
             runCoinTrackerSync().catch(() => {});
         } else if (target.id === 'btn-cointracker-disconnect') {

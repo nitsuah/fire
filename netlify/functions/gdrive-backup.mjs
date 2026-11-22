@@ -9,6 +9,7 @@
 
 import crypto from '../../app/lib/node-crypto.js';
 import gdrive from '../../app/lib/gdrive-backup.js';
+import oauthNonce from '../../app/lib/oauth-nonce.js';
 import { encrypt, decrypt } from '../../app/lib/crypto-utils.js';
 import { json, redirect, methodNotAllowed, cookie } from '../lib/http.mjs';
 
@@ -88,9 +89,12 @@ function notConfigured() {
 // authorize and callback are top-level navigations, so failures go back to
 // the SPA as a fragment rather than leaving the user on a bare JSON page.
 function authorize(url) {
+    const nonce = oauthNonce.cleanNonce(url.searchParams.get('n'));
     if (!clientConfigured() || !masterKeySet()) {
         notConfigured();
-        return redirect('/#gdrive-error=not_configured');
+        return redirect(
+            `/#gdrive-error=not_configured${oauthNonce.nonceSuffix(nonce)}`,
+        );
     }
     const redirectUri = redirectUriFor(url.origin);
     const state = crypto.randomBytes(16).toString('hex');
@@ -99,6 +103,7 @@ function authorize(url) {
             JSON.stringify({
                 state,
                 redirectUri,
+                nonce,
                 exp: Date.now() + PENDING_TTL_MS,
             }),
         ),
@@ -110,12 +115,13 @@ function authorize(url) {
 
 async function callback(req, url) {
     const clear = pendingCookie('', url.protocol === 'https:', 0);
-    const back = (fragment) =>
-        redirect(`/#${fragment}`, { 'Set-Cookie': clear });
-    if (!clientConfigured() || !masterKeySet())
-        return back('gdrive-error=not_configured');
     const params = url.searchParams;
     const pending = unsealPending(cookie(req, COOKIE_NAME));
+    const suffix = oauthNonce.nonceSuffix(pending?.nonce);
+    const back = (fragment) =>
+        redirect(`/#${fragment}${suffix}`, { 'Set-Cookie': clear });
+    if (!clientConfigured() || !masterKeySet())
+        return back('gdrive-error=not_configured');
     if (!pending || !statesMatch(params.get('state'), pending.state))
         return back('gdrive-error=invalid_state');
     const code = params.get('code');

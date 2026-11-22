@@ -148,37 +148,26 @@ function connectGoogleDrive() {
     // The OAuth state cookie protects Google → callback; this marker protects
     // callback → SPA, so a crafted /#gdrive-connected=<blob> link can't
     // silently connect someone else's Drive in this browser.
-    gdriveWrite(GDRIVE_CONNECT_PENDING_KEY, '1', sessionStorage);
-    window.location.assign('/api/backup/drive/authorize');
+    oauthStartFlow(GDRIVE_CONNECT_PENDING_KEY, '/api/backup/drive/authorize');
 }
 
 // The hosted callback returns to /#gdrive-connected=<blob> or
 // /#gdrive-error=<code>. Runs on page load (see app.js).
 function initGDriveBackup() {
-    const match = (window.location.hash || '').match(
-        /^#gdrive-(connected|error)=(.*)$/,
-    );
-    if (!match) return;
-    history.replaceState(
-        null,
-        '',
-        window.location.pathname + window.location.search,
-    );
-    const pending =
-        gdriveRead(GDRIVE_CONNECT_PENDING_KEY, sessionStorage) === '1';
-    gdriveWrite(GDRIVE_CONNECT_PENDING_KEY, null, sessionStorage);
-    if (!pending) {
+    const result = oauthTakeResult('gdrive', GDRIVE_CONNECT_PENDING_KEY);
+    if (!result) return;
+    if (!result.ok) {
         console.warn('[Drive] Ignored an OAuth result this tab did not start.');
         return;
     }
-    if (match[1] === 'error') {
+    if (result.kind === 'error') {
         gdriveToast(
-            `Google Drive connection failed (${decodeURIComponent(match[2])}). Please try again.`,
+            `Google Drive connection failed (${result.value}). Please try again.`,
             'error',
         );
         return;
     }
-    gdriveWrite(GDRIVE_TOKEN_KEY, decodeURIComponent(match[2]));
+    gdriveWrite(GDRIVE_TOKEN_KEY, result.value);
     gdriveToast(
         'Google Drive connected. Use Settings → Google Drive Backup to back up.',
     );

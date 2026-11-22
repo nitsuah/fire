@@ -49,7 +49,7 @@ function deleteTokens() {
 }
 
 router.get('/etsy/authorize', (req, res) => {
-    send(res, handlers.authorize({ origin: origin(req) }));
+    send(res, handlers.authorize({ origin: origin(req), nonce: req.query.n }));
 });
 
 router.get('/etsy/callback', async (req, res) => {
