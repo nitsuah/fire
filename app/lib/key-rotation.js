@@ -1,3 +1,4 @@
+/* global module, require, Buffer, process, console */
 'use strict';
 
 // Re-encrypts the files under the data directory that are sealed with

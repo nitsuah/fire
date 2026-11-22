@@ -155,7 +155,7 @@ async function rotateMasterKey(newKeyHex) {
         }
     };
     let applied = null;
-    let ok = false;
+    let ok;
     try {
         ok = await mutateState(() => {
             // Plan every token file and local backup first (nothing is

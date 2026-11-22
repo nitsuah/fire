@@ -100,7 +100,10 @@ describe('rotateMasterKey', () => {
         expect(
             JSON.parse(
                 openEnvelope(
-                    fs.readFileSync(path.join(dir, 'tokens-gdrive.json'), 'utf8'),
+                    fs.readFileSync(
+                        path.join(dir, 'tokens-gdrive.json'),
+                        'utf8',
+                    ),
                     NEW,
                 ),
             ).refresh_token,
@@ -110,15 +113,22 @@ describe('rotateMasterKey', () => {
 
         // ...and nothing opens with the old one.
         process.env.SYNC_MASTER_KEY = OLD;
-        expect(() => mods.cryptoUtils.decrypt(
-            JSON.parse(fs.readFileSync(path.join(dir, 'tokens-etsy.json'), 'utf8')).data,
-        )).toThrow();
+        expect(() =>
+            mods.cryptoUtils.decrypt(
+                JSON.parse(
+                    fs.readFileSync(path.join(dir, 'tokens-etsy.json'), 'utf8'),
+                ).data,
+            ),
+        ).toThrow();
     });
 
     it('changes nothing when a token file cannot be read with the current key', async () => {
         const mods = load();
         seed(mods);
-        fs.writeFileSync(path.join(dir, 'tokens-stripe.json'), '{"data":"x:y:z"}');
+        fs.writeFileSync(
+            path.join(dir, 'tokens-stripe.json'),
+            '{"data":"x:y:z"}',
+        );
         const before = Object.fromEntries(
             fs
                 .readdirSync(dir)
@@ -132,6 +142,47 @@ describe('rotateMasterKey', () => {
         for (const [n, content] of Object.entries(before)) {
             expect(fs.readFileSync(path.join(dir, n), 'utf8')).toBe(content);
         }
+        expect(mods.db.readState().taxRate).toBe(31);
+        expect(mods.tokens.loadTokens('etsy').access_token).toBe('etsy-secret');
+    });
+
+    it('rolls back files already rewritten when a later write fails', async () => {
+        const mods = load();
+        seed(mods);
+        const snapshot = () =>
+            Object.fromEntries(
+                [
+                    ...fs
+                        .readdirSync(dir)
+                        .filter((n) => n.endsWith('.json'))
+                        .map((n) => path.join(dir, n)),
+                    ...fs
+                        .readdirSync(path.join(dir, 'backups'))
+                        .map((n) => path.join(dir, 'backups', n)),
+                ].map((f) => [f, fs.readFileSync(f, 'utf8')]),
+            );
+        const before = snapshot();
+
+        // The first rewrite lands, the second fails; the restore writes after
+        // that must succeed.
+        const realRename = fs.renameSync;
+        let calls = 0;
+        const spy = vi.spyOn(fs, 'renameSync').mockImplementation((a, b) => {
+            calls += 1;
+            if (calls === 2) throw new Error('disk full');
+            return realRename(a, b);
+        });
+        try {
+            await expect(mods.db.rotateMasterKey(NEW)).rejects.toThrow(
+                /disk full/,
+            );
+        } finally {
+            spy.mockRestore();
+        }
+
+        expect(calls).toBeGreaterThan(2);
+        expect(process.env.SYNC_MASTER_KEY).toBe(OLD);
+        expect(snapshot()).toEqual(before);
         expect(mods.db.readState().taxRate).toBe(31);
         expect(mods.tokens.loadTokens('etsy').access_token).toBe('etsy-secret');
     });
