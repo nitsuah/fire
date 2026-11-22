@@ -181,6 +181,7 @@ describe('POST /api/admin/rotate-key', () => {
             .send({ newKey });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe('success');
+        expect(res.body.reencrypted).toEqual({ tokens: 0, backups: 0 });
     });
 });
 

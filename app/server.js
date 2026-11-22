@@ -84,6 +84,11 @@ if (!ADMIN_KEY && IS_PRODUCTION) {
     process.exit(1);
 }
 
+// Interface the server listens on. Loopback by default; container images
+// set FIRE_BIND_HOST=0.0.0.0 (the compose stack publishes the port on
+// 127.0.0.1 only).
+const BIND_HOST = process.env.FIRE_BIND_HOST || '127.0.0.1';
+
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
 
 let rateLimitFn;
@@ -145,11 +150,18 @@ const app = express();
 
 // Caddy (config/Caddyfile) terminates TLS and reverse-proxies to this app
 // over plain HTTP, setting X-Forwarded-Proto/X-Forwarded-Host along the way.
-// Trusting the first proxy hop lets req.protocol/req.get('host') correctly
-// report "https"/the public host for anything built from the request (e.g.
-// the eBay OAuth redirect URI in routes/sync.js) instead of the app's own
-// plain-HTTP loopback address.
-app.set('trust proxy', 1);
+// The Compose stack sets FIRE_TRUST_PROXY=1 so req.protocol/req.get('host')
+// report "https"/the public host (e.g. the eBay OAuth redirect URI in
+// routes/sync.js) and the rate limiters key on the forwarded client address.
+// Without a proxy in front the setting stays off: forwarded headers would be
+// client-supplied, and the limiters must key on the socket address.
+const TRUST_PROXY = (process.env.FIRE_TRUST_PROXY || '').trim();
+if (TRUST_PROXY) {
+    app.set(
+        'trust proxy',
+        /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : TRUST_PROXY,
+    );
+}
 
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -283,6 +295,11 @@ app.use(
 app.use(express.static(__dirname));
 app.use('/docs', express.static(path.join(__dirname, '../docs')));
 
+// Limiters run before the key check so repeated bad-key requests are
+// throttled too.
+app.use('/api', generalLimiter);
+app.use('/api/sync', syncLimiter);
+
 if (!AUTH_DISABLED) {
     app.use('/api', (req, res, next) => {
         // Only the callback is a browser-redirect that Google initiates; authorize is user-initiated
@@ -320,8 +337,6 @@ if (!AUTH_DISABLED) {
     });
 }
 
-app.use('/api', generalLimiter);
-app.use('/api/sync', syncLimiter);
 app.use('/mcp', generalLimiter, require('./routes/mcp'));
 
 initDatabase();
@@ -348,11 +363,12 @@ app.post('/api/admin/rotate-key', async (req, res) => {
             .json({ error: 'newKey must be 64 hex characters.' });
     }
     try {
-        await rotateMasterKey(newKey);
+        const result = await rotateMasterKey(newKey);
         res.json({
             status: 'success',
+            reencrypted: { tokens: result.tokens, backups: result.backups },
             message:
-                'Database re-encrypted with new key. Update SYNC_MASTER_KEY in your .env.',
+                'Database, provider token files and local backups re-encrypted with the new key. Update SYNC_MASTER_KEY in your .env. Backups already stored in Google Drive keep the old key; run a new Drive backup.',
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -436,13 +452,15 @@ module.exports = app;
 if (require.main === module) {
     findAvailablePort([PREFERRED_PORT, 3002, 3003, 3004, 3005])
         .then((port) => {
-            const server = app.listen(port, '0.0.0.0', () => {
+            const server = app.listen(port, BIND_HOST, () => {
                 if (port !== PREFERRED_PORT) {
                     console.warn(
                         `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
                     );
                 }
-                console.log(`🔥 fire server running at http://0.0.0.0:${port}`);
+                console.log(
+                    `🔥 fire server running at http://${BIND_HOST}:${port}`,
+                );
                 refreshYahooCrumb().catch(() => {});
                 // Backup first, so the day's copy is the untouched
                 // start-of-day state.

@@ -55,7 +55,7 @@ module.exports = defineConfig({
     ],
     webServer: {
         command: 'node ../app/server.js',
-        url: 'http://localhost:3011',
+        url: 'http://127.0.0.1:3011',
         // Always start our own instance against the isolated temp DB below —
         // if a server already happens to be listening on :3011 (e.g. a local
         // dev server), reusing it would skip our FIRE_DB_FILE env entirely
