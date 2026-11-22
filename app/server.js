@@ -450,7 +450,9 @@ if (require.main === module) {
                         `[Server] Port ${PREFERRED_PORT} in use — using ${port} instead.`,
                     );
                 }
-                console.log(`🔥 fire server running at http://${BIND_HOST}:${port}`);
+                console.log(
+                    `🔥 fire server running at http://${BIND_HOST}:${port}`,
+                );
                 refreshYahooCrumb().catch(() => {});
                 // Backup first, so the day's copy is the untouched
                 // start-of-day state.

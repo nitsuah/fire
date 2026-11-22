@@ -71,7 +71,9 @@ describe('API key gate and limiter order', () => {
 
     it('still accepts the right key and rejects near-miss keys', async () => {
         await withServer(async (agent) => {
-            const ok = await agent.get('/api/state').set('x-api-key', 'right-key');
+            const ok = await agent
+                .get('/api/state')
+                .set('x-api-key', 'right-key');
             expect(ok.status).toBe(200);
             for (const bad of ['right-ke', 'right-keyy', 'RIGHT-KEY', '']) {
                 const res = await agent.get('/api/state').set('x-api-key', bad);
