@@ -4,6 +4,18 @@ import handler, {
     unsealTokens,
 } from '../../netlify/functions/gdrive-backup.mjs';
 import gdrive from '../../app/lib/gdrive-backup.js';
+import grant from '../../app/lib/grant-cookie.js';
+
+// The sealed grant a response stored in the HttpOnly cookie.
+const grantOf = (res) =>
+    grant.readGrant(
+        res.headers
+            .getSetCookie()
+            .filter((c) => !/Max-Age=0/.test(c))
+            .map((c) => c.split(';')[0])
+            .join('; '),
+        'gdrive_grant',
+    );
 
 // netlify/functions/gdrive-backup.mjs on the browser-only deploy. Google's
 // OAuth + Drive APIs are a stubbed global fetch; the function never stores
@@ -181,12 +193,9 @@ describe('netlify gdrive-backup function — OAuth', () => {
             }),
         );
         expect(res.status).toBe(302);
-        const location = res.headers.get('location');
-        const match = location.match(/^\/#gdrive-connected=(.+)$/);
-        expect(match).not.toBeNull();
-        expect(location).not.toContain('plain-access');
-        expect(location).not.toContain('plain-refresh');
-        expect(unsealTokens(decodeURIComponent(match[1]))).toMatchObject({
+        // The grant goes into HttpOnly cookies; the page only learns a marker.
+        expect(res.headers.get('location')).toBe('/#gdrive-connected=cookie');
+        expect(unsealTokens(grantOf(res))).toMatchObject({
             access_token: 'ya29.plain-access',
             refresh_token: '1//plain-refresh',
         });
@@ -281,8 +290,12 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
             folderId: 'folder-1',
         });
         expect(body.fileName).toMatch(/^fire-backup-\d{4}-\d{2}-\d{2}\.json$/);
-        // Fresh access token: no refresh, no resealed blob.
-        expect(body.tokens).toBeUndefined();
+        // Fresh access token, but sent as a legacy blob: it moves into the
+        // cookie and the client is told to keep only the marker.
+        expect(body.tokens).toBe('cookie');
+        expect(unsealTokens(grantOf(res)).access_token).toBe(
+            'ya29.plain-access',
+        );
 
         const upload = calls.find((c) => c.url.includes('/upload/'));
         expect(upload.init.headers.Authorization).toBe(
@@ -308,7 +321,8 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
         });
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(unsealTokens(body.tokens)).toMatchObject({
+        expect(body.tokens).toBe('cookie');
+        expect(unsealTokens(grantOf(res))).toMatchObject({
             access_token: 'ya29.refreshed',
             refresh_token: '1//plain-refresh',
         });
@@ -586,7 +600,8 @@ describe('netlify gdrive-backup function — backup, list, restore', () => {
         expect(res.headers.get('content-type')).toContain('application/json');
         const body = await res.json();
         expect(body.code).toBe('gdrive_api_failed');
-        expect(unsealTokens(body.tokens).access_token).toBe('ya29.r2');
+        expect(body.tokens).toBe('cookie');
+        expect(unsealTokens(grantOf(res)).access_token).toBe('ya29.r2');
     });
 
     it("surfaces Google's reason, e.g. a disabled Drive API, instead of a generic error", async () => {

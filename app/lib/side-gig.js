@@ -133,8 +133,9 @@ function initSideGigManager() {
 // ─── Browser-only (Netlify) eBay mode ────────────────────────────────────────
 // With no Express backend (state never synced from /api/state), eBay
 // connect/sync run through Netlify Functions (netlify/functions/ebay-*).
-// The browser keeps only an opaque token blob, AES-GCM-encrypted server-side
-// with SYNC_MASTER_KEY, under its own localStorage key (so JSON backups of
+// The grant, AES-GCM-encrypted server-side with SYNC_MASTER_KEY, lives in an
+// HttpOnly cookie (app/lib/grant-cookie.js); this file keeps only the
+// `cookie` marker under its own localStorage key (so JSON backups of
 // fire_tracker_state never carry it). Status and the sync toggle are
 // derived locally.
 const EBAY_TOKEN_KEY = 'fire_tracker_ebay_token';

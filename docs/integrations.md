@@ -69,15 +69,19 @@ format caps a site's env vars at 4KB, and lifefire exceeds that.
 | Public path | Function | Notes |
 |---|---|---|
 | `GET /api/sync/ebay/authorize` | `ebay-authorize` | Redirects to eBay; CSRF `state` in a 10-min HttpOnly cookie |
-| `GET /api/sync/ebay/callback` | `ebay-callback` | Exchanges the code, returns the tokens **encrypted with `SYNC_MASTER_KEY`** to the SPA in the URL fragment (`/#ebay-connected=…`). The SPA accepts it only if this tab started the connect (a `sessionStorage` marker set on the Connect click) |
-| `POST /api/sync/ebay/sync` | `ebay-sync` | Body `{tokens: <blob>}`; returns ledger `entries` (+ a new blob if refreshed). The SPA merges them into `localStorage` |
+| `GET /api/sync/ebay/callback` | `ebay-callback` | Exchanges the code, stores the tokens **encrypted with `SYNC_MASTER_KEY`** in HttpOnly grant cookies (`ebay_grant.*`, path `/api/sync/ebay`), and returns `/#ebay-connected=cookie`. The SPA accepts the result only if this tab started the connect (a per-attempt nonce) |
+| `POST /api/sync/ebay/sync` | `ebay-sync` | Reads the grant cookie; returns ledger `entries` and rewrites the cookie when tokens are refreshed. The SPA merges the entries into `localStorage` |
 | `GET/POST /api/sync/ebay/marketplace-account-deletion` | `ebay-marketplace-account-deletion` | See below |
 | `GET /api/sync/ebay/status` | `ebay-status` | Express returns `configured`/`connected`/`lastSyncOutcome`; the Netlify function returns `configured` only. Hosted connection state stays in the sealed browser blob; hosted outcome persistence is pending #326 |
 
-No eBay data is stored server-side. The browser holds an opaque blob
-(`localStorage` key `fire_tracker_ebay_token`, kept out of JSON backups) that
-only the Functions can decrypt. Status and the sync on/off toggle are computed
-in the browser in this mode (`app/lib/side-gig.js`).
+No eBay data is stored server-side. The encrypted grant lives in HttpOnly,
+`SameSite=Strict` cookies scoped to `/api/sync/ebay` (split into chunks when
+large; see `app/lib/grant-cookie.js`), so page scripts never hold it. The
+`localStorage` key `fire_tracker_ebay_token` keeps only the marker `cookie`
+(kept out of JSON backups). A browser that still holds a sealed blob from
+before this change sends it once; the Function moves it into the cookie and
+answers with the marker. Status and the sync on/off toggle are computed in the
+browser in this mode (`app/lib/side-gig.js`).
 
 Netlify environment variables (Site configuration → Environment variables):
 
@@ -175,9 +179,10 @@ SYNC_MASTER_KEY=      # 64 hex chars — seals the PKCE cookie and encrypts the 
 | Path | Self-hosted (`app/routes/etsy.js`) | Browser-only (`netlify/functions/etsy.mjs`) |
 |---|---|---|
 | `GET /api/sync/etsy/authorize` | Redirects to `https://www.etsy.com/oauth/connect` with a PKCE challenge; state + verifier ride in a sealed, 10-minute HttpOnly cookie (`etsy_oauth`, path `/api/sync/etsy`) | Same |
-| `GET /api/sync/etsy/callback` | Checks state, exchanges the code with the verifier, saves the tokens to `tokens-etsy.json` (AES-256-GCM via `app/lib/token-store.js`, like eBay), returns to `/#etsy-connected=stored`. Exempt from the API-key gate; the sealed cookie is its trust boundary | Same exchange; returns the tokens **sealed with `SYNC_MASTER_KEY`** in the fragment (`/#etsy-connected=<blob>`). The browser keeps the blob under `fire_tracker_etsy_token` (not in `fire_tracker_state` or its backups) and can't read it |
-| `POST /api/sync/etsy/sync` | Pulls receipts, merges new ones into the server ledger, records the last sync | Body `{tokens, since?}`; returns `entries` (+ a resealed blob when tokens rotated or the shop id was looked up). The SPA merges them into `localStorage` |
-| `GET /api/sync/etsy/status`, `POST /api/sync/etsy/toggle`, `POST /api/sync/etsy/disconnect` | Server routes | **Browser-only fallback:** computed/stored in the browser (`app/lib/etsy-sync.js`); the Function answers `404` for these |
+| `GET /api/sync/etsy/callback` | Checks state, exchanges the code with the verifier, saves the tokens to `tokens-etsy.json` (AES-256-GCM via `app/lib/token-store.js`, like eBay), returns to `/#etsy-connected=stored`. Exempt from the API-key gate; the sealed cookie is its trust boundary | Same exchange; stores the tokens **sealed with `SYNC_MASTER_KEY`** in HttpOnly grant cookies (`etsy_grant.*`, path `/api/sync/etsy`) and returns `/#etsy-connected=cookie`. The page never holds the grant; `fire_tracker_etsy_token` (not in `fire_tracker_state` or its backups) keeps only the marker |
+| `POST /api/sync/etsy/sync` | Pulls receipts, merges new ones into the server ledger, records the last sync | Body `{since?}`; reads the grant cookie, returns `entries`, and rewrites the cookie when tokens rotated or the shop id was looked up. The SPA merges the entries into `localStorage` |
+| `GET /api/sync/etsy/status`, `POST /api/sync/etsy/toggle` | Server routes | **Browser-only fallback:** computed/stored in the browser (`app/lib/etsy-sync.js`); the Function answers `404` for these |
+| `POST /api/sync/etsy/disconnect` | Server route | Clears the grant cookie |
 
 The SPA only accepts an `#etsy-connected=` / `#etsy-error=` result when this tab started the connect (a `sessionStorage` marker), like eBay and CoinTracker.
 
@@ -252,7 +257,7 @@ The Cloudflare layer in front of CoinTracker rejects the default Node/undici use
 | `POST /api/sync/cointracker/inspect` | Body `{token}`. Returns the MCP tool catalog (names, descriptions, argument names; no portfolio data) and which tool is used for balances |
 | `POST /api/sync/cointracker/disconnect` | Body `{token}`. Revokes the refresh token (best effort) |
 
-Express serves these from `app/routes/cointracker.js`, and the Netlify deploy from `netlify/functions/cointracker.mjs`. Both wrap `app/lib/cointracker-handlers.js` and `app/lib/cointracker-connector.js` (OAuth, a minimal Streamable-HTTP MCP client, and the normalizer). **Nothing is stored server-side** in either runtime. The browser keeps the sealed token in `localStorage` (`fire_cointracker_token`, outside `fire_tracker_state`, so JSON backups never carry it). Rotating `SYNC_MASTER_KEY` disconnects every browser.
+Express serves these from `app/routes/cointracker.js`, and the Netlify deploy from `netlify/functions/cointracker.mjs`. Both wrap `app/lib/cointracker-handlers.js` and `app/lib/cointracker-connector.js` (OAuth, a minimal Streamable-HTTP MCP client, and the normalizer). **Nothing is stored server-side** in either runtime. The sealed token lives in HttpOnly grant cookies (`cointracker_grant.*`, path `/api/sync/cointracker`; plain-http self-hosted installs get them without `Secure`), and `localStorage` (`fire_cointracker_token`, outside `fire_tracker_state`) keeps only the marker `cookie`. Rotating `SYNC_MASTER_KEY` disconnects every browser.
 
 The callback is exempt from the Express `FIRE_API_KEY` gate, because it is a browser redirect from CoinTracker (like the Drive callback). The encrypted state/PKCE cookie is its trust boundary.
 
@@ -520,10 +525,10 @@ SYNC_MASTER_KEY=                                      # Required: 64 hex chars (
 
 `netlify/functions/gdrive-backup.mjs` serves `/api/backup/drive` and `/api/backup/drive/*` (two `netlify.toml` rewrites placed before the `/api/*` catch-all). It reuses the Drive API and AES-256-GCM helpers in `app/lib/gdrive-backup.js`. It is stateless, like the Etsy function:
 
-- **Connect:** `GET /authorize` puts the OAuth state in a sealed HttpOnly cookie and redirects to Google. `GET /callback` exchanges the code and redirects to `/#gdrive-connected=<blob>`, where the blob is the tokens sealed with `SYNC_MASTER_KEY`. Failures redirect to `/#gdrive-error=<code>`. The browser keeps the blob under the `fire_tracker_gdrive_token` localStorage key, which is never part of `fire_tracker_state` or its backups. It only accepts a fragment from a connect that this tab started.
-- **Back up:** `POST /api/backup/drive` with `{tokens, state}`. There is no db.json on this deploy, so the browser sends its own state. The function encrypts it and uploads only ciphertext.
-- **List:** `GET /list` with the blob in an `X-GDrive-Tokens` header.
-- **Restore:** `POST /restore` with `{tokens, fileId}` returns `{state}` decrypted. The browser applies it through `sanitizeState` and `saveState`, then reloads.
+- **Connect:** `GET /authorize` puts the OAuth state in a sealed HttpOnly cookie and redirects to Google. `GET /callback` exchanges the code and stores the tokens sealed with `SYNC_MASTER_KEY` in HttpOnly grant cookies (`gdrive_grant.*`, path `/api/backup/drive`), and redirects to `/#gdrive-connected=cookie`. Failures redirect to `/#gdrive-error=<code>`. The page never holds the grant; the `fire_tracker_gdrive_token` localStorage key, never part of `fire_tracker_state` or its backups, keeps only the marker. It only accepts a fragment from a connect that this tab started.
+- **Back up:** `POST /api/backup/drive` with `{state}` (the grant comes from the cookie). There is no db.json on this deploy, so the browser sends its own state. The function encrypts it and uploads only ciphertext.
+- **List:** `GET /list` (the grant comes from the cookie).
+- **Restore:** `POST /restore` with `{fileId}` returns `{state}` decrypted. The browser applies it through `sanitizeState` and `saveState`, then reloads.
 - **Status:** `GET /status` reports whether the client and key are configured. The browser decides "connected" from its blob.
 - **Token refresh:** when the access token is refreshed, the response carries a resealed `tokens` blob, even if the Drive call then failed.
 - **Errors:** every response is JSON. An unreadable blob returns `401 gdrive_token_invalid` and a revoked grant returns `401 gdrive_revoked`; in both cases the browser drops the blob. A backup encrypted with a different `SYNC_MASTER_KEY`, or a corrupted file, returns `422 gdrive_backup_unreadable`.

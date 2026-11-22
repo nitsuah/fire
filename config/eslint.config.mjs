@@ -30,6 +30,7 @@ export default [
             'app/lib/etsy-connector.js',
             'app/lib/etsy-handlers.js',
             'app/lib/oauth-nonce.js',
+            'app/lib/grant-cookie.js',
             'netlify/**/*.mjs',
             'cloudflare/**/*.mjs',
             'functions/**/*.js',

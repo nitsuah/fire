@@ -34,12 +34,14 @@ const TOKENS = {
 
 let app;
 let ct;
+let grant;
 let handlers;
 let hosted;
 
 beforeAll(async () => {
     app = (await import('../../app/server.js')).default;
     ct = (await import('../../app/lib/cointracker-connector.js')).default;
+    grant = (await import('../../app/lib/grant-cookie.js')).default;
     handlers = (await import('../../app/lib/cointracker-handlers.js')).default;
     hosted = (await import('../../netlify/functions/cointracker.mjs')).default;
 });
@@ -67,8 +69,32 @@ describe('CoinTracker status (Express)', () => {
         expect(res.body).toEqual({ configured: true, connected: false });
     });
 
-    it('reports connected when the sealed blob unseals', async () => {
+    it('reports connected for a legacy blob and moves it into the cookie', async () => {
         const res = await expressStatus(ct.sealTokens(TOKENS)).expect(200);
+        expect(res.body).toEqual({
+            configured: true,
+            connected: true,
+            token: 'cookie',
+        });
+        const set = [].concat(res.headers['set-cookie'] || []).join('\n');
+        expect(set).toMatch(
+            /cointracker_grant\.0=[A-Za-z0-9_.-]+; Path=\/api\/sync\/cointracker; HttpOnly; SameSite=Strict/,
+        );
+    });
+
+    it('reports connected from the grant cookie alone', async () => {
+        const [first] = grant
+            .grantCookies(
+                'cointracker_grant',
+                '/api/sync/cointracker',
+                ct.sealTokens(TOKENS),
+                { secure: false },
+            )
+            .map((c) => c.split(';')[0]);
+        const res = await request(app)
+            .get('/api/sync/cointracker/status')
+            .set('Cookie', first)
+            .expect(200);
         expect(res.body).toEqual({ configured: true, connected: true });
     });
 
@@ -118,7 +144,14 @@ describe('CoinTracker status (hosted function)', () => {
 
     it('reports connected for a sealed blob', async () => {
         const res = await call(ct.sealTokens(TOKENS));
-        expect(await res.json()).toEqual({ configured: true, connected: true });
+        expect(await res.json()).toEqual({
+            configured: true,
+            connected: true,
+            token: 'cookie',
+        });
+        expect(res.headers.get('set-cookie')).toMatch(
+            /cointracker_grant\.0=.+Secure/,
+        );
     });
 
     it('reports not configured without SYNC_MASTER_KEY', async () => {
@@ -147,6 +180,7 @@ describe('CoinTracker status handler', () => {
         const blob = ct.sealTokens(TOKENS);
         const viaHandler = handlers.status({ token: blob });
         const viaExpress = await expressStatus(blob).expect(200);
-        expect(viaHandler).toEqual({ status: 200, body: viaExpress.body });
+        expect(viaHandler.status).toBe(200);
+        expect(viaHandler.body).toEqual(viaExpress.body);
     });
 });

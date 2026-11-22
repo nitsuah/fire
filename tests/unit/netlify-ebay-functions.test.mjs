@@ -7,6 +7,15 @@ import sync from '../../netlify/functions/ebay-sync.mjs';
 import ebayStatus from '../../netlify/functions/ebay-status.mjs';
 import cryptoUtils from '../../app/lib/crypto-utils.js';
 import ebayConnector from '../../app/lib/ebay-connector.js';
+import grant from '../../app/lib/grant-cookie.js';
+
+// The Cookie header a browser sends back after a response's Set-Cookies.
+const jarOf = (res) =>
+    res.headers
+        .getSetCookie()
+        .filter((c) => !/Max-Age=0/.test(c))
+        .map((c) => c.split(';')[0])
+        .join('; ');
 
 // Netlify Functions serving the eBay routes on the browser-only deploy
 // (netlify/functions/ebay-*.mjs, Request → Response). Handlers are called
@@ -187,20 +196,28 @@ describe('ebay-authorize / ebay-callback functions', () => {
                 cookie: 'other=1; ebay_oauth_state=abcd',
             }),
         );
-        const match = res.headers
-            .get('Location')
-            .match(/^\/#ebay-connected=(.+)$/);
-        expect(match).not.toBeNull();
-        const blob = decodeURIComponent(match[1]);
-        expect(blob).not.toContain('rt');
-        expect(JSON.parse(decrypt(blob))).toEqual(tokens);
-        expect(res.headers.get('Set-Cookie')).toContain('Max-Age=0');
+        // The grant goes into HttpOnly cookies; the page only learns a marker.
+        expect(res.headers.get('Location')).toBe('/#ebay-connected=cookie');
+        const set = res.headers.getSetCookie();
+        expect(set.some((c) => c.startsWith('ebay_oauth_state=;'))).toBe(true);
+        expect(set.find((c) => c.startsWith('ebay_grant.0='))).toMatch(
+            /; Path=\/api\/sync\/ebay; HttpOnly; SameSite=Strict; Max-Age=\d+; Secure$/,
+        );
+        const sealed = grant.readGrant(jarOf(res), 'ebay_grant');
+        expect(sealed).not.toContain('rt');
+        expect(JSON.parse(decrypt(sealed))).toEqual(tokens);
     });
 });
 
 describe('ebay-sync function', () => {
     const blob = () =>
         encrypt(JSON.stringify({ access_token: 'old', refresh_token: 'rt' }));
+    const grantCookie = () =>
+        grant
+            .grantCookies('ebay_grant', '/api/sync/ebay', blob())
+            .filter((c) => !/Max-Age=0/.test(c))
+            .map((c) => c.split(';')[0])
+            .join('; ');
 
     it('returns ledger entries for a valid blob', async () => {
         vi.stubGlobal(
@@ -220,11 +237,34 @@ describe('ebay-sync function', () => {
                     ),
             ),
         );
-        const res = await sync(post(`${BASE}/sync`, { tokens: blob() }));
+        const res = await sync(
+            post(
+                `${BASE}/sync`,
+                { tokens: 'cookie' },
+                { cookie: grantCookie() },
+            ),
+        );
         expect(res.status).toBe(200);
         const data = await res.json();
         expect(data.entries[0].id).toBe('ebay-O1');
         expect(data.tokens).toBeUndefined();
+        expect(res.headers.getSetCookie()).toEqual([]);
+
+        // A client from before the cookie move still posts its blob: it is
+        // moved into the cookie and the client gets the marker to keep.
+        const legacy = await sync(post(`${BASE}/sync`, { tokens: blob() }));
+        expect(legacy.status).toBe(200);
+        expect((await legacy.json()).tokens).toBe('cookie');
+        expect(grant.readGrant(jarOf(legacy), 'ebay_grant')).toBeTruthy();
+    });
+
+    it('returns 401 and clears the cookie when no grant is held', async () => {
+        const res = await sync(post(`${BASE}/sync`, { tokens: 'cookie' }));
+        expect(res.status).toBe(401);
+        expect((await res.json()).code).toBe('ebay_token_invalid');
+        const set = res.headers.getSetCookie();
+        expect(set).toHaveLength(grant.MAX_CHUNKS);
+        expect(set.every((c) => /Max-Age=0/.test(c))).toBe(true);
     });
 
     it('returns 401 ebay_revoked when the refresh token is rejected', async () => {
