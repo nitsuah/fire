@@ -71,7 +71,14 @@ function reencryptContent(name, raw, oldKey, newKey) {
     }
     // Plaintext copies (backups made before a key was set, a legacy Drive
     // token) get sealed with the new key rather than left readable.
-    if (BACKUP_FILE_RE.test(name) || name === 'tokens-gdrive.json') {
+    // Only an unsealed JSON object (a db snapshot or the legacy Drive token)
+    // is treated as plaintext; anything else is not a format we know.
+    const isPlainObject =
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed);
+    if (
+        isPlainObject &&
+        (BACKUP_FILE_RE.test(name) || name === 'tokens-gdrive.json')
+    ) {
         return sealEnvelope(raw, newKey);
     }
     throw new Error('unrecognised format');
@@ -109,7 +116,11 @@ function planReencrypt(dataDir, oldKey, newKey, dbDir = dataDir) {
                 before,
                 after: reencryptContent(name, before, oldKey, newKey),
             });
-        } catch {
+        } catch (err) {
+            // Log the error type only: parse errors can quote file contents.
+            console.error(
+                `[Rotate] Cannot re-encrypt ${name}: ${(err && (err.code || err.name)) || 'Error'}`,
+            );
             failed.push(name);
         }
     }
