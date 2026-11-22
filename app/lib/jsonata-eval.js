@@ -1,4 +1,4 @@
-/* global module, require, __dirname, setTimeout, clearTimeout */
+/* global module, require, __dirname, setTimeout, clearTimeout, setImmediate */
 'use strict';
 
 // Evaluates a JSONata mapping in a worker thread so a runaway expression can
@@ -72,8 +72,15 @@ function evaluateMapping(
                 ),
             ),
         );
+        // Give an already-posted result a turn to be delivered before treating
+        // the exit as a failure (finish() ignores this once settled).
         worker.once('exit', () =>
-            finish(reject, new Error('JSONata evaluation ended unexpectedly')),
+            setImmediate(() =>
+                finish(
+                    reject,
+                    new Error('JSONata evaluation ended unexpectedly'),
+                ),
+            ),
         );
     });
 }
