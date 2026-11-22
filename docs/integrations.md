@@ -593,7 +593,7 @@ Fidelity's support via Plaid depends on Plaid's institution coverage and Fidelit
 
 `netlify.toml` rewrites every `/api/sync/plaid/*` path to `netlify/functions/plaid.mjs`. That rule comes before the generic `/api/*` fallback.
 
-- No access token is stored on the server. The function returns the linked items to the browser in an AES-256-GCM token, sealed with a key derived from `SYNC_MASTER_KEY`. The browser keeps it in `localStorage` (`fire_plaid_hosted_token`). The token also carries the transaction cursor.
+- No access token is stored on the server. The function seals the linked items in an AES-256-GCM token with a key derived from `SYNC_MASTER_KEY`, and keeps it in HttpOnly grant cookies (`plaid_grant.*`, path `/api/sync/plaid`; `app/lib/grant-cookie.js`) that page scripts can't read. `localStorage` (`fire_plaid_hosted_token`) keeps only the marker `cookie`; a browser that still holds a token from before this change sends it once and gets the marker back. The token also carries the transaction cursor.
 - The token has a rolling 180-day expiry that renews on every call.
 - If the token is expired or can't be read, the function returns `401 {"code":"INVALID_TOKEN"}`. The browser then clears the token so the user can link again. A new link doesn't need the old token to be readable.
 - Accounts, positions and transactions return `syncedItemIds`, `failedItems` (`{ itemId, code }`, where `code` is Plaid's `error_code`) and a `warning` when the sync is partial. The browser merges data only for the items that synced.

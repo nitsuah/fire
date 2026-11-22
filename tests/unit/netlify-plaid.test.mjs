@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import grant from '../../app/lib/grant-cookie.js';
 
 const MASTER_KEY = '22'.repeat(32);
 const BASE = 'https://lifefire.netlify.app/api/sync/plaid';
@@ -17,6 +18,17 @@ function plaidMock(routes) {
         });
     });
 }
+
+// The Cookie header a browser sends back after a response's Set-Cookies.
+const jarOf = (res) =>
+    res.headers
+        .getSetCookie()
+        .filter((c) => !/Max-Age=0/.test(c))
+        .map((c) => c.split(';')[0])
+        .join('; ');
+// The sealed token a response stored in the HttpOnly grant cookie.
+const sealedOf = (res) =>
+    grant.readGrant(jarOf(res), 'plaid_grant', { raw: true });
 
 function statusRequest(token) {
     return new Request(`${BASE}/status`, {
@@ -54,7 +66,8 @@ async function linkItems(handler, accessTokens) {
                 ...(token ? { plaidToken: token } : {}),
             }),
         );
-        token = (await res.json()).plaidToken;
+        expect((await res.json()).plaidToken).toBe('cookie');
+        token = sealedOf(res);
     }
     return token;
 }
@@ -176,8 +189,17 @@ describe('hosted Plaid Netlify function', () => {
         const body = await response.json();
         expect(response.status).toBe(200);
         expect(body.status).toBe('success');
-        expect(body.plaidToken).toMatch(/^1\./);
-        expect(body.plaidToken).not.toContain('access-secret');
+        // The sealed token goes into the HttpOnly cookie; the body only says so.
+        expect(body.plaidToken).toBe('cookie');
+        expect(sealedOf(response)).toMatch(/^1\./);
+        expect(sealedOf(response)).not.toContain('access-secret');
+        expect(
+            response.headers
+                .getSetCookie()
+                .find((c) => c.startsWith('plaid_grant.0=')),
+        ).toMatch(
+            /; Path=\/api\/sync\/plaid; HttpOnly; SameSite=Strict; Max-Age=\d+; Secure$/,
+        );
     });
 
     it('returns disconnected status without a hosted token', async () => {
@@ -226,7 +248,7 @@ describe('hosted Plaid Netlify function', () => {
         const body = await response.json();
         expect(body.warning).toMatch(/could not be read/);
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        const status = await handler(statusRequest(body.plaidToken));
+        const status = await handler(statusRequest(sealedOf(response)));
         expect((await status.json()).itemCount).toBe(1);
     });
 
@@ -256,7 +278,7 @@ describe('hosted Plaid Netlify function', () => {
                 },
             ),
         );
-        const token = (await exchange.json()).plaidToken;
+        const token = sealedOf(exchange);
 
         const status = await handler(
             new Request('https://lifefire.netlify.app/api/sync/plaid/status', {
@@ -268,8 +290,53 @@ describe('hosted Plaid Netlify function', () => {
         expect(status.status).toBe(200);
         const body = await status.json();
         expect(body.connected).toBe(true);
-        expect(body.plaidToken).toMatch(/^1\./);
-        expect(body.plaidToken).not.toBe(token);
+        expect(body.plaidToken).toBe('cookie');
+        expect(sealedOf(status)).toMatch(/^1\./);
+        expect(sealedOf(status)).not.toBe(token);
+    });
+
+    it('serves status from the grant cookie alone, without the page holding the token', async () => {
+        const handler = (await import('../../netlify/functions/plaid.mjs'))
+            .default;
+        const token = await linkItems(handler, ['access-1']);
+        const cookie = jarOf({
+            headers: {
+                getSetCookie: () =>
+                    grant.grantCookies(
+                        'plaid_grant',
+                        '/api/sync/plaid',
+                        token,
+                        {
+                            raw: true,
+                        },
+                    ),
+            },
+        });
+        vi.stubGlobal('fetch', vi.fn());
+        const res = await handler(
+            new Request(`${BASE}/status`, {
+                headers: { cookie, 'x-fire-plaid-token': 'cookie' },
+            }),
+        );
+        const body = await res.json();
+        expect(body).toMatchObject({ connected: true, itemCount: 1 });
+        expect(body.plaidToken).toBe('cookie');
+        expect(JSON.stringify(body)).not.toContain(token.slice(2, 20));
+    });
+
+    it('answers a marker with no cookie as an invalid token and clears the cookie', async () => {
+        vi.stubGlobal('fetch', vi.fn());
+        const handler = (await import('../../netlify/functions/plaid.mjs'))
+            .default;
+        const res = await handler(postRequest('accounts', 'cookie'));
+        expect(res.status).toBe(401);
+        expect((await res.json()).code).toBe('INVALID_TOKEN');
+        const set = res.headers.getSetCookie();
+        expect(set).toHaveLength(grant.MAX_CHUNKS);
+        expect(set.every((c) => /^plaid_grant\.\d=; .*Max-Age=0/.test(c))).toBe(
+            true,
+        );
+        expect(fetch).not.toHaveBeenCalled();
     });
 
     it('reports a fresh install as configured but not connected', async () => {
@@ -336,9 +403,9 @@ describe('hosted Plaid Netlify function', () => {
         const res = await handler(postRequest('transactions', token));
         expect(res.status).toBe(502);
         const failed = await res.json();
-        expect(failed.plaidToken).toBeTruthy();
+        expect(failed.plaidToken).toBe('cookie');
 
-        const status = await handler(statusRequest(failed.plaidToken));
+        const status = await handler(statusRequest(sealedOf(res)));
         const body = await status.json();
         expect(body.connected).toBe(true);
         expect(body.reauthRequired).toBe(true);
@@ -657,7 +724,7 @@ describe('hosted Plaid data sync', () => {
         const firstBody = await first.json();
         expect(firstBody.added).toBe(1);
         expect(firstBody.warning).toBeNull();
-        await handler(postRequest('transactions', firstBody.plaidToken));
+        await handler(postRequest('transactions', sealedOf(first)));
         expect(cursors).toEqual([undefined, 'c1', 'c2']);
     });
 
@@ -687,7 +754,7 @@ describe('hosted Plaid data sync', () => {
 
         calls['access-1'] = [];
         calls['access-2'] = [];
-        await handler(postRequest('transactions', body.plaidToken));
+        await handler(postRequest('transactions', sealedOf(res)));
         expect(calls['access-1'][0]).toBeUndefined();
         expect(calls['access-2'][0]).toBe('done');
     });
