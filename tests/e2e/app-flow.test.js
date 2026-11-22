@@ -68,12 +68,12 @@ async function resetState(overrides) {
 }
 
 afterAll(() => {
-    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     try {
         fs.unlinkSync(E2E_DB);
     } catch {
         /* ignore */
     }
+    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
 // ─── Chain 1: Account lifecycle ────────────────────────────────────────────────

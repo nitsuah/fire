@@ -78,12 +78,12 @@ function signBody(secret, rawBody) {
 }
 
 afterAll(() => {
-    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     try {
         fs.unlinkSync(WEBHOOK_DB);
     } catch {
         /* ignore */
     }
+    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
 describe('Webhook sync — template CRUD -> ingest -> db.json verification', () => {

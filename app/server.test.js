@@ -51,12 +51,12 @@ function resetDB(overrides) {
 }
 
 afterAll(() => {
-    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     try {
         fs.unlinkSync(TEST_DB);
     } catch {
         /* ignore */
     }
+    fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
 // ─── Static file serving ───────────────────────────────────────────────────────
