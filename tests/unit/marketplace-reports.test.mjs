@@ -22,6 +22,11 @@ const fixture = (name) =>
         ),
     );
 
+const indexHtml = fs.readFileSync(
+    path.join(here, '../../app/index.html'),
+    'utf8',
+);
+
 describe('helpers', () => {
     it('parses money and dates in the formats the exports use', () => {
         expect(mrMoney('$1,234.50')).toBe(1234.5);
@@ -212,5 +217,14 @@ describe('unrecognised files', () => {
             ),
         ).toBeNull();
         expect(parseMarketplaceReport([])).toBeNull();
+    });
+});
+
+describe('FB Marketplace template link', () => {
+    it('has download attribute with correct filename', () => {
+        const match = indexHtml.match(/id="link-fb-template"[^>]*>/);
+        expect(match).toBeTruthy();
+        const anchor = match[0];
+        expect(anchor).toContain('download="fb-marketplace-sales.csv"');
     });
 });
