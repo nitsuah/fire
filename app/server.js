@@ -150,11 +150,18 @@ const app = express();
 
 // Caddy (config/Caddyfile) terminates TLS and reverse-proxies to this app
 // over plain HTTP, setting X-Forwarded-Proto/X-Forwarded-Host along the way.
-// Trusting the first proxy hop lets req.protocol/req.get('host') correctly
-// report "https"/the public host for anything built from the request (e.g.
-// the eBay OAuth redirect URI in routes/sync.js) instead of the app's own
-// plain-HTTP loopback address.
-app.set('trust proxy', 1);
+// The Compose stack sets FIRE_TRUST_PROXY=1 so req.protocol/req.get('host')
+// report "https"/the public host (e.g. the eBay OAuth redirect URI in
+// routes/sync.js) and the rate limiters key on the forwarded client address.
+// Without a proxy in front the setting stays off: forwarded headers would be
+// client-supplied, and the limiters must key on the socket address.
+const TRUST_PROXY = (process.env.FIRE_TRUST_PROXY || '').trim();
+if (TRUST_PROXY) {
+    app.set(
+        'trust proxy',
+        /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : TRUST_PROXY,
+    );
+}
 
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');

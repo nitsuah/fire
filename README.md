@@ -113,6 +113,7 @@ basic local use — the one exception is `FIRE_API_KEY` (or its explicit
 | `FIRE_API_KEY` | **Required by default.** All `/api/*` routes require `X-Api-Key: <value>`. The server refuses to start unless this or `FIRE_AUTH_DISABLED` is set |
 | `FIRE_AUTH_DISABLED` | Set to `true` to run with no API auth at all (local-only use). Leave unset if anyone else could reach the server — see security-hardening.md |
 | `FIRE_BIND_HOST` | Interface the server listens on. Defaults to `127.0.0.1`; the container images set `0.0.0.0` (compose publishes the port on loopback only). Set it explicitly only if you need LAN access and have `FIRE_API_KEY` set |
+| `FIRE_TRUST_PROXY` | Express `trust proxy` value for a reverse proxy in front of the app (hop count like `1`, or `loopback`/an address list). Compose sets `1` for Caddy. Leave unset when clients connect directly, so rate limits key on the real socket address |
 | `FIRE_ADMIN_KEY` | **Required in production.** Gates `POST /api/admin/rotate-key` via `X-Admin-Key` header |
 | `SYNC_MASTER_KEY` | 64-hex-char key to encrypt `db.json` at rest with AES-256-GCM |
 | `FIRE_ALLOW_LEGACY_BACKUP_RESTORE` | Set to `1` to allow restoring older Google Drive backups that are not bound to an account. Off by default |

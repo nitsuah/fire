@@ -15,6 +15,7 @@ const ENV_KEYS = [
     'SESSION_SECRET',
     'NODE_ENV',
     'FIRE_RATE_LIMIT_DISABLED',
+    'FIRE_TRUST_PROXY',
 ];
 const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 
@@ -30,6 +31,7 @@ beforeEach(() => {
     delete process.env.FIRE_AUTH_DISABLED;
     delete process.env.NODE_ENV;
     delete process.env.FIRE_RATE_LIMIT_DISABLED;
+    delete process.env.FIRE_TRUST_PROXY;
 });
 
 afterAll(() => {
@@ -92,6 +94,39 @@ describe('API key gate and limiter order', () => {
                 .set('x-admin-key', 'admin-keyy')
                 .send({ newKey: 'a'.repeat(64) });
             expect(res.status).toBe(401);
+        });
+    });
+});
+
+describe('rate-limit client address', () => {
+    const remaining = (res) => Number(res.headers['ratelimit-remaining']);
+
+    it('ignores X-Forwarded-For on a direct connection (one shared bucket)', async () => {
+        await withServer(async (agent) => {
+            const a = await agent
+                .get('/api/state')
+                .set('x-api-key', 'nope')
+                .set('x-forwarded-for', '203.0.113.1');
+            const b = await agent
+                .get('/api/state')
+                .set('x-api-key', 'nope')
+                .set('x-forwarded-for', '203.0.113.2');
+            expect(remaining(b)).toBe(remaining(a) - 1);
+        });
+    });
+
+    it('keys on the forwarded client behind a trusted proxy hop', async () => {
+        process.env.FIRE_TRUST_PROXY = 'loopback';
+        await withServer(async (agent) => {
+            const a = await agent
+                .get('/api/state')
+                .set('x-api-key', 'nope')
+                .set('x-forwarded-for', '203.0.113.1');
+            const b = await agent
+                .get('/api/state')
+                .set('x-api-key', 'nope')
+                .set('x-forwarded-for', '203.0.113.2');
+            expect(remaining(b)).toBe(remaining(a));
         });
     });
 });
