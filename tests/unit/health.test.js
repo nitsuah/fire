@@ -32,6 +32,20 @@ const request = require('supertest');
 
 const app = require('../../app/server');
 
+const INTEGRATION_KEYS = [
+    'EBAY_CLIENT_ID',
+    'ETSY_CLIENT_ID',
+    'PLAID_CLIENT_ID',
+    'GDRIVE_CLIENT_ID',
+];
+
+// Each test starts with no integrations configured.
+beforeEach(() => {
+    for (const k of INTEGRATION_KEYS) delete process.env[k];
+});
+
+const ALL_FALSE = { drive: false, ebay: false, etsy: false, plaid: false };
+
 afterAll(() => {
     for (const k of ENV_KEYS) {
         if (PREV_ENV[k] === undefined) {
@@ -49,13 +63,16 @@ describe('GET /api/health (Express)', () => {
         expect(res.status).toBe(200);
     });
 
-    it('returns status ok and configured with four boolean keys', async () => {
+    it('returns status ok and every integration false when none is configured', async () => {
         const res = await request(app).get('/api/health');
         expect(res.body.status).toBe('ok');
-        expect(Object.keys(res.body.configured).sort()).toEqual(['drive', 'ebay', 'etsy', 'plaid']);
-        for (const v of Object.values(res.body.configured)) {
-            expect(typeof v).toBe('boolean');
-        }
+        expect(Object.keys(res.body.configured).sort()).toEqual([
+            'drive',
+            'ebay',
+            'etsy',
+            'plaid',
+        ]);
+        expect(res.body.configured).toEqual(ALL_FALSE);
     });
 
     it('reflects EBAY_CLIENT_ID when set', async () => {
@@ -79,15 +96,18 @@ describe('GET /api/health (hosted fire-api)', () => {
         handler = mod.default;
     });
 
-    it('returns 200 with same shape and boolean values', async () => {
+    it('returns 200 with every integration false when none is configured', async () => {
         const res = await handler(new Request('https://x.test/api/health'));
         expect(res.status).toBe(200);
         const body = await res.json();
         expect(body.status).toBe('ok');
-        expect(Object.keys(body.configured).sort()).toEqual(['drive', 'ebay', 'etsy', 'plaid']);
-        for (const v of Object.values(body.configured)) {
-            expect(typeof v).toBe('boolean');
-        }
+        expect(Object.keys(body.configured).sort()).toEqual([
+            'drive',
+            'ebay',
+            'etsy',
+            'plaid',
+        ]);
+        expect(body.configured).toEqual(ALL_FALSE);
     });
 
     it('reflects env when set and never leaks the value', async () => {
