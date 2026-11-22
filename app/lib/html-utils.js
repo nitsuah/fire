@@ -27,12 +27,16 @@ function oauthNewNonce() {
 }
 
 // Stores a fresh nonce under pendingKey and navigates to the authorize URL.
-// Returns false (without navigating) if the nonce cannot be kept.
+// If the nonce cannot be kept, tells the user and returns false without
+// navigating: the result could not be accepted on return anyway.
 function oauthStartFlow(pendingKey, authorizeUrl) {
     const nonce = oauthNewNonce();
     try {
         sessionStorage.setItem(pendingKey, nonce);
     } catch {
+        alert(
+            'Connecting needs session storage, which this browser is blocking. Allow site data for this page (or leave private mode) and try again.',
+        );
         return false;
     }
     window.location.assign(`${authorizeUrl}?n=${nonce}`);

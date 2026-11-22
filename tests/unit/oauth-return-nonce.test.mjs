@@ -179,13 +179,17 @@ describe('authorize-stage errors carry the nonce so the SPA shows them', () => {
 });
 
 describe('browser helpers bind a result to the attempt that started it', () => {
-    function ctx(hash, stored) {
+    function ctx(hash, stored, { blocked = false } = {}) {
         const store = new Map(stored ? [['k', stored]] : []);
         const context = vm.createContext({
             crypto: globalThis.crypto,
+            alert: vi.fn(),
             sessionStorage: {
                 getItem: (k) => (store.has(k) ? store.get(k) : null),
-                setItem: (k, v) => store.set(k, v),
+                setItem: (k, v) => {
+                    if (blocked) throw new Error('SecurityError');
+                    store.set(k, v);
+                },
                 removeItem: (k) => store.delete(k),
             },
             window: {
@@ -216,6 +220,15 @@ describe('browser helpers bind a result to the attempt that started it', () => {
         expect(context.window.location.assign).toHaveBeenCalledWith(
             `/api/x/authorize?n=${nonce}`,
         );
+    });
+
+    it('tells the user and stays put when the nonce cannot be stored', () => {
+        const { context } = ctx('', undefined, { blocked: true });
+        expect(context.oauthStartFlow('k', '/api/x/authorize')).toBe(false);
+        expect(context.alert).toHaveBeenCalledWith(
+            expect.stringMatching(/session storage/),
+        );
+        expect(context.window.location.assign).not.toHaveBeenCalled();
     });
 
     it('accepts a matching nonce and consumes it', () => {
