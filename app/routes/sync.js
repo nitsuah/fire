@@ -2,7 +2,7 @@
 
 const express = require('express');
 const jsonata = require('jsonata');
-const { evaluateMapping } = require('../lib/jsonata-eval');
+const { evaluateMapping, MAX_MAPPING_CHARS } = require('../lib/jsonata-eval');
 const crypto = require('crypto');
 const { readState, mutateState } = require('../lib/db');
 const { integrateWebhookData } = require('../lib/webhook-integration');
@@ -98,10 +98,10 @@ router.post('/templates', async (req, res) => {
                 .status(400)
                 .json({ error: 'Invalid mapping: must be a string.' });
         }
-        if (req.body.mapping.length > 8192) {
-            return res
-                .status(400)
-                .json({ error: 'Invalid mapping: too long (max 8192 characters).' });
+        if (req.body.mapping.length > MAX_MAPPING_CHARS) {
+            return res.status(400).json({
+                error: `Invalid mapping: too long (max ${MAX_MAPPING_CHARS} characters).`,
+            });
         }
         try {
             jsonata(req.body.mapping);
@@ -143,10 +143,10 @@ router.put('/templates/:id', async (req, res) => {
                 .status(400)
                 .json({ error: 'Invalid mapping: must be a string.' });
         }
-        if (req.body.mapping.length > 8192) {
-            return res
-                .status(400)
-                .json({ error: 'Invalid mapping: too long (max 8192 characters).' });
+        if (req.body.mapping.length > MAX_MAPPING_CHARS) {
+            return res.status(400).json({
+                error: `Invalid mapping: too long (max ${MAX_MAPPING_CHARS} characters).`,
+            });
         }
         try {
             jsonata(req.body.mapping);
@@ -251,9 +251,12 @@ router.post('/webhook/:templateId', async (req, res) => {
     let transformedData = {};
     try {
         if (template.mapping && typeof template.mapping === 'string') {
+            // Same 5 s budget as before the worker move; the worker is
+            // terminated when it runs out.
             transformedData = await evaluateMapping(
                 template.mapping,
                 req.body,
+                { timeoutMs: 5000 },
             );
         } else {
             transformedData = req.body;

@@ -1,3 +1,4 @@
+/* global require, Buffer */
 'use strict';
 
 // Worker-thread side of jsonata-eval.js. Not loaded on the main thread.

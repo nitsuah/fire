@@ -1,3 +1,4 @@
+/* global module, require, __dirname, setTimeout, clearTimeout */
 'use strict';
 
 // Evaluates a JSONata mapping in a worker thread so a runaway expression can
@@ -48,8 +49,18 @@ function evaluateMapping(
             return finish(reject, err);
         }
         worker.once('message', (msg) => {
-            if (msg && msg.ok) finish(resolve, msg.json === undefined ? undefined : JSON.parse(msg.json));
-            else finish(reject, new Error((msg && msg.error) || 'JSONata evaluation failed'));
+            if (msg && msg.ok)
+                finish(
+                    resolve,
+                    msg.json === undefined ? undefined : JSON.parse(msg.json),
+                );
+            else
+                finish(
+                    reject,
+                    new Error(
+                        (msg && msg.error) || 'JSONata evaluation failed',
+                    ),
+                );
         });
         worker.once('error', (err) =>
             finish(
@@ -67,4 +78,9 @@ function evaluateMapping(
     });
 }
 
-module.exports = { evaluateMapping, DEFAULT_TIMEOUT_MS, MAX_RESULT_BYTES };
+module.exports = {
+    evaluateMapping,
+    DEFAULT_TIMEOUT_MS,
+    MAX_RESULT_BYTES,
+    MAX_MAPPING_CHARS,
+};
