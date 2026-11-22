@@ -31,6 +31,20 @@ describe('evaluateMapping (worker-thread JSONata)', () => {
         expect(Date.now() - started).toBeLessThan(3000);
     });
 
+    it('stops a bounded-memory loop at the deadline', async () => {
+        // A tail-recursive countdown runs in constant memory, so only the
+        // timer can stop it; this fails if the deadline is removed.
+        const started = Date.now();
+        await expect(
+            evaluateMapping(
+                '($f := function($n){ $n = 0 ? 0 : $f($n - 1) }; $f(1000000000000))',
+                {},
+                { timeoutMs: 300 },
+            ),
+        ).rejects.toThrow(/timed out/);
+        expect(Date.now() - started).toBeLessThan(3000);
+    });
+
     it('keeps the main thread responsive while the expression runs', async () => {
         let ticks = 0;
         const timer = setInterval(() => ticks++, 20);
