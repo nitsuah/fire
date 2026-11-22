@@ -6,6 +6,10 @@ updated: 2026-10-30
 
 ---
 
+## Hosted MCP browser bridge
+
+- [x] Bridge protocol module with test vectors (child 2, #509): frame schemas, PROVE signing string, seq/id/deadline/size checks, replay and tampering vectors.
+
 ## Priority product/reliability pass — Sep 27, 2026
 
 These items came from the current browser/production pass. **P0** items are correctness, data-integrity, security, or broken-primary-workflow issues; **P1** items are high-value UX/integration work that should follow immediately.

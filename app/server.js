@@ -2,7 +2,6 @@
 
 const express = require('express');
 const path = require('path');
-const crypto = require('crypto');
 const session = require('express-session');
 
 const {
@@ -13,6 +12,13 @@ const {
     readState,
     mutateState,
 } = require('./lib/db');
+const { loadTokens } = require('./lib/token-store');
+const { verifyStripeSignature } = require('./lib/stripe-webhook-signature');
+const { tokensMatch } = require('./lib/safe-compare');
+const {
+    checkAndRecord,
+    validateEventId,
+} = require('./lib/stripe-webhook-idempotency');
 const { recordNetWorthSnapshot } = require('./lib/net-worth-history');
 const { collectLiveQuotes } = require('./lib/server-reprice');
 const { applyLiveValues } = require('./lib/live-values');
@@ -76,15 +82,6 @@ if (!ADMIN_KEY && IS_PRODUCTION) {
         '[Server] FATAL: FIRE_ADMIN_KEY must be set in production (required for key rotation).',
     );
     process.exit(1);
-}
-
-// Constant-time string comparison (hashes first so length differences do not
-// leak and timingSafeEqual always gets equal-length buffers).
-function safeEqual(a, b) {
-    if (typeof a !== 'string' || typeof b !== 'string') return false;
-    const ha = crypto.createHash('sha256').update(a).digest();
-    const hb = crypto.createHash('sha256').update(b).digest();
-    return crypto.timingSafeEqual(ha, hb);
 }
 
 // Interface the server listens on. Loopback by default; container images
@@ -188,6 +185,97 @@ app.use(
     }),
 );
 
+// Stripe webhook (#348). Stripe signs the exact request bytes; the global
+// express.json() above keeps them in req.rawBody via its verify hook. The route
+// is registered before session and API-key auth (Stripe cannot send our key; the
+// signature is the trust boundary) but keeps the general rate limiter.
+app.post('/api/sync/stripe/webhook', generalLimiter, async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+
+    // The signing secret is stored encrypted with SYNC_MASTER_KEY
+    // (token-store -> crypto-utils), so without a valid master key it cannot
+    // be read and the endpoint is not configured.
+    if (!/^[0-9a-fA-F]{64}$/.test(process.env.SYNC_MASTER_KEY || '')) {
+        return res.status(503).json({ error: 'Stripe webhook not configured' });
+    }
+
+    const tokens = loadTokens('stripe');
+    const secret = tokens?.webhookSigningSecret;
+    if (!secret) {
+        return res.status(503).json({ error: 'Stripe webhook not configured' });
+    }
+
+    const header = req.headers['stripe-signature'];
+    if (!header) {
+        console.log('[Stripe Webhook] missing_header');
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    const payload = req.rawBody;
+    if (!payload) {
+        console.log('[Stripe Webhook] missing_body');
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+    const verification = verifyStripeSignature({
+        payload,
+        header,
+        secret,
+    });
+
+    if (!verification.ok) {
+        console.log(`[Stripe Webhook] ${verification.code}`);
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    let event;
+    try {
+        event = JSON.parse(payload.toString());
+    } catch {
+        console.log('[Stripe Webhook] parse_error');
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    // Validate event.id shape
+    if (!validateEventId(event.id)) {
+        console.log('[Stripe Webhook] invalid_event_id');
+        return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    // Idempotency check: has this event already been processed?
+    let idempotency;
+    try {
+        idempotency = await checkAndRecord(event.id, event.type);
+    } catch (err) {
+        // Store unavailable or corrupt: 500 so Stripe retries later; the code
+        // goes to the log only, never to the response.
+        console.log(
+            `[Stripe Webhook] idempotency_store_error code=${err?.code || 'unknown'}`,
+        );
+        return res.status(500).json({ error: 'Webhook processing failed' });
+    }
+    if (!idempotency.processed) {
+        console.log(`[Stripe Webhook] duplicate_event id=${event.id}`);
+        return res.json({ received: true, duplicate: true });
+    }
+
+    // Record minimal sync status if store exists
+    try {
+        const state = readState();
+        if (state && typeof state === 'object') {
+            if (!state.stripeWebhookStatus) state.stripeWebhookStatus = {};
+            state.stripeWebhookStatus.lastWebhookAt = new Date().toISOString();
+            state.stripeWebhookStatus.lastEventType = event.type;
+            await mutateState((s) => {
+                s.stripeWebhookStatus = state.stripeWebhookStatus;
+            });
+        }
+    } catch {
+        // Ignore state update failures
+    }
+
+    return res.json({ received: true });
+});
+
 app.use(
     session({
         secret: SESSION_SECRET || 'a-very-secret-key',
@@ -228,13 +316,21 @@ if (!AUTH_DISABLED) {
         if (req.path === '/sync/ebay/marketplace-account-deletion') {
             return next();
         }
+        // Stripe webhook: Stripe's servers call this directly and can't send
+        // our x-api-key. The signature verification (stripe-webhook-signature.js)
+        // is this endpoint's trust boundary.
+        if (req.path === '/sync/stripe/webhook') {
+            return next();
+        }
         const key = req.headers['x-api-key'];
-        if (!safeEqual(key, API_KEY)) {
+        if (!tokensMatch(key, API_KEY)) {
             return res.status(401).json({ error: 'Unauthorized.' });
         }
         next();
     });
 }
+
+app.use('/mcp', generalLimiter, require('./routes/mcp'));
 
 initDatabase();
 
@@ -250,7 +346,7 @@ app.use('/api/vehicles', vehiclesRouter);
 
 // Key rotation endpoint — requires FIRE_ADMIN_KEY header regardless of FIRE_API_KEY
 app.post('/api/admin/rotate-key', async (req, res) => {
-    if (!ADMIN_KEY || !safeEqual(req.headers['x-admin-key'], ADMIN_KEY)) {
+    if (!ADMIN_KEY || !tokensMatch(req.headers['x-admin-key'], ADMIN_KEY)) {
         return res.status(401).json({ error: 'Unauthorized.' });
     }
     const { newKey } = req.body;
