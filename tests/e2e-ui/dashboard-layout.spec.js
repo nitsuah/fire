@@ -427,6 +427,9 @@ test.describe('Dashboard — Asset Allocation drill-down (Quick Stats removal)',
         await page.locator('#btn-tab-dashboard').click();
         const canvas = page.locator('#chart-asset-allocation');
         await expect(canvas).toBeVisible();
+        // The hit point below is in viewport coordinates, so the chart must be
+        // on screen (the Quick Start card now sits above it on the Dashboard).
+        await canvas.scrollIntoViewIfNeeded();
         // Switching tabs redraws the doughnut with an animation; a hit point
         // taken mid-animation can miss the finished ring. Wait it out.
         await page.waitForFunction(
@@ -634,7 +637,7 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
             /^\d+\.\d% of FIRE target$/,
         );
         await expect(page.locator('#cfb-pct')).toHaveText(/^\d+\.\d%$/);
-        await expect(page.locator('#banner-networth')).toBeHidden();
+        await expect(page.locator('#banner-networth')).toHaveCount(0);
         await expect(page.locator('#banner-gross-income')).toBeHidden();
         await expect(page.locator('#banner-spend')).toBeHidden();
         await expect(page.locator('#banner-target')).toBeHidden();
@@ -645,6 +648,9 @@ test.describe('Summary bar — narrow width collapses to a single bar', () => {
         await expect(tip).toContainText('Net Worth');
         await expect(tip).toContainText('Income / yr');
         await expect(tip).toContainText('Spend / yr');
+        await expect(tip).toContainText('FIRE-eligible assets');
+        await expect(tip).toContainText('FIRE target');
+        await expect(tip).toContainText('FIRE ETA');
     });
 });
 
@@ -654,7 +660,7 @@ test.describe('Summary bar — desktop uses the compact bar with income and spen
     }) => {
         await seedCashAccount(page, 'E2E Full Precision Seed', '50000');
         await page.locator('#btn-tab-dashboard').click();
-        await expect(page.locator('#banner-networth')).toBeHidden();
+        await expect(page.locator('#banner-networth')).toHaveCount(0);
         await expect(page.locator('#compact-fire-bar')).toBeVisible();
         await expect(page.locator('#banner-gross-income')).toBeVisible();
         await expect(page.locator('#banner-spend')).toBeVisible();
@@ -669,7 +675,7 @@ test.describe('Summary bar — desktop uses the compact bar with income and spen
 });
 
 test.describe('Settings — card order and color-coded grouping', () => {
-    test('cards are ordered Projection Defaults, Notifications, Plaid, CoinTracker, Marketplace Connections, Privacy, Data Management, Google Drive, Danger Zone', async ({
+    test('cards are ordered Projection Defaults, Notifications, Plaid, CoinTracker, Marketplace Connections, Stripe, Privacy, Data Management, Google Drive, Danger Zone', async ({
         page,
     }) => {
         await page.locator('#btn-tab-settings').click();
@@ -683,6 +689,7 @@ test.describe('Settings — card order and color-coded grouping', () => {
             'Plaid Transaction Sync',
             'CoinTracker Wallets',
             'Marketplace Connections',
+            'Stripe Connection',
             'Privacy & Terms',
             'Data Management',
             'Google Drive Backup',

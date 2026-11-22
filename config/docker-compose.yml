@@ -29,6 +29,8 @@ services:
     # tomorrow's date at 8pm Eastern. Override TZ in .env if you're elsewhere.
     environment:
       TZ: ${TZ:-America/New_York}
+      # Caddy is the one proxy hop in front of the app.
+      FIRE_TRUST_PROXY: "1"
 
   # TLS-terminating reverse proxy so localhost gets real HTTPS instead of
   # plain HTTP. See docs/security-hardening.md (H-02) and config/Caddyfile.

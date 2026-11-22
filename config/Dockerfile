@@ -4,4 +4,6 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 EXPOSE 3001
+# Listen on all container interfaces; the published port is what limits exposure.
+ENV FIRE_BIND_HOST=0.0.0.0
 CMD ["npm", "start"]

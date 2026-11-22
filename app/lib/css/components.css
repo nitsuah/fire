@@ -1635,3 +1635,150 @@
         width: 100px;
     }
 }
+
+/* ==========================================================================
+   Quick Start Card (#440)
+   ========================================================================== */
+#quick-start-card {
+    padding: var(--space-lg);
+}
+
+#quick-start-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.quick-start-progress {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin: var(--space-md) 0;
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-divider);
+}
+
+.quick-start-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.quick-start-steps li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.quick-start-steps button {
+    flex: 1;
+    text-align: left;
+    background: none;
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+    font-family: var(--font-body);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.quick-start-steps button:hover {
+    border-color: var(--color-primary);
+    background: rgba(139, 92, 246, 0.08);
+}
+
+.quick-start-steps button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    border-color: var(--color-primary);
+}
+
+.quick-start-steps li.done button {
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    cursor: default;
+}
+
+.quick-start-steps li.optional {
+    opacity: 0.7;
+}
+
+.quick-start-tag {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-left: var(--space-xs);
+}
+
+
+.dismiss-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: var(--text-lg);
+    line-height: 1;
+    padding: var(--space-xs);
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition-fast);
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dismiss-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.reopen-btn {
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+    font-family: var(--font-body);
+    font-weight: 500;
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    min-height: 44px;
+    min-width: 44px;
+    align-items: center;
+    justify-content: center;
+}
+
+.reopen-btn:not([hidden]) {
+    display: inline-flex;
+}
+
+/* An author display value would beat the browser's [hidden] rule and leave
+   the control showing next to the open card (#440 review, #398). */
+.reopen-btn[hidden],
+#quick-start-card[hidden] {
+    display: none !important;
+}
+
+.reopen-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: var(--color-primary);
+}
+
+@media (max-width: 480px) {
+    .quick-start-steps li {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    }

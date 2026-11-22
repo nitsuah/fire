@@ -38,6 +38,7 @@ const ENV_KEYS = [
     'EBAY_NOTIFICATION_ENDPOINT_URL',
     'EBAY_CLIENT_ID',
     'EBAY_CLIENT_SECRET',
+    'FIRE_TRUST_PROXY',
 ];
 const PREV_ENV = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 function restoreEnv() {
@@ -48,6 +49,9 @@ function restoreEnv() {
 }
 process.env.FIRE_DATA_DIR = TEST_DATA_DIR;
 process.env.FIRE_DB_FILE = TEST_DB;
+// Behave as if behind the Compose proxy hop, so the per-client limiter keys
+// on X-Forwarded-For (see postDeletion below).
+process.env.FIRE_TRUST_PROXY = 'loopback';
 // Test-only 64-hex-char key (not a real secret) — required for
 // SYNC_MASTER_KEY-gated token storage (authorize/callback/marketplace
 // deletion all touch tokens-ebay.json via app/lib/crypto-utils.js).
@@ -474,8 +478,8 @@ const VALID_NOTIFICATION = JSON.stringify({
     },
 });
 
-// /api/sync is rate-limited to 30 req/min per client IP; the app trusts
-// one proxy hop, so a distinct X-Forwarded-For per request keeps this
+// /api/sync is rate-limited to 30 req/min per client IP; this suite trusts
+// the loopback proxy hop, so a distinct X-Forwarded-For per request keeps this
 // block from tripping the limiter (429) regardless of test ordering.
 let clientIpCounter = 0;
 function postDeletion(rawBody, header) {
