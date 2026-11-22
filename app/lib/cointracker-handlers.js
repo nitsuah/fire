@@ -48,6 +48,10 @@ function settle(result, picked, secure) {
             secure,
         });
         body.token = grant.GRANT_MARKER;
+    } else if (picked.stale && result.status === 200) {
+        // A cookie already holds the grant: never overwrite it with the
+        // (possibly older) blob the client sent; just tell it to drop the blob.
+        body.token = grant.GRANT_MARKER;
     }
     return { ...result, body, cookies };
 }
@@ -297,7 +301,7 @@ function status({ token, cookieHeader, secure = true }) {
     }
     const result = { status: 200, body: { configured, connected } };
     // Move a readable legacy blob into the cookie on first contact.
-    return connected && picked.adopted
+    return connected && picked.stale
         ? settle(result, picked, secure)
         : { ...result, cookies: [] };
 }
@@ -306,7 +310,15 @@ async function disconnect(
     { body, cookieHeader, secure = true },
     fetchImpl = fetch,
 ) {
-    if (!ct.isConfigured()) return notConfigured();
+    // Clear the grant even when the server cannot revoke it right now: a
+    // disconnect must not leave a grant that comes back with the key.
+    if (!ct.isConfigured())
+        return {
+            ...notConfigured(),
+            cookies: grant.clearGrantCookies(GRANT_COOKIE, COOKIE_PATH, {
+                secure,
+            }),
+        };
     const picked = pick({ cookieHeader, legacy: body?.token });
     let tokens = null;
     try {

@@ -22,6 +22,7 @@ const GRANT = 'etsy_grant';
 const GRANT_PATH = '/api/sync/etsy';
 const setGrant = (sealed) => grant.grantCookies(GRANT, GRANT_PATH, sealed);
 const clearGrant = () => grant.clearGrantCookies(GRANT, GRANT_PATH);
+const DEAD_GRANT_CODES = new Set(['etsy_revoked', 'etsy_token_invalid']);
 
 function action(pathname) {
     // Either /api/sync/etsy/<action> or /.netlify/functions/etsy/<action>.
@@ -75,13 +76,18 @@ async function sync(req) {
                 syncedAt: new Date().toISOString(),
                 truncated: result.truncated,
                 resumeFrom: result.resumeFrom,
-                ...(sealed ? { tokens: grant.GRANT_MARKER } : {}),
+                ...(sealed || picked.stale
+                    ? { tokens: grant.GRANT_MARKER }
+                    : {}),
             }),
             sealed ? setGrant(sealed) : [],
         );
     } catch (err) {
         const mapped = handlers.syncErrorResult(err);
-        if (mapped.status === 401) return toResponse(mapped, clearGrant());
+        // Only a dead grant clears the cookie: `etsy_unauthorized` (Etsy
+        // rejected a call after a successful refresh) keeps the connection.
+        if (DEAD_GRANT_CODES.has(mapped.body?.code))
+            return toResponse(mapped, clearGrant());
         // Etsy rotates refresh tokens: keep a refreshed grant even when the
         // sync itself failed, so the connection stays alive.
         const sealed = err.tokens
@@ -89,7 +95,7 @@ async function sync(req) {
             : picked.adopted
               ? picked.sealed
               : null;
-        if (sealed) mapped.body.tokens = grant.GRANT_MARKER;
+        if (sealed || picked.stale) mapped.body.tokens = grant.GRANT_MARKER;
         return toResponse(mapped, sealed ? setGrant(sealed) : []);
     }
 }

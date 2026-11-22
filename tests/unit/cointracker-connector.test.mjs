@@ -719,6 +719,32 @@ describe('handlers', () => {
         );
     });
 
+    it('never overwrites a cookie with an older blob the client still sends', async () => {
+        const { impl } = fakeCoinTracker();
+        const r = await handlers.sync(
+            {
+                body: {
+                    token: ct.sealTokens({ ...TOKENS, access_token: 'older' }),
+                },
+                cookieHeader: cookieFor(TOKENS),
+            },
+            impl,
+        );
+        expect(r.status).toBe(200);
+        // The client is told to drop its blob, but the cookie is left alone.
+        expect(r.body.token).toBe('cookie');
+        expect(r.cookies).toEqual([]);
+    });
+
+    it('disconnect clears the cookie even when the server is not configured', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        delete process.env.SYNC_MASTER_KEY;
+        const r = await handlers.disconnect({ body: {}, cookieHeader: '' });
+        expect(r.status).toBe(503);
+        expect(r.cookies).toHaveLength(grant.MAX_CHUNKS);
+        expect(r.cookies.every((c) => /Max-Age=0/.test(c))).toBe(true);
+    });
+
     it('a dead grant clears the cookie', async () => {
         const r = await handlers.sync({ body: { token: 'cookie' } });
         expect(r.status).toBe(401);

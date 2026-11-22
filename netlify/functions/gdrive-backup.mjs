@@ -226,7 +226,8 @@ function settle(res, picked, sealed) {
 
 // Unseals + refreshes the grant, runs `fn(accessToken)`, and stores a resealed
 // grant in the cookie whenever the access token was refreshed (or a legacy
-// blob was adopted), even when the Drive call itself fails.
+// blob was adopted, never over an existing cookie), even when the Drive call
+// itself fails.
 async function withDrive(picked, fallback, fn) {
     let refreshed;
     try {
@@ -239,7 +240,7 @@ async function withDrive(picked, fallback, fn) {
         : picked.adopted
           ? picked.sealed
           : null;
-    const extra = sealed ? { tokens: grant.GRANT_MARKER } : {};
+    const extra = sealed || picked.stale ? { tokens: grant.GRANT_MARKER } : {};
     try {
         return settle(
             json(200, {

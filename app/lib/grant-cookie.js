@@ -13,7 +13,10 @@
 // Browsers cap one cookie (name, value and attributes) at 4096 bytes; 3800
 // value characters leave room for the name and the ~90-byte attribute suffix.
 const CHUNK_CHARS = 3800;
-const MAX_CHUNKS = 6;
+// Every chunk rides on each request to the connector's path, so the total is
+// kept near 7.6 KB: well under common request-header limits (Node's 16 KiB,
+// 8 KB proxies) with room for the other headers. A larger grant is refused.
+const MAX_CHUNKS = 2;
 // Browsers cap a cookie's lifetime at 400 days.
 const MAX_AGE_S = 400 * 24 * 60 * 60;
 const GRANT_MARKER = 'cookie';
@@ -88,16 +91,20 @@ function clearGrantCookies(name, path, { secure = true } = {}) {
 }
 
 // The grant to use for a request: the cookie, or else a sealed blob a client
-// from before the cookie move still sends. `adopted` is true whenever such a
-// blob arrived: the caller should store the grant in the cookie and answer
-// with GRANT_MARKER, so the client overwrites the blob it still holds.
+// from before the cookie move still sends.
+//  - `adopted`: the grant came from such a blob (no cookie yet); once it proves
+//    readable the caller stores it in the cookie.
+//  - `stale`: the client sent a blob at all; the caller answers with
+//    GRANT_MARKER so the client overwrites it. When a cookie exists the cookie
+//    wins and is never overwritten with the (possibly older) blob.
 function pickGrant(cookieHeader, name, legacy) {
     const fromCookie = readGrant(cookieHeader, name);
     const sentBlob =
         typeof legacy === 'string' && legacy !== '' && legacy !== GRANT_MARKER;
     return {
         sealed: fromCookie || (sentBlob ? legacy : null),
-        adopted: sentBlob,
+        adopted: sentBlob && !fromCookie,
+        stale: sentBlob,
     };
 }
 

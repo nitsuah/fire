@@ -172,6 +172,37 @@ describe('netlify etsy function', () => {
         expect(body.tokens).toBeUndefined();
     });
 
+    it('keeps the grant cookie when Etsy rejects a call but the grant is alive', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const blob = etsy.sealTokens({
+            access_token: '7.a',
+            refresh_token: 'rt',
+            expires_at: Date.now() + 3600_000,
+            shop_id: '99',
+        });
+        // The token refresh succeeds; Etsy still rejects the API call.
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) =>
+                String(url).includes('/oauth/token')
+                    ? jsonRes(200, {
+                          access_token: '7.b',
+                          refresh_token: 'rt2',
+                          expires_in: 3600,
+                      })
+                    : jsonRes(401, { error: 'invalid_token' }),
+            ),
+        );
+        const res = await post('sync', { tokens: blob });
+        expect(res.status).toBe(401);
+        expect((await res.json()).code).toBe('etsy_unauthorized');
+        // Not a dead grant: the cookie is kept (and holds the refreshed grant,
+        // or the adopted one), never cleared.
+        const set = res.headers.getSetCookie();
+        expect(set.some((c) => /^etsy_grant\.0=[^;]/.test(c))).toBe(true);
+        expect(etsy.unsealTokens(grantOf(res)).refresh_token).toMatch(/^rt/);
+    });
+
     it('fails closed when unconfigured and 404s browser-side actions', async () => {
         vi.spyOn(console, 'error').mockImplementation(() => {});
         expect((await handler(new Request(`${BASE}/thumbnail`))).status).toBe(

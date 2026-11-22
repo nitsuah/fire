@@ -76,6 +76,10 @@ async function ctRefreshStatus() {
         if (token && ctStatus.connected === false) ctWrite(CT_TOKEN_KEY, null);
         else if (typeof ctStatus.token === 'string' && ctStatus.token)
             ctWrite(CT_TOKEN_KEY, ctStatus.token);
+        // Connected through the cookie alone (this key was cleared): restore the
+        // marker so Sync and Disconnect send their requests.
+        else if (ctStatus.connected === true && !token)
+            ctWrite(CT_TOKEN_KEY, 'cookie');
     } catch {
         // Server unreachable (or not configured enough to be asked): fall back
         // to whether this browser still holds a blob.

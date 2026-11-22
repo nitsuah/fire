@@ -37,8 +37,8 @@ describe('grant-cookie', () => {
 
     it('splits a large (eBay-sized) grant across chunks and reassembles it', () => {
         const big = {
-            access_token: 'v^1.1#' + 'x'.repeat(5000),
-            refresh_token: 'y'.repeat(800),
+            access_token: 'v^1.1#' + 'x'.repeat(3500),
+            refresh_token: 'y'.repeat(700),
         };
         const sealed = encrypt(JSON.stringify(big));
         const set = grant.grantCookies('ebay_grant', '/api/sync/ebay', sealed);
@@ -94,6 +94,7 @@ describe('grant-cookie', () => {
             expect(grant.pickGrant(cookieFor(s), 'g', 'cookie')).toEqual({
                 sealed: s,
                 adopted: false,
+                stale: false,
             });
         });
 
@@ -102,15 +103,17 @@ describe('grant-cookie', () => {
             expect(grant.pickGrant('', 'g', s)).toEqual({
                 sealed: s,
                 adopted: true,
+                stale: true,
             });
         });
 
-        it('still flags a legacy blob sent alongside a cookie, so the client drops it', () => {
+        it('never adopts a blob sent alongside a cookie, but flags it so the client drops it', () => {
             const fromCookie = sealed();
-            const stale = sealed();
-            expect(grant.pickGrant(cookieFor(fromCookie), 'g', stale)).toEqual({
+            const older = sealed();
+            expect(grant.pickGrant(cookieFor(fromCookie), 'g', older)).toEqual({
                 sealed: fromCookie,
-                adopted: true,
+                adopted: false,
+                stale: true,
             });
         });
 
@@ -118,10 +121,12 @@ describe('grant-cookie', () => {
             expect(grant.pickGrant('', 'g', 'cookie')).toEqual({
                 sealed: null,
                 adopted: false,
+                stale: false,
             });
             expect(grant.pickGrant(undefined, 'g', undefined)).toEqual({
                 sealed: null,
                 adopted: false,
+                stale: false,
             });
         });
     });

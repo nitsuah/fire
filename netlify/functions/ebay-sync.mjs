@@ -71,7 +71,9 @@ export default async function handler(req) {
                 entries: result.entries,
                 fetched: result.entries.length,
                 syncedAt: new Date().toISOString(),
-                ...(sealed ? { tokens: grant.GRANT_MARKER } : {}),
+                ...(sealed || picked.stale
+                    ? { tokens: grant.GRANT_MARKER }
+                    : {}),
             }),
             sealed
                 ? grant.grantCookies(EBAY_GRANT.name, EBAY_GRANT.path, sealed)
