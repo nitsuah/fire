@@ -10,6 +10,8 @@
 // numbered chunks (`<name>.0`, `<name>.1`, ...), since one cookie holds
 // about 4 KB and an eBay grant can be larger.
 
+// Browsers cap one cookie (name, value and attributes) at 4096 bytes; 3800
+// value characters leave room for the name and the ~90-byte attribute suffix.
 const CHUNK_CHARS = 3800;
 const MAX_CHUNKS = 6;
 // Browsers cap a cookie's lifetime at 400 days.
