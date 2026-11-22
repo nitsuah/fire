@@ -22,7 +22,7 @@ All numbers and events are real app output for the fictional demo portfolio (`pr
 | 4 Everywhere | 11.5–14.5 | A phone frame with the real mobile Dashboard (one column, chaos on). Right: "Dashboard. Projections. Your phone." The real event-chip list wipes in, then "🎲 Reroll for a different life." |
 | 5 Mitigate | 14.5–18.0 | "🛡️ Mitigate the hits." / "Tick the coverage you have. Chaos applies it, and what it costs." The real Dental and Pet insurance cards; the cursor ticks Pet insurance. Below: "🐕 Dog emergency surgery −$6.6K → −$1.3K with pet insurance · ~$50/mo". |
 | 6 Make it yours | 18.0–21.0 | "Make it yours." / "Collapse, reorder, pin any card." The real Dashboard in Customize mode (sections with layout pickers) tilts in; the real widget picker pops over it and the cursor clicks **Add**. |
-| 7 Outro | 21.0–24.0 | 🔥 fire · "Plan for the life you'll actually live." · chips `github.com/nitsuah/fire` and `docker compose up fire` · TRY IT LIVE **lifefire.netlify.app** |
+| 7 Outro | 21.0–24.0 | 🔥 fire · "Plan for the life you'll actually live." · chips `github.com/nitsuah/fire` and `docker compose up fire` · TRY IT LIVE **fire.nitsuah.io** |
 
 ## Revisions
 

@@ -3,7 +3,7 @@
 > 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
 
 **Effective Date:** September 2026  
-**Application:** fire (`lifefire.netlify.app` / self-hosted)  
+**Application:** fire (`fire.nitsuah.io` / self-hosted)  
 **Repository:** [github.com/nitsuah/fire](https://github.com/nitsuah/fire)
 
 ---
@@ -16,7 +16,7 @@ fire is a **local-first, privacy-by-design** personal finance tool. It is not a 
 
 ## 2. Data Storage
 
-### 2a. Browser-Only Mode (lifefire.netlify.app)
+### 2a. Browser-Only Mode (fire.nitsuah.io)
 
 When you use the hosted Netlify deployment:
 

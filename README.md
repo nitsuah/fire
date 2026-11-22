@@ -112,6 +112,8 @@ basic local use — the one exception is `FIRE_API_KEY` (or its explicit
 | `PORT` | Server port (default `3001`) |
 | `FIRE_API_KEY` | **Required by default.** All `/api/*` routes require `X-Api-Key: <value>`. The server refuses to start unless this or `FIRE_AUTH_DISABLED` is set |
 | `FIRE_AUTH_DISABLED` | Set to `true` to run with no API auth at all (local-only use). Leave unset if anyone else could reach the server — see security-hardening.md |
+| `FIRE_BIND_HOST` | Interface the server listens on. Defaults to `127.0.0.1`; the container images set `0.0.0.0` (compose publishes the port on loopback only). Set it explicitly only if you need LAN access and have `FIRE_API_KEY` set |
+| `FIRE_TRUST_PROXY` | Express `trust proxy` value for a reverse proxy in front of the app (hop count like `1`, or `loopback`/an address list). Compose sets `1` for Caddy. Leave unset when clients connect directly, so rate limits key on the real socket address |
 | `FIRE_ADMIN_KEY` | **Required in production.** Gates `POST /api/admin/rotate-key` via `X-Admin-Key` header |
 | `SYNC_MASTER_KEY` | 64-hex-char key to encrypt `db.json` at rest with AES-256-GCM |
 | `FIRE_ALLOW_LEGACY_BACKUP_RESTORE` | Set to `1` to allow restoring older Google Drive backups that are not bound to an account. Off by default |
@@ -196,6 +198,28 @@ Connect Claude Code to your live financial data. The project ships a `.mcp.json`
 Smoke-test locally:
 ```bash
 docker compose exec fire node scripts/test-mcp.mjs
+```
+
+### Remote (self-hosted HTTP)
+
+The same read-only tools are available over stateless Streamable HTTP at:
+
+```
+POST https://<your-host>/mcp
+Authorization: Bearer $FIRE_API_KEY
+Accept: application/json, text/event-stream
+```
+
+- Requires `FIRE_API_KEY` set in the server environment. Returns `503` if unset.
+- Uses the same `FIRE_API_KEY` as the REST API but **only** accepts `Authorization: Bearer` (the `x-api-key` header is not accepted on `/mcp`).
+- Stateless: a new `Server` + `Transport` is created per request.
+- Tools are identical to the stdio server (all 20 read-only tools).
+- The hosted Netlify deploy has **no `/mcp` endpoint**; this is self-hosted only.
+
+Add to Claude:
+
+```bash
+claude mcp add --transport http fire https://<your-host>/mcp --header "Authorization: Bearer $FIRE_API_KEY"
 ```
 
 ---

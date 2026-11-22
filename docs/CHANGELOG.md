@@ -9,23 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- MCP hosted browser bridge (child 1): extracted browser-safe tool core into `app/mcp-tools.mjs` with no Node imports, used by both stdio server and browser; added `offset`/`pagingKey` paging to `get_transactions` with bounds (non-negative integers, max page size 1000) and stable ordering; `stale_offset` error when matched rows change between pages; `handleTool` stays synchronous and the paging key uses a built-in fingerprint, so Node and browser hosts agree (#508).
+
 ### Changed
+- API key checks (`/api`, the admin key-rotation route and `/mcp`) use one constant-time comparison helper, `app/lib/safe-compare.js`.
 - Integration status matrix: record the remaining live-provider checks (OAuth reconnect, real sync, revocation, multi-account) as a manual checklist; #301 and #302 close on merged code, #262 tracks the live acceptance.
 - Playwright 1.65.0: `@playwright/test`, the CI e2e container, the Journeys image and `config/Dockerfile.playwright` move together; journey baselines refreshed for the #351 summary bar and the separated budget hints.
 - Dev dependencies: `@eslint/js` 10 (its new `no-useless-assignment` findings in the CSV import parsers are fixed), prettier 3.10.1, supertest 7.3.2; express-rate-limit 8.7.4.
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
 - Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification and hosted credential storage remain unavailable (#409).
+- Settings gains a Stripe connection card showing status and last sync, with a confirm-guarded disconnect (#349).
 
 ### Removed
+
+- The Estimated Net Worth block in the summary bar and its renderers; net worth stays in the compact bar tooltip. FIRE-eligible assets, target and ETA move into the compact bar tooltip. Positional banner CSS shifted to match (#482).
 - Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).
 
 ### Fixed
 - Key rotation (`POST /api/admin/rotate-key`) now also re-encrypts the provider token files and local daily backups, all-or-nothing with rollback. Backups already stored in Google Drive keep the old key; run a new Drive backup after rotating.
+- The server listens on loopback by default (`FIRE_BIND_HOST` to change it; container images set it), the `/api` limiters run before the API-key check, and API/admin keys are compared in constant time. Forwarded client addresses are trusted only when `FIRE_TRUST_PROXY` is set (Compose sets it for Caddy).
 - Selects no longer truncate the selected value: shorter Filing State and eBay category option labels, the eBay category select spans the form row, and the Side Gig Ledger tax-tag select sizes to its longest tag (#172).
 - Table and projection summaries escape stored text before rendering. The shared `escHtml` in `lib/html-utils.js` (which also escapes single quotes and returns '' for null/undefined) is now the one used everywhere; the duplicate helpers in dashboard, real-estate, tax-harvest and projections were removed.
 
 ### Added
 
+- Self-hosted remote MCP: `POST /mcp` serves the same read-only tools over stateless Streamable HTTP, authenticated with `Authorization: Bearer $FIRE_API_KEY` (constant-time check; 503 when the key is unset, never anonymous). The hosted Netlify deploy has no `/mcp` (#492).
+- Bridge protocol module (`app/bridge-protocol.mjs`): pure shared protocol for the hosted MCP browser bridge — frame schemas (`HELLO`, `CHALLENGE`, `PROVE`, `READY`, `CALL`, `RESULT`, `END`), `seq`/`id`/`deadline` checks, `PROVE` signing string (`"fire-bridge/v1" ‖ relayOrigin ‖ sid ‖ nonce ‖ scope ‖ expiresAt`), size limits, `verifyProve` (ECDSA P-256 signature check over the signing string, WebCrypto), public-JWK validation for `HELLO`, challenge expiry, and test vectors (#509).
+- Stripe webhook receiver `POST /api/sync/stripe/webhook` (self-hosted): verifies Stripe signatures with a 5-minute tolerance, fails closed until a signing secret is stored, rate limited (#348).
+- Stripe webhook idempotency (self-hosted): durable event-ID replay protection. After signature verification, `event.id` is looked up in a JSON store under the data directory (atomic write via temp file + rename). Duplicate IDs return `200 { received: true, duplicate: true }` without reprocessing. Store capped at 10,000 entries; entries older than 30 days pruned on write. Event ID validated against `^evt_[A-Za-z0-9_]+$`. Concurrency-safe via in-process promise chain. (#491)
+- Quick Start Hub: six-step card on the Dashboard (privacy, accounts, retirement assumptions, provider, backup, explore), progress from real state on every render, dismissal in `localStorage` with reopen button (#223).
+- Quick Start card controller: shows the Dashboard Quick Start card after privacy consent (no reload needed), with dismiss and a reopen control that stays reachable; step buttons open their tabs (#444).
+- Quick Start card styling (progress, step list with 44px tap targets, dismiss and reopen controls), and both Quick Start scripts are precached by the service worker for offline loads (#440).
+- Quick Start steps now reflect real state: privacy consent, accounts, projection profile, connected providers (only `connected: true` counts), Drive backup and Chaos Mode; recomputed on each render, never stored (#484).
+- Quick Start Hub browser acceptance: `tests/e2e-ui/quick-start.spec.js` covers consent, six steps with progress and optional labels, step navigation, dismiss/reload/reopen, and phone width (#398).
+- Stripe (self-hosted): Settings connection card with five-state status (not configured / not connected / connected / partial / failed with error code), last-sync display from `lastSyncOutcome`/`lastSyncedAt`, recovery hints per state, and confirm-guarded disconnect that deletes the encrypted restricted key (synced side-gig transactions stay). Permissions: read-only restricted key; retention: key stored encrypted until disconnect; no live provider check; webhook handling not implemented (#261, #349).
 - Chaos Mode household profiles now filter inapplicable Insights mitigations and prune hidden selections from browser storage (#480).
 
 - Chaos Mode household profile controls: a 👤 toggle opens a panel to save or clear a household profile that persists and rehydrates with Chaos state, and hides when Chaos is off (#399).
@@ -54,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Quick Start card now actually appears: the layout manager adopts it while hidden (`data-lm-adopt`) and places it first on the Dashboard instead of stranding it in an emptied column; the progress line ("N of 6 done") and real "Optional" labels render, done steps stay clickable, and the reopen control honours `hidden` (#398).
+- e2e-ui: Playwright blocks service workers, so per-test `page.route` mocks are not bypassed by the precaching worker (9 Stripe card scenarios failed on every PR after #484).
+- Stripe connection card: a 404 from the status route (a deployment without Stripe routes) shows the self-hosted guidance again instead of "Unable to load Stripe status"; other failures still show the load error.
 - Compact summary bar now reflows when the device rotates within the narrow breakpoint, and the e2e layout test waits for the tab fade-in animation before measuring card positions (fixes flaky `chaos-and-layout.spec.js` "a card alone in its section spans the full width").
 - Side Gig Ledger manual-entry form now stacks with visible labels at tablet/phone widths, and the tax summary wraps without horizontal overflow (#173).
 
