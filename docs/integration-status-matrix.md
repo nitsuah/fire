@@ -16,11 +16,11 @@ that can only fail.
 
 | Provider | Self-hosted | Hosted (Netlify) | Status endpoint |
 | --- | --- | --- | --- |
-| eBay | `data/tokens-ebay.json` (encrypted with `SYNC_MASTER_KEY` when set) | browser `localStorage`, sealed blob + sanitized last-sync outcome | `/api/sync/ebay/status`: Express returns configured/connected/lastSyncOutcome; Netlify Function returns `configured` only; hosted connection/outcome state remains browser-local (#326) |
-| Etsy | `data/tokens-etsy.json` | browser `localStorage`, sealed blob + local last-sync outcome | `/api/sync/etsy/status`; hosted function reports `configured`, browser adds its local outcome |
+| eBay | `data/tokens-ebay.json` (encrypted with `SYNC_MASTER_KEY` when set) | HttpOnly grant cookie (sealed) + `localStorage` marker and sanitized last-sync outcome | `/api/sync/ebay/status`: Express returns configured/connected/lastSyncOutcome; Netlify Function returns `configured` only; hosted connection marker/outcome state remains browser-local (#326) |
+| Etsy | `data/tokens-etsy.json` | HttpOnly grant cookie (sealed) + `localStorage` marker and local last-sync outcome | `/api/sync/etsy/status`; hosted function reports `configured`, browser adds its local outcome |
 | Plaid | `data/tokens-plaid.json` | browser, sealed `plaidToken` | `/api/sync/plaid/status` in both runtimes |
 | Stripe | Self-hosted `DATA_DIR/tokens-stripe.json` (AES-256-GCM; `SYNC_MASTER_KEY`) | unavailable — no Netlify function or credential store | `/api/sync/stripe/status`: `configured`, `connected`, `lastSyncOutcome`, `lastSyncedAt` (#345, #347) |
-| CoinTracker | none — browser-held in **both** modes | browser `localStorage`, sealed blob | `/api/sync/cointracker/status` in both runtimes (#294) |
+| CoinTracker | none — browser-held in **both** modes | HttpOnly grant cookie (sealed) + `localStorage` marker | `/api/sync/cointracker/status` in both runtimes (#294) |
 | Google Drive backup | `data/tokens-gdrive.json` | sealed per request, browser-held | `/api/backup/drive/status` in both runtimes |
 
 CoinTracker is the one deliberate inversion: it keeps no server-side token

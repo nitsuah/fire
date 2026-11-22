@@ -1,25 +1,34 @@
 // Google Drive backup routes for the browser-only deploy
 // (/api/backup/drive/*, rewritten here by netlify.toml). Reuses the Drive API
 // + AES-256-GCM helpers in app/lib/gdrive-backup.js. Stateless, like
-// etsy.mjs: the OAuth state rides in a sealed HttpOnly cookie, the tokens go
-// back to the browser sealed with SYNC_MASTER_KEY (it stores the blob but
-// can't read it) and come back in each request body. There is no db.json
+// etsy.mjs: the OAuth state rides in a sealed HttpOnly cookie, and the grant,
+// sealed with SYNC_MASTER_KEY, lives in HttpOnly cookies scoped to
+// /api/backup/drive (app/lib/grant-cookie.js) that page scripts cannot read;
+// the browser keeps only a `cookie` marker. There is no db.json
 // here: the browser sends the state to back up, and restore hands the
 // decrypted state back for the browser to apply.
 
 import crypto from '../../app/lib/node-crypto.js';
 import gdrive from '../../app/lib/gdrive-backup.js';
 import oauthNonce from '../../app/lib/oauth-nonce.js';
+import grant from '../../app/lib/grant-cookie.js';
 import { encrypt, decrypt } from '../../app/lib/crypto-utils.js';
-import { json, redirect, methodNotAllowed, cookie } from '../lib/http.mjs';
+import {
+    json,
+    redirect,
+    methodNotAllowed,
+    cookie,
+    withCookies,
+} from '../lib/http.mjs';
 
 const COOKIE_NAME = 'gdrive_oauth';
 const COOKIE_PATH = '/api/backup/drive';
+const GRANT = 'gdrive_grant';
 const CALLBACK_PATH = '/api/backup/drive/callback';
 const PENDING_TTL_MS = 10 * 60 * 1000;
 // Netlify caps a synchronous function request body at 6 MB.
 const MAX_STATE_BYTES = 5 * 1024 * 1024;
-// Request bodies carry the sealed grant plus the state, so allow a little over
+// Older clients' request bodies carry the sealed grant plus the state, so allow a little over
 // the state cap before refusing to parse at all.
 const MAX_BODY_BYTES = MAX_STATE_BYTES + 64 * 1024;
 const TOO_LARGE = Symbol('too-large');
@@ -118,8 +127,9 @@ async function callback(req, url) {
     const params = url.searchParams;
     const pending = unsealPending(cookie(req, COOKIE_NAME));
     const suffix = oauthNonce.nonceSuffix(pending?.nonce);
-    const back = (fragment) =>
-        redirect(`/#${fragment}${suffix}`, { 'Set-Cookie': clear });
+    const secure = url.protocol === 'https:';
+    const back = (fragment, cookies = []) =>
+        withCookies(redirect(`/#${fragment}${suffix}`), [clear, ...cookies]);
     if (!clientConfigured() || !masterKeySet())
         return back('gdrive-error=not_configured');
     if (!pending || !statesMatch(params.get('state'), pending.state))
@@ -135,7 +145,10 @@ async function callback(req, url) {
     try {
         const tokens = await gdrive.requestTokens(code, pending.redirectUri);
         return back(
-            `gdrive-connected=${encodeURIComponent(sealTokens(tokens))}`,
+            `gdrive-connected=${grant.GRANT_MARKER}`,
+            grant.grantCookies(GRANT, COOKIE_PATH, sealTokens(tokens), {
+                secure,
+            }),
         );
     } catch (err) {
         console.error('[Backup] Drive token exchange failed:', err.message);
@@ -187,26 +200,58 @@ function errorResponse(err, fallback, extra = {}) {
     });
 }
 
-// Unseals + refreshes the grant, runs `fn(accessToken)`, and adds a resealed
-// blob to the response whenever the access token was refreshed, so the
-// browser's copy stays current even when the Drive call itself fails.
-async function withDrive(body, fallback, fn) {
+// The grant for a request: the cookie, or a blob an older client still sends
+// in the body (POST) or the X-GDrive-Tokens header (GET).
+function pickGrant(req, legacy) {
+    return {
+        ...grant.pickGrant(req.headers.get('cookie'), GRANT, legacy),
+        secure: new URL(req.url).protocol === 'https:',
+    };
+}
+
+// Writes `sealed` into the grant cookie, or clears it when the grant is dead.
+function settle(res, picked, sealed) {
+    const opts = { secure: picked.secure };
+    if (res.status === 401)
+        return withCookies(
+            res,
+            grant.clearGrantCookies(GRANT, COOKIE_PATH, opts),
+        );
+    if (!sealed) return res;
+    return withCookies(
+        res,
+        grant.grantCookies(GRANT, COOKIE_PATH, sealed, opts),
+    );
+}
+
+// Unseals + refreshes the grant, runs `fn(accessToken)`, and stores a resealed
+// grant in the cookie whenever the access token was refreshed (or a legacy
+// blob was adopted, never over an existing cookie), even when the Drive call
+// itself fails.
+async function withDrive(picked, fallback, fn) {
     let refreshed;
     try {
-        refreshed = await gdrive.refreshTokens(unsealTokens(body.tokens));
+        refreshed = await gdrive.refreshTokens(unsealTokens(picked.sealed));
     } catch (err) {
-        return errorResponse(err, fallback);
+        return settle(errorResponse(err, fallback), picked, null);
     }
-    const extra = refreshed.changed
-        ? { tokens: sealTokens(refreshed.tokens) }
-        : {};
+    const sealed = refreshed.changed
+        ? sealTokens(refreshed.tokens)
+        : picked.adopted
+          ? picked.sealed
+          : null;
+    const extra = sealed || picked.stale ? { tokens: grant.GRANT_MARKER } : {};
     try {
-        return json(200, {
-            ...(await fn(refreshed.tokens.access_token)),
-            ...extra,
-        });
+        return settle(
+            json(200, {
+                ...(await fn(refreshed.tokens.access_token)),
+                ...extra,
+            }),
+            picked,
+            sealed,
+        );
     } catch (err) {
-        return errorResponse(err, fallback, extra);
+        return settle(errorResponse(err, fallback, extra), picked, sealed);
     }
 }
 
@@ -214,11 +259,12 @@ async function upload(req) {
     const body = await readBody(req, MAX_BODY_BYTES);
     if (body[TOO_LARGE])
         return json(413, { error: 'State is too large to back up.' });
+    const picked = pickGrant(req, body.tokens);
     // Validate the sealed grant before doing any work on caller-supplied state.
     try {
-        unsealTokens(body.tokens);
+        unsealTokens(picked.sealed);
     } catch (err) {
-        return errorResponse(err, 'Drive upload failed');
+        return settle(errorResponse(err, 'Drive upload failed'), picked, null);
     }
     const state = body.state;
     if (!state || typeof state !== 'object' || Array.isArray(state))
@@ -226,16 +272,16 @@ async function upload(req) {
     const payload = JSON.stringify(state);
     if (Buffer.byteLength(payload) > MAX_STATE_BYTES)
         return json(413, { error: 'State is too large to back up.' });
-    return withDrive(body, 'Drive upload failed', async (token) => ({
+    return withDrive(picked, 'Drive upload failed', async (token) => ({
         status: 'success',
         ...(await gdrive.uploadBackupWithToken(token, payload)),
     }));
 }
 
 async function list(req) {
-    // GET can't carry a body, so the blob rides in a header here.
-    const body = { tokens: req.headers.get('x-gdrive-tokens') };
-    return withDrive(body, 'Drive list failed', async (token) => ({
+    // An older client sends its blob in a header here (GET has no body).
+    const picked = pickGrant(req, req.headers.get('x-gdrive-tokens'));
+    return withDrive(picked, 'Drive list failed', async (token) => ({
         files: await gdrive.listBackupsWithToken(token),
     }));
 }
@@ -246,20 +292,27 @@ async function restore(req) {
     if (!fileId) return json(400, { error: 'fileId is required.' });
     if (typeof fileId !== 'string' || !gdrive.DRIVE_FILE_ID_RE.test(fileId))
         return json(400, { error: 'Invalid Google Drive file ID.' });
-    return withDrive(body, 'Drive restore failed', async (token) => {
-        // The token can read any Drive file it can see, so prove the ID is
-        // one of this app's backups before fetching its contents.
-        await gdrive.assertBackupFileInFolder(token, fileId);
-        const encrypted = await gdrive.downloadBackupWithToken(token, fileId);
-        // Only account-bound backups need the account lookup.
-        const accountId = gdrive.isBoundBackup(encrypted)
-            ? await gdrive.getAccountId(token)
-            : undefined;
-        return {
-            status: 'success',
-            state: decryptRestored(encrypted, accountId),
-        };
-    });
+    return withDrive(
+        pickGrant(req, body.tokens),
+        'Drive restore failed',
+        async (token) => {
+            // The token can read any Drive file it can see, so prove the ID is
+            // one of this app's backups before fetching its contents.
+            await gdrive.assertBackupFileInFolder(token, fileId);
+            const encrypted = await gdrive.downloadBackupWithToken(
+                token,
+                fileId,
+            );
+            // Only account-bound backups need the account lookup.
+            const accountId = gdrive.isBoundBackup(encrypted)
+                ? await gdrive.getAccountId(token)
+                : undefined;
+            return {
+                status: 'success',
+                state: decryptRestored(encrypted, accountId),
+            };
+        },
+    );
 }
 
 // A backup sealed with another key, or a corrupted file, fails the GCM auth
@@ -292,7 +345,7 @@ export default async function handler(req) {
 
     if (name === 'status') {
         if (method !== 'GET') return methodNotAllowed('GET');
-        // `authorized` is the browser's call here: it holds the sealed blob.
+        // `authorized` is the browser's call here: it holds the `cookie` marker.
         return json(200, {
             authorized: false,
             clientConfigured: clientConfigured(),

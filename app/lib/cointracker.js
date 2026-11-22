@@ -60,8 +60,10 @@ let ctStatus = null;
 
 // The card used to show whatever the last client call happened to write, so
 // after a reload there was no authoritative "am I connected?". The server now
-// answers it from the sealed blob, which travels in the Authorization header
-// (never the URL — query strings land in access logs).
+// answers it from the HttpOnly grant cookie. CT_TOKEN_KEY holds only the
+// `cookie` marker; a sealed blob left from before the cookie move travels in
+// the Authorization header once (never the URL — query strings land in access
+// logs), and the server moves it into the cookie and returns the marker.
 async function ctRefreshStatus() {
     try {
         const token = ctRead(CT_TOKEN_KEY);
@@ -70,8 +72,14 @@ async function ctRefreshStatus() {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         ctStatus = await res.json();
-        // A blob the server cannot unseal can never work again.
+        // A grant the server cannot unseal can never work again.
         if (token && ctStatus.connected === false) ctWrite(CT_TOKEN_KEY, null);
+        else if (typeof ctStatus.token === 'string' && ctStatus.token)
+            ctWrite(CT_TOKEN_KEY, ctStatus.token);
+        // Connected through the cookie alone (this key was cleared): restore the
+        // marker so Sync and Disconnect send their requests.
+        else if (ctStatus.connected === true && !token)
+            ctWrite(CT_TOKEN_KEY, 'cookie');
     } catch {
         // Server unreachable (or not configured enough to be asked): fall back
         // to whether this browser still holds a blob.

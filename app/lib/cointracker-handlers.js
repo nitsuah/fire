@@ -3,19 +3,58 @@
 // Transport-agnostic CoinTracker handlers shared by the Express routes
 // (app/routes/cointracker.js) and the Netlify Function
 // (netlify/functions/cointracker.mjs). Each returns {status, body} or
-// {redirect, cookie}; the wrappers turn those into responses.
+// {redirect}, plus `cookies` (Set-Cookie values); the wrappers turn those
+// into responses.
 //
 // Flow: authorize → CoinTracker login → callback seals the tokens with
-// SYNC_MASTER_KEY and hands the blob to the SPA in the URL fragment →
-// the SPA posts the blob back to /sync, /inspect and /disconnect. No
-// CoinTracker token or data is stored server-side in either runtime.
+// SYNC_MASTER_KEY into an HttpOnly cookie (app/lib/grant-cookie.js) and tells
+// the SPA `cointracker-connected=cookie` → /sync, /inspect, /status and
+// /disconnect read the grant from that cookie. No CoinTracker token or data
+// is stored server-side in either runtime, and page scripts never see it.
 
 const crypto = require('./node-crypto');
 const ct = require('./cointracker-connector');
 const { cleanNonce, nonceSuffix } = require('./oauth-nonce');
+const grant = require('./grant-cookie');
 
 const COOKIE_NAME = 'cointracker_oauth';
 const COOKIE_PATH = '/api/sync/cointracker';
+const GRANT_COOKIE = 'cointracker_grant';
+
+// The sealed grant for a request: the cookie, or a blob a client from before
+// the cookie move still sends in the body or Authorization header.
+function pick({ cookieHeader, legacy }) {
+    return grant.pickGrant(cookieHeader, GRANT_COOKIE, legacy);
+}
+
+// Moves any sealed `token` a handler produced into the cookie, adopts a
+// readable legacy blob, and clears the cookie when the grant is dead (401).
+// The SPA keeps only the marker.
+function settle(result, picked, secure) {
+    const body = result.body || {};
+    let cookies = [];
+    if (result.status === 401) {
+        cookies = grant.clearGrantCookies(GRANT_COOKIE, COOKIE_PATH, {
+            secure,
+        });
+        delete body.token;
+    } else if (body.token) {
+        cookies = grant.grantCookies(GRANT_COOKIE, COOKIE_PATH, body.token, {
+            secure,
+        });
+        body.token = grant.GRANT_MARKER;
+    } else if (picked.adopted && result.status === 200) {
+        cookies = grant.grantCookies(GRANT_COOKIE, COOKIE_PATH, picked.sealed, {
+            secure,
+        });
+        body.token = grant.GRANT_MARKER;
+    } else if (picked.stale && result.status === 200) {
+        // A cookie already holds the grant: never overwrite it with the
+        // (possibly older) blob the client sent; just tell it to drop the blob.
+        body.token = grant.GRANT_MARKER;
+    }
+    return { ...result, body, cookies };
+}
 
 function pendingCookie(value, secure, maxAge = 600) {
     return `${COOKIE_NAME}=${value}; Path=${COOKIE_PATH}; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
@@ -73,11 +112,13 @@ async function authorize({ origin, nonce }, fetchImpl = fetch) {
 }
 
 async function callback({ params, cookieValue, origin }, fetchImpl = fetch) {
-    const clear = pendingCookie('', origin.startsWith('https:'), 0);
+    const secure = origin.startsWith('https:');
+    const clear = pendingCookie('', secure, 0);
     let suffix = '';
-    const back = (fragment) => ({
+    const back = (fragment, cookies = []) => ({
         redirect: `/#${fragment}${suffix}`,
         cookie: clear,
+        cookies,
     });
     if (!ct.isConfigured()) return back('cointracker-error=not_configured');
     const pending = ct.unsealPending(cookieValue);
@@ -107,7 +148,13 @@ async function callback({ params, cookieValue, origin }, fetchImpl = fetch) {
             fetchImpl,
         );
         return back(
-            `cointracker-connected=${encodeURIComponent(ct.sealTokens(tokens))}`,
+            `cointracker-connected=${grant.GRANT_MARKER}`,
+            grant.grantCookies(
+                GRANT_COOKIE,
+                COOKIE_PATH,
+                ct.sealTokens(tokens),
+                { secure },
+            ),
         );
     } catch (err) {
         console.error('[CoinTracker] Token exchange failed:', err.message);
@@ -171,14 +218,18 @@ function errorResult(err) {
     };
 }
 
-function readTokens(body) {
-    return ct.unsealTokens(body?.token);
+async function sync({ body, cookieHeader, secure = true }, fetchImpl = fetch) {
+    if (!ct.isConfigured()) return notConfigured();
+    const picked = pick({ cookieHeader, legacy: body?.token });
+    return settle(await syncWith(picked, fetchImpl), picked, secure);
 }
 
-async function sync({ body }, fetchImpl = fetch) {
-    if (!ct.isConfigured()) return notConfigured();
+async function syncWith(picked, fetchImpl) {
     try {
-        const result = await ct.syncWallets(readTokens(body), fetchImpl);
+        const result = await ct.syncWallets(
+            ct.unsealTokens(picked.sealed),
+            fetchImpl,
+        );
         return {
             status: 200,
             body: {
@@ -204,10 +255,21 @@ async function sync({ body }, fetchImpl = fetch) {
 
 // Diagnostics: the tool catalog (names, descriptions, argument names) with
 // no portfolio data, so the balance-tool choice can be checked or pinned.
-async function inspect({ body }, fetchImpl = fetch) {
+async function inspect(
+    { body, cookieHeader, secure = true },
+    fetchImpl = fetch,
+) {
     if (!ct.isConfigured()) return notConfigured();
+    const picked = pick({ cookieHeader, legacy: body?.token });
+    return settle(await inspectWith(picked, fetchImpl), picked, secure);
+}
+
+async function inspectWith(picked, fetchImpl) {
     try {
-        const result = await ct.inspectTools(readTokens(body), fetchImpl);
+        const result = await ct.inspectTools(
+            ct.unsealTokens(picked.sealed),
+            fetchImpl,
+        );
         return {
             status: 200,
             body: {
@@ -223,36 +285,58 @@ async function inspect({ body }, fetchImpl = fetch) {
     }
 }
 
-// Authoritative "am I connected?" answer. The token is browser-held, so it
-// arrives in the Authorization header — never the URL, which lands in logs.
-// A blob that cannot be unsealed is not connected: it can never work again.
-function status({ token }) {
+// Authoritative "am I connected?" answer, from the grant cookie (or a legacy
+// blob in the Authorization header, never the URL, which lands in logs).
+// A grant that cannot be unsealed is not connected: it can never work again.
+function status({ token, cookieHeader, secure = true }) {
     const configured = ct.isConfigured();
+    const picked = pick({ cookieHeader, legacy: token });
     let connected = false;
-    if (configured && token) {
+    if (configured && picked.sealed) {
         try {
-            connected = Boolean(ct.unsealTokens(token));
+            connected = Boolean(ct.unsealTokens(picked.sealed));
         } catch {
             connected = false;
         }
     }
-    return { status: 200, body: { configured, connected } };
+    const result = { status: 200, body: { configured, connected } };
+    // Move a readable legacy blob into the cookie on first contact.
+    return connected && picked.stale
+        ? settle(result, picked, secure)
+        : { ...result, cookies: [] };
 }
 
-async function disconnect({ body }, fetchImpl = fetch) {
-    if (!ct.isConfigured()) return notConfigured();
+async function disconnect(
+    { body, cookieHeader, secure = true },
+    fetchImpl = fetch,
+) {
+    // Clear the grant even when the server cannot revoke it right now: a
+    // disconnect must not leave a grant that comes back with the key.
+    if (!ct.isConfigured())
+        return {
+            ...notConfigured(),
+            cookies: grant.clearGrantCookies(GRANT_COOKIE, COOKIE_PATH, {
+                secure,
+            }),
+        };
+    const picked = pick({ cookieHeader, legacy: body?.token });
     let tokens = null;
     try {
-        tokens = readTokens(body);
+        tokens = picked.sealed ? ct.unsealTokens(picked.sealed) : null;
     } catch {
-        /* unreadable blob: nothing to revoke, the SPA drops it anyway */
+        /* unreadable grant: nothing to revoke, it is dropped anyway */
     }
     const revoked = tokens ? await ct.revokeTokens(tokens, fetchImpl) : false;
-    return { status: 200, body: { status: 'disconnected', revoked } };
+    return {
+        status: 200,
+        body: { status: 'disconnected', revoked },
+        cookies: grant.clearGrantCookies(GRANT_COOKIE, COOKIE_PATH, { secure }),
+    };
 }
 
 module.exports = {
     COOKIE_NAME,
+    GRANT_COOKIE,
     authorize,
     callback,
     sync,

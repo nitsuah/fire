@@ -36,6 +36,12 @@ export function missingEnv(names) {
     return names.filter((name) => !process.env[name]);
 }
 
+// Appends each Set-Cookie value (falsy ones skipped) to a Response.
+export function withCookies(res, cookies = []) {
+    for (const c of cookies) if (c) res.headers.append('Set-Cookie', c);
+    return res;
+}
+
 export function cookie(req, name) {
     for (const part of (req.headers.get('cookie') || '').split(';')) {
         const [k, ...v] = part.trim().split('=');
@@ -43,6 +49,9 @@ export function cookie(req, name) {
     }
     return undefined;
 }
+
+// Where the eBay grant cookie lives (app/lib/grant-cookie.js).
+export const EBAY_GRANT = { name: 'ebay_grant', path: '/api/sync/ebay' };
 
 export const OAUTH_ENV = [
     'EBAY_CLIENT_ID',

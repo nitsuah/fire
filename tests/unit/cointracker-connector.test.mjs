@@ -3,6 +3,23 @@ import crypto from 'crypto';
 import ct from '../../app/lib/cointracker-connector.js';
 import handlers from '../../app/lib/cointracker-handlers.js';
 import fn from '../../netlify/functions/cointracker.mjs';
+import grant from '../../app/lib/grant-cookie.js';
+
+// The Cookie header a browser would send after a handler result's cookies.
+const jarOf = (r) =>
+    (r.cookies || [])
+        .filter((c) => !/Max-Age=0/.test(c))
+        .map((c) => c.split(';')[0])
+        .join('; ');
+const grantOf = (r) => grant.readGrant(jarOf(r), handlers.GRANT_COOKIE);
+const cookieFor = (tokens) =>
+    jarOf({
+        cookies: grant.grantCookies(
+            handlers.GRANT_COOKIE,
+            '/api/sync/cointracker',
+            ct.sealTokens(tokens),
+        ),
+    });
 
 // CoinTracker connector (OAuth + read-only MCP client), the shared handlers
 // and the Netlify Function. Every network call goes through a fake fetch.
@@ -663,10 +680,12 @@ describe('handlers', () => {
             },
             impl,
         );
-        const blob = decodeURIComponent(
-            ok.redirect.replace('/#cointracker-connected=', ''),
+        // The grant goes into the HttpOnly cookie; the page only learns a marker.
+        expect(ok.redirect).toBe('/#cointracker-connected=cookie');
+        expect(ok.cookies.join('\n')).toMatch(
+            /cointracker_grant\.0=[^;]+; Path=\/api\/sync\/cointracker; HttpOnly; SameSite=Strict; Max-Age=\d+$/m,
         );
-        expect(ct.unsealTokens(blob).access_token).toBe(
+        expect(ct.unsealTokens(grantOf(ok)).access_token).toBe(
             'at-authorization_code',
         );
         const form = new URLSearchParams(calls.at(-1).body);
@@ -674,16 +693,63 @@ describe('handlers', () => {
         expect(form.get('client_id')).toBe('dcr-client');
     });
 
-    it('sync returns wallets, and a fresh blob only when tokens were refreshed', async () => {
+    it('sync returns wallets, and writes the cookie only when tokens were refreshed', async () => {
         const { impl } = fakeCoinTracker();
         const r = await handlers.sync(
-            { body: { token: ct.sealTokens(TOKENS) } },
+            { body: { token: 'cookie' }, cookieHeader: cookieFor(TOKENS) },
             impl,
         );
         expect(r.status).toBe(200);
         expect(r.body.wallets).toHaveLength(2);
         expect(r.body.warnings).toHaveLength(1);
         expect(r.body.token).toBeUndefined();
+        expect(r.cookies).toEqual([]);
+    });
+
+    it('sync moves a legacy blob into the cookie and answers with the marker', async () => {
+        const { impl } = fakeCoinTracker();
+        const r = await handlers.sync(
+            { body: { token: ct.sealTokens(TOKENS) } },
+            impl,
+        );
+        expect(r.status).toBe(200);
+        expect(r.body.token).toBe('cookie');
+        expect(ct.unsealTokens(grantOf(r)).access_token).toBe(
+            TOKENS.access_token,
+        );
+    });
+
+    it('never overwrites a cookie with an older blob the client still sends', async () => {
+        const { impl } = fakeCoinTracker();
+        const r = await handlers.sync(
+            {
+                body: {
+                    token: ct.sealTokens({ ...TOKENS, access_token: 'older' }),
+                },
+                cookieHeader: cookieFor(TOKENS),
+            },
+            impl,
+        );
+        expect(r.status).toBe(200);
+        // The client is told to drop its blob, but the cookie is left alone.
+        expect(r.body.token).toBe('cookie');
+        expect(r.cookies).toEqual([]);
+    });
+
+    it('disconnect clears the cookie even when the server is not configured', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        delete process.env.SYNC_MASTER_KEY;
+        const r = await handlers.disconnect({ body: {}, cookieHeader: '' });
+        expect(r.status).toBe(503);
+        expect(r.cookies).toHaveLength(grant.MAX_CHUNKS);
+        expect(r.cookies.every((c) => /Max-Age=0/.test(c))).toBe(true);
+    });
+
+    it('a dead grant clears the cookie', async () => {
+        const r = await handlers.sync({ body: { token: 'cookie' } });
+        expect(r.status).toBe(401);
+        expect(r.cookies).toHaveLength(grant.MAX_CHUNKS);
+        expect(r.cookies.every((c) => /Max-Age=0/.test(c))).toBe(true);
     });
 
     it('sync answers 401 with a drop-the-token code for unreadable or revoked grants', async () => {
@@ -794,16 +860,18 @@ describe('review hardening', () => {
             impl,
         );
         expect(r.status).toBe(403);
-        expect(ct.unsealTokens(r.body.token)).toMatchObject({
+        expect(r.body.token).toBe('cookie');
+        expect(ct.unsealTokens(grantOf(r))).toMatchObject({
             access_token: 'at-refresh_token',
             refresh_token: 'rt-new',
         });
-        // No refresh happened: nothing rotated, nothing to hand back.
+        // No refresh happened: nothing rotated, no cookie to write.
         const r2 = await handlers.sync(
-            { body: { token: ct.sealTokens(TOKENS) } },
+            { body: { token: 'cookie' }, cookieHeader: cookieFor(TOKENS) },
             impl,
         );
         expect(r2.body.token).toBeUndefined();
+        expect(r2.cookies).toEqual([]);
     });
 
     it('inspect selects from raw tools, so required-argument tools are never "in use"', async () => {

@@ -1,11 +1,17 @@
 // CoinTracker routes for the browser-only deploy (/api/sync/cointracker/*,
 // rewritten here by netlify.toml). Wraps the same handlers as the Express
 // routes (app/lib/cointracker-handlers.js). Stateless: the PKCE verifier
-// rides in an encrypted HttpOnly cookie and the tokens live in the
-// browser, sealed with SYNC_MASTER_KEY.
+// rides in an encrypted HttpOnly cookie, and the grant, sealed with
+// SYNC_MASTER_KEY, lives in HttpOnly cookies the page cannot read.
 
 import handlers from '../../app/lib/cointracker-handlers.js';
-import { json, redirect, methodNotAllowed, cookie } from '../lib/http.mjs';
+import {
+    json,
+    redirect,
+    methodNotAllowed,
+    cookie,
+    withCookies,
+} from '../lib/http.mjs';
 
 function action(pathname) {
     // Either /api/sync/cointracker/<action> or /.netlify/functions/cointracker/<action>.
@@ -14,9 +20,10 @@ function action(pathname) {
 }
 
 function toResponse(result) {
-    const headers = result.cookie ? { 'Set-Cookie': result.cookie } : {};
-    if (result.redirect) return redirect(result.redirect, headers);
-    return json(result.status, result.body, headers);
+    const res = result.redirect
+        ? redirect(result.redirect)
+        : json(result.status, result.body);
+    return withCookies(res, [result.cookie, ...(result.cookies || [])]);
 }
 
 async function readBody(req) {
@@ -55,14 +62,18 @@ export default async function handler(req) {
             }),
         );
     }
+    const cookieHeader = req.headers.get('cookie') || '';
+    const secure = url.protocol === 'https:';
     if (name === 'status') {
         const header = req.headers.get('authorization') || '';
         return toResponse(
             handlers.status({
                 token: header.startsWith('Bearer ') ? header.slice(7) : '',
+                cookieHeader,
+                secure,
             }),
         );
     }
     const body = await readBody(req);
-    return toResponse(await handlers[name]({ body }));
+    return toResponse(await handlers[name]({ body, cookieHeader, secure }));
 }

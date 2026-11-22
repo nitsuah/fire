@@ -5,9 +5,10 @@
 
    Self-hosted: /api/sync/etsy/* keeps the tokens in the server's encrypted
    token store and merges receipts into the server ledger. Browser-only
-   (Netlify): the browser holds a sealed token blob under its own
-   localStorage key (never in fire_tracker_state or its backups), and
-   status, the sync toggle and disconnect are handled here.
+   (Netlify): the sealed grant lives in an HttpOnly cookie the page cannot
+   read, and this file keeps only a `cookie` marker under its own
+   localStorage key (never in fire_tracker_state or its backups); status
+   and the sync toggle are handled here.
    ========================================================================== */
 
 const ETSY_TOKEN_KEY = 'fire_tracker_etsy_token';
@@ -374,19 +375,16 @@ async function disconnectEtsy() {
         )
     )
         return;
-    if (!(await isBrowserOnlyModeAsync())) {
-        try {
-            const res = await fetch('/api/sync/etsy/disconnect', {
-                method: 'POST',
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        } catch (err) {
-            showSideGigToast(
-                `Could not disconnect Etsy: ${err.message}`,
-                'error',
-            );
-            return;
-        }
+    // Both deploys: the server drops its stored grant (Express) or clears
+    // the HttpOnly grant cookie the page cannot touch (browser-only).
+    try {
+        const res = await fetch('/api/sync/etsy/disconnect', {
+            method: 'POST',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+        showSideGigToast(`Could not disconnect Etsy: ${err.message}`, 'error');
+        return;
     }
     etsyWrite(ETSY_TOKEN_KEY, null);
     etsyWrite(ETSY_LAST_SYNC_KEY, null);

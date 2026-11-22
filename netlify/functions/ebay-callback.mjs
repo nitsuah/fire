@@ -1,20 +1,23 @@
 // eBay OAuth callback for the browser-only deploy
 // (GET /api/sync/ebay/callback, the "auth accepted" URL on the RuName).
-// Exchanges the code, encrypts the tokens with SYNC_MASTER_KEY and hands
-// the ciphertext back to the SPA in the URL fragment (never sent to any
-// server or in Referer). The browser stores that blob but cannot read it;
-// only ebay-sync can decrypt it. Nothing is stored server-side.
+// Exchanges the code, encrypts the tokens with SYNC_MASTER_KEY and stores
+// the ciphertext in HttpOnly cookies scoped to /api/sync/ebay (see
+// app/lib/grant-cookie.js), so page scripts never hold it. The SPA only
+// learns `ebay-connected=cookie`. Nothing is stored server-side.
 
 import crypto from '../../app/lib/node-crypto.js';
 import ebayConnector from '../../app/lib/ebay-connector.js';
 import cryptoUtils from '../../app/lib/crypto-utils.js';
 import oauthNonce from '../../app/lib/oauth-nonce.js';
+import grant from '../../app/lib/grant-cookie.js';
 import {
     redirect,
     methodNotAllowed,
     missingEnv,
     cookie,
+    withCookies,
     OAUTH_ENV,
+    EBAY_GRANT,
 } from '../lib/http.mjs';
 
 const CLEAR_STATE_COOKIE =
@@ -28,10 +31,11 @@ function splitStateCookie(value) {
 }
 
 function backWith(nonce) {
-    return (fragment) =>
-        redirect(`/#${fragment}${oauthNonce.nonceSuffix(nonce)}`, {
-            'Set-Cookie': CLEAR_STATE_COOKIE,
-        });
+    return (fragment, cookies = []) =>
+        withCookies(redirect(`/#${fragment}${oauthNonce.nonceSuffix(nonce)}`), [
+            CLEAR_STATE_COOKIE,
+            ...cookies,
+        ]);
 }
 
 function statesMatch(a, b) {
@@ -62,7 +66,10 @@ export default async function handler(req) {
             process.env.EBAY_REDIRECT_URI,
         );
         const blob = cryptoUtils.encrypt(JSON.stringify(tokens));
-        return back(`ebay-connected=${encodeURIComponent(blob)}`);
+        return back(
+            `ebay-connected=${grant.GRANT_MARKER}`,
+            grant.grantCookies(EBAY_GRANT.name, EBAY_GRANT.path, blob),
+        );
     } catch (err) {
         console.error('[eBay] Token exchange failed:', err.message);
         return back('ebay-error=exchange_failed');

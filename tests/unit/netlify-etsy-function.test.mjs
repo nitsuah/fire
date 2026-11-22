@@ -1,6 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import handler from '../../netlify/functions/etsy.mjs';
 import etsy from '../../app/lib/etsy-connector.js';
+import grant from '../../app/lib/grant-cookie.js';
+
+// The Cookie header a browser sends back after a response's Set-Cookies.
+const jarOf = (res) =>
+    res.headers
+        .getSetCookie()
+        .filter((c) => !/Max-Age=0/.test(c))
+        .map((c) => c.split(';')[0])
+        .join('; ');
+const grantOf = (res) => grant.readGrant(jarOf(res), 'etsy_grant');
 
 // netlify/functions/etsy.mjs on the browser-only deploy. Etsy is a stubbed
 // global fetch; the function never stores anything.
@@ -74,11 +84,14 @@ describe('netlify etsy function', () => {
                 headers: { cookie },
             }),
         );
-        const location = res.headers.get('location');
-        const match = location.match(/^\/#etsy-connected=(.+)$/);
-        expect(match).not.toBeNull();
-        expect(location).not.toContain('7.plain');
-        expect(etsy.unsealTokens(decodeURIComponent(match[1]))).toMatchObject({
+        // The grant goes into HttpOnly cookies; the page only learns a marker.
+        expect(res.headers.get('location')).toBe('/#etsy-connected=cookie');
+        expect(
+            res.headers
+                .getSetCookie()
+                .find((c) => c.startsWith('etsy_grant.0=')),
+        ).toMatch(/; Path=\/api\/sync\/etsy; HttpOnly; SameSite=Strict; /);
+        expect(etsy.unsealTokens(grantOf(res))).toMatchObject({
             access_token: '7.plain',
         });
     });
@@ -113,15 +126,32 @@ describe('netlify etsy function', () => {
         expect(res.status).toBe(200);
         const body = await res.json();
         expect(body.entries.map((e) => e.id)).toEqual(['etsy-31']);
-        expect(etsy.unsealTokens(body.tokens).shop_id).toBe('99');
+        // The resealed grant goes into the cookie; the body only says so.
+        expect(body.tokens).toBe('cookie');
+        expect(etsy.unsealTokens(grantOf(res)).shop_id).toBe('99');
         // An unparseable `since` is ignored rather than sent to Etsy.
         expect(String(fetch.mock.calls[1][0])).not.toContain('min_created');
     });
 
-    it('sync rejects an unreadable blob with a drop-it code', async () => {
+    it('sync rejects an unreadable blob with a drop-it code and clears the cookie', async () => {
         const res = await post('sync', { tokens: 'not-a-blob' });
         expect(res.status).toBe(401);
         expect((await res.json()).code).toBe('etsy_token_invalid');
+        expect(
+            res.headers.getSetCookie().every((c) => /Max-Age=0/.test(c)),
+        ).toBe(true);
+    });
+
+    it('disconnect clears the grant cookie', async () => {
+        const res = await post('disconnect', {});
+        expect(res.status).toBe(200);
+        const set = res.headers.getSetCookie();
+        expect(set).toHaveLength(grant.MAX_CHUNKS);
+        expect(
+            set.every(
+                (c) => c.startsWith('etsy_grant.') && /Max-Age=0/.test(c),
+            ),
+        ).toBe(true);
     });
 
     it('sync reports a revoked grant', async () => {
@@ -140,6 +170,37 @@ describe('netlify etsy function', () => {
         const body = await res.json();
         expect(body.code).toBe('etsy_revoked');
         expect(body.tokens).toBeUndefined();
+    });
+
+    it('keeps the grant cookie when Etsy rejects a call but the grant is alive', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const blob = etsy.sealTokens({
+            access_token: '7.a',
+            refresh_token: 'rt',
+            expires_at: Date.now() + 3600_000,
+            shop_id: '99',
+        });
+        // The token refresh succeeds; Etsy still rejects the API call.
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url) =>
+                String(url).includes('/oauth/token')
+                    ? jsonRes(200, {
+                          access_token: '7.b',
+                          refresh_token: 'rt2',
+                          expires_in: 3600,
+                      })
+                    : jsonRes(401, { error: 'invalid_token' }),
+            ),
+        );
+        const res = await post('sync', { tokens: blob });
+        expect(res.status).toBe(401);
+        expect((await res.json()).code).toBe('etsy_unauthorized');
+        // Not a dead grant: the cookie is kept (and holds the refreshed grant,
+        // or the adopted one), never cleared.
+        const set = res.headers.getSetCookie();
+        expect(set.some((c) => /^etsy_grant\.0=[^;]/.test(c))).toBe(true);
+        expect(etsy.unsealTokens(grantOf(res)).refresh_token).toMatch(/^rt/);
     });
 
     it('fails closed when unconfigured and 404s browser-side actions', async () => {

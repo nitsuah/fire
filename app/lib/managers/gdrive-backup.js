@@ -11,8 +11,9 @@
 
    Self-hosted: the server keeps the Drive tokens and backs up db.json.
    Browser-only (Netlify, netlify/functions/gdrive-backup.mjs): the browser
-   holds a SYNC_MASTER_KEY-sealed token blob under its own localStorage key
-   (never in fire_tracker_state or its backups) and sends it with each call,
+   keeps only a `cookie` marker under its own localStorage key (the
+   SYNC_MASTER_KEY-sealed grant lives in an HttpOnly cookie the page cannot
+   read; never in fire_tracker_state or its backups),
    backs up its own `state`, and applies the decrypted state on restore.
    ========================================================================== */
 
