@@ -36,7 +36,9 @@ function notConfigured() {
 async function authorize({ origin, nonce }, fetchImpl = fetch) {
     if (!ct.isConfigured()) {
         notConfigured();
-        return { redirect: '/#cointracker-error=not_configured' };
+        return {
+            redirect: `/#cointracker-error=not_configured${nonceSuffix(nonce)}`,
+        };
     }
     const redirectUri = ct.redirectUriFor(origin);
     let clientId;
@@ -44,7 +46,9 @@ async function authorize({ origin, nonce }, fetchImpl = fetch) {
         clientId = await ct.registerClient(redirectUri, fetchImpl);
     } catch (err) {
         console.error('[CoinTracker] Client registration failed:', err.message);
-        return { redirect: '/#cointracker-error=registration_failed' };
+        return {
+            redirect: `/#cointracker-error=registration_failed${nonceSuffix(nonce)}`,
+        };
     }
     const state = crypto.randomBytes(16).toString('hex');
     const { verifier, challenge } = ct.createPkce();

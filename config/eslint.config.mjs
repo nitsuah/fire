@@ -29,6 +29,7 @@ export default [
             'app/lib/cointracker-handlers.js',
             'app/lib/etsy-connector.js',
             'app/lib/etsy-handlers.js',
+            'app/lib/oauth-nonce.js',
             'netlify/**/*.mjs',
             'cloudflare/**/*.mjs',
             'functions/**/*.js',

@@ -32,10 +32,13 @@ function send(res, result) {
 }
 
 router.get('/cointracker/authorize', async (req, res) => {
-    send(res, await handlers.authorize({
+    send(
+        res,
+        await handlers.authorize({
             origin: origin(req),
             nonce: req.query.n,
-        }));
+        }),
+    );
 });
 
 router.get('/cointracker/callback', async (req, res) => {

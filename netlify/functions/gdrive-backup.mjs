@@ -92,7 +92,9 @@ function authorize(url) {
     const nonce = oauthNonce.cleanNonce(url.searchParams.get('n'));
     if (!clientConfigured() || !masterKeySet()) {
         notConfigured();
-        return redirect('/#gdrive-error=not_configured');
+        return redirect(
+            `/#gdrive-error=not_configured${oauthNonce.nonceSuffix(nonce)}`,
+        );
     }
     const redirectUri = redirectUriFor(url.origin);
     const state = crypto.randomBytes(16).toString('hex');

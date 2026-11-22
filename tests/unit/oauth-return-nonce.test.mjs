@@ -101,9 +101,12 @@ describe('server echoes the per-attempt nonce in the result fragment', () => {
         expect(cookie).toBe(`ebay_oauth_state=${state}.${NONCE}`);
         tokenFetch();
         const ok = await ebayCallback(
-            new Request(`${HOST}/api/sync/ebay/callback?code=c&state=${state}`, {
-                headers: { cookie },
-            }),
+            new Request(
+                `${HOST}/api/sync/ebay/callback?code=c&state=${state}`,
+                {
+                    headers: { cookie },
+                },
+            ),
         );
         expect(ok.headers.get('Location')).toMatch(
             new RegExp(`^/#ebay-connected=[^&]+&n=${NONCE}$`),
@@ -136,6 +139,43 @@ describe('server echoes the per-attempt nonce in the result fragment', () => {
             `/#gdrive-error=access_denied&n=${NONCE}`,
         );
     });
+});
+
+describe('authorize-stage errors carry the nonce so the SPA shows them', () => {
+    const unset = (keys, fn) => async () => {
+        const prev = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+        for (const k of keys) delete process.env[k];
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            await fn();
+        } finally {
+            Object.assign(process.env, prev);
+        }
+    };
+
+    it(
+        'etsy not configured',
+        unset(['ETSY_CLIENT_ID'], async () => {
+            const res = await etsyHandler(
+                new Request(`${HOST}/api/sync/etsy/authorize?n=${NONCE}`),
+            );
+            expect(res.headers.get('location')).toBe(
+                `/#etsy-error=not_configured&n=${NONCE}`,
+            );
+        }),
+    );
+
+    it(
+        'google drive not configured',
+        unset(['GDRIVE_CLIENT_ID'], async () => {
+            const res = await gdriveHandler(
+                new Request(`${HOST}/api/backup/drive/authorize?n=${NONCE}`),
+            );
+            expect(res.headers.get('location')).toBe(
+                `/#gdrive-error=not_configured&n=${NONCE}`,
+            );
+        }),
+    );
 });
 
 describe('browser helpers bind a result to the attempt that started it', () => {
@@ -179,7 +219,10 @@ describe('browser helpers bind a result to the attempt that started it', () => {
     });
 
     it('accepts a matching nonce and consumes it', () => {
-        const { context, store } = ctx(`#etsy-connected=blob%3D&n=${NONCE}`, NONCE);
+        const { context, store } = ctx(
+            `#etsy-connected=blob%3D&n=${NONCE}`,
+            NONCE,
+        );
         expect(context.oauthTakeResult('etsy', 'k')).toEqual({
             ok: true,
             kind: 'connected',

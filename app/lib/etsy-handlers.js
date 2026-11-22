@@ -34,7 +34,9 @@ function notConfigured() {
 function authorize({ origin, nonce }) {
     if (!etsy.isConfigured()) {
         notConfigured();
-        return { redirect: '/#etsy-error=not_configured' };
+        return {
+            redirect: `/#etsy-error=not_configured${nonceSuffix(nonce)}`,
+        };
     }
     const redirectUri = etsy.redirectUriFor(origin);
     const state = crypto.randomBytes(16).toString('hex');

@@ -56,7 +56,7 @@ function oauthTakeResult(prefix, pendingKey) {
         '',
         window.location.pathname + window.location.search,
     );
-    let expected = null;
+    let expected;
     try {
         expected = sessionStorage.getItem(pendingKey);
         sessionStorage.removeItem(pendingKey);
