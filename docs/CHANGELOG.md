@@ -9,10 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- CI runs browser tests in the Playwright image that matches the installed test runner.
-
 ### Added
 - The hosted Plaid token is kept in an HttpOnly, `SameSite=Strict` cookie scoped to `/api/sync/plaid` instead of `localStorage`; the page keeps only a connected marker, and an existing connection moves over on its next request.
 - Connector grants for eBay, Etsy, Google Drive and CoinTracker are kept in HttpOnly, `SameSite=Strict` cookies scoped to each connector's API path (`app/lib/grant-cookie.js`), instead of `localStorage`; the page keeps only a connected marker. Existing connections move over on their next request. Etsy disconnect clears the cookie on the hosted deploy too.
@@ -34,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead CSS for legacy banner: `.fire-prog-*`, `.banner-target`, `.banner-fire-eta`, `.banner-networth`, `.banner-alloc-bars`, `.alloc-mini-bars`, `.alloc-bar-track`, `.alloc-bar-seg` (superseded by `#compact-fire-bar` in #351). Updated FEATURES.md and app-guide.md accordingly (#352).
 
 ### Fixed
+- CI runs browser tests in the Playwright image that matches the installed test runner.
 - Google Drive, Etsy, eBay and CoinTracker connect results are accepted only when they carry the per-attempt random nonce this tab generated, sealed into the pending cookie and echoed back in the return fragment.
 - Stripe: a rejected or revoked restricted key (`unauthorized`) now shows the reconnect hint instead of generic retry text, and `storage_error` gets its own hint (#483).
 - Webhook mapping templates are evaluated in a worker thread with memory, time and result-size limits, and template expressions are capped at 8192 characters.
