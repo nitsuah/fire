@@ -173,9 +173,10 @@ These items came from the current browser/production pass. **P0** items are corr
   - Priority: P1. A common failure mode is a provider returning HTML/plain text while the browser assumes JSON.
   - Acceptance Criteria: shared fetch helper tests assert content-type/body diagnostics; route tests assert JSON error envelopes; provider adapters never leak raw HTML into user-facing errors.
 
-- [ ] **Add sync-health state to the Side Hustle Hub**
+- [x] **Add sync-health state to the Side Hustle Hub**
   - Priority: P1. Pair the eBay move with the roadmap's broader connector-health direction: connected/disconnected, last attempt, last success, and actionable failure.
   - Acceptance Criteria: eBay exposes last sync state in the hub; architecture can later extend the same component to Plaid, wallets, and Drive.
+  - Done: `syncHealthText` in `app/lib/ebay-status.js` shows last success and last attempt on the eBay hub card; reusable for Plaid, wallets and Drive.
 
 ---
 

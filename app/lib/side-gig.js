@@ -276,12 +276,8 @@ async function checkEbayConnection() {
         const data = await fetchEbayStatus();
         const badge = ebayStatusBadge(data);
         const connectBtn = document.getElementById('btn-ebay-oauth');
-        const lastSync = data.lastSync
-            ? new Date(data.lastSync).toLocaleDateString()
-            : null;
-        const label = lastSync
-            ? `${badge.label} (Last sync: ${lastSync})`
-            : badge.label;
+        const health = syncHealthText(data);
+        const label = health ? `${badge.label} · ${health}` : badge.label;
         statusEl.textContent = `Status: ${label}`;
         statusEl.style.color = badge.color;
         if (connectBtn) connectBtn.hidden = !badge.connectable;
