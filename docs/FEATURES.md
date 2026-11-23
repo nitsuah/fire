@@ -160,7 +160,7 @@
 
 ## Planned
 
-- **Netlify Plaid backend** — Plaid Link, account/position sync, and transaction sync are served on the hosted deploy by `netlify/functions/plaid.mjs` via the `/api/sync/plaid/*` rewrites (PR #146), with unit coverage and a `netlify.toml` routing test. Express behavior is unchanged. Still outstanding on the `Serve Plaid on the Netlify deploy` task: a live Link → sync run against fire.nitsuah.io and browser smoke coverage.
+- **Netlify Plaid backend** — Plaid Link, account/position sync, and transaction sync are served on the hosted deploy by `netlify/functions/plaid.mjs` via the `/api/sync/plaid/*` rewrites (PR #146), with unit coverage and a `netlify.toml` routing test. Express and the function share one Plaid service (`app/lib/plaid-service.js`), covered by provider-contract tests on both adapters and a browser smoke test of the Plaid card. A live run on the hosted deploy needs the Plaid env vars set in Netlify.
 
 - **Tax Drag Estimation Engine** — Custom federal/state bracket support with capital gains configuration.
 - **PWA Packaging** — Offline access and lightweight installable app.

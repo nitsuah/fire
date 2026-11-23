@@ -584,10 +584,22 @@ Fidelity's support via Plaid depends on Plaid's institution coverage and Fidelit
 - ✅ Exchange Public Token endpoint: `POST /api/sync/plaid/exchange`
 - ✅ Sync Positions endpoint: `POST /api/sync/plaid/positions`
 - ✅ Sync Accounts endpoint: `POST /api/sync/plaid/accounts`
+- ✅ Transactions endpoint: `POST /api/sync/plaid/transactions` (cursor-based `/transactions/sync`)
 - ✅ Status check endpoint: `GET /api/sync/plaid/status` (returns connected state, item count)
 - ✅ Plaid Link SDK embedded in Settings page (`initPlaidLink()`)
 - ✅ Connection status check (`checkPlaidConnection()`)
 - ⏳ Requires `PLAID_CLIENT_ID`, `PLAID_SECRET`, `SYNC_MASTER_KEY` environment variables to function
+
+### One service, two adapters
+
+Every Plaid call lives in `app/lib/plaid-service.js`: Link token, public-token exchange, accounts, positions and cursor-based transaction sync, plus the merge helpers. It has no Express or Netlify import. `app/routes/plaid.js` (self-hosted) and `netlify/functions/plaid.mjs` (hosted) only decide where tokens and rows are kept, so both deploys run the same flow with the same responses:
+
+- Access tokens never reach the browser. Self-hosted keeps them in the encrypted token store (`app/lib/token-store.js`); hosted seals them into the grant cookie described below.
+- `public_token` must look like `public-<env>-<id>`; anything else gets a 400 before Plaid is called. `toggle` needs a boolean `enabled`.
+- Error bodies are generic. Only Plaid's `error_code` is kept, never its message or payload, and logs carry codes only.
+- Without `PLAID_CLIENT_ID`/`PLAID_SECRET`, status answers `configured: false` and every Plaid call answers 503, so the card shows "not configured" and hides the Link button. The button reads "Re-link" when a grant is dead and "Link another account" once one is linked.
+- Plaid webhooks are not used; sync is pull-based (Sync Now and the Link flow).
+- `tests/unit/plaid-contract.test.mjs` runs the same contract against both adapters with Plaid mocked.
 
 ### Browser-only deploy (Netlify Function)
 

@@ -43,21 +43,23 @@ These items came from the current browser/production pass. **P0** items are corr
 
 ### P1 — Integration & workflow improvements
 
-- [ ] **Serve Plaid on the Netlify deploy (lifefire.netlify.app)**
+- [x] **Serve Plaid on the Netlify deploy (lifefire.netlify.app)**
   - Priority: P1. Hosted browser deployment must support the same Plaid Link → exchange → accounts → positions → transactions workflow as Express; a JSON-safe 404/status stub is not sufficient.
   - Scope: split Plaid from app/routes/sync.js, extract transport-agnostic Plaid operations, expose the required Netlify Functions/rewrites, preserve encrypted browser/local-first token handling, and keep Express behavior unchanged.
   - Acceptance Criteria: Link, public-token exchange, account/position refresh, and transaction sync all work on lifefire.netlify.app; each hosted function has unit coverage; browser smoke coverage exercises the hosted routes; no /api/sync/plaid/* request can fall through to an HTML Netlify 404.
   - Progress 2026-09-30 (PR #146): `netlify/functions/plaid.mjs` serves all `/api/sync/plaid/*` routes, with unit coverage and the toml routing test; status is verified on the deploy preview. Remaining: a live Link → sync run on lifefire.netlify.app (set `PLAID_HOSTED_ACCESS_KEY` if `PLAID_ENV` isn't sandbox) and browser smoke coverage.
   - Rule going forward (from the PR #111 follow-up, merged here on 2026-10-01): any new `/api/*` route the SPA calls needs a Netlify Function, or a documented browser-only fallback, in the same PR.
   - `docs/integrations.md` already documents the hosted function (`netlify.toml` rewrite, browser-held AES-256-GCM token, `PLAID_HOSTED_ACCESS_KEY`). The privacy policy now covers Plaid and Etsy (#314).
+  - Done 2026-11-23: the function now runs the shared `app/lib/plaid-service.js` (see the item below), so hosted and self-hosted share one Link → exchange → accounts → positions → transactions flow. `tests/unit/plaid-contract.test.mjs` runs it against both adapters, and `tests/e2e-ui/plaid-card.spec.js` covers the card's connect/re-link/empty/not-configured states on both. Not verifiable from CI: a live sandbox run on lifefire.netlify.app needs `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV` and `SYNC_MASTER_KEY` set in Netlify (plus `PLAID_HOSTED_ACCESS_KEY` outside sandbox).
 
 - [x] **Split app/routes/sync.js (942 LOC): separate eBay and Plaid routes, extract the transactions handler (F-20260916-05)**
   - Done 2026-09-30 in fire#146: split into `app/routes/ebay.js` and `app/routes/plaid.js`, with token helpers in `app/lib/token-store.js`; `app/routes/sync.js` is now ~300 LOC. Paths and cursor semantics are unchanged and the tests pass. Accounts/positions responses gained `syncedItemIds`/`warning`.
   - Findings ledger: F-20260916-05 · BV 5 · TC 3 · RR 5 · size 3.
 
-- [ ] **Share Plaid operations between Express and the hosted Netlify function**
+- [x] **Share Plaid operations between Express and the hosted Netlify function**
   - Priority: P2. Left over from the sync.js split (F-20260916-05, fire#146): `netlify/functions/plaid.mjs` still duplicates the Plaid operations instead of importing a transport-agnostic module.
   - Acceptance Criteria: Express and Netlify share one Plaid operations module with no Express router import; existing route contracts and unit tests stay unchanged.
+  - Done 2026-11-23: `app/lib/plaid-service.js` holds every Plaid operation (no Express or Netlify import); `app/routes/plaid.js` and `netlify/functions/plaid.mjs` are thin adapters. The existing route and function tests pass unchanged.
 
 - [ ] **CoinTracker MCP integration for wallet discovery/investigation** _(blocked on CoinTracker: the test account isn't enrolled in MCP early access)_
   - Priority: P1.
@@ -227,9 +229,10 @@ for shipped capabilities. Its follow-up items are below._
 ### PROD Phase 2 — Financial Institution Integration ✅ (see ROADMAP.md 2027 Q2)
 
 Plaid transaction sync implementation detail (cursor handling, category
-resolution, partial-failure edge cases) moved to `CHANGELOG.md`. Known gaps:
-`/plaid/create-link-token`, `/plaid/exchange`, `/plaid/positions`, and
-`/plaid/accounts` remain without route-level (HTTP) tests; no automated e2e
+resolution, partial-failure edge cases) moved to `CHANGELOG.md`. Route-level
+coverage for `/plaid/create-link-token`, `/plaid/exchange`, `/plaid/positions`
+and `/plaid/accounts` landed in `tests/unit/plaid-contract.test.mjs`
+(2026-11-23). Known gap: no automated e2e
 test confirms the disabled Fidelity CSV drop-zone is actually inert while
 Plaid sync is active (only the underlying status the gate reads is covered).
 

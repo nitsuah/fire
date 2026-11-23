@@ -512,7 +512,12 @@ const PLAID_HOSTED_TOKEN_KEY = 'fire_plaid_hosted_token';
 const PLAID_HOSTED_SYNC_KEY = 'fire_plaid_hosted_sync_enabled';
 const PLAID_HOSTED_ACCESS_KEY = 'fire_plaid_hosted_access_key';
 
+// Hosted means "no server behind this deploy", the same answer every other
+// provider card uses (deploy-mode.js, from the /api/state probe). The
+// hostname list only covers the moment before that probe has answered.
 function isHostedPlaid() {
+    if (typeof FireDeployMode !== 'undefined' && !FireDeployMode.isUnknown())
+        return FireDeployMode.isHosted();
     return (
         window.location.hostname === 'fire.nitsuah.io' ||
         window.location.hostname === 'lifefire.netlify.app' ||
@@ -682,9 +687,19 @@ function plaidStatusBadge(data) {
     };
 }
 
+// The Link button names the step the user is on: first link, re-link a
+// dead grant, or add another institution.
+function plaidLinkLabel(data) {
+    if (data.reauthRequired) return 'Re-link Investment Account via Plaid';
+    if (data.connected) return 'Link Another Account via Plaid';
+    return 'Link Investment Account via Plaid';
+}
+
 async function checkPlaidConnection() {
     const statusEl = document.getElementById('plaid-sync-status');
     if (!statusEl) return;
+    // Paint from the right backend: wait (bounded) for the deploy mode.
+    if (typeof FireDeployMode !== 'undefined') await FireDeployMode.whenKnown();
     try {
         const { res, data } = await plaidRequest('/api/sync/plaid/status');
         if (!res.ok)
@@ -694,7 +709,11 @@ async function checkPlaidConnection() {
         statusEl.style.color = badge.color;
         // No credentials means Link can only fail — don't offer it (#275).
         const linkBtn = document.getElementById('btn-plaid-link');
-        if (linkBtn) linkBtn.hidden = !badge.linkable;
+        if (linkBtn) {
+            linkBtn.hidden = !badge.linkable;
+            const label = linkBtn.querySelector('span');
+            if (label) label.textContent = plaidLinkLabel(data);
+        }
         if (typeof setFidelityImportDisabled === 'function') {
             const syncEnabled = isHostedPlaid()
                 ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
