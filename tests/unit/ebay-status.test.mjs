@@ -450,27 +450,48 @@ describe('syncHealthText', () => {
 
     it('same-day successful attempt shows only last success', () => {
         expect(
-            syncHealthText({
-                lastSync: '2026-11-20T10:00:00.000Z',
-                lastSyncOutcome: { at: '2026-11-20T10:00:00.000Z', ok: true, errorCode: null },
-            }, fmt),
+            syncHealthText(
+                {
+                    lastSync: '2026-11-20T10:00:00.000Z',
+                    lastSyncOutcome: {
+                        at: '2026-11-20T10:00:00.000Z',
+                        ok: true,
+                        errorCode: null,
+                    },
+                },
+                fmt,
+            ),
         ).toBe('Last success: 2026-11-20');
     });
 
     it('failed attempt on a later day shows both', () => {
         expect(
-            syncHealthText({
-                lastSync: '2026-11-20T10:00:00.000Z',
-                lastSyncOutcome: { at: '2026-11-22T15:30:00.000Z', ok: false, errorCode: 'TIMEOUT' },
-            }, fmt),
+            syncHealthText(
+                {
+                    lastSync: '2026-11-20T10:00:00.000Z',
+                    lastSyncOutcome: {
+                        at: '2026-11-22T15:30:00.000Z',
+                        ok: false,
+                        errorCode: 'TIMEOUT',
+                    },
+                },
+                fmt,
+            ),
         ).toBe('Last success: 2026-11-20 · Last attempt: 2026-11-22');
     });
 
     it('failed attempt with no lastSync shows only last attempt', () => {
         expect(
-            syncHealthText({
-                lastSyncOutcome: { at: '2026-11-22T15:30:00.000Z', ok: false, errorCode: 'TIMEOUT' },
-            }, fmt),
+            syncHealthText(
+                {
+                    lastSyncOutcome: {
+                        at: '2026-11-22T15:30:00.000Z',
+                        ok: false,
+                        errorCode: 'TIMEOUT',
+                    },
+                },
+                fmt,
+            ),
         ).toBe('Last attempt: 2026-11-22');
     });
 
