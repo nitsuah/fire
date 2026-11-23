@@ -4,6 +4,7 @@ import {
     ebayReadOutcome,
     ebayWriteOutcome,
     ebayStatusBadge,
+    syncHealthText,
     fetchEbayConfigured,
 } from '../../app/lib/ebay-status.js';
 import fs from 'node:fs';
@@ -441,5 +442,41 @@ describe('hosted eBay call-site transitions', () => {
         );
         expect(values.get(SYNC_KEY)).toBe('previous-sync');
         expect(outcome()).toEqual(previous);
+    });
+});
+
+describe('syncHealthText', () => {
+    const fmt = (d) => d.toISOString().slice(0, 10);
+
+    it('same-day successful attempt shows only last success', () => {
+        expect(
+            syncHealthText({
+                lastSync: '2026-11-20T10:00:00.000Z',
+                lastSyncOutcome: { at: '2026-11-20T10:00:00.000Z', ok: true, errorCode: null },
+            }, fmt),
+        ).toBe('Last success: 2026-11-20');
+    });
+
+    it('failed attempt on a later day shows both', () => {
+        expect(
+            syncHealthText({
+                lastSync: '2026-11-20T10:00:00.000Z',
+                lastSyncOutcome: { at: '2026-11-22T15:30:00.000Z', ok: false, errorCode: 'TIMEOUT' },
+            }, fmt),
+        ).toBe('Last success: 2026-11-20 · Last attempt: 2026-11-22');
+    });
+
+    it('failed attempt with no lastSync shows only last attempt', () => {
+        expect(
+            syncHealthText({
+                lastSyncOutcome: { at: '2026-11-22T15:30:00.000Z', ok: false, errorCode: 'TIMEOUT' },
+            }, fmt),
+        ).toBe('Last attempt: 2026-11-22');
+    });
+
+    it('empty, null, and invalid date give empty string', () => {
+        expect(syncHealthText({}, fmt)).toBe('');
+        expect(syncHealthText(null, fmt)).toBe('');
+        expect(syncHealthText({ lastSync: 'not a date' }, fmt)).toBe('');
     });
 });

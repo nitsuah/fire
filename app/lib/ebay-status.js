@@ -88,6 +88,28 @@ function ebayWriteOutcome(storage, outcome) {
     }
 }
 
+// Connector-agnostic sync-health line: "Last success: <date> · Last attempt:
+// <date>". `lastSync` is the last successful sync; `lastSyncOutcome.at` is the
+// last attempt. The attempt is shown when it failed or is a different day than
+// the last success. Returns '' when there is nothing to show. `fmt` is
+// injectable so tests do not depend on the locale.
+function syncHealthText(data, fmt = (d) => d.toLocaleDateString()) {
+    const when = (value) => {
+        if (!value) return null;
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? null : fmt(d);
+    };
+    const success = when(data && data.lastSync);
+    const last = data && data.lastSyncOutcome;
+    const attempt = last ? when(last.at) : null;
+    const parts = [];
+    if (success) parts.push(`Last success: ${success}`);
+    if (attempt && (last.ok === false || attempt !== success)) {
+        parts.push(`Last attempt: ${attempt}`);
+    }
+    return parts.join(' · ');
+}
+
 // Browser-only mode cannot see the deploy's eBay credentials (they live on the
 // function), so ask the status endpoint. Unknown (offline, error, no boolean) is null.
 async function fetchEbayConfigured(fetchFn) {
@@ -111,6 +133,7 @@ if (typeof module !== 'undefined' && module.exports) {
         ebayReadOutcome,
         ebayWriteOutcome,
         ebayStatusBadge,
+        syncHealthText,
         fetchEbayConfigured,
     };
 }
