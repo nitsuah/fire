@@ -52,6 +52,10 @@ These items came from the current browser/production pass. **P0** items are corr
   - `docs/integrations.md` already documents the hosted function (`netlify.toml` rewrite, browser-held AES-256-GCM token, `PLAID_HOSTED_ACCESS_KEY`). The privacy policy now covers Plaid and Etsy (#314).
   - Done 2026-11-23: the function now runs the shared `app/lib/plaid-service.js` (see the item below), so hosted and self-hosted share one Link → exchange → accounts → positions → transactions flow. `tests/unit/plaid-contract.test.mjs` runs it against both adapters, and `tests/e2e-ui/plaid-card.spec.js` covers the card's connect/re-link/empty/not-configured states on both. Not verifiable from CI: a live sandbox run on lifefire.netlify.app needs `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV` and `SYNC_MASTER_KEY` set in Netlify (plus `PLAID_HOSTED_ACCESS_KEY` outside sandbox).
 
+- [ ] **Live Plaid sandbox run on the hosted deploy**
+  - Priority: P1. Blocked on the owner setting `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV` and `SYNC_MASTER_KEY` in Netlify (plus `PLAID_HOSTED_ACCESS_KEY` outside sandbox).
+  - Acceptance Criteria: on lifefire.netlify.app, Link → exchange → accounts → positions → transactions succeeds against the Plaid sandbox, and a forced `ITEM_LOGIN_REQUIRED` (sandbox `/sandbox/item/reset_login`) recovers through the Re-link (update mode) button.
+
 - [x] **Split app/routes/sync.js (942 LOC): separate eBay and Plaid routes, extract the transactions handler (F-20260916-05)**
   - Done 2026-09-30 in fire#146: split into `app/routes/ebay.js` and `app/routes/plaid.js`, with token helpers in `app/lib/token-store.js`; `app/routes/sync.js` is now ~300 LOC. Paths and cursor semantics are unchanged and the tests pass. Accounts/positions responses gained `syncedItemIds`/`warning`.
   - Findings ledger: F-20260916-05 · BV 5 · TC 3 · RR 5 · size 3.

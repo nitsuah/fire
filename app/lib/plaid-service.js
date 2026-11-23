@@ -15,7 +15,7 @@
 // and the logs (#262). Only Plaid's error code is kept.
 
 const { parsePlaidTransactions } = require('./finance-parsing');
-const { failureCode } = require('./plaid-status');
+const { failureCode, REAUTH_CODES } = require('./plaid-status');
 
 const REQUEST_TIMEOUT_MS = 15000;
 // Plaid paginates /transactions/sync; bound the loop so a misbehaving
@@ -25,6 +25,8 @@ const TRANSACTION_PAGE_SIZE = 500;
 // Plaid public tokens look like `public-<env>-<uuid>`. Anything else is
 // rejected before it costs a Plaid call.
 const PUBLIC_TOKEN_PATTERN = /^public-[A-Za-z0-9-]{1,200}$/;
+// Plaid Item ids are opaque but plain: letters, digits, `-` and `_`.
+const ITEM_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 const NOT_LINKED_MESSAGE = 'No Plaid connection. Link an account first.';
 
@@ -57,6 +59,31 @@ function plaidError(message, props) {
 
 function isValidPublicToken(value) {
     return typeof value === 'string' && PUBLIC_TOKEN_PATTERN.test(value);
+}
+
+function isValidItemId(value) {
+    return typeof value === 'string' && ITEM_ID_PATTERN.test(value);
+}
+
+// The linked Item a re-link request names, or a status-carrying error. Only
+// an Item this deploy already holds can be repaired.
+function findItem(items, itemId) {
+    if (!isValidItemId(itemId))
+        throw plaidError('A valid itemId is required.', { status: 400 });
+    const item = (items || []).find((i) => i.itemId === itemId);
+    if (!item)
+        throw plaidError('That Plaid connection is not linked here.', {
+            status: 404,
+        });
+    return item;
+}
+
+// Ids of the Items whose grant is dead, so the page can open Link in update
+// mode for the right one. Ids only, never tokens.
+function reauthItemIds(items) {
+    return (items || [])
+        .filter((item) => REAUTH_CODES.has(item.lastErrorCode))
+        .map((item) => item.itemId);
 }
 
 // Reads a Plaid response body as JSON, or undefined when it isn't JSON.
@@ -131,6 +158,25 @@ function allFailed(what, failedItems) {
     );
 }
 
+function malformed(endpoint) {
+    return plaidError(`Plaid ${endpoint} returned a malformed response.`, {
+        status: 502,
+        code: 'MALFORMED_RESPONSE',
+    });
+}
+
+// One /transactions/sync page, checked before anything from it is kept, so a
+// malformed entry fails only its own Item (inside the per-Item boundary).
+function checkSyncPage(data) {
+    const isTxn = (t) =>
+        t && typeof t === 'object' && typeof t.transaction_id === 'string';
+    for (const key of ['added', 'modified', 'removed']) {
+        const list = data[key] === undefined ? [] : data[key];
+        if (!Array.isArray(list) || !list.every(isTxn))
+            throw malformed('transactions/sync');
+    }
+}
+
 function requireItems(items) {
     if (!Array.isArray(items) || items.length === 0)
         throw plaidError(NOT_LINKED_MESSAGE, { status: 401 });
@@ -156,17 +202,47 @@ function syncOutcome(failedItems, items) {
     };
 }
 
-async function createLinkToken() {
-    const data = await plaidPost('/link/token/create', {
+// A Link token for a new connection, or, given an existing Item, one that
+// opens Link in update mode: the user signs in again and the Item keeps its
+// id, access token and cursor, so no public token is exchanged afterwards.
+async function createLinkToken({ item } = {}) {
+    const body = {
         user: { client_user_id: 'fire-tracker-user' },
         client_name: 'fire',
-        products: ['investments'],
         country_codes: ['US'],
         language: 'en',
-    });
+    };
+    if (item) body.access_token = item.accessToken;
+    else body.products = ['investments'];
+    const data = await plaidPost('/link/token/create', body);
     if (typeof data.link_token !== 'string' || !data.link_token)
         throw plaidError('Plaid did not return a Link token.', { status: 502 });
     return data.link_token;
+}
+
+// After update mode: asks Plaid whether the Item's grant works again.
+// Returns the Item with its error cleared, or throws a 409 carrying Plaid's
+// error code when the institution still needs a sign-in.
+async function confirmItemRepaired(item) {
+    const data = await plaidPost('/item/get', {
+        access_token: item.accessToken,
+    });
+    const error = data.item ? data.item.error : undefined;
+    if (!data.item || typeof data.item !== 'object')
+        throw plaidError('Plaid returned no Item.', { status: 502 });
+    if (error) {
+        const code =
+            typeof error.error_code === 'string'
+                ? error.error_code
+                : 'ITEM_ERROR';
+        throw plaidError(
+            'Plaid still needs you to sign in at the institution.',
+            { status: 409, code },
+        );
+    }
+    const repaired = { ...item };
+    delete repaired.lastErrorCode;
+    return repaired;
 }
 
 // Swaps a one-time public token for the Item's access token.
@@ -231,7 +307,11 @@ async function fetchAccounts(items) {
         const data = await plaidPost('/accounts/balance/get', {
             access_token: item.accessToken,
         });
-        return (data.accounts || []).map((acc) => ({
+        // A missing array is a malformed reply, not "no accounts": failing
+        // the Item keeps its saved rows instead of clearing them.
+        if (!Array.isArray(data.accounts))
+            throw malformed('accounts/balance/get');
+        return data.accounts.map((acc) => ({
             id: `plaid-${acc.account_id}`,
             plaidItemId: item.itemId,
             name: acc.name,
@@ -248,7 +328,9 @@ async function fetchPositions(items) {
         const data = await plaidPost('/investments/holdings/get', {
             access_token: item.accessToken,
         });
-        return (data.holdings || []).map((holding) => {
+        if (!Array.isArray(data.holdings))
+            throw malformed('investments/holdings/get');
+        return data.holdings.map((holding) => {
             const security = data.securities?.find(
                 (s) => s.security_id === holding.security_id,
             );
@@ -301,6 +383,7 @@ async function syncTransactions(items) {
                     cursor,
                     count: TRANSACTION_PAGE_SIZE,
                 });
+                checkSyncPage(data);
                 itemAdded.push(...(data.added || []));
                 itemModified.push(...(data.modified || []));
                 itemRemoved.push(
@@ -367,6 +450,26 @@ async function syncTransactions(items) {
     };
 }
 
+// Folds a transaction sync's Item states into the Items stored *now*. Items
+// linked while the sync ran are kept, and an Item whose grant or cursor
+// changed since the sync read it (re-linked, or synced by a newer request)
+// keeps its newer state; only Items still as the sync found them take the
+// result. `fetched` is the Item list the sync started from.
+function mergeSyncedItems(current, fetched, results) {
+    const before = new Map((fetched || []).map((i) => [i.itemId, i]));
+    const after = new Map((results || []).map((i) => [i.itemId, i]));
+    return (current || []).map((item) => {
+        const was = before.get(item.itemId);
+        const next = after.get(item.itemId);
+        if (!was || !next) return item;
+        const unchanged =
+            was.accessToken === item.accessToken &&
+            (was.transactionsCursor || null) ===
+                (item.transactionsCursor || null);
+        return unchanged ? next : item;
+    });
+}
+
 // Applies a sync result to a spendingTransactions array in place, in the
 // order Plaid asks for: removals, then additions (deduplicated by id), then
 // modifications (upserts). Returns the applied counts.
@@ -418,7 +521,12 @@ module.exports = {
     plaidEnv,
     plaidBase,
     isValidPublicToken,
+    isValidItemId,
+    findItem,
+    reauthItemIds,
     createLinkToken,
+    confirmItemRepaired,
+    mergeSyncedItems,
     exchangePublicToken,
     upsertItem,
     fetchAccounts,

@@ -597,7 +597,10 @@ Every Plaid call lives in `app/lib/plaid-service.js`: Link token, public-token e
 - Access tokens never reach the browser. Self-hosted keeps them in the encrypted token store (`app/lib/token-store.js`); hosted seals them into the grant cookie described below.
 - `public_token` must look like `public-<env>-<id>`; anything else gets a 400 before Plaid is called. `toggle` needs a boolean `enabled`.
 - Error bodies are generic. Only Plaid's `error_code` is kept, never its message or payload, and logs carry codes only.
-- Without `PLAID_CLIENT_ID`/`PLAID_SECRET`, status answers `configured: false` and every Plaid call answers 503, so the card shows "not configured" and hides the Link button. The button reads "Re-link" when a grant is dead and "Link another account" once one is linked.
+- Without `PLAID_CLIENT_ID`/`PLAID_SECRET`, status answers `configured: false` and every Plaid call answers 503 (also for Items linked before the credentials were removed), so the card shows "not configured" and hides the Link button. The button reads "Link another account" once one is linked.
+- **Re-link uses Plaid's update mode.** Status lists `reauthItemIds` (ids only). `create-link-token` with `{ itemId }` opens Link for that Item with its server-held grant; afterwards `POST /api/sync/plaid/repair { itemId }` asks Plaid (`/item/get`) whether the grant works and clears the flag, or answers 409 with Plaid's error code. The Item keeps its id, cursor and rows; nothing is exchanged.
+- A transaction sync merges its Item states into the store as it is when the sync finishes, so an Item linked or re-synced meanwhile is kept. A reply missing its `accounts`/`holdings` array, or a malformed transaction page, fails only that Item.
+- Hosted status renews the grant cookie only in its last 30 days (or to move a pre-cookie token into the cookie). Sync and link responses renew it every time, so a slow status response can't roll the cookie back to a pre-sync cursor.
 - Plaid webhooks are not used; sync is pull-based (Sync Now and the Link flow).
 - `tests/unit/plaid-contract.test.mjs` runs the same contract against both adapters with Plaid mocked.
 

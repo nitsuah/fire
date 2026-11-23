@@ -32,6 +32,23 @@ function linkedItems() {
     return loadTokens('plaid')?.items || [];
 }
 
+// Linked Items exist but the credentials are gone: fail closed instead of
+// calling Plaid with stored grants (status already reads "not configured").
+function notConfigured(res) {
+    return res.status(503).json({ error: 'Plaid not configured.' });
+}
+
+// mutateState reports a failed write as false, but a queued read or write
+// can also reject; both mean nothing was saved.
+async function saveState(fn) {
+    try {
+        return await mutateState(fn);
+    } catch (err) {
+        console.error('[Plaid] state write failed:', err.message);
+        return false;
+    }
+}
+
 // A total sync failure still records its outcome, but a token-file write
 // failure must not mask the 502 the caller already has to report.
 function saveTokensQuietly(tokens) {
@@ -58,6 +75,7 @@ router.get('/plaid/status', (req, res) => {
         lastTransactionsSync: tokens?.transactionsLastSyncedAt || null,
         lastSync: tokens?.transactionsLastSync || null,
         reauthRequired: reauthRequired(items),
+        reauthItemIds: plaid.reauthItemIds(items),
         syncEnabled: db.plaidSyncEnabled !== false,
     });
 });
@@ -94,9 +112,50 @@ router.post('/plaid/create-link-token', async (req, res) => {
         });
     }
     try {
-        res.json({ linkToken: await plaid.createLinkToken() });
+        // With an itemId, Link opens in update mode to repair that Item.
+        const { itemId } = req.body || {};
+        const item =
+            itemId === undefined
+                ? undefined
+                : plaid.findItem(linkedItems(), itemId);
+        res.json({
+            linkToken: await plaid.createLinkToken({ item }),
+            ...(item ? { update: true } : {}),
+        });
     } catch (err) {
         sendError(res, err, 'Plaid Link could not be started.');
+    }
+});
+
+// After update-mode Link: confirm with Plaid that the Item's grant works and
+// clear its re-link flag. Nothing is exchanged; the access token is unchanged.
+router.post('/plaid/repair', async (req, res) => {
+    if (!plaid.plaidConfigured()) return notConfigured(res);
+    try {
+        const { itemId } = req.body || {};
+        const item = plaid.findItem(linkedItems(), itemId);
+        const repaired = await plaid.confirmItemRepaired(item);
+        // Re-read: only this Item changes, whatever happened meanwhile.
+        const tokens = loadTokens('plaid') || {};
+        saveTokens('plaid', {
+            ...tokens,
+            items: (tokens.items || []).map((i) => {
+                if (
+                    i.itemId !== repaired.itemId ||
+                    i.accessToken !== item.accessToken
+                )
+                    return i;
+                // Keep any newer cursor; drop only the re-link flag.
+                const next = { ...i };
+                delete next.lastErrorCode;
+                return next;
+            }),
+        });
+        res.json({ status: 'success', itemId: repaired.itemId });
+    } catch (err) {
+        if (err.status === 409)
+            return res.status(409).json({ error: err.message, code: err.code });
+        sendError(res, err, 'Plaid connection could not be checked.');
     }
 });
 
@@ -143,6 +202,7 @@ router.post('/plaid/exchange', async (req, res) => {
 router.post('/plaid/positions', async (req, res) => {
     const items = linkedItems();
     if (!items.length) return res.status(401).json({ error: NO_TOKENS });
+    if (!plaid.plaidConfigured()) return notConfigured(res);
     let result;
     try {
         result = await plaid.fetchPositions(items);
@@ -150,7 +210,7 @@ router.post('/plaid/positions', async (req, res) => {
         return sendError(res, err, 'Plaid position sync failed.');
     }
     const { positions, syncedItemIds, failedItems } = result;
-    const ok = await mutateState((state) => {
+    const ok = await saveState((state) => {
         state.importedPositions = plaid.mergePlaidRows(
             state.importedPositions,
             positions,
@@ -174,6 +234,7 @@ router.post('/plaid/positions', async (req, res) => {
 router.post('/plaid/accounts', async (req, res) => {
     const items = linkedItems();
     if (!items.length) return res.status(401).json({ error: NO_TOKENS });
+    if (!plaid.plaidConfigured()) return notConfigured(res);
     let result;
     try {
         result = await plaid.fetchAccounts(items);
@@ -181,7 +242,7 @@ router.post('/plaid/accounts', async (req, res) => {
         return sendError(res, err, 'Plaid account sync failed.');
     }
     const { accounts, syncedItemIds, failedItems } = result;
-    const ok = await mutateState((state) => {
+    const ok = await saveState((state) => {
         state.customAccounts = plaid.mergePlaidRows(
             state.customAccounts,
             accounts,
@@ -212,6 +273,7 @@ router.post('/plaid/transactions', async (req, res) => {
     const tokens = loadTokens('plaid');
     if (!tokens?.items?.length)
         return res.status(401).json({ error: NO_TOKENS });
+    if (!plaid.plaidConfigured()) return notConfigured(res);
 
     let result;
     try {
@@ -219,13 +281,24 @@ router.post('/plaid/transactions', async (req, res) => {
     } catch (err) {
         return sendError(res, err, 'Plaid transaction sync failed.');
     }
+    // The sync awaited Plaid, so the store may have changed meanwhile (an
+    // Item linked, re-linked or synced by another request). Each write below
+    // re-reads it and merges in the same synchronous step, so no Item added
+    // since the sync started is dropped and no newer cursor is rolled back.
+    const currentTokens = () => loadTokens('plaid') || tokens;
+    const mergeItems = () =>
+        plaid.mergeSyncedItems(
+            currentTokens().items,
+            tokens.items,
+            result.items,
+        );
 
     if (result.allFailed) {
         // Still persisted: the per-Item codes are how status tells the user
         // to re-link instead of showing the old last-sync time (#293).
         saveTokensQuietly({
-            ...tokens,
-            items: result.items,
+            ...currentTokens(),
+            items: mergeItems(),
             transactionsLastSync: result.outcome,
         });
         return res.status(502).json({
@@ -235,7 +308,7 @@ router.post('/plaid/transactions', async (req, res) => {
     }
 
     let counts;
-    const ok = await mutateState((state) => {
+    const ok = await saveState((state) => {
         if (!state.spendingTransactions) state.spendingTransactions = [];
         counts = plaid.applyTransactions(
             state.spendingTransactions,
@@ -248,8 +321,8 @@ router.post('/plaid/transactions', async (req, res) => {
     const syncedAt = result.outcome.at;
     try {
         saveTokens('plaid', {
-            ...tokens,
-            items: result.items,
+            ...currentTokens(),
+            items: mergeItems(),
             transactionsLastSyncedAt: syncedAt,
             transactionsLastSync: result.outcome,
         });

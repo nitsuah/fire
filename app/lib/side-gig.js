@@ -695,6 +695,9 @@ function plaidLinkLabel(data) {
     return 'Link Investment Account via Plaid';
 }
 
+// The Item to repair when the button reads "Re-link" (from the last status).
+let plaidRelinkItemId = null;
+
 async function checkPlaidConnection() {
     const statusEl = document.getElementById('plaid-sync-status');
     if (!statusEl) return;
@@ -705,6 +708,11 @@ async function checkPlaidConnection() {
         if (!res.ok)
             throw new Error(data.error || 'Unable to check Plaid status.');
         const badge = plaidStatusBadge(data);
+        plaidRelinkItemId =
+            (data.reauthRequired &&
+                Array.isArray(data.reauthItemIds) &&
+                data.reauthItemIds[0]) ||
+            null;
         statusEl.textContent = `Status: ${badge.label}`;
         statusEl.style.color = badge.color;
         // No credentials means Link can only fail — don't offer it (#275).
@@ -738,9 +746,15 @@ function initPlaidLink() {
         statusEl.style.color = 'var(--color-warning)';
 
         try {
+            // Re-link opens Link in update mode for the broken Item, so it
+            // keeps its id and history instead of becoming a second Item.
+            const relinkItemId = plaidRelinkItemId;
             const { res, data } = await plaidRequest(
                 '/api/sync/plaid/create-link-token',
-                { method: 'POST' },
+                {
+                    method: 'POST',
+                    ...(relinkItemId ? { body: { itemId: relinkItemId } } : {}),
+                },
             );
             if (!res.ok || !data.linkToken) {
                 throw new Error(data.error || 'Failed to create link token');
@@ -751,20 +765,35 @@ function initPlaidLink() {
             plaidLinkHandler = Plaid.create({
                 token: data.linkToken,
                 onSuccess: async (public_token) => {
-                    statusEl.textContent = 'Status: Exchanging token...';
+                    statusEl.textContent = data.update
+                        ? 'Status: Checking the connection...'
+                        : 'Status: Exchanging token...';
                     statusEl.style.color = 'var(--color-warning)';
 
                     try {
+                        // Update mode: nothing to exchange; confirm the grant
+                        // works again, then refresh like a new link.
                         const { res: exchangeRes, data: exchangeData } =
-                            await plaidRequest('/api/sync/plaid/exchange', {
-                                method: 'POST',
-                                body: {
-                                    public_token,
-                                    ...(isHostedPlaid()
-                                        ? { plaidToken: getHostedPlaidToken() }
-                                        : {}),
-                                },
-                            });
+                            data.update
+                                ? await plaidRequest('/api/sync/plaid/repair', {
+                                      method: 'POST',
+                                      body: { itemId: relinkItemId },
+                                  })
+                                : await plaidRequest(
+                                      '/api/sync/plaid/exchange',
+                                      {
+                                          method: 'POST',
+                                          body: {
+                                              public_token,
+                                              ...(isHostedPlaid()
+                                                  ? {
+                                                        plaidToken:
+                                                            getHostedPlaidToken(),
+                                                    }
+                                                  : {}),
+                                          },
+                                      },
+                                  );
 
                         if (
                             !exchangeRes.ok ||

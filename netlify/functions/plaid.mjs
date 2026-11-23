@@ -16,6 +16,11 @@ const PLAID_TOKEN_VERSION = 1;
 // Rolling expiry: every response re-seals the token, so this only locks out
 // a browser that has been idle for the whole window.
 const PLAID_TOKEN_TTL_SECONDS = 180 * 24 * 60 * 60;
+// Status renews the grant only in its last 30 days. Renewing on every status
+// call let a status response that read the grant before a sync land after
+// the sync's response and roll the cookie back to the pre-sync cursor. Sync
+// and link responses still renew it every time.
+const PLAID_TOKEN_RENEW_SECONDS = 30 * 24 * 60 * 60;
 const GCM_IV_BYTES = 12;
 const GCM_TAG_BYTES = 16;
 // The sealed token lives in HttpOnly cookies scoped to the Plaid routes
@@ -162,6 +167,17 @@ function tokenFromRequest(req, body) {
     if (!picked.sealed && legacy === grant.GRANT_MARKER)
         throw invalidTokenError();
     return picked.sealed || '';
+}
+
+// Status reissues the grant only when it is near expiry, or when it came
+// from a pre-cookie browser and still has to move into the cookie.
+function statusShouldRenew(req, token) {
+    const fromCookie = grant.readGrant(req.headers.get('cookie'), GRANT, {
+        raw: true,
+    });
+    if (!fromCookie) return true;
+    const left = token.exp - Math.floor(Date.now() / 1000);
+    return left < PLAID_TOKEN_RENEW_SECONDS;
 }
 
 async function requireToken(req, body) {
@@ -348,7 +364,36 @@ async function route(req) {
                     error: 'Too many Plaid link-token requests. Slow down.',
                 });
             }
-            return json(200, { linkToken: await plaid.createLinkToken() });
+            // With an itemId, Link opens in update mode to repair that Item.
+            const { itemId } = await readBody(req);
+            const item =
+                itemId === undefined
+                    ? undefined
+                    : plaid.findItem(
+                          (await requireToken(req, {})).items,
+                          itemId,
+                      );
+            return json(200, {
+                linkToken: await plaid.createLinkToken({ item }),
+                ...(item ? { update: true } : {}),
+            });
+        }
+        if (path === '/sync/plaid/repair' && method === 'POST') {
+            const token = await requireToken(req, await readBody(req));
+            const { itemId } = await readBody(req);
+            const repaired = await plaid.confirmItemRepaired(
+                plaid.findItem(token.items, itemId),
+            );
+            return json(200, {
+                status: 'success',
+                itemId: repaired.itemId,
+                plaidToken: seal({
+                    ...token,
+                    items: token.items.map((i) =>
+                        i.itemId === repaired.itemId ? repaired : i,
+                    ),
+                }),
+            });
         }
         if (path === '/sync/plaid/exchange' && method === 'POST') {
             return await exchange(req);
@@ -377,9 +422,13 @@ async function route(req) {
                 // The grant is dead: say so instead of reporting a healthy
                 // "Connected" that can never sync again (#293).
                 reauthRequired: reauthRequired(token.items),
+                reauthItemIds: plaid.reauthItemIds(token.items),
                 syncEnabled: true,
                 hosted: true,
-                plaidToken: seal(token),
+                // The marker alone sets no cookie (see handler).
+                plaidToken: statusShouldRenew(req, token)
+                    ? seal(token)
+                    : grant.GRANT_MARKER,
             });
         }
         if (path === '/sync/plaid/accounts' && method === 'POST') {

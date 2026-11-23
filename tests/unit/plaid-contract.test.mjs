@@ -34,6 +34,9 @@ const MASTER_KEY = '33'.repeat(32);
 process.env.SYNC_MASTER_KEY = MASTER_KEY;
 const PREV_FIRE_AUTH_DISABLED = process.env.FIRE_AUTH_DISABLED;
 process.env.FIRE_AUTH_DISABLED = 'true';
+// The suite sends far more requests than the /api limiter allows a client.
+const PREV_RATE_LIMIT_DISABLED = process.env.FIRE_RATE_LIMIT_DISABLED;
+process.env.FIRE_RATE_LIMIT_DISABLED = 'true';
 
 const TOKEN_FILE = path.join(TEST_DATA_DIR, 'tokens-plaid.json');
 const ACCESS_TOKEN = 'access-sandbox-contract-secret';
@@ -200,8 +203,20 @@ function netlifyAdapter() {
             // The hosted browser owns its state: keep what came back.
             if (parsed.accounts) this.rows.accounts = parsed.accounts;
             if (parsed.positions) this.rows.positions = parsed.positions;
-            if (parsed.transactions)
-                this.rows.transactions = parsed.transactions.added;
+            // Transactions arrive as deltas: apply them like the page does.
+            if (parsed.transactions) {
+                const { added, modified, removedIds } = parsed.transactions;
+                const gone = new Set(removedIds);
+                const rows = this.rows.transactions.filter(
+                    (t) => !gone.has(t.id),
+                );
+                for (const txn of [...added, ...modified]) {
+                    const idx = rows.findIndex((t) => t.id === txn.id);
+                    if (idx === -1) rows.push(txn);
+                    else rows[idx] = txn;
+                }
+                this.rows.transactions = rows;
+            }
             return {
                 status: res.status,
                 body: parsed,
@@ -233,6 +248,9 @@ afterAll(() => {
     if (PREV_FIRE_AUTH_DISABLED === undefined)
         delete process.env.FIRE_AUTH_DISABLED;
     else process.env.FIRE_AUTH_DISABLED = PREV_FIRE_AUTH_DISABLED;
+    if (PREV_RATE_LIMIT_DISABLED === undefined)
+        delete process.env.FIRE_RATE_LIMIT_DISABLED;
+    else process.env.FIRE_RATE_LIMIT_DISABLED = PREV_RATE_LIMIT_DISABLED;
     delete process.env.FIRE_DATA_DIR;
     delete process.env.SYNC_MASTER_KEY;
 });
@@ -348,6 +366,10 @@ describe.each([expressAdapter(), netlifyAdapter()])(
             const again = await adapter.call('POST', 'transactions');
             expect(again.status).toBe(200);
             expect(cursors).toEqual(['cursor-1']);
+            // An empty delta changes nothing.
+            expect(adapter.transactions()).toEqual([
+                expect.objectContaining({ id: 'plaid-txn1' }),
+            ]);
             expect(fetchMock).toHaveBeenCalled();
         });
 
@@ -468,6 +490,162 @@ describe.each([expressAdapter(), netlifyAdapter()])(
             expect(fetchMock).not.toHaveBeenCalled();
         });
 
+        it('repairs a dead grant in Link update mode, keeping the Item', async () => {
+            await link();
+            plaidMock({
+                '/transactions/sync': () => [
+                    400,
+                    { error_code: 'ITEM_LOGIN_REQUIRED', error_message: 'x' },
+                ],
+            });
+            await adapter.call('POST', 'transactions');
+            const status = await adapter.call('GET', 'status');
+            expect(status.body.reauthItemIds).toEqual(['item-1']);
+
+            const linkCalls = [];
+            plaidMock({
+                '/link/token/create': (body) => {
+                    linkCalls.push(body);
+                    return { link_token: 'link-update' };
+                },
+                '/item/get': () => ({
+                    item: { item_id: 'item-1', error: null },
+                }),
+            });
+            const linkRes = await adapter.call('POST', 'create-link-token', {
+                itemId: 'item-1',
+            });
+            expect(linkRes.status).toBe(200);
+            expect(linkRes.body).toMatchObject({
+                linkToken: 'link-update',
+                update: true,
+            });
+            // Update mode: the Item's grant, no products, no exchange.
+            expect(linkCalls[0].access_token).toBe(ACCESS_TOKEN);
+            expect(linkCalls[0].products).toBeUndefined();
+            expect(linkRes.raw).not.toContain(ACCESS_TOKEN);
+
+            const repair = await adapter.call('POST', 'repair', {
+                itemId: 'item-1',
+            });
+            expect(repair.status).toBe(200);
+            expect(repair.raw).not.toContain(ACCESS_TOKEN);
+            const after = await adapter.call('GET', 'status');
+            expect(after.body).toMatchObject({
+                reauthRequired: false,
+                reauthItemIds: [],
+                itemCount: 1,
+            });
+        });
+
+        it('keeps the re-link flag when Plaid says the Item is still broken', async () => {
+            await link();
+            plaidMock({
+                '/transactions/sync': () => [
+                    400,
+                    { error_code: 'ITEM_LOGIN_REQUIRED', error_message: 'x' },
+                ],
+            });
+            await adapter.call('POST', 'transactions');
+            plaidMock({
+                '/item/get': () => ({
+                    item: {
+                        item_id: 'item-1',
+                        error: {
+                            error_code: 'ITEM_LOGIN_REQUIRED',
+                            error_message: PROVIDER_MESSAGE,
+                        },
+                    },
+                }),
+            });
+            const repair = await adapter.call('POST', 'repair', {
+                itemId: 'item-1',
+            });
+            expect(repair.status).toBe(409);
+            expect(repair.body.code).toBe('ITEM_LOGIN_REQUIRED');
+            expect(repair.raw).not.toContain(PROVIDER_MESSAGE);
+            const status = await adapter.call('GET', 'status');
+            expect(status.body.reauthRequired).toBe(true);
+        });
+
+        it.each([
+            [{ itemId: 'item-unknown' }, 404],
+            [{ itemId: '../etc' }, 400],
+            [{ itemId: 7 }, 400],
+        ])(
+            'rejects a re-link for %j before calling Plaid',
+            async (body, code) => {
+                await link();
+                const fetchMock = plaidMock(HAPPY_PLAID);
+                const res = await adapter.call(
+                    'POST',
+                    'create-link-token',
+                    body,
+                );
+                expect(res.status).toBe(code);
+                const repair = await adapter.call('POST', 'repair', body);
+                expect(repair.status).toBe(code);
+                expect(fetchMock).not.toHaveBeenCalled();
+            },
+        );
+
+        it('treats a reply without an accounts array as a failed Item', async () => {
+            await link();
+            plaidMock(HAPPY_PLAID);
+            await adapter.call('POST', 'accounts');
+            plaidMock({ '/accounts/balance/get': () => ({}) });
+            const res = await adapter.call('POST', 'accounts');
+            expect(res.status).toBe(502);
+            expect(adapter.accounts()).toHaveLength(1);
+        });
+
+        it('fails only the Item whose transaction page is malformed', async () => {
+            await link();
+            plaidMock({
+                '/item/public_token/exchange': () => ({
+                    access_token: 'access-sandbox-two',
+                    item_id: 'item-2',
+                }),
+            });
+            await adapter.call('POST', 'exchange', {
+                public_token: 'public-sandbox-two',
+            });
+            plaidMock({
+                '/transactions/sync': (body) =>
+                    body.access_token === ACCESS_TOKEN
+                        ? {
+                              added: [],
+                              modified: [null],
+                              removed: [],
+                              has_more: false,
+                              next_cursor: 'bad-cursor',
+                          }
+                        : HAPPY_PLAID['/transactions/sync'](),
+            });
+            const res = await adapter.call('POST', 'transactions');
+            expect(res.status).toBe(200);
+            expect(res.body.added).toBe(1);
+            expect(res.body.warning).toMatch(/1 item\(s\) failed/);
+
+            // The malformed Item kept its old (empty) cursor.
+            const cursors = {};
+            plaidMock({
+                '/transactions/sync': (body) => {
+                    cursors[body.access_token] = body.cursor;
+                    return {
+                        added: [],
+                        modified: [],
+                        removed: [],
+                        has_more: false,
+                        next_cursor: 'c',
+                    };
+                },
+            });
+            await adapter.call('POST', 'transactions');
+            expect(cursors[ACCESS_TOKEN]).toBeUndefined();
+            expect(cursors['access-sandbox-two']).toBe('cursor-1');
+        });
+
         it('fails closed with a "not configured" state when credentials are missing', async () => {
             delete process.env.PLAID_CLIENT_ID;
             delete process.env.PLAID_SECRET;
@@ -489,6 +667,130 @@ describe.each([expressAdapter(), netlifyAdapter()])(
         });
     },
 );
+
+describe('express adapter only', () => {
+    const adapter = expressAdapter();
+    beforeEach(() => {
+        process.env.PLAID_CLIENT_ID = 'client-id';
+        process.env.PLAID_SECRET = 'secret';
+        process.env.SYNC_MASTER_KEY = MASTER_KEY;
+        adapter.reset();
+    });
+    afterEach(() => {
+        delete process.env.PLAID_CLIENT_ID;
+        delete process.env.PLAID_SECRET;
+        vi.unstubAllGlobals();
+    });
+
+    it('refuses to sync stored Items once the credentials are removed', async () => {
+        plaidMock(HAPPY_PLAID);
+        await adapter.call('POST', 'exchange', {
+            public_token: 'public-sandbox-abc',
+        });
+        delete process.env.PLAID_SECRET;
+        const fetchMock = plaidMock(HAPPY_PLAID);
+        for (const endpoint of ['accounts', 'positions', 'transactions']) {
+            const res = await adapter.call('POST', endpoint);
+            expect(res.status).toBe(503);
+        }
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('keeps an Item linked while a transaction sync was in flight', async () => {
+        plaidMock(HAPPY_PLAID);
+        await adapter.call('POST', 'exchange', {
+            public_token: 'public-sandbox-abc',
+        });
+        let release;
+        const gate = new Promise((resolve) => {
+            release = resolve;
+        });
+        plaidMock({
+            '/transactions/sync': async () => {
+                await gate;
+                return HAPPY_PLAID['/transactions/sync']();
+            },
+            '/item/public_token/exchange': () => ({
+                access_token: 'access-sandbox-two',
+                item_id: 'item-2',
+            }),
+        });
+        const sync = adapter.call('POST', 'transactions');
+        // Let the sync reach Plaid, then link a second Item meanwhile.
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        const linked = await adapter.call('POST', 'exchange', {
+            public_token: 'public-sandbox-two',
+        });
+        expect(linked.status).toBe(200);
+        release();
+        expect((await sync).status).toBe(200);
+
+        const status = await adapter.call('GET', 'status');
+        expect(status.body.itemCount).toBe(2);
+        // The synced Item advanced; the new one starts fresh.
+        const cursors = {};
+        plaidMock({
+            '/transactions/sync': (body) => {
+                cursors[body.access_token] = body.cursor;
+                return {
+                    added: [],
+                    modified: [],
+                    removed: [],
+                    has_more: false,
+                    next_cursor: 'c',
+                };
+            },
+        });
+        await adapter.call('POST', 'transactions');
+        expect(cursors).toEqual({
+            [ACCESS_TOKEN]: 'cursor-1',
+            'access-sandbox-two': undefined,
+        });
+    });
+});
+
+describe('netlify adapter status renewal', () => {
+    beforeEach(() => {
+        process.env.PLAID_CLIENT_ID = 'client-id';
+        process.env.PLAID_SECRET = 'secret';
+        process.env.PLAID_ENV = 'sandbox';
+        process.env.SYNC_MASTER_KEY = MASTER_KEY;
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+
+    it('does not reissue a fresh cookie grant on status, so it cannot roll back a sync', async () => {
+        const adapter = netlifyAdapter();
+        await adapter.reset();
+        plaidMock(HAPPY_PLAID);
+        await adapter.call('POST', 'exchange', {
+            public_token: 'public-sandbox-abc',
+        });
+        const status = await adapter.call('GET', 'status');
+        expect(status.body.connected).toBe(true);
+        expect(status.setCookies).toEqual([]);
+        // A sync still renews it.
+        const sync = await adapter.call('POST', 'transactions');
+        expect(sync.setCookies.length).toBeGreaterThan(0);
+    });
+
+    it('renews the grant on status in its last 30 days', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+        const adapter = netlifyAdapter();
+        await adapter.reset();
+        plaidMock(HAPPY_PLAID);
+        await adapter.call('POST', 'exchange', {
+            public_token: 'public-sandbox-abc',
+        });
+        vi.setSystemTime(new Date('2026-06-10T00:00:00Z'));
+        const status = await adapter.call('GET', 'status');
+        expect(status.body.connected).toBe(true);
+        expect(status.setCookies.length).toBeGreaterThan(0);
+    });
+});
 
 describe('netlify adapter grant cookie', () => {
     beforeEach(() => {
