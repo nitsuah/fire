@@ -10,12 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Plaid runs from one shared service (`app/lib/plaid-service.js`) used by both the Express routes and the hosted Netlify function, so Link, exchange, accounts, positions and transactions behave the same on both deploys. Provider-contract tests cover both adapters, and a browser smoke test covers the Plaid card on both. Plaid error bodies and logs keep only error codes; `public_token` and `toggle` input is validated before any Plaid call. Re-link opens Plaid Link in update mode for the broken Item and confirms the repair with Plaid, so the Item keeps its id and history. A transaction sync no longer drops an Item linked while it ran, and a malformed Plaid reply fails only its own Item.
 - The hosted Plaid token is kept in an HttpOnly, `SameSite=Strict` cookie scoped to `/api/sync/plaid` instead of `localStorage`; the page keeps only a connected marker, and an existing connection moves over on its next request.
 - Connector grants for eBay, Etsy, Google Drive and CoinTracker are kept in HttpOnly, `SameSite=Strict` cookies scoped to each connector's API path (`app/lib/grant-cookie.js`), instead of `localStorage`; the page keeps only a connected marker. Existing connections move over on their next request. Etsy disconnect clears the cookie on the hosted deploy too.
 - `GET /api/health` reports which integrations are configured (booleans only) (#546).
 - MCP hosted browser bridge (child 1): extracted browser-safe tool core into `app/mcp-tools.mjs` with no Node imports, used by both stdio server and browser; added `offset`/`pagingKey` paging to `get_transactions` with bounds (non-negative integers, max page size 1000) and stable ordering; `stale_offset` error when matched rows change between pages; `handleTool` stays synchronous and the paging key uses a built-in fingerprint, so Node and browser hosts agree (#508).
 
 ### Changed
+- `config/Dockerfile.playwright` uses the Playwright 1.65.1 image, matching `@playwright/test` and CI.
 - API key checks (`/api`, the admin key-rotation route and `/mcp`) use one constant-time comparison helper, `app/lib/safe-compare.js`.
 - Integration status matrix: record the remaining live-provider checks (OAuth reconnect, real sync, revocation, multi-account) as a manual checklist; #301 and #302 close on merged code, #262 tracks the live acceptance.
 - Playwright 1.65.0: `@playwright/test`, the CI e2e container, the Journeys image and `config/Dockerfile.playwright` move together; journey baselines refreshed for the #351 summary bar and the separated budget hints.

@@ -4,6 +4,7 @@ import {
     it,
     expect,
     beforeAll,
+    beforeEach,
     afterEach,
     afterAll,
 } from 'vitest';
@@ -95,6 +96,8 @@ afterEach(() => {
     }
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    delete process.env.PLAID_CLIENT_ID;
+    delete process.env.PLAID_SECRET;
 });
 
 afterAll(() => {
@@ -171,6 +174,8 @@ describe('GET /api/sync/plaid/status', () => {
     });
 
     it('reports the last sync outcome after a successful sync', async () => {
+        process.env.PLAID_CLIENT_ID = 'client-id';
+        process.env.PLAID_SECRET = 'secret';
         writePlaidTokens([{ itemId: 'item-1', accessToken: 'access-1' }]);
         vi.stubGlobal(
             'fetch',
@@ -233,6 +238,8 @@ describe('GET /api/sync/plaid/status', () => {
     });
 
     it('reports a successful sync as ok again once the grant recovers', async () => {
+        process.env.PLAID_CLIENT_ID = 'client-id';
+        process.env.PLAID_SECRET = 'secret';
         writePlaidTokens([
             {
                 itemId: 'item-1',
@@ -292,6 +299,16 @@ describe('POST /api/sync/plaid/toggle', () => {
 });
 
 describe('POST /api/sync/plaid/transactions', () => {
+    // Sync routes fail closed without credentials, so these run configured.
+    beforeEach(() => {
+        process.env.PLAID_CLIENT_ID = 'client-id';
+        process.env.PLAID_SECRET = 'secret';
+    });
+    afterEach(() => {
+        delete process.env.PLAID_CLIENT_ID;
+        delete process.env.PLAID_SECRET;
+    });
+
     it('is blocked with 403 while sync is disabled, before token lookup', async () => {
         await request(app)
             .post('/api/sync/plaid/toggle')
@@ -838,6 +855,16 @@ describe('POST /api/sync/plaid/transactions', () => {
 });
 
 describe('POST /api/sync/plaid/accounts and /positions legacy rows', () => {
+    // Sync routes fail closed without credentials, so these run configured.
+    beforeEach(() => {
+        process.env.PLAID_CLIENT_ID = 'client-id';
+        process.env.PLAID_SECRET = 'secret';
+    });
+    afterEach(() => {
+        delete process.env.PLAID_CLIENT_ID;
+        delete process.env.PLAID_SECRET;
+    });
+
     const balanceResponse = {
         ok: true,
         json: async () => ({

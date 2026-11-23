@@ -512,7 +512,12 @@ const PLAID_HOSTED_TOKEN_KEY = 'fire_plaid_hosted_token';
 const PLAID_HOSTED_SYNC_KEY = 'fire_plaid_hosted_sync_enabled';
 const PLAID_HOSTED_ACCESS_KEY = 'fire_plaid_hosted_access_key';
 
+// Hosted means "no server behind this deploy", the same answer every other
+// provider card uses (deploy-mode.js, from the /api/state probe). The
+// hostname list only covers the moment before that probe has answered.
 function isHostedPlaid() {
+    if (typeof FireDeployMode !== 'undefined' && !FireDeployMode.isUnknown())
+        return FireDeployMode.isHosted();
     return (
         window.location.hostname === 'fire.nitsuah.io' ||
         window.location.hostname === 'lifefire.netlify.app' ||
@@ -682,19 +687,41 @@ function plaidStatusBadge(data) {
     };
 }
 
+// The Link button names the step the user is on: first link, re-link a
+// dead grant, or add another institution.
+function plaidLinkLabel(data) {
+    if (data.reauthRequired) return 'Re-link Investment Account via Plaid';
+    if (data.connected) return 'Link Another Account via Plaid';
+    return 'Link Investment Account via Plaid';
+}
+
+// The Item to repair when the button reads "Re-link" (from the last status).
+let plaidRelinkItemId = null;
+
 async function checkPlaidConnection() {
     const statusEl = document.getElementById('plaid-sync-status');
     if (!statusEl) return;
+    // Paint from the right backend: wait (bounded) for the deploy mode.
+    if (typeof FireDeployMode !== 'undefined') await FireDeployMode.whenKnown();
     try {
         const { res, data } = await plaidRequest('/api/sync/plaid/status');
         if (!res.ok)
             throw new Error(data.error || 'Unable to check Plaid status.');
         const badge = plaidStatusBadge(data);
+        plaidRelinkItemId =
+            (data.reauthRequired &&
+                Array.isArray(data.reauthItemIds) &&
+                data.reauthItemIds[0]) ||
+            null;
         statusEl.textContent = `Status: ${badge.label}`;
         statusEl.style.color = badge.color;
         // No credentials means Link can only fail — don't offer it (#275).
         const linkBtn = document.getElementById('btn-plaid-link');
-        if (linkBtn) linkBtn.hidden = !badge.linkable;
+        if (linkBtn) {
+            linkBtn.hidden = !badge.linkable;
+            const label = linkBtn.querySelector('span');
+            if (label) label.textContent = plaidLinkLabel(data);
+        }
         if (typeof setFidelityImportDisabled === 'function') {
             const syncEnabled = isHostedPlaid()
                 ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
@@ -719,9 +746,15 @@ function initPlaidLink() {
         statusEl.style.color = 'var(--color-warning)';
 
         try {
+            // Re-link opens Link in update mode for the broken Item, so it
+            // keeps its id and history instead of becoming a second Item.
+            const relinkItemId = plaidRelinkItemId;
             const { res, data } = await plaidRequest(
                 '/api/sync/plaid/create-link-token',
-                { method: 'POST' },
+                {
+                    method: 'POST',
+                    ...(relinkItemId ? { body: { itemId: relinkItemId } } : {}),
+                },
             );
             if (!res.ok || !data.linkToken) {
                 throw new Error(data.error || 'Failed to create link token');
@@ -732,20 +765,35 @@ function initPlaidLink() {
             plaidLinkHandler = Plaid.create({
                 token: data.linkToken,
                 onSuccess: async (public_token) => {
-                    statusEl.textContent = 'Status: Exchanging token...';
+                    statusEl.textContent = data.update
+                        ? 'Status: Checking the connection...'
+                        : 'Status: Exchanging token...';
                     statusEl.style.color = 'var(--color-warning)';
 
                     try {
+                        // Update mode: nothing to exchange; confirm the grant
+                        // works again, then refresh like a new link.
                         const { res: exchangeRes, data: exchangeData } =
-                            await plaidRequest('/api/sync/plaid/exchange', {
-                                method: 'POST',
-                                body: {
-                                    public_token,
-                                    ...(isHostedPlaid()
-                                        ? { plaidToken: getHostedPlaidToken() }
-                                        : {}),
-                                },
-                            });
+                            data.update
+                                ? await plaidRequest('/api/sync/plaid/repair', {
+                                      method: 'POST',
+                                      body: { itemId: relinkItemId },
+                                  })
+                                : await plaidRequest(
+                                      '/api/sync/plaid/exchange',
+                                      {
+                                          method: 'POST',
+                                          body: {
+                                              public_token,
+                                              ...(isHostedPlaid()
+                                                  ? {
+                                                        plaidToken:
+                                                            getHostedPlaidToken(),
+                                                    }
+                                                  : {}),
+                                          },
+                                      },
+                                  );
 
                         if (
                             !exchangeRes.ok ||

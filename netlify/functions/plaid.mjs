@@ -1,15 +1,26 @@
 import crypto from '../../app/lib/node-crypto.js';
-import { parsePlaidTransactions } from '../../app/lib/finance-parsing.js';
 import plaidStatus from '../../app/lib/plaid-status.js';
+import plaid from '../../app/lib/plaid-service.js';
 import grant from '../../app/lib/grant-cookie.js';
 import { withCookies } from '../lib/http.mjs';
 
-const { REAUTH_CODES } = plaidStatus;
+// Hosted adapter: the Plaid operations live in app/lib/plaid-service.js
+// (shared with the Express routes in app/routes/plaid.js). This function
+// only decides where things are kept: the Items' access tokens are sealed
+// (AES-256-GCM under SYNC_MASTER_KEY) into an HttpOnly grant cookie, and the
+// synced rows go back to the browser, which owns its state on this deploy.
+
+const { reauthRequired } = plaidStatus;
 
 const PLAID_TOKEN_VERSION = 1;
 // Rolling expiry: every response re-seals the token, so this only locks out
 // a browser that has been idle for the whole window.
 const PLAID_TOKEN_TTL_SECONDS = 180 * 24 * 60 * 60;
+// Status renews the grant only in its last 30 days. Renewing on every status
+// call let a status response that read the grant before a sync land after
+// the sync's response and roll the cookie back to the pre-sync cursor. Sync
+// and link responses still renew it every time.
+const PLAID_TOKEN_RENEW_SECONDS = 30 * 24 * 60 * 60;
 const GCM_IV_BYTES = 12;
 const GCM_TAG_BYTES = 16;
 // The sealed token lives in HttpOnly cookies scoped to the Plaid routes
@@ -27,18 +38,14 @@ function json(status, body) {
     });
 }
 
-function plaidEnv() {
-    return (process.env.PLAID_ENV || 'sandbox').toLowerCase();
-}
-
 // Returns why hosted Plaid cannot run, or null when it is fully configured.
 // Checked before any Plaid call so a missing key never strands a linked Item.
 function configError() {
-    if (!process.env.PLAID_CLIENT_ID || !process.env.PLAID_SECRET)
+    if (!plaid.plaidConfigured())
         return 'PLAID_CLIENT_ID and PLAID_SECRET are required.';
     if (!/^[0-9a-f]{64}$/i.test(process.env.SYNC_MASTER_KEY || ''))
         return 'SYNC_MASTER_KEY must be 64 hex characters.';
-    if (!process.env.PLAID_HOSTED_ACCESS_KEY && plaidEnv() !== 'sandbox')
+    if (!process.env.PLAID_HOSTED_ACCESS_KEY && plaid.plaidEnv() !== 'sandbox')
         return 'PLAID_HOSTED_ACCESS_KEY is required outside the Plaid sandbox.';
     return null;
 }
@@ -75,21 +82,6 @@ function checkCreateLinkRateLimit(req) {
     }
     entry.count += 1;
     return entry.count <= CREATE_LINK_LIMIT;
-}
-
-function plaidBase() {
-    const env = plaidEnv();
-    if (env === 'production') return 'https://production.plaid.com';
-    if (env === 'development') return 'https://development.plaid.com';
-    return 'https://sandbox.plaid.com';
-}
-
-function plaidHeaders() {
-    return {
-        'Content-Type': 'application/json',
-        'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-        'PLAID-SECRET': process.env.PLAID_SECRET,
-    };
 }
 
 function encryptionKey() {
@@ -177,49 +169,15 @@ function tokenFromRequest(req, body) {
     return picked.sealed || '';
 }
 
-async function plaidPost(path, body) {
-    let res;
-    try {
-        res = await fetch(`${plaidBase()}${path}`, {
-            method: 'POST',
-            headers: plaidHeaders(),
-            body: JSON.stringify(body),
-            signal: AbortSignal.timeout(15000),
-        });
-    } catch (err) {
-        const timedOut = err.name === 'TimeoutError';
-        throw Object.assign(
-            new Error(
-                timedOut
-                    ? 'Plaid did not respond in time.'
-                    : 'Could not reach Plaid.',
-            ),
-            { status: timedOut ? 504 : 502 },
-        );
-    }
-    const text = await res.text();
-    let data;
-    try {
-        data = JSON.parse(text);
-    } catch {
-        throw Object.assign(
-            new Error(
-                `Plaid returned a non-JSON response (HTTP ${res.status}).`,
-            ),
-            { status: 502 },
-        );
-    }
-    if (!res.ok) {
-        throw Object.assign(
-            new Error(
-                data.error_message ||
-                    data.display_message ||
-                    `Plaid request failed (HTTP ${res.status}).`,
-            ),
-            { status: 502, plaidErrorCode: data.error_code || null },
-        );
-    }
-    return data;
+// Status reissues the grant only when it is near expiry, or when it came
+// from a pre-cookie browser and still has to move into the cookie.
+function statusShouldRenew(req, token) {
+    const fromCookie = grant.readGrant(req.headers.get('cookie'), GRANT, {
+        raw: true,
+    });
+    if (!fromCookie) return true;
+    const left = token.exp - Math.floor(Date.now() / 1000);
+    return left < PLAID_TOKEN_RENEW_SECONDS;
 }
 
 async function requireToken(req, body) {
@@ -239,53 +197,12 @@ async function requireToken(req, body) {
     return token;
 }
 
-// Logs the cause server-side and keeps only a sanitized code for the client.
-function recordItemFailure(failures, itemId, err) {
-    console.error(
-        `[Netlify Plaid] item ${itemId} failed:`,
-        err.plaidErrorCode || '',
-        err.message,
-    );
-    failures.push({
-        itemId,
-        code: err.plaidErrorCode || err.code || 'REQUEST_FAILED',
-    });
-}
-
-function partialWarning(failures) {
-    if (!failures.length) return null;
-    const relink = failures.some((f) => f.code === 'ITEM_LOGIN_REQUIRED')
-        ? ' Re-link the affected institution to resume syncing it.'
-        : '';
-    return `${failures.length} item(s) failed; partial data returned.${relink}`;
-}
-
-// What the last transaction sync did, recorded so status can report an
-// outcome rather than only a timestamp (#293). Codes only (#262).
-function outcome(failures, items) {
-    const failed = items.find((item) => item.lastErrorCode);
-    return {
-        at: new Date().toISOString(),
-        ok: failures.length === 0,
-        errorCode: failed ? failed.lastErrorCode : null,
-    };
-}
-
-async function createLinkToken() {
-    const data = await plaidPost('/link/token/create', {
-        user: { client_user_id: 'fire-tracker-user' },
-        client_name: 'fire',
-        products: ['investments'],
-        country_codes: ['US'],
-        language: 'en',
-    });
-    return json(200, { linkToken: data.link_token });
-}
-
 async function exchange(req) {
     const body = await req.json().catch(() => ({}));
     if (!body.public_token)
         return json(400, { error: 'public_token is required.' });
+    if (!plaid.isValidPublicToken(body.public_token))
+        return json(400, { error: 'A valid public_token is required.' });
     // An unreadable saved token must not block linking: start a fresh item
     // list instead of consuming (and losing) the one-time public_token.
     let current = { items: [] };
@@ -305,227 +222,52 @@ async function exchange(req) {
                 'Your previous Plaid connection could not be read and was replaced. Re-link any other institutions.';
         }
     }
-    const data = await plaidPost('/item/public_token/exchange', {
-        public_token: body.public_token,
-    });
-    const items = Array.isArray(current.items) ? current.items : [];
-    const idx = items.findIndex((item) => item.itemId === data.item_id);
-    const nextItem = { itemId: data.item_id, accessToken: data.access_token };
-    if (idx >= 0) items[idx] = { ...items[idx], ...nextItem };
-    else items.push(nextItem);
+    const item = await plaid.exchangePublicToken(body.public_token);
     return json(200, {
         status: 'success',
         message: 'Plaid connection encrypted for this browser.',
-        itemId: data.item_id,
-        plaidToken: seal({ ...current, items }),
+        itemId: item.itemId,
+        plaidToken: seal({
+            ...current,
+            items: plaid.upsertItem(current.items, item),
+        }),
         warning,
     });
 }
 
-async function accounts(token) {
-    const accounts = [];
-    const failedItems = [];
-    const syncedItemIds = [];
-    for (const item of token.items) {
-        try {
-            const data = await plaidPost('/accounts/balance/get', {
-                access_token: item.accessToken,
-            });
-            const itemAccounts = (data.accounts || []).map((acc) => ({
-                id: `plaid-${acc.account_id}`,
-                plaidItemId: item.itemId,
-                name: acc.name,
-                type:
-                    acc.type === 'depository'
-                        ? 'Cash'
-                        : acc.type === 'investment'
-                          ? 'Brokerage'
-                          : 'Other',
-                value: acc.balances?.current ?? 0,
-                source: 'plaid',
-            }));
-            accounts.push(...itemAccounts);
-            syncedItemIds.push(item.itemId);
-        } catch (err) {
-            recordItemFailure(failedItems, item.itemId, err);
-        }
-    }
-    if (failedItems.length && !syncedItemIds.length) {
-        throw Object.assign(
-            new Error(
-                'All Plaid account fetches failed. Existing data preserved.',
-            ),
-            { status: 502, failedItems },
-        );
-    }
-    return {
-        accounts,
-        syncedItemIds,
-        failedItems,
-        warning: partialWarning(failedItems),
-    };
-}
-
-async function positions(token) {
-    const positions = [];
-    const failedItems = [];
-    const syncedItemIds = [];
-    for (const item of token.items) {
-        try {
-            const data = await plaidPost('/investments/holdings/get', {
-                access_token: item.accessToken,
-            });
-            const itemPositions = (data.holdings || []).map((holding) => {
-                const security = data.securities?.find(
-                    (s) => s.security_id === holding.security_id,
-                );
-                return {
-                    symbol: security?.ticker_symbol || holding.security_id,
-                    plaidItemId: item.itemId,
-                    description: security?.name || '',
-                    quantity: holding.quantity,
-                    value: holding.institution_value,
-                    costBasis: holding.cost_basis,
-                    source: 'plaid',
-                };
-            });
-            positions.push(...itemPositions);
-            syncedItemIds.push(item.itemId);
-        } catch (err) {
-            recordItemFailure(failedItems, item.itemId, err);
-        }
-    }
-    if (failedItems.length && !syncedItemIds.length) {
-        throw Object.assign(
-            new Error(
-                'All Plaid position fetches failed. Existing data preserved.',
-            ),
-            { status: 502, failedItems },
-        );
-    }
-    return {
-        positions,
-        syncedItemIds,
-        failedItems,
-        warning: partialWarning(failedItems),
-    };
-}
-
 async function transactions(token) {
-    const allAdded = [];
-    const allModified = [];
-    const allRemovedIds = [];
-    const updatedItems = [];
-    const failedItems = [];
-    let successfulItemCount = 0;
-
-    for (const item of token.items) {
-        const itemAdded = [];
-        const itemModified = [];
-        const itemRemovedIds = [];
-        const originalCursor = item.transactionsCursor || undefined;
-        let cursor = originalCursor;
-        let hasMore = true;
-        let itemFailed = false;
-
-        try {
-            for (let page = 0; hasMore && page < 20; page++) {
-                const data = await plaidPost('/transactions/sync', {
-                    access_token: item.accessToken,
-                    cursor,
-                    count: 500,
-                });
-                itemAdded.push(...(data.added || []));
-                itemModified.push(...(data.modified || []));
-                itemRemovedIds.push(
-                    ...(data.removed || []).map(
-                        (removed) => removed.transaction_id,
-                    ),
-                );
-                cursor = data.next_cursor || cursor;
-                hasMore = Boolean(data.has_more);
-            }
-            if (hasMore) {
-                recordItemFailure(
-                    failedItems,
-                    item.itemId,
-                    Object.assign(
-                        new Error(
-                            'Transaction pagination exceeded the safety limit.',
-                        ),
-                        { code: 'PAGINATION_LIMIT' },
-                    ),
-                );
-                itemFailed = true;
-            }
-        } catch (err) {
-            recordItemFailure(failedItems, item.itemId, err);
-            itemFailed = true;
-        }
-
-        if (itemFailed) {
-            // The Item keeps its cursor but remembers the sanitized reason,
-            // so status can say "re-link" instead of a stale "Connected"
-            // (#293). Codes only, never the provider message (#262).
-            const code = failedItems[failedItems.length - 1]?.code;
-            updatedItems.push(code ? { ...item, lastErrorCode: code } : item);
-        } else {
-            allAdded.push(...itemAdded);
-            allModified.push(...itemModified);
-            allRemovedIds.push(...itemRemovedIds);
-            const clean = { ...item };
-            delete clean.lastErrorCode;
-            updatedItems.push({ ...clean, transactionsCursor: cursor });
-            successfulItemCount++;
-        }
-    }
-
-    if (failedItems.length && successfulItemCount === 0) {
-        // The browser owns the sealed token, so the failure outcome can only
-        // reach status by riding along with this error (#293).
+    const result = await plaid.syncTransactions(token.items);
+    if (result.allFailed) {
+        // The sealed token is the only store on this deploy, so the failure
+        // outcome reaches status by riding along with this error (#293).
         throw Object.assign(
             new Error(
                 'All Plaid transaction fetches failed. Existing data preserved.',
             ),
             {
                 status: 502,
-                failedItems,
+                failedItems: result.failedItems,
                 plaidToken: seal({
                     ...token,
-                    items: updatedItems,
-                    transactionsLastSync: outcome(failedItems, updatedItems),
+                    items: result.items,
+                    transactionsLastSync: result.outcome,
                 }),
             },
         );
     }
-
-    const parsedAdded = parsePlaidTransactions(allAdded);
-    const parsedModified = parsePlaidTransactions(allModified);
-    const parsedModifiedIds = new Set(parsedModified.map((txn) => txn.id));
-    const droppedModifiedIds = allModified
-        .map((txn) => `plaid-${txn.transaction_id}`)
-        .filter((id) => !parsedModifiedIds.has(id));
-    const removedIds = [
-        ...allRemovedIds.map((id) => `plaid-${id}`),
-        ...droppedModifiedIds,
-    ];
-
-    const syncedAt = new Date().toISOString();
+    const syncedAt = result.outcome.at;
+    // Only what the response needs: result.items carries access tokens.
     return {
+        transactions: result.transactions,
+        failedItems: result.failedItems,
+        syncedAt,
+        warning: plaid.partialWarning(result.failedItems),
         plaidToken: seal({
             ...token,
-            items: updatedItems,
+            items: result.items,
             transactionsLastSyncedAt: syncedAt,
-            transactionsLastSync: outcome(failedItems, updatedItems),
+            transactionsLastSync: result.outcome,
         }),
-        transactions: {
-            added: parsedAdded,
-            modified: parsedModified,
-            removedIds,
-        },
-        failedItems,
-        warning: partialWarning(failedItems),
-        syncedAt,
     };
 }
 
@@ -622,7 +364,36 @@ async function route(req) {
                     error: 'Too many Plaid link-token requests. Slow down.',
                 });
             }
-            return await createLinkToken();
+            // With an itemId, Link opens in update mode to repair that Item.
+            const { itemId } = await readBody(req);
+            const item =
+                itemId === undefined
+                    ? undefined
+                    : plaid.findItem(
+                          (await requireToken(req, {})).items,
+                          itemId,
+                      );
+            return json(200, {
+                linkToken: await plaid.createLinkToken({ item }),
+                ...(item ? { update: true } : {}),
+            });
+        }
+        if (path === '/sync/plaid/repair' && method === 'POST') {
+            const token = await requireToken(req, await readBody(req));
+            const { itemId } = await readBody(req);
+            const repaired = await plaid.confirmItemRepaired(
+                plaid.findItem(token.items, itemId),
+            );
+            return json(200, {
+                status: 'success',
+                itemId: repaired.itemId,
+                plaidToken: seal({
+                    ...token,
+                    items: token.items.map((i) =>
+                        i.itemId === repaired.itemId ? repaired : i,
+                    ),
+                }),
+            });
         }
         if (path === '/sync/plaid/exchange' && method === 'POST') {
             return await exchange(req);
@@ -650,37 +421,39 @@ async function route(req) {
                 lastSync: token.transactionsLastSync || null,
                 // The grant is dead: say so instead of reporting a healthy
                 // "Connected" that can never sync again (#293).
-                reauthRequired: token.items.some((item) =>
-                    REAUTH_CODES.has(item.lastErrorCode),
-                ),
+                reauthRequired: reauthRequired(token.items),
+                reauthItemIds: plaid.reauthItemIds(token.items),
                 syncEnabled: true,
                 hosted: true,
-                plaidToken: seal(token),
+                // The marker alone sets no cookie (see handler).
+                plaidToken: statusShouldRenew(req, token)
+                    ? seal(token)
+                    : grant.GRANT_MARKER,
             });
         }
         if (path === '/sync/plaid/accounts' && method === 'POST') {
             const token = await requireToken(req, await readBody(req));
-            const result = await accounts(token);
+            const result = await plaid.fetchAccounts(token.items);
             return json(200, {
                 status: 'success',
                 accountCount: result.accounts.length,
                 accounts: result.accounts,
                 syncedItemIds: result.syncedItemIds,
                 failedItems: result.failedItems,
-                warning: result.warning,
+                warning: plaid.partialWarning(result.failedItems),
                 plaidToken: seal(token),
             });
         }
         if (path === '/sync/plaid/positions' && method === 'POST') {
             const token = await requireToken(req, await readBody(req));
-            const result = await positions(token);
+            const result = await plaid.fetchPositions(token.items);
             return json(200, {
                 status: 'success',
                 positionCount: result.positions.length,
                 positions: result.positions,
                 syncedItemIds: result.syncedItemIds,
                 failedItems: result.failedItems,
-                warning: result.warning,
+                warning: plaid.partialWarning(result.failedItems),
                 plaidToken: seal(token),
             });
         }
@@ -703,12 +476,22 @@ async function route(req) {
             });
         }
         if (path === '/sync/plaid/toggle' && method === 'POST') {
+            // The hosted deploy keeps this setting in the browser; the
+            // function only validates and echoes it, like the Express route.
             const body = await req.json().catch(() => ({}));
-            return json(200, { enabled: body.enabled !== false, hosted: true });
+            if (typeof body.enabled !== 'boolean')
+                return json(400, { error: 'enabled (boolean) is required.' });
+            return json(200, { enabled: body.enabled, hosted: true });
         }
         return json(404, { error: 'Hosted Plaid endpoint not found.' });
     } catch (err) {
-        console.error('[Netlify Plaid] request failed:', err);
+        // A deliberate error can carry a sealed token (plaidToken): log only
+        // its status, code and generic message, never the object.
+        if (err.status)
+            console.error(
+                `[Netlify Plaid] request failed: ${err.status} ${err.code || ''} ${err.message}`,
+            );
+        else console.error('[Netlify Plaid] request failed:', err);
         // Only errors raised deliberately (with a status) carry a message
         // meant for the browser; anything else stays in the function log.
         if (!err.status)

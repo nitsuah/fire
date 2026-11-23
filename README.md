@@ -356,7 +356,7 @@ fire/
 │       └── cointracker.js      # /api/sync/cointracker/* (authorize, callback, sync, inspect, disconnect)
 ├── netlify/
 │   ├── functions/              # Hosted (lifefire.netlify.app) API: fire-api (metals, ENS lookup, crypto refresh),
-│   │                           #   ebay-*, etsy, cointracker share the Express handlers; plaid still duplicates them
+│   │                           #   ebay-*, etsy, cointracker, plaid share the Express handlers/services
 │   └── lib/http.mjs            # Shared Function helpers
 ├── config/
 │   ├── docker-compose.yml      # fire + Caddy (HTTPS)
@@ -486,7 +486,7 @@ The system is being productionized toward real-time, API-driven data in four pha
 | Google Drive encrypted backup | Phase 1 | Implemented self-hosted and on the hosted deploy (`netlify/functions/gdrive-backup.mjs`) via Google OAuth; success reported only after a verified read-back (#215); live round trip verified on the hosted deploy (2026-10-14) and self-hosted (2026-10-15) |
 | Vehicle value API (NHTSA VIN free; paid providers via `VEHICLE_VALUE_PROVIDER`) | Phase 1 | Live |
 | Fidelity / Plaid positions + balance sync | Phase 2 | Live (user-provided credentials; sandbox ready) |
-| Plaid on Netlify (hosted) | Phase 2 | **Hosted only** — endpoints route to `netlify/functions/plaid.mjs` at `/api/sync/plaid/*` (see [docs/integrations.md](docs/integrations.md#browser-only-deploy-netlify-function)); unit- and route-tested, live Link → sync run against the hosted deploy still pending |
+| Plaid on Netlify (hosted) | Phase 2 | **Hosted only** — endpoints route to `netlify/functions/plaid.mjs` at `/api/sync/plaid/*` (see [docs/integrations.md](docs/integrations.md#browser-only-deploy-netlify-function)); shares `app/lib/plaid-service.js` with Express; contract-tested on both; a live run needs the Netlify env vars |
 | Stable stock quote API (Alpha Vantage / Polygon.io) | Phase 2 | Live (fallback: Yahoo Finance) |
 | Rate limiting (300/min general, 30/min sync) | Phase 3 | Live |
 | Security headers (CSP, X-Frame-Options, Referrer-Policy) | Phase 3 | Live |
