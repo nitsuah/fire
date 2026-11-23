@@ -88,6 +88,15 @@ function initWalletManager() {
 async function loadWallets() {
     const listEl = document.getElementById('wallet-manager-list');
     if (!listEl) return;
+    if (typeof FireDeployMode !== 'undefined') {
+        const hosted = await FireDeployMode.whenKnown();
+        if (hosted === true) {
+            _walletCache = [];
+            listEl.innerHTML =
+                '<p class="text-muted csp-text-12">Wallet tracking needs the self-hosted server.</p>';
+            return;
+        }
+    }
     try {
         const { ok, data } = await fetchJson('/api/wallets');
         if (!ok) {
