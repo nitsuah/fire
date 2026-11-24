@@ -12,6 +12,13 @@
  */
 import { BridgeSession } from './session.mjs';
 import { bearerToken, handleMcpRequest } from './mcp.mjs';
+import {
+    MAX_FORM_BYTES,
+    handleAuthorizeComplete,
+    handleToken,
+} from './session-oauth.mjs';
+import { oauthError, verifyPending } from './oauth.mjs';
+import { importHmacKey } from './signing.mjs';
 
 const SID_FROM_PATH = /^\/bridge\/([0-9a-f]{32})$/;
 
@@ -33,6 +40,24 @@ export class BridgeSessionObject {
         this.env = env;
         this.deps = deps;
         this.session = null;
+        this._keyPromise = null;
+    }
+
+    _now() {
+        return this.deps.clock ? this.deps.clock.now() : Date.now();
+    }
+
+    _key() {
+        this._keyPromise ??= importHmacKey(this.env.RELAY_HMAC_KEY);
+        return this._keyPromise;
+    }
+
+    async _verifyPending(value) {
+        if (this.deps.verifyPendingAuth)
+            return this.deps.verifyPendingAuth(value);
+        const key = await this._key();
+        // Fail closed without a signing key.
+        return key ? verifyPending(key, value, this._now()) : null;
     }
 
     _session(sid, url) {
@@ -40,7 +65,7 @@ export class BridgeSessionObject {
             this.session = new BridgeSession({
                 sid,
                 relayOrigin: this.env.RELAY_ORIGIN || url.origin,
-                verifyPendingAuth: this.deps.verifyPendingAuth,
+                verifyPendingAuth: (v) => this._verifyPending(v),
                 clock: this.deps.clock,
                 log: this.deps.log,
             });
@@ -58,9 +83,41 @@ export class BridgeSessionObject {
         });
     }
 
+    async _oauth(request, url) {
+        const key = await this._key();
+        if (!key)
+            return oauthError('server_error', 'Relay is not configured', 500);
+        if (url.pathname === '/authorize/complete') {
+            const sid = url.searchParams.get('sid') || '';
+            const session = /^[0-9a-f]{32}$/.test(sid)
+                ? this._session(sid, url)
+                : null;
+            return handleAuthorizeComplete(request, session);
+        }
+        // /token
+        if (request.method !== 'POST') {
+            return oauthError('invalid_request', 'POST only', 405, {
+                Allow: 'POST',
+            });
+        }
+        const text = await request.text();
+        if (text.length > MAX_FORM_BYTES) {
+            return oauthError('invalid_request', 'Request too large');
+        }
+        const sid = sidFromToken(new URLSearchParams(text).get('code'));
+        const session = sid ? this._session(sid, url) : null;
+        return handleToken(text, session, { key, env: this.env, url });
+    }
+
     async fetch(request) {
         const url = new URL(request.url);
         if (url.pathname === '/mcp') return this._mcp(request, url);
+        if (
+            url.pathname === '/authorize/complete' ||
+            url.pathname === '/token'
+        ) {
+            return this._oauth(request, url);
+        }
         const upgrade = request.headers.get('Upgrade');
         if (!upgrade || upgrade.toLowerCase() !== 'websocket') {
             return new Response('Expected a WebSocket upgrade', {
