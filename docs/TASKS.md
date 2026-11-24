@@ -126,6 +126,9 @@ These items came from the current browser/production pass. **P0** items are corr
   - Shipped: follow-up chains (parent care → funeral → inheritance/house, wedding → child → daycare ends, job loss → new job), 7 new positive events, real-terms escalation linked to the inflation setting, promotions as bumps or 5–6 years of extra savings.
 - [x] **🛡️ Mitigation tips that offset chaos events (e.g. pet insurance)**
   - Shipped: 10 mitigations in Insights → Portfolio Insights that shrink covered hits and charge premiums in the chaos projection, with per-life saves vs. costs.
+- [x] **Chaos Mode mitigation as a personalized life-event decision path (#221)**
+  - Shipped (children #337, #339, #338/#399/#479, #340/#480, #408): the optional 👤 household panel (pets, children, housing; every question skippable, changeable, clearable) saves `state.chaosProfile`, drops ruled-out events from the timeline with an "Excluded by profile" note, hides inapplicable mitigations in Insights and prunes stale picks. Unanswered questions change nothing. Verified end to end in the browser on the demo seed (pets none + children no + rent: 21 events, "Excluded by profile: pet events, child events, homeowner events", pet-insurance and water-rider hidden).
+  - Not built, by design: relationship, employment and caregiving questions from the original proposal; add them as their own children if a mitigation or event depends on them.
 
 ### Narrated brags + money-maker skills — Oct 7, 2026
 
