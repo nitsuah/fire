@@ -142,6 +142,8 @@ Two modes:
 - **Connector mode (default, phase 1).** Works with any MCP client by URL. The relay sees plaintext in memory per call and stores nothing. The threat model (§9) states what that exposes, and the consent page and privacy policy disclose it.
 - **Sealed mode (optional, phase 2).** For true end-to-end, the user runs a small local stdio shim (`fire-bridge`) as their MCP server. The shim and the browser derive a key that the relay never sees: the browser shows a **pairing string** (its ephemeral ECDH P-256 public key plus a 128-bit random secret), the user pastes it into the shim, the shim sends its own ephemeral public key through the relay, and both sides compute `HKDF-SHA256(ECDH(shared) ‖ secret, info="fire-bridge/v1/sealed" ‖ sid)` into two directional AES-256-GCM keys. Because the secret travels out of band, a relay that swaps public keys cannot derive the keys. In this mode `CALL`/`RESULT` carry only ciphertext, and the relay sees metadata alone.
 
+**Status (#517).** The crypto core (`app/bridge-sealed.mjs`: pairing string `fireb1.<base64url JSON>`, HKDF into two directional AES-256-GCM keys, 96-bit counter nonces, AAD = `sid|direction|seq`, counter advances only after the tag verifies) and the shim (`app/fire-bridge.mjs`, a stdio MCP server run with `FIRE_BRIDGE_PAIRING` and `FIRE_BRIDGE_RELAY_URL`) are built and tested against a relay that swaps keys, replays and reorders. A pairing is one shot: the browser accepts one shim key. Not yet wired: the relay carrier, the consent-page pairing UI and the `BridgeHost` glue, tracked in #600.
+
 ---
 
 ## 6. Session lifetime (C2)
