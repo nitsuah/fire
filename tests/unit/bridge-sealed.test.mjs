@@ -312,6 +312,89 @@ describe('SealedClient timeout and encoding', () => {
     });
 });
 
+describe('concurrency', () => {
+    it('overlapping seal() calls never share a counter', async () => {
+        const { shim } = await pair();
+        const envs = await Promise.all(
+            [1, 2, 3, 4].map((n) => shim.seal({ n })),
+        );
+        expect(new Set(envs.map((e) => e.seq)).size).toBe(4);
+    });
+
+    it('opening the same envelope twice at once succeeds only once', async () => {
+        const { shim, browser } = await pair();
+        const env = await shim.seal({ n: 1 });
+        const results = await Promise.allSettled([
+            browser.open(env),
+            browser.open(env),
+        ]);
+        expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    });
+
+    it('two overlapping completePairing calls yield one channel', async () => {
+        const { pairing, pending } = await createPairing(SID);
+        const { hello } = await acceptPairing(pairing);
+        const results = await Promise.allSettled([
+            completePairing(pending, hello),
+            completePairing(pending, hello),
+        ]);
+        expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    });
+
+    it('a junk hello does not burn the pairing', async () => {
+        const { pairing, pending } = await createPairing(SID);
+        await expect(
+            completePairing(pending, {
+                v: 1,
+                sid: SID,
+                pub: b64uEncode(new Uint8Array(65).fill(4)),
+            }),
+        ).rejects.toMatchObject({ code: 'bad_public_key' });
+        const { hello } = await acceptPairing(pairing);
+        await expect(completePairing(pending, hello)).resolves.toBeTruthy();
+    });
+
+    it('concurrent client calls are queued and all succeed', async () => {
+        const { shim, browser } = await pair();
+        const responder = new SealedResponder({
+            channel: browser,
+            execute: (tool, args) => ({ tool, n: args.n }),
+        });
+        const client = new SealedClient({
+            channel: shim,
+            send: async (env) => {
+                // Slow, jittery relay: later requests can answer sooner.
+                await new Promise((r) => setTimeout(r, Math.random() * 15));
+                return responder.handle(env);
+            },
+        });
+        const out = await Promise.all(
+            [1, 2, 3, 4, 5].map((n) => client.call('get_accounts', { n })),
+        );
+        expect(out.map((o) => o.n)).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it('aborts the carrier request when the call times out', async () => {
+        const { shim } = await pair();
+        let aborted = false;
+        const client = new SealedClient({
+            channel: shim,
+            timeoutMs: 20,
+            send: (_env, { signal }) =>
+                new Promise((_, reject) => {
+                    signal.addEventListener('abort', () => {
+                        aborted = true;
+                        reject(new Error('aborted'));
+                    });
+                }),
+        });
+        await expect(client.call('get_accounts', {})).rejects.toMatchObject({
+            code: 'timeout',
+        });
+        expect(aborted).toBe(true);
+    });
+});
+
 describe('SealedChannel guards', () => {
     it('refuses to send past the counter limit', async () => {
         const { shim } = await pair();

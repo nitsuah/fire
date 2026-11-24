@@ -13,7 +13,7 @@
  * Pure WebCrypto: the same file runs in the browser and in Node 22. No
  * storage, no network, no logging.
  */
-/* global TextEncoder, TextDecoder, btoa, atob, setTimeout, clearTimeout */
+/* global TextEncoder, TextDecoder, btoa, atob, setTimeout, clearTimeout, AbortController */
 import { fitResult, ResultTooLarge } from './bridge-host.mjs';
 
 export const SEALED_VERSION = 1;
@@ -146,12 +146,15 @@ export class SealedChannel {
         this.recvKey = role === 'browser' ? keys.c2b : keys.b2c;
         this.sendSeq = 0;
         this.recvSeq = 0;
+        this._openQueue = Promise.resolve();
     }
 
     /** Encrypt a JSON value into an envelope. */
     async seal(value) {
         if (this.sendSeq >= MAX_SEQ) throw new SealedError('seq_exhausted');
-        const seq = this.sendSeq + 1;
+        // Reserve the counter before any await: two overlapping seal() calls
+        // must never share a nonce under the same key.
+        const seq = ++this.sendSeq;
         const ct = new Uint8Array(
             await subtle().encrypt(
                 {
@@ -163,7 +166,6 @@ export class SealedChannel {
                 enc.encode(JSON.stringify(value)),
             ),
         );
-        this.sendSeq = seq;
         return {
             v: SEALED_VERSION,
             sid: this.sid,
@@ -179,7 +181,15 @@ export class SealedChannel {
      * ciphertext, and a forged or altered one at the GCM tag. The counter only
      * advances after the tag verifies, so garbage cannot burn it.
      */
-    async open(envelope) {
+    open(envelope) {
+        // One at a time: verify-then-advance must be atomic, or two opens of the
+        // same envelope could both pass the replay check.
+        const run = this._openQueue.then(() => this._open(envelope));
+        this._openQueue = run.catch(() => {});
+        return run;
+    }
+
+    async _open(envelope) {
         const e = envelope;
         if (
             !e ||
@@ -209,6 +219,7 @@ export class SealedChannel {
         } catch {
             throw new SealedError('auth_failed');
         }
+        if (e.seq <= this.recvSeq) throw new SealedError('replay');
         this.recvSeq = e.seq;
         try {
             return JSON.parse(dec.decode(plain));
@@ -301,14 +312,21 @@ export async function completePairing(pending, hello) {
     ) {
         throw new SealedError('bad_hello');
     }
-    const peer = await importPeer(b64uDecode(hello.pub));
+    // Claim before the first await so overlapping calls cannot both proceed.
     pending.used = true;
-    const keys = await deriveKeys(
-        pending.privateKey,
-        peer,
-        pending.secret,
-        pending.sid,
-    );
+    let keys;
+    try {
+        const peer = await importPeer(b64uDecode(hello.pub));
+        keys = await deriveKeys(
+            pending.privateKey,
+            peer,
+            pending.secret,
+            pending.sid,
+        );
+    } catch (err) {
+        pending.used = false; // a junk key must not burn the pairing
+        throw err;
+    }
     pending.secret = null;
     return new SealedChannel({ sid: pending.sid, role: 'browser', keys });
 }
@@ -378,12 +396,24 @@ export class SealedResponder {
 export class SealedClient {
     constructor({ channel, send, now = () => Date.now(), timeoutMs = 15_000 }) {
         this.channel = channel;
-        this.send = send;
+        this.send = send; // (envelope, { signal }) => Promise<envelope>
         this.now = now;
         this.timeoutMs = timeoutMs;
+        this._queue = Promise.resolve();
     }
 
-    async call(tool, args = {}) {
+    /**
+     * One call at a time. Replies must arrive in counter order (an older
+     * counter is a replay), so concurrent calls from the MCP client are queued
+     * rather than sent in parallel.
+     */
+    call(tool, args = {}) {
+        const run = this._queue.then(() => this._call(tool, args));
+        this._queue = run.catch(() => {});
+        return run;
+    }
+
+    async _call(tool, args) {
         const id = b64uEncode(
             globalThis.crypto.getRandomValues(new Uint8Array(16)),
         );
@@ -393,16 +423,22 @@ export class SealedClient {
             args,
             deadline: this.now() + this.timeoutMs,
         });
+        const ctrl = new AbortController();
         let timer;
-        const replyEnvelope = await Promise.race([
-            this.send(sealed),
-            new Promise((_, reject) => {
-                timer = setTimeout(
-                    () => reject(new SealedError('timeout')),
-                    this.timeoutMs,
-                );
-            }),
-        ]).finally(() => clearTimeout(timer));
+        let replyEnvelope;
+        try {
+            replyEnvelope = await Promise.race([
+                this.send(sealed, { signal: ctrl.signal }),
+                new Promise((_, reject) => {
+                    timer = setTimeout(() => {
+                        reject(new SealedError('timeout'));
+                        ctrl.abort(); // then stop the carrier request too
+                    }, this.timeoutMs);
+                }),
+            ]);
+        } finally {
+            clearTimeout(timer);
+        }
         const reply = await this.channel.open(replyEnvelope);
         if (!reply || reply.id !== id) throw new SealedError('id_mismatch');
         if (!reply.ok) throw new Error(String(reply.error || 'error'));

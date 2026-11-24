@@ -27,11 +27,12 @@ import { acceptPairing, SealedClient } from './bridge-sealed.mjs';
  */
 export function createHttpCarrier(baseUrl, sid, fetchImpl = fetch) {
     const url = `${String(baseUrl).replace(/\/+$/, '')}/${encodeURIComponent(sid)}`;
-    return async (message) => {
+    return async (message, { signal } = {}) => {
         const res = await fetchImpl(url, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify(message),
+            signal,
         });
         if (!res.ok) throw new Error(`relay_${res.status}`);
         const body = await res.json();
@@ -95,7 +96,7 @@ async function main() {
     await carrier({ hello });
     const client = new SealedClient({
         channel,
-        send: async (envelope) => carrier({ envelope }),
+        send: async (envelope, opts) => carrier({ envelope }, opts),
     });
     await buildShim(client).connect(new StdioServerTransport());
 }
