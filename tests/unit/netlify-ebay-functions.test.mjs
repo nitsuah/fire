@@ -86,7 +86,7 @@ describe('ebay-marketplace-account-deletion function', () => {
     });
 
     it.each(['EBAY_VERIFICATION_TOKEN', 'EBAY_NOTIFICATION_ENDPOINT_URL'])(
-        'returns 500 and never hashes when %s is missing',
+        'returns 503 and never hashes when %s is missing',
         async (name) => {
             delete process.env[name];
             const err = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -94,7 +94,7 @@ describe('ebay-marketplace-account-deletion function', () => {
             const res = await deletion(
                 get(`${ENDPOINT}?challenge_code=abc123`),
             );
-            expect(res.status).toBe(500);
+            expect(res.status).toBe(503);
             expect((await res.json()).challengeResponse).toBeUndefined();
             expect(hash).not.toHaveBeenCalled();
             expect(err.mock.calls.flat().join(' ')).toContain(name);

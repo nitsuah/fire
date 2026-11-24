@@ -25,7 +25,7 @@ export default async function handler(req) {
         console.error(
             `[eBay] Marketplace deletion endpoint misconfigured: ${missing.join(', ')} not set.`,
         );
-        return json(500, { error: 'Endpoint not configured.' });
+        return json(503, { error: 'Endpoint not configured.' });
     }
     if (req.method === 'GET') {
         const { status, body } = handleDeletionChallenge({

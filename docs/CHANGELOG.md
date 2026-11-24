@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `GET/POST /api/sync/ebay/marketplace-account-deletion` answers `503` (not `500`) when the eBay verification token or endpoint URL is unset; a missing `challenge_code` stays `400`. Added `app/404.html` so unknown paths on Pages are a real 404 (#544, #520).
+
 ### Added
 - Plaid runs from one shared service (`app/lib/plaid-service.js`) used by both the Express routes and the hosted Netlify function, so Link, exchange, accounts, positions and transactions behave the same on both deploys. Provider-contract tests cover both adapters, and a browser smoke test covers the Plaid card on both. Plaid error bodies and logs keep only error codes; `public_token` and `toggle` input is validated before any Plaid call. Re-link opens Plaid Link in update mode for the broken Item and confirms the repair with Plaid, so the Item keeps its id and history. A transaction sync no longer drops an Item linked while it ran, and a malformed Plaid reply fails only its own Item.
 - The hosted Plaid token is kept in an HttpOnly, `SameSite=Strict` cookie scoped to `/api/sync/plaid` instead of `localStorage`; the page keeps only a connected marker, and an existing connection moves over on its next request.
