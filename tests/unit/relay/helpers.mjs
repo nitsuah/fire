@@ -1,3 +1,4 @@
+/* global setTimeout, Request */
 import { webcrypto as crypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { TextEncoder } from 'node:util';
@@ -165,4 +166,126 @@ export async function reconnect(ctx, { key, scope, expiresAt }) {
     const sig = await sign(key, { sid, nonce: ch.nonce, scope, expiresAt });
     await send(session, socket, { v: 1, type: FrameType.PROVE, sid, sig });
     return { socket };
+}
+
+// ---- OAuth flow helpers (real HMAC key, real DO adapter, fake sockets) ----
+import { BridgeSessionObject } from '../../../relay/session-object.mjs';
+import { b64urlEncode, sha256b64url } from '../../../relay/signing.mjs';
+
+export const PUBLIC = 'https://fire.example';
+export const HMAC_SECRET = b64urlEncode(new Uint8Array(32).fill(7));
+
+export class FakeServerSocket {
+    constructor() {
+        this.handlers = {};
+        this.sent = [];
+        this.accepted = false;
+        this.closed = null;
+    }
+    accept() {
+        this.accepted = true;
+    }
+    addEventListener(name, fn) {
+        this.handlers[name] = fn;
+    }
+    send(t) {
+        this.sent.push(JSON.parse(t));
+    }
+    close(code, reason) {
+        this.closed = { code, reason };
+    }
+    last(type) {
+        return [...this.sent].reverse().find((f) => f.type === type);
+    }
+}
+
+export async function until(predicate, ms = 3000) {
+    const end = Date.now() + ms;
+    while (!predicate()) {
+        if (Date.now() > end) throw new Error('timed out waiting');
+        await new Promise((r) => setTimeout(r, 1));
+    }
+}
+
+/** A Durable Object namespace backed by real BridgeSessionObjects. */
+export function makeNamespace(env, clock) {
+    const objects = new Map();
+    const sockets = new Map();
+    return {
+        sockets,
+        idFromName: (n) => n,
+        get: (sid) => {
+            if (!objects.has(sid)) {
+                const server = new FakeServerSocket();
+                sockets.set(sid, server);
+                objects.set(
+                    sid,
+                    new BridgeSessionObject({}, env, {
+                        WebSocketPair: class {
+                            constructor() {
+                                this[0] = {};
+                                this[1] = server;
+                            }
+                        },
+                        upgradeResponse: () => ({ status: 101 }),
+                        clock,
+                    }),
+                );
+            }
+            return objects.get(sid);
+        },
+    };
+}
+
+export const flowEnv = (over = {}) => ({
+    PUBLIC_ORIGIN: PUBLIC,
+    APP_ORIGIN: PUBLIC,
+    RELAY_HMAC_KEY: HMAC_SECRET,
+    ...over,
+});
+
+export const pkce = async (verifier = 'v'.repeat(64)) => ({
+    verifier,
+    challenge: await sha256b64url(verifier),
+});
+
+export async function openBrowserSession(ns, env, pendingAuth, scope, clock) {
+    const sid = [...crypto.getRandomValues(new Uint8Array(16))]
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    const key = await makeKey();
+    const obj = ns.get(sid);
+    await obj.fetch(
+        new Request(`${PUBLIC}/bridge/${sid}`, {
+            headers: { Upgrade: 'websocket' },
+        }),
+    );
+    const server = ns.sockets.get(sid);
+    const expiresAt = clock.now() + 30 * 60_000;
+    server.handlers.message({
+        data: JSON.stringify({
+            v: 1,
+            type: 'HELLO',
+            sid,
+            pub: key.pub,
+            pendingAuth,
+            scope,
+            expiresAt,
+        }),
+    });
+    await until(() => server.last('CHALLENGE') || server.closed);
+    const ch = server.last('CHALLENGE');
+    if (!ch) return { sid, server, key, closed: true };
+    const sig = await sign(key, {
+        sid,
+        nonce: ch.nonce,
+        scope,
+        expiresAt,
+        origin: PUBLIC,
+    });
+    server.handlers.message({
+        data: JSON.stringify({ v: 1, type: 'PROVE', sid, sig }),
+    });
+    await until(() => server.last('READY') || server.closed);
+    return { sid, server, key, expiresAt, ready: !!server.last('READY') };
 }

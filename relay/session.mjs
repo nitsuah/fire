@@ -107,6 +107,10 @@ export class BridgeSession {
         this._timers = {};
         this._callTimes = []; // start times of calls in the last minute
         this._tokenHashes = new Set(); // SHA-256 hex of live access tokens
+        this.pending = null; // verified pending authorization (OAuth binding)
+        this.pendingAuth = null; // its raw signed value
+        this.authCompleted = false;
+        this.codes = new Map(); // SHA-256 hex of authorization code -> {exp}
     }
 
     /** Register the hash of an access token the OAuth layer just minted. */
@@ -260,6 +264,9 @@ export class BridgeSession {
         this.pub = null;
         this.scope = null;
         this._tokenHashes.clear();
+        this.codes.clear();
+        this.pending = null;
+        this.pendingAuth = null;
         this.log('session_ended');
         this._onEnd(reason);
     }
@@ -376,7 +383,13 @@ export class BridgeSession {
         if (expiresAt <= now || expiresAt > now + Limits.SESSION_MAX_MS) {
             return null;
         }
-        return { pub: frame.pub, scope: approved, expiresAt };
+        return {
+            pub: frame.pub,
+            scope: approved,
+            expiresAt,
+            pending: verified.pending ?? null,
+            pendingAuth,
+        };
     }
 
     async _onProve(socket, state, frame) {
@@ -419,6 +432,8 @@ export class BridgeSession {
         if (first) {
             this.pub = pub;
             this.scope = scope;
+            this.pending = first.pending;
+            this.pendingAuth = first.pendingAuth;
             this.expiresAt = expiresAt;
             this._timers.hard = this.clock.setTimeout(
                 () => this.end('expired'),
@@ -573,7 +588,7 @@ export class BridgeSession {
     }
 }
 
-async function sha256Hex(text) {
+export async function sha256Hex(text) {
     const digest = await crypto.subtle.digest(
         'SHA-256',
         new TextEncoder().encode(text),

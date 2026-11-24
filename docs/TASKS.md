@@ -11,6 +11,7 @@ updated: 2026-10-30
 - [x] Bridge protocol module with test vectors (child 2, #509): frame schemas, PROVE signing string, seq/id/deadline/size checks, replay and tampering vectors.
 - [x] Relay: browser sessions over a non-hibernating WebSocket (child 3, #510): `relay/` session core (HELLO/CHALLENGE/PROVE, approved scope and expiry checks, ping, grace, idle and hard expiry, END), Durable Object adapter and Worker entry; memory only, with a storage-API guard (known modules and API names) and no-payload-logging tests.
 - [x] Relay: Streamable HTTP `/mcp` (child 4, #511): `relay/mcp.mjs` with initialize, ping, `tools/list` filtered to the approved scope, `tools/call` forwarded as CALL, 15 s deadline, 4 in flight, 30 calls/min, 256 KB cap, §6 error mapping, GET/DELETE 405; tool groups in `app/bridge-scope.mjs`, checked-in tool catalog with a drift test.
+- [x] Relay: stateless OAuth authorization server (child 5, #512): protected-resource and AS metadata, signed `client_id` registrations (24 h), signed pending authorizations (5 min) in the consent URL fragment, `/authorize`, `/authorize/complete`, `/token` with PKCE S256, `<sid>.<random>` codes (60 s, single use) and tokens, token scope is the approved scope, no refresh tokens, revocation on session end. Nothing stored.
 
 ## Priority product/reliability pass — Sep 27, 2026
 
