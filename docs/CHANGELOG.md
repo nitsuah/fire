@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Privacy modal: the hosted-bridge design link is now an absolute GitHub URL, so it no longer 404s inside the app.
 
 ### Added
+- `pages-router.yml` CI job: runs the Cloudflare Pages Function router under `wrangler pages dev` (pinned 4.168.0, no secrets) and curls `/api/health`, the eBay deletion endpoint (503), eBay status (`configured:false`), `/api/state` (404 JSON) and an unknown path (404) via `scripts/pages-router-smoke.sh` (#582).
 - MCP hosted bridge sealed mode (child 10, #517): `app/bridge-sealed.mjs` (pairing string, ECDH + HKDF into two AES-256-GCM keys, counter nonces, replay and reorder rejection) and the `app/fire-bridge.mjs` stdio shim. Not yet reachable from the consent page or relay (#600). The stdio server and self-hosted `/mcp` are unchanged.
 - `app/lib/mcp-tools.browser.mjs`: the browser's MCP tool core. Approving on the hosted consent page now starts serving tools instead of failing with "This build cannot serve MCP tools yet"; a Playwright test covers one `tools/call` on demo data (#514).
 - Chaos Mode household decision path (#221) is complete: the optional pets/children/housing answers filter the timeline and the Insights mitigations and survive reload, verified end to end on the demo seed. Relationship, employment and caregiving questions are not built.
