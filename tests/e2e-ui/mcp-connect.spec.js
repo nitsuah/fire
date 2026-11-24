@@ -24,24 +24,21 @@ async function setup(page, { withData = true } = {}) {
         );
         await route.fulfill({ response: res, body });
     });
-    // The browser tool core is not shipped yet; serve a stub module.
-    await page.route('**/lib/mcp-tools.browser.mjs', (route) =>
-        route.fulfill({
-            contentType: 'text/javascript',
-            body: 'export function handleTool(name){ return { ok: true, name }; }',
-        }),
-    );
     await page.addInitScript((data) => {
         localStorage.setItem('fire_privacy_v1_accepted', String(Date.now()));
         if (data)
             localStorage.setItem(
                 'fire_tracker_state',
-                JSON.stringify({ customAccounts: [] }),
+                JSON.stringify({
+                    customAccounts: [
+                        { name: 'Demo Savings', type: 'Savings', value: 1234 },
+                    ],
+                }),
             );
     }, withData);
 }
 
-async function fakeRelay(page, log) {
+async function fakeRelay(page, log, onReady = () => {}) {
     await page.routeWebSocket(/\/bridge\//, (ws) => {
         ws.onMessage((raw) => {
             const frame = JSON.parse(String(raw));
@@ -68,6 +65,7 @@ async function fakeRelay(page, log) {
                         scope: hello.scope,
                     }),
                 );
+                onReady(ws, frame.sid);
             }
         });
     });
@@ -133,6 +131,36 @@ test.describe('MCP consent page', () => {
         await expect(page.getByText(/connection ended/i)).toBeVisible();
         expect(log.some((f) => f.type === 'END')).toBe(true);
         void context;
+    });
+
+    test('approving serves one tools/call on the real tool core with demo data', async ({
+        page,
+    }) => {
+        const log = [];
+        await setup(page);
+        await fakeRelay(page, log, (ws, sid) => {
+            ws.send(
+                JSON.stringify({
+                    v: 1,
+                    type: 'CALL',
+                    sid,
+                    seq: 1,
+                    id: crypto.randomBytes(16).toString('hex'),
+                    deadline: Date.now() + 15000,
+                    tool: 'get_net_worth',
+                    args: {},
+                }),
+            );
+        });
+        await page.goto(URL_HASH);
+        await page.locator('#mcp-connect-approve').click();
+        await expect
+            .poll(() => log.filter((f) => f.type === 'RESULT').length)
+            .toBe(1);
+        const result = log.find((f) => f.type === 'RESULT');
+        expect(result.ok).toBe(true);
+        expect(JSON.stringify(result.content)).toContain('1234');
+        await expect(page.getByText(/cannot serve MCP tools/)).toHaveCount(0);
     });
 
     test('deny sends the user back with access_denied and opens no socket', async ({
