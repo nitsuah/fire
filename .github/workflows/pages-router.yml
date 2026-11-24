@@ -45,7 +45,7 @@ jobs:
         done
         echo "wrangler did not become ready"; cat wrangler.log; exit 1
     - name: Assert routes
-      run: scripts/pages-router-smoke.sh http://127.0.0.1:8788
+      run: sh scripts/pages-router-smoke.sh http://127.0.0.1:8788
     - name: Show wrangler log on failure
       if: failure()
       run: cat wrangler.log
