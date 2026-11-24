@@ -214,7 +214,7 @@ describe('Worker entry', () => {
     });
 
     it('404s unknown paths and 426s plain requests', async () => {
-        expect((await worker.fetch(upgrade('/mcp'), env)).status).toBe(404);
+        expect((await worker.fetch(upgrade('/other'), env)).status).toBe(404);
         expect(
             (
                 await worker.fetch(

@@ -105,6 +105,28 @@ export class BridgeSession {
         this._pending = new Map(); // call id -> { resolve, reject, timer }
         this._waiting = []; // calls queued during the reconnect grace
         this._timers = {};
+        this._callTimes = []; // start times of calls in the last minute
+        this._tokenHashes = new Set(); // SHA-256 hex of live access tokens
+    }
+
+    /** Register the hash of an access token the OAuth layer just minted. */
+    addTokenHash(hashHex) {
+        if (this.status === 'ended') return false;
+        this._tokenHashes.add(hashHex);
+        return true;
+    }
+
+    /** True while the token is one of this session's and the session is up. */
+    async verifyToken(token) {
+        if (this.status === 'ended' || this.status === 'new') return false;
+        if (typeof token !== 'string' || token.length > 512) return false;
+        const hash = await sha256Hex(token);
+        let match = false;
+        // Compare against every hash without an early exit.
+        for (const known of this._tokenHashes) {
+            if (constantTimeEqual(known, hash)) match = true;
+        }
+        return match && this.status !== 'ended';
     }
 
     log(event) {
@@ -158,6 +180,16 @@ export class BridgeSession {
             return Promise.reject(new SessionError('invalid_token'));
         }
         const now = this.clock.now();
+        // 4 in flight and 30 calls per minute, enforced here so no caller can
+        // skip them. The browser applies its own limits as well.
+        this._callTimes = this._callTimes.filter((t) => now - t < 60_000);
+        if (
+            this._pending.size >= Limits.MAX_CALLS_IN_FLIGHT ||
+            this._callTimes.length >= Limits.RATE_LIMIT_CALLS_PER_MIN
+        ) {
+            return Promise.reject(new SessionError('rate_limited'));
+        }
+        this._callTimes.push(now);
         const deadline = Math.min(
             now + Limits.CALL_DEADLINE_MS,
             this.expiresAt,
@@ -227,6 +259,7 @@ export class BridgeSession {
         // The key and policy go with the session: nothing to resume.
         this.pub = null;
         this.scope = null;
+        this._tokenHashes.clear();
         this.log('session_ended');
         this._onEnd(reason);
     }
@@ -538,6 +571,27 @@ export class BridgeSession {
         else this.clock.clearTimeout(h);
         delete this._timers[name];
     }
+}
+
+async function sha256Hex(text) {
+    const digest = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(text),
+    );
+    return Array.from(new Uint8Array(digest), (b) =>
+        b.toString(16).padStart(2, '0'),
+    ).join('');
+}
+
+/** Strings compared without an early exit on the first difference. */
+export function constantTimeEqual(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    let diff = a.length ^ b.length;
+    const n = Math.max(a.length, b.length);
+    for (let i = 0; i < n; i++) {
+        diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+    }
+    return diff === 0;
 }
 
 function sameSet(a, b) {

@@ -1,0 +1,276 @@
+[
+  {
+    "name": "fire_status_summary",
+    "description": "High-level FIRE status: FIRE number, current net worth, progress %, years to FIRE, and Coast FIRE status. Start here. dataFreshness says how old the prices behind net worth are — check it before trusting the numbers.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_net_worth",
+    "description": "Net worth broken down by category: equities, cash, CDs, real estate, vehicles, and crypto wallets, plus dataFreshness (price age, last import, positions with no price source).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_accounts",
+    "description": "All custom accounts (cash, savings, brokerage, HSA, crypto, etc.) with type and current value, plus estimated annual interest and the combined HSA balance.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Only return accounts of this type, e.g. \"HSA\" (case-sensitive)."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_portfolio",
+    "description": "Imported Fidelity / Plaid brokerage positions with symbol, value, cost basis, unrealized P&L and priceUpdatedAt, plus dataFreshness (price age, last import, positions with no price source).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_cds",
+    "description": "Certificate of Deposit holdings with bank, principal, yield rate, maturity date, and days to maturity.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_upcoming_events",
+    "description": "Date-ordered financial events in the next N days (default 90): CD maturities, plus CDs that matured in the last 7 days so they can be flagged for a decision.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "number",
+          "description": "Look-ahead window in days (1-730, default 90)."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_expenses",
+    "description": "Monthly expense breakdown (housing, food, transport, etc.) with monthly and annual totals.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_insurances",
+    "description": "Insurance policies (car, home) with the amount and frequency as entered, normalized monthly and annual amounts, and combined totals.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_projection_settings",
+    "description": "FIRE projection configuration: annual savings, expected return rate, inflation rate, SWR, and time span.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_side_gig_income",
+    "description": "Side hustle income log grouped by platform with per-platform and overall totals (totals cover every entry; the entries list is capped).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Max ledger entries to return (default 200). Totals always cover all entries."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_side_gig_tax_summary",
+    "description": "Side gig sales rolled up by how each item was acquired (business/resale, personal, gift, free): estimated taxable resale profit, taxable gains on personal items, non-deductible personal losses, and sales still missing a tag or cost basis. Optional year filter.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "year": {
+          "type": "number",
+          "description": "Limit to sales dated in this calendar year."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_wallets",
+    "description": "Tracked crypto wallets: chain, label, truncated address (last 8 chars), USD balance, and last-fetched timestamp.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_concentration_risk",
+    "description": "Monitor exposure limits (e.g., COIN > 20%).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "simulate_rebalance",
+    "description": "What-if: move an amount from one asset class to another (e.g. sell $20k of equities into cds) and see the allocation and diversification score before and after. Pass chaos: true (no soldAsset/amount/boughtAsset needed) to sweep every single-leg move across liquid classes and your top positions at several sizes, scored under bear/base/bull return assumptions net of estimated capital-gains tax, and ranked by a metric you pick. Default returns are placeholders — supply your own in options.returns. Read-only — nothing is traded or saved.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "soldAsset": {
+          "type": "string",
+          "enum": [
+            "cash",
+            "cds",
+            "equities",
+            "crypto",
+            "metals",
+            "realEstate",
+            "vehicles",
+            "otherAssets"
+          ]
+        },
+        "amount": {
+          "type": "number",
+          "description": "Dollars moved (> 0, at most the class balance)."
+        },
+        "boughtAsset": {
+          "type": "string",
+          "enum": [
+            "cash",
+            "cds",
+            "equities",
+            "crypto",
+            "metals",
+            "realEstate",
+            "vehicles",
+            "otherAssets"
+          ]
+        },
+        "chaos": {
+          "type": "boolean",
+          "description": "Sweep many scenarios instead of one move. soldAsset, amount and boughtAsset are then ignored."
+        },
+        "options": {
+          "type": "object",
+          "description": "chaos only. fractions: sizes to try as fractions of each balance (default 0.1, 0.25, 0.5, 1). capGainsRatePct: flat tax rate on realized gains (default 15). returns: { bear|base|bull: { <assetClass>: annualReturn }, symbols: { COIN: { bear, base, bull } } } as decimals, e.g. -0.3. rankBy: baseDelta | bearDelta | bullDelta | scoreChange | taxCost | largestPositionPct (default baseDelta). limit: rows returned (default 25). maxPositions / minPositionValue: which top positions are tried as sellers (default 5 / 1000)."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_swr_sensitivity",
+    "description": "Safe-withdrawal-rate stress test: annual withdrawal at the given SWR from current net worth, before and after a market dip, compared with annual expenses (incl. tax drag), plus the same at 3–5% SWR.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "swr": {
+          "type": "number",
+          "description": "Percent, e.g. 4."
+        },
+        "marketDipPercent": {
+          "type": "number",
+          "description": "Drop applied to equities, crypto and metals, e.g. 30."
+        }
+      },
+      "required": [
+        "swr",
+        "marketDipPercent"
+      ]
+    }
+  },
+  {
+    "name": "get_transactions",
+    "description": "Categorized spending transactions (CSV imports and Plaid sync) newest first, filtered by date range, category or merchant, with per-category totals for the filtered rows. Supports paging via offset and pagingKey (hash of matched row ids).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Earliest date, YYYY-MM-DD (inclusive)."
+        },
+        "to": {
+          "type": "string",
+          "description": "Latest date, YYYY-MM-DD (inclusive)."
+        },
+        "category": {
+          "type": "string",
+          "description": "Exact category, case-insensitive."
+        },
+        "merchant": {
+          "type": "string",
+          "description": "Case-insensitive substring of the merchant."
+        },
+        "limit": {
+          "type": "number",
+          "description": "Max rows returned (default 200, max 1000)."
+        },
+        "offset": {
+          "type": "integer",
+          "description": "Rows to skip in newest-first order (non-negative).",
+          "minimum": 0
+        },
+        "pagingKey": {
+          "type": "string",
+          "description": "Hash of matched row ids from a previous page. Required when offset > 0."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_recurring_charges",
+    "description": "Detects subscriptions and recurring bills from the stored spending transactions: merchants charged at a steady weekly, monthly or annual interval with amounts within 10%. Returns each one with its amount, last and next expected date, and a monthly equivalent, plus monthly and annual totals. Read-only and inferred — the app stores no subscription model.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "minOccurrences": {
+          "type": "number",
+          "description": "Only report series with at least this many charges (default 2)."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_emergency_runway",
+    "description": "If income hits $0, how many months until $0 net worth?",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_net_worth_trend",
+    "description": "Actual net worth over time from daily snapshots: latest value, change over 7/30/365 days and since tracking began, plus the daily points (optionally limited to the last N days). Each point carries pricesAsOf/stale (null on snapshots recorded before this was tracked); stalePoints counts snapshots taken on stale prices.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "number",
+          "description": "Only return the last N daily points."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_diversification_score",
+    "description": "0–100 diversification score from how net worth is spread across asset classes (cash, CDs, equities, crypto, metals, real estate, vehicles, other), minus a penalty for any single position over 20% of net worth; includes the class weights.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+]
