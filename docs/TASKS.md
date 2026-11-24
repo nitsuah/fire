@@ -225,6 +225,7 @@ for shipped capabilities. Its follow-up items are below._
 
 - [ ] Model real eBay fee brackets in `calculateEbayFeesTotal` (`app/lib/side-gig.js`), not just a flat rate + order fee.
   - Priority: P1
+  - Progress: part 1 done (#566): `EBAY_FEE_RULES` and `calculateEbayFeesByRule` in `app/lib/finance-platforms.js`. Part 2 (#569): the select, `calculateEbayFeesTotal` and saved state use rule ids.
   - Context: flagged by CodeRabbit on PR #103 (2026-09-10) — the calculator (pre-existing, not introduced by that PR) applies one percentage across the whole transaction value with the pre-#103-corrected $0.30 order fee. Real eBay fee structure has marginal percentage tiers above each category's sale cap, and several categories' effective rate changes at that cap. The $0.30-vs-$0.40 order-fee threshold was fixed directly (order value ≤$10 vs. >$10); the marginal-bracket-per-category modeling was not — it needs each category's actual cap/tier data (not currently captured anywhere in this codebase) and a real per-category fee-rule schema, not a scalar percentage dropdown.
   - Acceptance Criteria: `ebay-category-rate` stores a fee-rule identifier (not a bare percentage), and `calculateEbayFeesTotal` resolves that rule's tiers/caps rather than multiplying one flat rate across the full transaction value.
   - Also covers: `/ebay/refresh` remains the one eBay sync route without a route-level (HTTP) test.

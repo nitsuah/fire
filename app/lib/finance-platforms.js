@@ -13,6 +13,85 @@ function calculateEbayFees(price, shippingCharged, categoryRate, adRate) {
     return standardFee + adFee;
 }
 
+// Per-category final value fee rules (US, eBay seller fees page, checked
+// 2026-11-24). `tiers` are marginal brackets over the total transaction value
+// (price + shipping charged): `upTo` is the bracket's upper bound (null = no
+// bound), `rate` is a percentage applied only to the part of the value inside
+// that bracket. Verify against eBay's seller fees page before editing.
+const EBAY_FEE_RULES = Object.freeze({
+    standard: {
+        id: 'standard',
+        label: 'Most Categories',
+        tiers: [
+            { upTo: 7500, rate: 13.6 },
+            { upTo: null, rate: 2.35 },
+        ],
+    },
+    'books-movies-music': {
+        id: 'books-movies-music',
+        label: 'Books, Movies & Music',
+        tiers: [
+            { upTo: 7500, rate: 15.3 },
+            { upTo: null, rate: 2.35 },
+        ],
+    },
+    'trading-cards': {
+        id: 'trading-cards',
+        label: 'Trading Cards & Comics',
+        tiers: [
+            { upTo: 7500, rate: 13.25 },
+            { upTo: null, rate: 2.35 },
+        ],
+    },
+    clothing: {
+        id: 'clothing',
+        label: 'Clothing, Shoes & Accessories',
+        tiers: [
+            { upTo: 7500, rate: 13.6 },
+            { upTo: null, rate: 2.35 },
+        ],
+    },
+});
+
+const EBAY_DEFAULT_RULE_ID = 'standard';
+
+// Unknown ids (including a legacy bare percentage saved before rule ids
+// existed) resolve to the standard rule rather than throwing.
+function getEbayFeeRule(ruleId) {
+    return Object.prototype.hasOwnProperty.call(EBAY_FEE_RULES, ruleId)
+        ? EBAY_FEE_RULES[ruleId]
+        : EBAY_FEE_RULES[EBAY_DEFAULT_RULE_ID];
+}
+
+// Marginal final value fee for `value` under a rule's tiers.
+function calculateTieredFee(value, tiers) {
+    let remaining = Math.max(value || 0, 0);
+    let lower = 0;
+    let fee = 0;
+    for (const tier of tiers) {
+        if (remaining <= 0) break;
+        const width = tier.upTo === null ? Infinity : tier.upTo - lower;
+        const slice = Math.min(remaining, width);
+        fee += slice * (tier.rate / 100);
+        remaining -= slice;
+        if (tier.upTo !== null) lower = tier.upTo;
+    }
+    return fee;
+}
+
+// Total eBay fees for a sale: tiered final value fee for the category rule,
+// the per-order fee ($0.30 up to $10.00, $0.40 above), and the promoted
+// listings ad rate on the whole transaction value.
+function calculateEbayFeesByRule(ruleId, price, shippingCharged, adRate) {
+    const rule = getEbayFeeRule(ruleId);
+    const totalTransactionVal = (price || 0) + (shippingCharged || 0);
+    const orderFee = totalTransactionVal > 10 ? 0.4 : 0.3;
+    const adFee = totalTransactionVal * ((adRate || 0) / 100);
+    return (
+        calculateTieredFee(totalTransactionVal, rule.tiers) + orderFee + adFee
+    );
+}
+
 function calculateEbayNetProfit(
     price,
     cost,
@@ -128,6 +207,11 @@ module.exports = {
     calculatePoshmarkNetProfit,
     calculateEbayFees,
     calculateEbayNetProfit,
+    EBAY_FEE_RULES,
+    EBAY_DEFAULT_RULE_ID,
+    getEbayFeeRule,
+    calculateTieredFee,
+    calculateEbayFeesByRule,
     calculateEtsyFees,
     calculateEtsyNetProfit,
     calculateFBFees,
