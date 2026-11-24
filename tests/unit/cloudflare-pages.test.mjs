@@ -82,6 +82,39 @@ describe('Cloudflare Pages router', () => {
         expect(await res.json()).toEqual({ challengeResponse: expected });
     });
 
+    it('answers 503, not 500, when the eBay deletion endpoint is not configured', async () => {
+        const res = await onRequest({
+            request: new Request(
+                'https://fire.nitsuah.io/api/sync/ebay/marketplace-account-deletion?challenge_code=abc123',
+            ),
+            env: {},
+            next: () => new Response('static'),
+        });
+        expect(res.status).toBe(503);
+        expect(await res.json()).toEqual({ error: 'Endpoint not configured.' });
+    });
+
+    it('answers 400 for a challenge request without challenge_code', async () => {
+        const res = await onRequest({
+            request: new Request(
+                'https://fire.nitsuah.io/api/sync/ebay/marketplace-account-deletion',
+            ),
+            env: {
+                EBAY_VERIFICATION_TOKEN:
+                    'verification-token-for-tests-0123456789',
+                EBAY_NOTIFICATION_ENDPOINT_URL:
+                    'https://fire.nitsuah.io/api/sync/ebay/marketplace-account-deletion',
+            },
+            next: () => new Response('static'),
+        });
+        expect(res.status).toBe(400);
+    });
+
+    it('ships a 404 page so unknown paths are not the app shell', () => {
+        const html = readFileSync(path.join(root, 'app/404.html'), 'utf8');
+        expect(html).toContain('404');
+    });
+
     it('acknowledges a deletion notification POST', async () => {
         const res = await dispatch(
             new Request(

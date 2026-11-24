@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `GET/POST /api/sync/ebay/marketplace-account-deletion` answers `503` (not `500`) when the eBay verification token or endpoint URL is unset; a missing `challenge_code` stays `400`. Added `app/404.html` so unknown paths on Pages are a real 404 (#544, #520).
+
 ### Added
 - eBay fee-rule table (`EBAY_FEE_RULES`: standard, books-movies-music, trading-cards, clothing) and `calculateEbayFeesByRule` in `app/lib/finance-platforms.js`: marginal tiers (13.6% / 15.3% / 13.25% up to $7,500, then 2.35%), the $0.30/$0.40 order fee and the ad rate. The calculator's category select now holds these rule ids and the eBay fee total resolves their tiers, so sales above $7,500 are no longer charged the full rate (nitsuah/fire#566, #569).
 - Plaid runs from one shared service (`app/lib/plaid-service.js`) used by both the Express routes and the hosted Netlify function, so Link, exchange, accounts, positions and transactions behave the same on both deploys. Provider-contract tests cover both adapters, and a browser smoke test covers the Plaid card on both. Plaid error bodies and logs keep only error codes; `public_token` and `toggle` input is validated before any Plaid call. Re-link opens Plaid Link in update mode for the broken Item and confirms the repair with Plaid, so the Item keeps its id and history. A transaction sync no longer drops an Item linked while it ran, and a malformed Plaid reply fails only its own Item.
