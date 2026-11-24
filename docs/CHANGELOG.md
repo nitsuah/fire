@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Side Hustle Hub eBay card shows last success and last attempt (`syncHealthText`, reusable for other connectors).
 
 ### Changed
+- `app/lib/fetch-utils.js` is a native ES module (`export`, with a `window.fetchJson` bridge for classic scripts); first step of nitsuah/fire#568.
 - `config/Dockerfile.playwright` uses the Playwright 1.65.1 image, matching `@playwright/test` and CI.
 - API key checks (`/api`, the admin key-rotation route and `/mcp`) use one constant-time comparison helper, `app/lib/safe-compare.js`.
 - Integration status matrix: record the remaining live-provider checks (OAuth reconnect, real sync, revocation, multi-account) as a manual checklist; #301 and #302 close on merged code, #262 tracks the live acceptance.

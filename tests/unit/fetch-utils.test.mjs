@@ -47,4 +47,23 @@ describe('fetchJson', () => {
             data: { connected: false },
         });
     });
+
+    it('bridges fetchJson onto window for classic-script callers', async () => {
+        vi.resetModules();
+        vi.stubGlobal('window', {});
+        const { fetchJson } = await import('../../app/lib/fetch-utils.js');
+        expect(globalThis.window.fetchJson).toBe(fetchJson);
+        vi.unstubAllGlobals();
+    });
+
+    it('is loaded by index.html as a native module', async () => {
+        const fs = await import('node:fs');
+        const html = fs.readFileSync(
+            new URL('../../app/index.html', import.meta.url),
+            'utf8',
+        );
+        expect(html).toContain(
+            '<script type="module" src="lib/fetch-utils.js"></script>',
+        );
+    });
 });
