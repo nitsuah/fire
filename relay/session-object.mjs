@@ -11,11 +11,18 @@
  * module also imports under Node for tests.
  */
 import { BridgeSession } from './session.mjs';
+import { bearerToken, handleMcpRequest } from './mcp.mjs';
 
 const SID_FROM_PATH = /^\/bridge\/([0-9a-f]{32})$/;
 
 export function sidFromPath(pathname) {
     const m = SID_FROM_PATH.exec(pathname);
+    return m ? m[1] : null;
+}
+
+/** Access tokens are `<sid>.<random>`; the sid routes to this object. */
+export function sidFromToken(token) {
+    const m = /^([0-9a-f]{32})\.[A-Za-z0-9_-]{16,}$/.exec(token || '');
     return m ? m[1] : null;
 }
 
@@ -28,16 +35,7 @@ export class BridgeSessionObject {
         this.session = null;
     }
 
-    async fetch(request) {
-        const upgrade = request.headers.get('Upgrade');
-        if (!upgrade || upgrade.toLowerCase() !== 'websocket') {
-            return new Response('Expected a WebSocket upgrade', {
-                status: 426,
-            });
-        }
-        const url = new URL(request.url);
-        const sid = sidFromPath(url.pathname);
-        if (!sid) return new Response('Not found', { status: 404 });
+    _session(sid, url) {
         if (!this.session) {
             this.session = new BridgeSession({
                 sid,
@@ -46,7 +44,32 @@ export class BridgeSessionObject {
                 clock: this.deps.clock,
                 log: this.deps.log,
             });
-        } else if (this.session.sid !== sid) {
+        }
+        return this.session.sid === sid ? this.session : null;
+    }
+
+    async _mcp(request, url) {
+        const metadata = `${this.env.PUBLIC_ORIGIN || url.origin}/.well-known/oauth-protected-resource`;
+        const sid = sidFromToken(bearerToken(request));
+        // No sid in the token: nothing to look up, same answer as a bad token.
+        const session = sid ? this._session(sid, url) : null;
+        return handleMcpRequest(request, session, {
+            resourceMetadataUrl: metadata,
+        });
+    }
+
+    async fetch(request) {
+        const url = new URL(request.url);
+        if (url.pathname === '/mcp') return this._mcp(request, url);
+        const upgrade = request.headers.get('Upgrade');
+        if (!upgrade || upgrade.toLowerCase() !== 'websocket') {
+            return new Response('Expected a WebSocket upgrade', {
+                status: 426,
+            });
+        }
+        const sid = sidFromPath(url.pathname);
+        if (!sid) return new Response('Not found', { status: 404 });
+        if (!this._session(sid, url)) {
             return new Response('Not found', { status: 404 });
         }
 
