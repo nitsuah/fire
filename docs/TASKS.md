@@ -6,6 +6,14 @@ updated: 2026-10-30
 
 ---
 
+## Stripe for the Side-Hustle Hub (#261)
+
+- [x] Evaluation: [stripe-side-hustle-eval.md](./stripe-side-hustle-eval.md). Keep Stripe read-only and do not integrate payments.
+- [ ] Pure Stripe-vs-manual duplicate-candidate finder (#596).
+- [ ] Optional account-scoped `canonicalKey` in the mapper (#597).
+- [ ] Owner decision on hosted read-only Stripe (#598).
+- [ ] Live-provider acceptance with the owner's restricted key (manual).
+
 ## Hosted MCP browser bridge
 
 - [x] Bridge protocol module with test vectors (child 2, #509): frame schemas, PROVE signing string, seq/id/deadline/size checks, replay and tampering vectors.
