@@ -200,7 +200,7 @@ function calculatePoshmarkNetProfit(price, shippingDiscount, cost) {
     );
 }
 
-module.exports = {
+const api = {
     calculateMercariFees,
     calculateMercariNetProfit,
     calculatePoshmarkFees,
@@ -217,3 +217,11 @@ module.exports = {
     calculateFBFees,
     calculateFBNetProfit,
 };
+
+// CommonJS for finance-core.js and the server; a classic <script> in the page
+// has no `module`, so it gets the same API on `FireFinancePlatforms`.
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+} else {
+    globalThis.FireFinancePlatforms = api;
+}

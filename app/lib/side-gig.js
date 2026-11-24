@@ -997,19 +997,17 @@ function calculateEbayFeesTotal() {
     const price = parseFloat(document.getElementById('ebay-price').value) || 0;
     const shippingCharged =
         parseFloat(document.getElementById('ebay-shipping-charged').value) || 0;
-    const categoryRate =
-        parseFloat(document.getElementById('ebay-category-rate').value) / 100;
+    // The select's value is a fee-rule id (EBAY_FEE_RULES), not a percentage.
+    const ruleId = document.getElementById('ebay-category-rate').value;
     const adRate =
-        parseFloat(document.getElementById('ebay-ad-rate').value) / 100;
+        parseFloat(document.getElementById('ebay-ad-rate').value) || 0;
 
-    const totalTransactionVal = price + shippingCharged;
-    // eBay's per-order fee is $0.30 for orders of $10.00 or less, $0.40 above
-    // that — not a flat $0.30 regardless of order size.
-    const orderFee = totalTransactionVal > 10 ? 0.4 : 0.3;
-    const standardFee = totalTransactionVal * categoryRate + orderFee;
-    const adFee = totalTransactionVal * adRate;
-
-    return standardFee + adFee;
+    return globalThis.FireFinancePlatforms.calculateEbayFeesByRule(
+        ruleId,
+        price,
+        shippingCharged,
+        adRate,
+    );
 }
 
 function calculateEbayProfit() {
