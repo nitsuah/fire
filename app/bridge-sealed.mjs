@@ -13,7 +13,7 @@
  * Pure WebCrypto: the same file runs in the browser and in Node 22. No
  * storage, no network, no logging.
  */
-/* global TextEncoder, TextDecoder, btoa, atob */
+/* global TextEncoder, TextDecoder, btoa, atob, setTimeout, clearTimeout */
 import { fitResult, ResultTooLarge } from './bridge-host.mjs';
 
 export const SEALED_VERSION = 1;
@@ -24,6 +24,7 @@ const SID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 export const DIR_CLIENT_TO_BROWSER = 'c2b';
 export const DIR_BROWSER_TO_CLIENT = 'b2c';
 const MAX_SEQ = Number.MAX_SAFE_INTEGER;
+// Base64url of a 256 KB result frame plus the GCM tag is about 350 KB.
 const MAX_ENVELOPE_CT_CHARS = 400 * 1024;
 
 export class SealedError extends Error {
@@ -39,9 +40,15 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 
 export function b64uEncode(bytes) {
-    let s = '';
-    for (const b of bytes) s += String.fromCharCode(b);
-    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    // Chunked so a large envelope is one join, not a string rebuilt per byte.
+    const parts = [];
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+        parts.push(String.fromCharCode(...bytes.subarray(i, i + 0x8000)));
+    }
+    return btoa(parts.join(''))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
 }
 
 export function b64uDecode(str) {
@@ -386,7 +393,16 @@ export class SealedClient {
             args,
             deadline: this.now() + this.timeoutMs,
         });
-        const replyEnvelope = await this.send(sealed);
+        let timer;
+        const replyEnvelope = await Promise.race([
+            this.send(sealed),
+            new Promise((_, reject) => {
+                timer = setTimeout(
+                    () => reject(new SealedError('timeout')),
+                    this.timeoutMs,
+                );
+            }),
+        ]).finally(() => clearTimeout(timer));
         const reply = await this.channel.open(replyEnvelope);
         if (!reply || reply.id !== id) throw new SealedError('id_mismatch');
         if (!reply.ok) throw new Error(String(reply.error || 'error'));

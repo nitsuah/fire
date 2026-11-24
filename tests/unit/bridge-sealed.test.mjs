@@ -280,11 +280,35 @@ describe('fire-bridge shim', () => {
         expect(seen.url).toBe(
             'https://relay.example/sealed/sid%2Fwith%20space',
         );
+        const empty = createHttpCarrier('https://r.example', 'x', async () => ({
+            ok: true,
+            json: async () => ({ error: 'nope' }),
+        }));
+        await expect(empty({})).rejects.toThrow('relay_no_envelope');
         const fail = createHttpCarrier('https://r.example', 'x', async () => ({
             ok: false,
             status: 502,
         }));
         await expect(fail({})).rejects.toThrow('relay_502');
+    });
+});
+
+describe('SealedClient timeout and encoding', () => {
+    it('gives up when the relay never answers', async () => {
+        const { shim } = await pair();
+        const client = new SealedClient({
+            channel: shim,
+            send: () => new Promise(() => {}),
+            timeoutMs: 20,
+        });
+        await expect(client.call('get_accounts', {})).rejects.toMatchObject({
+            code: 'timeout',
+        });
+    });
+
+    it('round-trips a large buffer through base64url', () => {
+        const big = Uint8Array.from({ length: 300_000 }, (_, i) => i % 251);
+        expect(b64uDecode(b64uEncode(big))).toEqual(big);
     });
 });
 

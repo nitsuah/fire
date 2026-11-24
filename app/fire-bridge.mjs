@@ -35,7 +35,10 @@ export function createHttpCarrier(baseUrl, sid, fetchImpl = fetch) {
         });
         if (!res.ok) throw new Error(`relay_${res.status}`);
         const body = await res.json();
-        return body && body.envelope;
+        if (!body || typeof body.envelope !== 'object' || !body.envelope) {
+            throw new Error('relay_no_envelope');
+        }
+        return body.envelope;
     };
 }
 
