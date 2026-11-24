@@ -9,6 +9,7 @@ updated: 2026-10-30
 ## Hosted MCP browser bridge
 
 - [x] Bridge protocol module with test vectors (child 2, #509): frame schemas, PROVE signing string, seq/id/deadline/size checks, replay and tampering vectors.
+- [x] Relay: browser sessions over a non-hibernating WebSocket (child 3, #510): `relay/` session core (HELLO/CHALLENGE/PROVE, approved scope and expiry checks, ping, grace, idle and hard expiry, END), Durable Object adapter and Worker entry; memory only, with storage-import and no-payload-logging tests.
 
 ## Priority product/reliability pass — Sep 27, 2026
 
