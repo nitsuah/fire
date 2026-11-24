@@ -1782,3 +1782,49 @@
         align-items: stretch;
     }
     }
+
+/* Hosted MCP consent page (#514) */
+.mcp-connect-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+}
+.mcp-connect-panel {
+    background: var(--card-bg, #1a1d26);
+    color: inherit;
+    max-width: 32rem;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+    padding: var(--space-lg);
+    border-radius: 12px;
+}
+.mcp-connect-groups {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    margin: var(--space-md) 0;
+}
+.mcp-connect-group {
+    display: block;
+    padding: 0.25rem 0;
+}
+.mcp-connect-actions {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: flex-end;
+    margin-top: var(--space-md);
+}
+.mcp-connect-unverified,
+.mcp-connect-note {
+    opacity: 0.75;
+    font-size: 0.9em;
+}
+.mcp-connect-return {
+    display: inline-block;
+    margin-top: var(--space-md);
+}
