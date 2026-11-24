@@ -243,6 +243,11 @@ module.exports = {
     // from finance-platforms.js
     calculateEbayFees: platforms.calculateEbayFees,
     calculateEbayNetProfit: platforms.calculateEbayNetProfit,
+    EBAY_FEE_RULES: platforms.EBAY_FEE_RULES,
+    EBAY_DEFAULT_RULE_ID: platforms.EBAY_DEFAULT_RULE_ID,
+    getEbayFeeRule: platforms.getEbayFeeRule,
+    calculateTieredFee: platforms.calculateTieredFee,
+    calculateEbayFeesByRule: platforms.calculateEbayFeesByRule,
     calculateEtsyFees: platforms.calculateEtsyFees,
     calculateEtsyNetProfit: platforms.calculateEtsyNetProfit,
     calculateFBFees: platforms.calculateFBFees,

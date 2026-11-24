@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
     calculateEbayFees,
     calculateEbayNetProfit,
+    EBAY_FEE_RULES,
+    getEbayFeeRule,
+    calculateTieredFee,
+    calculateEbayFeesByRule,
     calculateEtsyFees,
     calculateEtsyNetProfit,
     calculateFBFees,
@@ -211,5 +215,113 @@ describe('calculatePoshmarkFees / calculatePoshmarkNetProfit', () => {
         expect(calculatePoshmarkFees(0).total).toBe(0);
         // 30 − 6 fee − 2 discount − 8 cost
         expect(calculatePoshmarkNetProfit(30, 2, 8)).toBeCloseTo(14, 2);
+    });
+});
+
+// ─── EBAY_FEE_RULES / calculateEbayFeesByRule ──────────────────────────────────
+
+describe('EBAY_FEE_RULES', () => {
+    it('has the four category rules keyed by id, with ascending tiers ending unbounded', () => {
+        expect(Object.keys(EBAY_FEE_RULES)).toEqual([
+            'standard',
+            'books-movies-music',
+            'trading-cards',
+            'clothing',
+        ]);
+        for (const [id, rule] of Object.entries(EBAY_FEE_RULES)) {
+            expect(rule.id).toBe(id);
+            const bounds = rule.tiers.map((t) => t.upTo);
+            expect(bounds.at(-1)).toBeNull();
+            const finite = bounds.slice(0, -1);
+            expect([...finite].sort((a, b) => a - b)).toEqual(finite);
+        }
+    });
+
+    it('is frozen so callers cannot change a rate', () => {
+        expect(Object.isFrozen(EBAY_FEE_RULES)).toBe(true);
+    });
+
+    it('falls back to the standard rule for unknown ids and legacy percentages', () => {
+        expect(getEbayFeeRule('nope').id).toBe('standard');
+        expect(getEbayFeeRule('13.6').id).toBe('standard');
+        expect(getEbayFeeRule('__proto__').id).toBe('standard');
+        expect(getEbayFeeRule(undefined).id).toBe('standard');
+    });
+});
+
+describe('calculateTieredFee', () => {
+    const tiers = [
+        { upTo: 100, rate: 10 },
+        { upTo: 200, rate: 5 },
+        { upTo: null, rate: 1 },
+    ];
+    it('applies each rate only inside its bracket', () => {
+        expect(calculateTieredFee(50, tiers)).toBeCloseTo(5);
+        expect(calculateTieredFee(100, tiers)).toBeCloseTo(10);
+        expect(calculateTieredFee(150, tiers)).toBeCloseTo(12.5);
+        expect(calculateTieredFee(300, tiers)).toBeCloseTo(10 + 5 + 1);
+    });
+    it('is zero for zero, negative and missing values', () => {
+        expect(calculateTieredFee(0, tiers)).toBe(0);
+        expect(calculateTieredFee(-5, tiers)).toBe(0);
+        expect(calculateTieredFee(undefined, tiers)).toBe(0);
+    });
+});
+
+describe('calculateEbayFeesByRule', () => {
+    it('matches the flat calculator below the cap, apart from the $0.40 order fee above $10', () => {
+        const flat = calculateEbayFees(100, 10, 13.6, 2) + 0.1;
+        expect(calculateEbayFeesByRule('standard', 100, 10, 2)).toBeCloseTo(
+            flat,
+        );
+    });
+
+    it('uses each category rate', () => {
+        expect(
+            calculateEbayFeesByRule('books-movies-music', 100, 0, 0),
+        ).toBeCloseTo(15.3 + 0.4);
+        expect(calculateEbayFeesByRule('trading-cards', 100, 0, 0)).toBeCloseTo(
+            13.25 + 0.4,
+        );
+        expect(calculateEbayFeesByRule('clothing', 100, 0, 0)).toBeCloseTo(
+            13.6 + 0.4,
+        );
+    });
+
+    it('charges the lower marginal rate only on the part above $7,500', () => {
+        const fee = calculateEbayFeesByRule('standard', 8000, 0, 0);
+        expect(fee).toBeCloseTo(7500 * 0.136 + 500 * 0.0235 + 0.4);
+        // Not the flat rate over the whole value.
+        expect(fee).toBeLessThan(8000 * 0.136 + 0.4);
+    });
+
+    it('is exactly the cap fee at $7,500 and continuous across it', () => {
+        const at = calculateEbayFeesByRule('trading-cards', 7500, 0, 0);
+        const over = calculateEbayFeesByRule('trading-cards', 7500.01, 0, 0);
+        expect(at).toBeCloseTo(7500 * 0.1325 + 0.4);
+        expect(over - at).toBeCloseTo(0.01 * 0.0235);
+    });
+
+    it('counts shipping charged toward the tier and the per-order fee threshold', () => {
+        expect(calculateEbayFeesByRule('standard', 7000, 600, 0)).toBeCloseTo(
+            7500 * 0.136 + 100 * 0.0235 + 0.4,
+        );
+        expect(calculateEbayFeesByRule('standard', 5, 5, 0)).toBeCloseTo(
+            10 * 0.136 + 0.3,
+        );
+        expect(calculateEbayFeesByRule('standard', 5, 5.01, 0)).toBeCloseTo(
+            10.01 * 0.136 + 0.4,
+        );
+    });
+
+    it('applies the ad rate to the whole transaction value, not by tier', () => {
+        const noAds = calculateEbayFeesByRule('standard', 8000, 0, 0);
+        expect(
+            calculateEbayFeesByRule('standard', 8000, 0, 2) - noAds,
+        ).toBeCloseTo(160);
+    });
+
+    it('treats missing inputs as zero (just the $0.30 order fee)', () => {
+        expect(calculateEbayFeesByRule('standard')).toBeCloseTo(0.3);
     });
 });
