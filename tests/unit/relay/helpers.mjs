@@ -100,7 +100,7 @@ export async function sign(key, { sid, nonce, scope, expiresAt, origin }) {
 }
 
 export function setup(over = {}) {
-    const clock = new FakeClock();
+    const clock = over.clock ?? new FakeClock();
     const logs = [];
     const ended = [];
     const sid = over.sid ?? generateId();

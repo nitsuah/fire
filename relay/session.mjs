@@ -98,6 +98,7 @@ export class BridgeSession {
         this.expiresAt = 0;
         this.lastActivity = 0;
         this.seq = 0;
+        this._graceDeadline = 0;
 
         this._sockets = new Map(); // socket -> per-socket handshake state
         this._live = null;
@@ -234,7 +235,11 @@ export class BridgeSession {
 
     async _process(socket, state, data) {
         if (this.status === 'ended' || !this._sockets.has(socket)) return;
-        if (typeof data !== 'string' || data.length > MAX_INBOUND_BYTES) {
+        if (
+            typeof data !== 'string' ||
+            data.length > MAX_INBOUND_BYTES ||
+            new TextEncoder().encode(data).length > MAX_INBOUND_BYTES
+        ) {
             this._dropSocket(socket, 'bad_frame');
             return;
         }
@@ -268,6 +273,14 @@ export class BridgeSession {
         }
         if (this.status === 'new') {
             const candidate = await this._checkFirstHello(frame);
+            // The socket may have closed, or the session ended, while the
+            // authorization was being verified.
+            if (
+                this.status === 'ended' ||
+                this._sockets.get(socket) !== state
+            ) {
+                return;
+            }
             if (!candidate) {
                 this._dropSocket(socket, 'invalid_hello');
                 return;
@@ -321,7 +334,10 @@ export class BridgeSession {
         }
         const requested = verified && verified.requestedScope;
         if (!Array.isArray(requested)) return null;
+        // Unique entries only, so the scope the browser signed is the scope
+        // that is stored.
         const approved = [...new Set(scope)];
+        if (approved.length !== scope.length) return null;
         if (!approved.every((s) => requested.includes(s))) return null;
         const now = this.clock.now();
         if (expiresAt <= now || expiresAt > now + Limits.SESSION_MAX_MS) {
@@ -358,11 +374,15 @@ export class BridgeSession {
             this._dropSocket(socket, 'bad_proof');
             return;
         }
+        const now = this.clock.now();
+        if (
+            (first && (this.status !== 'new' || expiresAt <= now)) ||
+            (this.status === 'grace' && now >= this._graceDeadline)
+        ) {
+            this._dropSocket(socket, 'bad_proof');
+            return;
+        }
         if (first) {
-            if (this.status !== 'new') {
-                this._dropSocket(socket, 'bad_proof');
-                return;
-            }
             this.pub = pub;
             this.scope = scope;
             this.expiresAt = expiresAt;
@@ -390,6 +410,7 @@ export class BridgeSession {
                 ...this.scope,
             ]),
         );
+        this._clearTimer('ping');
         this._timers.ping = this.clock.setInterval(() => {
             if (this._live && typeof this._live.ping === 'function') {
                 try {
@@ -425,6 +446,12 @@ export class BridgeSession {
         }
         this._pending.delete(frame.id);
         this.clock.clearTimeout(entry.timer);
+        if (this.clock.now() >= entry.deadline) {
+            // Late: the deadline passed even if its timer has not run yet.
+            this.log('call_timeout');
+            entry.reject(new SessionError('timeout'));
+            return;
+        }
         if (!checkResultSize(frame).ok) {
             entry.reject(new SessionError('result_too_large'));
             return;
@@ -456,6 +483,7 @@ export class BridgeSession {
 
     _enterGrace() {
         this.status = 'grace';
+        this._graceDeadline = this.clock.now() + Limits.RECONNECT_GRACE_MS;
         this._timers.grace = this.clock.setTimeout(
             () => this.end('grace_expired'),
             Limits.RECONNECT_GRACE_MS,

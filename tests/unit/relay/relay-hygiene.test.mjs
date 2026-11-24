@@ -10,8 +10,75 @@ const dir = path.join(
     '../../../relay',
 );
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.mjs'));
-const stripComments = (s) =>
-    s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+const BANNED_MODULES =
+    /^(node:)?(fs|fs\/promises|sqlite|better-sqlite3|redis|pg|mysql2?|mongodb)$/;
+
+function stripComments(s) {
+    return s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+
+/** Storage-API violations in relay source (comments ignored). */
+function findStorageViolations(source) {
+    const src = stripComments(source);
+    const found = [];
+    // Imports, re-exports, dynamic imports and require, by module specifier.
+    const specifiers = [
+        ...src.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g),
+        ...src.matchAll(/\bimport\s*\(?\s*['"]([^'"]+)['"]/g),
+        ...src.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]/g),
+    ].map((m) => m[1]);
+    for (const spec of specifiers) {
+        if (BANNED_MODULES.test(spec)) found.push(`module ${spec}`);
+    }
+    const patterns = [
+        [/\brequire\s*\(/, 'require'],
+        [/\.\s*storage\b|\[\s*['"`]storage['"`]\s*\]/, 'storage property'],
+        [/\b(set|get|delete)Alarm\b/, 'alarm'],
+        [/\bKV(Namespace)?\b|\bD1Database\b|\bR2Bucket\b/, 'KV/D1/R2'],
+        [
+            /\blocalStorage\b|\bsessionStorage\b|\bindexedDB\b|\bcaches\b/,
+            'browser storage',
+        ],
+        [
+            /\bacceptWebSocket\b|\bsetWebSocketAutoResponse\b|\bgetWebSockets\b/,
+            'hibernation API',
+        ],
+    ];
+    for (const [re, label] of patterns) {
+        if (re.test(src)) found.push(label);
+    }
+    return found;
+}
+
+describe('storage guard (fixtures)', () => {
+    it.each([
+        ["import fs from 'node:fs';", 'module'],
+        ["export { readFile } from 'node:fs/promises';", 'module'],
+        ["const m = await import('fs');", 'module'],
+        ["const fs = require('fs');", 'require'],
+        ['await state.storage.put(k, v);', 'storage property'],
+        ["await state['storage'].get(k);", 'storage property'],
+        ['await this.state.storage.setAlarm(1);', 'alarm'],
+        ['env.CACHE_KV; const x = KVNamespace;', 'KV'],
+        ['ctx.acceptWebSocket(ws);', 'hibernation'],
+        ["localStorage.setItem('a', 'b');", 'browser storage'],
+    ])('flags %s', (code, kind) => {
+        const hits = findStorageViolations(code);
+        expect(hits.length).toBeGreaterThan(0);
+        expect(hits.join(' ')).toContain(kind.split(' ')[0]);
+    });
+
+    it('ignores comments and harmless code', () => {
+        const code = [
+            "// import fs from 'node:fs'; state.storage.put()",
+            '/* ctx.acceptWebSocket(ws) */',
+            "import { x } from './session.mjs';",
+            'const storageful = 1; const kv = 2;',
+        ].join('\n');
+        expect(findStorageViolations(code)).toEqual([]);
+    });
+});
 
 describe('relay stays memory-only (design §3, C1)', () => {
     it('has relay files to check', () => {
@@ -19,18 +86,8 @@ describe('relay stays memory-only (design §3, C1)', () => {
     });
 
     it.each(files)('%s imports and calls no storage API', (f) => {
-        const src = stripComments(fs.readFileSync(path.join(dir, f), 'utf8'));
-        const banned = [
-            /\bimport\b[^;]*['"](node:)?(fs|fs\/promises|sqlite|better-sqlite3|redis|pg|mysql2?|mongodb)['"]/,
-            /\brequire\s*\(/,
-            /\.storage\b/,
-            /\bsetAlarm\b|\bgetAlarm\b|\bdeleteAlarm\b/,
-            /\bblockConcurrencyWhile\b.*storage/,
-            /\bKV(Namespace)?\b|\bD1Database\b|\bR2Bucket\b/,
-            /\blocalStorage\b|\bsessionStorage\b|\bindexedDB\b|\bcaches\b/,
-            /\bacceptWebSocket\b|\bsetWebSocketAutoResponse\b|\bgetWebSockets\b/,
-        ];
-        for (const re of banned) expect(src).not.toMatch(re);
+        const src = fs.readFileSync(path.join(dir, f), 'utf8');
+        expect(findStorageViolations(src)).toEqual([]);
     });
 
     it.each(files)('%s has no console or direct logging calls', (f) => {

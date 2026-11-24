@@ -4,6 +4,7 @@ import { PING_INTERVAL_MS, SessionError } from '../../../relay/session.mjs';
 import {
     FakeSocket,
     connect,
+    flush,
     makeKey,
     reconnect,
     send,
@@ -384,6 +385,149 @@ describe('relay session: reconnect, grace and expiry (fake clock)', () => {
         });
         expect((await settled).code).toBe('invalid_token');
         expect(ctx.ended).toEqual(['browser_end']);
+        expect(ctx.clock.pending).toBe(0);
+    });
+});
+
+describe('relay session: edge cases', () => {
+    const hello = (ctx, key, over = {}) => ({
+        v: 1,
+        type: FrameType.HELLO,
+        sid: ctx.sid,
+        pub: key.pub,
+        pendingAuth: 'good-pending',
+        scope: ['accounts'],
+        expiresAt: ctx.clock.now() + MIN,
+        ...over,
+    });
+
+    it('rejects duplicate scope entries (the signed scope is the stored scope)', async () => {
+        const ctx = setup();
+        const socket = new FakeSocket();
+        ctx.session.attach(socket);
+        await send(
+            ctx.session,
+            socket,
+            hello(ctx, await makeKey(), { scope: ['accounts', 'accounts'] }),
+        );
+        expect(socket.closed).toBeTruthy();
+    });
+
+    it('rejects a first PROVE that completes after the approved expiry', async () => {
+        const ctx = setup();
+        const key = await makeKey();
+        const socket = new FakeSocket();
+        ctx.session.attach(socket);
+        const expiresAt = ctx.clock.now() + 3000;
+        await send(ctx.session, socket, hello(ctx, key, { expiresAt }));
+        const ch = socket.last(FrameType.CHALLENGE);
+        const sig = await sign(key, {
+            sid: ctx.sid,
+            nonce: ch.nonce,
+            scope: ['accounts'],
+            expiresAt,
+        });
+        ctx.clock.t += 4000; // clock moves on before the proof arrives
+        await send(ctx.session, socket, {
+            v: 1,
+            type: FrameType.PROVE,
+            sid: ctx.sid,
+            sig,
+        });
+        expect(socket.last(FrameType.READY)).toBeUndefined();
+        expect(socket.closed).toBeTruthy();
+        expect(ctx.session.status).toBe('new');
+    });
+
+    it('rejects a reconnect proof that lands at or after the grace deadline', async () => {
+        const ctx = setup();
+        const first = await connect(ctx);
+        ctx.session.handleClose(first.socket);
+        const socket = new FakeSocket();
+        ctx.session.attach(socket);
+        await send(ctx.session, socket, {
+            v: 1,
+            type: FrameType.HELLO,
+            sid: ctx.sid,
+            pub: first.key.pub,
+        });
+        const ch = socket.last(FrameType.CHALLENGE);
+        const sig = await sign(first.key, {
+            sid: ctx.sid,
+            nonce: ch.nonce,
+            scope: first.scope,
+            expiresAt: first.expiresAt,
+        });
+        // Past the grace deadline, before its timer callback has run.
+        ctx.clock.t += Limits.RECONNECT_GRACE_MS;
+        await send(ctx.session, socket, {
+            v: 1,
+            type: FrameType.PROVE,
+            sid: ctx.sid,
+            sig,
+        });
+        expect(socket.last(FrameType.READY)).toBeUndefined();
+        expect(ctx.session.status).not.toBe('live');
+    });
+
+    it('drops a RESULT that arrives after the call deadline, before its timer runs', async () => {
+        const ctx = setup();
+        const { socket } = await connect(ctx);
+        const settled = ctx.session.dispatchCall('t', {}).catch((e) => e);
+        const id = socket.last(FrameType.CALL).id;
+        ctx.clock.t += Limits.CALL_DEADLINE_MS;
+        await send(ctx.session, socket, {
+            v: 1,
+            type: FrameType.RESULT,
+            sid: ctx.sid,
+            id,
+            ok: true,
+            content: { v: 1 },
+        });
+        expect((await settled).code).toBe('timeout');
+    });
+
+    it('rejects an inbound frame whose UTF-8 size exceeds the limit', async () => {
+        const ctx = setup();
+        const { socket } = await connect(ctx);
+        // 3-byte characters: under the code-unit cap, over the byte cap.
+        const reason = '€'.repeat(Math.ceil(Limits.MAX_RESULT_BYTES / 2));
+        await send(ctx.session, socket, {
+            v: 1,
+            type: FrameType.END,
+            sid: ctx.sid,
+            reason,
+        });
+        expect(ctx.session.status).not.toBe('ended');
+        expect(socket.closed).toBeTruthy();
+    });
+
+    it('keeps one ping interval after a reconnect replaces a live socket', async () => {
+        const ctx = setup();
+        const first = await connect(ctx);
+        const { socket } = await reconnect(ctx, first);
+        await ctx.clock.advance(PING_INTERVAL_MS * 2);
+        expect(socket.pings).toBe(2);
+        ctx.session.end('test');
+        expect(ctx.clock.pending).toBe(0);
+    });
+
+    it('ignores a HELLO whose socket closed while authorization was pending', async () => {
+        let release;
+        const ctx = setup({
+            verifyPendingAuth: () =>
+                new Promise((r) => {
+                    release = () => r({ requestedScope: ['accounts'] });
+                }),
+        });
+        const socket = new FakeSocket();
+        ctx.session.attach(socket);
+        const p = send(ctx.session, socket, hello(ctx, await makeKey()));
+        await flush();
+        ctx.session.handleClose(socket);
+        release();
+        await p;
+        expect(socket.last(FrameType.CHALLENGE)).toBeUndefined();
         expect(ctx.clock.pending).toBe(0);
     });
 });

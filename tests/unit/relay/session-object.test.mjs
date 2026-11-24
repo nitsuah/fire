@@ -9,6 +9,16 @@ import { FakeClock, makeKey, sign } from './helpers.mjs';
 
 const sid = 'a'.repeat(32);
 
+// Poll for an async effect, failing after a bounded wait instead of sleeping
+// a fixed time.
+async function until(predicate, ms = 3000) {
+    const end = Date.now() + ms;
+    while (!predicate()) {
+        if (Date.now() > end) throw new Error('timed out waiting');
+        await new Promise((r) => setTimeout(r, 1));
+    }
+}
+
 class FakeServerSocket {
     constructor() {
         this.handlers = {};
@@ -63,10 +73,8 @@ describe('Durable Object adapter', () => {
         expect(res.status).toBe(101);
         expect(server.accepted).toBe(true);
         const key = await makeKey();
-        const expiresAt = Date.now() + 5 * 60_000;
-        // the fake clock's now() is 1_000_000, so use a matching expiry
+        // The fake clock starts at 1_000_000.
         const exp = 1_000_000 + 5 * 60_000;
-        void expiresAt;
         server.handlers.message({
             data: JSON.stringify({
                 v: 1,
@@ -78,7 +86,9 @@ describe('Durable Object adapter', () => {
                 expiresAt: exp,
             }),
         });
-        await new Promise((r) => setTimeout(r, 0));
+        await until(() =>
+            server.sent.some((f) => f.type === FrameType.CHALLENGE),
+        );
         const ch = server.sent.find((f) => f.type === FrameType.CHALLENGE);
         expect(ch).toBeTruthy();
         const sig = await sign(key, {
@@ -91,7 +101,7 @@ describe('Durable Object adapter', () => {
         server.handlers.message({
             data: JSON.stringify({ v: 1, type: FrameType.PROVE, sid, sig }),
         });
-        await new Promise((r) => setTimeout(r, 20));
+        await until(() => server.sent.some((f) => f.type === FrameType.READY));
         expect(server.sent.some((f) => f.type === FrameType.READY)).toBe(true);
     });
 
@@ -110,7 +120,7 @@ describe('Durable Object adapter', () => {
                 expiresAt: 1_000_000 + 60_000,
             }),
         });
-        await new Promise((r) => setTimeout(r, 10));
+        await until(() => server.closed);
         expect(server.closed).toBeTruthy();
     });
 
