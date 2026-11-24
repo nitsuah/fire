@@ -83,6 +83,8 @@ export default [
             'app/lib/html-utils.js',
             'app/lib/fetch-utils.js',
             'app/lib/privacy.js',
+            'app/lib/mcp-connect.js',
+            'app/lib/mcp-connect-core.mjs',
             'app/lib/notifications.js',
             'app/lib/layout-manager.js',
             'app/lib/service-worker-registration.js',
