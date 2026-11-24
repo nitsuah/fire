@@ -175,6 +175,92 @@ describe('/mcp: transport and auth', () => {
         expect((await call(ctx, [rpc('ping')])).res.status).toBe(400);
     });
 
+    it('accepts equivalent Bearer syntax (case-insensitive scheme, extra spaces)', async () => {
+        const ctx = await liveSession();
+        for (const auth of [`bearer ${ctx.token}`, `BEARER   ${ctx.token}`]) {
+            const res = await handleMcpRequest(
+                post(rpc('ping'), null, { Authorization: auth }),
+                ctx.session,
+                opts,
+            );
+            expect(res.status).toBe(200);
+        }
+    });
+
+    it('validates the JSON-RPC envelope before treating a message as a notification', async () => {
+        const ctx = await liveSession();
+        for (const bad of [
+            {},
+            { jsonrpc: '2.0' },
+            { jsonrpc: '1.0', method: 'ping', id: 1 },
+            { jsonrpc: '2.0', method: 'ping', id: {} },
+            { jsonrpc: '2.0', method: 5, id: 1 },
+        ]) {
+            const { res, body } = await call(ctx, bad);
+            expect(res.status).toBe(400);
+            expect(body.error.code).toBe(-32600);
+            expect(body.id).toBeNull();
+        }
+        const ok = await call(ctx, {
+            jsonrpc: '2.0',
+            method: 'notifications/initialized',
+        });
+        expect(ok.res.status).toBe(202);
+    });
+
+    it('caps the request body while reading it, even with no Content-Length', async () => {
+        const ctx = await liveSession();
+        const big = new ReadableStream({
+            start(c) {
+                c.enqueue(new TextEncoder().encode('x'.repeat(MAX_BODY_BYTES)));
+                c.enqueue(new TextEncoder().encode('y'));
+                c.close();
+            },
+        });
+        const res = await handleMcpRequest(
+            new Request('https://fire.example/mcp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${ctx.token}`,
+                },
+                body: big,
+                duplex: 'half',
+            }),
+            ctx.session,
+            opts,
+        );
+        expect(res.status).toBe(413);
+    });
+
+    it('a request whose session ended during the body read gets 401', async () => {
+        const ctx = await liveSession();
+        const stream = new ReadableStream({
+            async start(c) {
+                await new Promise((r) => setTimeout(r, 5));
+                ctx.session.end('user_disconnect');
+                c.enqueue(
+                    new TextEncoder().encode(JSON.stringify(rpc('tools/list'))),
+                );
+                c.close();
+            },
+        });
+        const res = await handleMcpRequest(
+            new Request('https://fire.example/mcp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${ctx.token}`,
+                },
+                body: stream,
+                duplex: 'half',
+            }),
+            ctx.session,
+            opts,
+        );
+        expect(res.status).toBe(401);
+    });
+
     it('a notification gets 202 with no body', async () => {
         const ctx = await liveSession();
         const { res } = await call(ctx, {
@@ -264,6 +350,21 @@ describe('/mcp: tools/call forwarding and the §6 failure table', () => {
         expect(JSON.parse(body.result.content[0].text)).toEqual({ total: 42 });
     });
 
+    it('data changes mid-session: the next call returns the new result (nothing cached)', async () => {
+        const ctx = await liveSession(['summary']);
+        const run = async (n, value) => {
+            const p = call(
+                ctx,
+                rpc('tools/call', { name: 'get_net_worth', arguments: {} }),
+            );
+            await calls(ctx, n);
+            await answer(ctx, { ok: true, content: { total: value } });
+            return JSON.parse((await p).body.result.content[0].text);
+        };
+        expect(await run(1, 100)).toEqual({ total: 100 });
+        expect(await run(2, 250)).toEqual({ total: 250 });
+    });
+
     it('a browser error result is a tool error', async () => {
         const ctx = await liveSession(['summary']);
         const p = call(
@@ -298,7 +399,9 @@ describe('/mcp: tools/call forwarding and the §6 failure table', () => {
             ctx,
             rpc('tools/call', { name: 'get_net_worth', arguments: {} }),
         );
+        const end = Date.now() + 3000;
         while (!ctx.session.inFlight) {
+            if (Date.now() > end) throw new Error('call never admitted');
             await new Promise((r) => setTimeout(r, 1));
         }
         await ctx.clock.advance(Limits.CALL_DEADLINE_MS + 1);

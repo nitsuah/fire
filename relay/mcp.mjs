@@ -35,7 +35,7 @@ function json(body, status = 200, extra = {}) {
 
 export function bearerToken(request) {
     const h = request.headers.get('Authorization') || '';
-    const m = /^Bearer ([A-Za-z0-9._~+/=-]{1,512})$/.exec(h);
+    const m = /^Bearer +([A-Za-z0-9._~+/=-]{1,512})$/i.exec(h);
     return m ? m[1] : null;
 }
 
@@ -89,14 +89,19 @@ async function handleRpc(session, msg) {
     if (!msg || typeof msg !== 'object' || Array.isArray(msg)) {
         return { response: rpcErr(null, -32600, 'Invalid Request') };
     }
-    const isNotification = msg.id === undefined;
-    if (msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
-        // A response or malformed message from the client: accept and ignore.
-        return isNotification
+    const invalid = { response: rpcErr(null, -32600, 'Invalid Request') };
+    if (msg.jsonrpc !== '2.0') return invalid;
+    if (typeof msg.method !== 'string') {
+        // A client response to a server request: valid, nothing to do.
+        return ('result' in msg || 'error' in msg) && typeof msg.id !== 'object'
             ? { none: true }
-            : { response: rpcErr(msg.id ?? null, -32600, 'Invalid Request') };
+            : invalid;
     }
-    if (isNotification) return { none: true };
+    const hasId = 'id' in msg;
+    if (hasId && typeof msg.id !== 'string' && typeof msg.id !== 'number') {
+        return invalid;
+    }
+    if (!hasId) return { none: true };
     const { id, method, params } = msg;
     switch (method) {
         case 'initialize': {
@@ -132,6 +137,31 @@ async function handleRpc(session, msg) {
     }
 }
 
+/** Read the body as text, counting bytes; null once it exceeds the cap. */
+async function readCapped(request, cap) {
+    if (!request.body) return '';
+    const reader = request.body.getReader();
+    const chunks = [];
+    let total = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > cap) {
+            await reader.cancel();
+            return null;
+        }
+        chunks.push(value);
+    }
+    const all = new Uint8Array(total);
+    let at = 0;
+    for (const c of chunks) {
+        all.set(c, at);
+        at += c.byteLength;
+    }
+    return new TextDecoder().decode(all);
+}
+
 /**
  * @param {Request} request
  * @param {import('./session.mjs').BridgeSession|null} session
@@ -162,15 +192,17 @@ export async function handleMcpRequest(request, session, opts) {
     if (declared > MAX_BODY_BYTES) {
         return json({ error: 'payload_too_large' }, 413);
     }
-    const text = await request.text();
-    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
-        return json({ error: 'payload_too_large' }, 413);
-    }
+    const text = await readCapped(request, MAX_BODY_BYTES);
+    if (text === null) return json({ error: 'payload_too_large' }, 413);
     let msg;
     try {
         msg = JSON.parse(text);
     } catch {
         return json(rpcErr(null, -32700, 'Parse error'), 400);
+    }
+    // The session may have ended while the body was read.
+    if (!(await session.verifyToken(token))) {
+        return unauthorized(resourceMetadataUrl, true);
     }
     const out = await handleRpc(session, msg);
     if (out.unauthorized) return unauthorized(resourceMetadataUrl, true);
