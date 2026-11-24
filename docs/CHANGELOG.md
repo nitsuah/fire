@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `GET/POST /api/sync/ebay/marketplace-account-deletion` answers `503` (not `500`) when the eBay verification token or endpoint URL is unset; a missing `challenge_code` stays `400`. Added `app/404.html` so unknown paths on Pages are a real 404 (#544, #520).
+- Privacy modal: the hosted-bridge design link is now an absolute GitHub URL, so it no longer 404s inside the app.
 
 ### Added
 - eBay fee-rule table (`EBAY_FEE_RULES`: standard, books-movies-music, trading-cards, clothing) and `calculateEbayFeesByRule` in `app/lib/finance-platforms.js`: marginal tiers (13.6% / 15.3% / 13.25% up to $7,500, then 2.35%), the $0.30/$0.40 order fee and the ad rate. The calculator's category select now holds these rule ids and the eBay fee total resolves their tiers, so sales above $7,500 are no longer charged the full rate (nitsuah/fire#566, #569).
