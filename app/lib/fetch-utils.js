@@ -6,7 +6,7 @@
    result instead of letting res.json() throw a raw SyntaxError.
    ========================================================================== */
 
-async function fetchJson(url, options) {
+export async function fetchJson(url, options) {
     const res = await fetch(url, options);
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
@@ -36,7 +36,6 @@ async function fetchJson(url, options) {
     return { ok: res.ok, status: res.status, data };
 }
 
-// Allow unit tests to import this classic browser script without changing browser behavior.
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { fetchJson };
-}
+// Native ES module. The bridge keeps classic-script callers (accounts.js,
+// wallets.js, ...) working until they import this file themselves.
+if (typeof window !== 'undefined') window.fetchJson = fetchJson;
