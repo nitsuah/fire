@@ -1,6 +1,6 @@
 'use strict';
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 globalThis.document = {
     readyState: 'complete',
@@ -24,5 +24,26 @@ describe('stripNavRow', () => {
         const md = `Line 1\nLine 2\nLine 3`;
         const out = stripNavRow(md);
         expect(out).toBe(md);
+    });
+});
+
+describe('native module loading', () => {
+    it('bridges openPrivacyModal onto window for the CSP click dispatcher', async () => {
+        vi.resetModules();
+        globalThis.window = {};
+        await import('./privacy.js');
+        expect(typeof globalThis.window.openPrivacyModal).toBe('function');
+        delete globalThis.window;
+    });
+
+    it('is loaded by index.html as a native module', async () => {
+        const fs = await import('node:fs');
+        const html = fs.readFileSync(
+            new URL('../index.html', import.meta.url),
+            'utf8',
+        );
+        expect(html).toContain(
+            '<script type="module" src="lib/privacy.js"></script>',
+        );
     });
 });
