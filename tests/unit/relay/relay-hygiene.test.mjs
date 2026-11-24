@@ -29,7 +29,35 @@ function scan(src) {
         } else if (c === '/' && n === '*') {
             const end = src.indexOf('*/', i + 2);
             i = end === -1 ? src.length : end + 2;
-        } else if (c === "'" || c === '"' || c === '`') {
+        } else if (c === '`') {
+            // Template literal: text is blanked, but `${...}` is real code.
+            kept += c;
+            blanked += c;
+            i++;
+            while (i < src.length && src[i] !== '`') {
+                if (src[i] === '\\') {
+                    kept += src.slice(i, i + 2);
+                    blanked += '  ';
+                    i += 2;
+                } else if (src[i] === '$' && src[i + 1] === '{') {
+                    let depth = 0;
+                    do {
+                        if (src[i] === '{') depth++;
+                        if (src[i] === '}') depth--;
+                        kept += src[i];
+                        blanked += src[i];
+                        i++;
+                    } while (i < src.length && depth > 0);
+                } else {
+                    kept += src[i];
+                    blanked += ' ';
+                    i++;
+                }
+            }
+            kept += '`';
+            blanked += '`';
+            i++;
+        } else if (c === "'" || c === '"') {
             let j = i + 1;
             while (j < src.length && src[j] !== c) {
                 j += src[j] === '\\' ? 2 : 1;
@@ -96,6 +124,7 @@ describe('storage guard (fixtures)', () => {
         ['env.CACHE_KV; const x = KVNamespace;', 'KV'],
         ['ctx.acceptWebSocket(ws);', 'hibernation'],
         ["localStorage.setItem('a', 'b');", 'browser storage'],
+        ['const v = `${state.storage.put(1, 2)}`;', 'storage property'],
     ])('flags %s', (code, kind) => {
         const hits = findStorageViolations(code);
         expect(hits.length).toBeGreaterThan(0);
@@ -111,6 +140,7 @@ describe('storage guard (fixtures)', () => {
             'const ok = 1; // state.storage.put()',
             "const s = 'ctx.acceptWebSocket and localStorage'; /* x */",
             'const t = `state.storage`;',
+            "const u = `plain ${1 + 1} text`;",
         ].join('\n');
         expect(findStorageViolations(code)).toEqual([]);
     });
