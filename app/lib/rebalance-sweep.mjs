@@ -1,5 +1,3 @@
-'use strict';
-
 // Scenario sweep behind simulate_rebalance's `chaos` flag. Enumerates single-leg
 // moves (sell a liquid asset class or one position, buy a different liquid
 // class) at several sizes, then scores each move under bear/base/bull return
@@ -10,12 +8,12 @@
 // assumptions", and the default returns are placeholders, not forecasts.
 // Pure and read-only — nothing is traded or saved.
 
-const {
+import {
     ASSET_CLASSES,
     getAllocationAmounts,
     scoreDiversification,
     isSettledCash,
-} = require('./aggregates.js');
+} from './aggregates.mjs';
 
 const LIQUID_CLASSES = ['cash', 'cds', 'equities', 'crypto', 'metals'];
 const SCENARIOS = ['bear', 'base', 'bull'];
@@ -360,4 +358,4 @@ function sweepRebalances(state, rawOpts = {}) {
     };
 }
 
-module.exports = { sweepRebalances, RANKABLE, DEFAULT_RETURNS };
+export { sweepRebalances, RANKABLE, DEFAULT_RETURNS };

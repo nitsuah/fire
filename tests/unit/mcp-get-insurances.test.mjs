@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 // handleTool is imported lazily so FIRE_DB_FILE is set first, matching
 // mcp-server-read-only.test.mjs (static imports hoist above the assignment).
 process.env.FIRE_DB_FILE = 'mcp-get-insurances-test-unused.json';
-const aggregates = require('../../app/lib/aggregates.js');
+const aggregates = require('../../app/lib/aggregates.mjs');
 
 describe('get_insurances shape', () => {
     it('normalizes 6-month, annual and monthly premiums to the same monthly total', () => {

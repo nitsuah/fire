@@ -12,12 +12,12 @@ export default defineConfig({
       provider: 'v8',
       include: [
         'app/server.js',
-        'app/lib/finance-calcs.js',
+        'app/lib/finance-calcs.mjs',
         'app/lib/finance-core.js',
         'app/lib/finance-parsing.js',
         'app/lib/finance-platforms.js',
-        'app/lib/aggregates.js',
-        'app/lib/net-worth-history.js',
+        'app/lib/aggregates.mjs',
+        'app/lib/net-worth-history.mjs',
         'app/lib/local-backup.js',
       ],
       exclude: [

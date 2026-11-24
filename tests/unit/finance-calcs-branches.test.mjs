@@ -3,7 +3,7 @@ import {
     windowToPoints,
     sliceProjectionData,
     buildProjectionData,
-} from '../../app/lib/finance-calcs.js';
+} from '../../app/lib/finance-calcs.mjs';
 
 // Branch coverage for window mapping, optional projection series, and the
 // `|| 0` fallbacks used when accounts arrive with missing fields.

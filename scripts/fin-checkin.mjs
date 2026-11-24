@@ -30,7 +30,7 @@ import { pathToFileURL } from 'url';
 import { handleTool } from '../app/mcp-server.mjs';
 
 const require = createRequire(import.meta.url);
-const { summarizeDataFreshness } = require('../app/lib/data-freshness.js');
+const { summarizeDataFreshness } = require('../app/lib/data-freshness.mjs');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

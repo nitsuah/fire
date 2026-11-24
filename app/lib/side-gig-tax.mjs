@@ -13,7 +13,6 @@
    - free: acquired for nothing (e.g. equipment an employer let you keep),
      so basis is $0 and the proceeds after selling costs are a gain.
    ========================================================================== */
-/* global module */
 
 const SIDE_GIG_BASIS_TYPES = {
     business: 'Business / bought to resell',
@@ -243,22 +242,20 @@ function tagUntaggedSales(ledger, basisType) {
     return { ledger: next, tagged };
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        SIDE_GIG_BASIS_TYPES,
-        needsItemCost,
-        summarizeSideGigLedger,
-        tagUntaggedSales,
-        saleAmounts,
-        localIsoDate,
-        applyCostBasis,
-        classifySideGigSale,
-        summarizeSideGigTax,
-        entryYear,
-    };
-}
+export {
+    SIDE_GIG_BASIS_TYPES,
+    needsItemCost,
+    summarizeSideGigLedger,
+    tagUntaggedSales,
+    saleAmounts,
+    localIsoDate,
+    applyCostBasis,
+    classifySideGigSale,
+    summarizeSideGigTax,
+    entryYear,
+};
 
-// Make functions globally available for browser scripts
+// Temporary bridge: classic page scripts still read these as globals.
 if (typeof window !== 'undefined') {
     window.SIDE_GIG_BASIS_TYPES = SIDE_GIG_BASIS_TYPES;
     window.saleAmounts = saleAmounts;

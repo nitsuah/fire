@@ -5,8 +5,8 @@ import {
     summarizeDataFreshness,
     pricesAsOf,
     quotableSymbols,
-} from '../../app/lib/data-freshness.js';
-import { recordNetWorthSnapshot } from '../../app/lib/net-worth-history.js';
+} from '../../app/lib/data-freshness.mjs';
+import { recordNetWorthSnapshot } from '../../app/lib/net-worth-history.mjs';
 import { collectLiveQuotes } from '../../app/lib/server-reprice.js';
 import { applyLiveValues } from '../../app/lib/live-values.js';
 

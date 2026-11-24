@@ -2,23 +2,13 @@
    mcp-tools.mjs — Pure, browser-safe MCP tool definitions and handler.
 
    This module contains NO Node built-in imports (no fs, no db.js, no audit-log
-   writes) and reads no environment variables. Its helpers in ./lib are CommonJS, imported
-   via their default export (named imports are undefined under native Node ESM);
-   the future browser host must bundle them or ship ESM builds (see
-   docs/hosted-mcp-browser-bridge.md). handleTool is synchronous; paging keys
-   use a built-in synchronous fingerprint (pagingFingerprint).
+   writes) and reads no environment variables. Its helpers in ./lib are native ES modules (.mjs), so the browser host loads them
+   directly - no bundler. handleTool is synchronous; paging keys use a built-in
+   synchronous fingerprint (pagingFingerprint).
    ========================================================================== */
 
-import { buildProjectionData } from './lib/finance-calcs.js';
-import aggregates from './lib/aggregates.js';
-import sideGigTax from './lib/side-gig-tax.js';
-import rebalanceSweep from './lib/rebalance-sweep.js';
-import netWorthHistory from './lib/net-worth-history.js';
-import cointrackerMerge from './lib/cointracker-merge.js';
-import dataFreshness from './lib/data-freshness.js';
-import recurringCharges from './lib/recurring-charges.js';
-
-const {
+import { buildProjectionData } from './lib/finance-calcs.mjs';
+import {
     fireStatus,
     ASSET_CLASSES,
     getAllocationAmounts,
@@ -28,13 +18,13 @@ const {
     getAnnualExpensesTotal,
     getEstimatedAnnualInterest,
     getAggregateNetWorth,
-} = aggregates;
-const { saleAmounts, summarizeSideGigTax } = sideGigTax;
-const { sweepRebalances } = rebalanceSweep;
-const { summarizeNetWorthHistory } = netWorthHistory;
-const { coinTrackerAddresses } = cointrackerMerge;
-const { summarizeDataFreshness } = dataFreshness;
-const { detectRecurringCharges } = recurringCharges;
+} from './lib/aggregates.mjs';
+import { saleAmounts, summarizeSideGigTax } from './lib/side-gig-tax.mjs';
+import { sweepRebalances } from './lib/rebalance-sweep.mjs';
+import { summarizeNetWorthHistory } from './lib/net-worth-history.mjs';
+import { coinTrackerAddresses } from './lib/cointracker-merge.mjs';
+import { summarizeDataFreshness } from './lib/data-freshness.mjs';
+import { detectRecurringCharges } from './lib/recurring-charges.mjs';
 
 function computeNetWorthBreakdown(state) {
     let cash = 0,

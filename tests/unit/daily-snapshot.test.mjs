@@ -3,7 +3,7 @@ import {
     MAX_HISTORY_DAYS,
     dayKey,
     upsertDailySnapshot,
-} from '../../app/lib/daily-snapshot.js';
+} from '../../app/lib/daily-snapshot.mjs';
 
 const at = (y, m, d) => new Date(y, m - 1, d, 12, 0, 0);
 

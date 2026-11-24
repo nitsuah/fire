@@ -1,5 +1,3 @@
-'use strict';
-
 /* ==========================================================================
    recurring-charges.js — Detect subscriptions and bills from the spending
    transactions the app already stores. Pure functions (no DOM/state) so the
@@ -14,7 +12,6 @@
    Amounts must agree within AMOUNT_TOLERANCE, so a price rise is still the
    same subscription but an unrelated charge at the same merchant is not.
    ========================================================================== */
-/* global module */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -141,7 +138,7 @@ function detectRecurringCharges(transactions, { now = Date.now() } = {}) {
     };
 }
 
-module.exports = {
+export {
     AMOUNT_TOLERANCE,
     CADENCES,
     detectRecurringCharges,

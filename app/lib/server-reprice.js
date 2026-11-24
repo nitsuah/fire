@@ -21,7 +21,7 @@ const {
     cleanSymbol,
     isCashLike,
     quotableSymbols,
-} = require('./data-freshness');
+} = require('./data-freshness.mjs');
 
 // { SYMBOL: { price, changePercent? } }. A configured Alpha Vantage /
 // Polygon key goes first; anything it misses (and the default Yahoo

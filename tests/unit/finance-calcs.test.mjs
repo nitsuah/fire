@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     sliceProjectionData,
     buildProjectionData,
-} from '../../app/lib/finance-calcs.js';
+} from '../../app/lib/finance-calcs.mjs';
 
 // ─── sliceProjectionData missing branches ─────────────────────────────────────
 

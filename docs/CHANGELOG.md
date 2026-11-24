@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Side Hustle Hub eBay card shows last success and last attempt (`syncHealthText`, reusable for other connectors).
 
 ### Changed
+- The MCP tool core helpers (`finance-calcs`, `aggregates`, `side-gig-tax`, `rebalance-sweep`, `net-worth-history`, `cointracker-merge`, `data-freshness`, `recurring-charges`, `daily-snapshot`) are native ES modules (`.mjs`), so a browser can load them without a bundler; Node 22 loads them from the CommonJS server through `require(esm)`. The page loads them as module scripts with temporary `window` bridges and defers the classic scripts after them (#514).
 - `app/lib/service-worker-registration.js` loads as a native module script; step of nitsuah/fire#568.
 - `app/lib/privacy.js` is a native ES module (`export`, with a `window.openPrivacyModal` bridge for the CSP click dispatcher); step of nitsuah/fire#568.
 - `app/lib/fetch-utils.js` is a native ES module (`export`, with a `window.fetchJson` bridge for classic scripts); first step of nitsuah/fire#568.

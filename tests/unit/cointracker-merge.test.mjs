@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import path from 'path';
 import os from 'os';
-import merge from '../../app/lib/cointracker-merge.js';
+import merge from '../../app/lib/cointracker-merge.mjs';
 
 const {
     mergeCoinTrackerWallets,
