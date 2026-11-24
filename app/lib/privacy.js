@@ -4,7 +4,7 @@
 
 const PRIVACY_ACCEPTED_KEY = 'fire_privacy_v1_accepted';
 
-function stripNavRow(md) {
+export function stripNavRow(md) {
     return md
         .split('\n')
         .filter((line) => !line.trimEnd().endsWith('<!-- nav -->'))
@@ -83,11 +83,12 @@ document
         }
     });
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkFirstLoad);
-} else {
+if (document.readyState === 'complete') {
     checkFirstLoad();
+} else {
+    document.addEventListener('DOMContentLoaded', checkFirstLoad);
 }
 
-if (typeof module !== 'undefined' && module.exports)
-    module.exports = { stripNavRow };
+// Native ES module. app.js dispatches data-csp-click-action="openPrivacyModal"
+// through window[...], so the function stays on window until app.js imports it.
+if (typeof window !== 'undefined') window.openPrivacyModal = openPrivacyModal;
