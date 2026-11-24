@@ -40,6 +40,9 @@ function scan(src) {
                     blanked += '  ';
                     i += 2;
                 } else if (src[i] === '$' && src[i + 1] === '{') {
+                    kept += '$';
+                    blanked += '$';
+                    i++;
                     let depth = 0;
                     do {
                         if (src[i] === '{') depth++;
@@ -140,7 +143,7 @@ describe('storage guard (fixtures)', () => {
             'const ok = 1; // state.storage.put()',
             "const s = 'ctx.acceptWebSocket and localStorage'; /* x */",
             'const t = `state.storage`;',
-            "const u = `plain ${1 + 1} text`;",
+            'const u = `plain ${1 + 1} text`;',
         ].join('\n');
         expect(findStorageViolations(code)).toEqual([]);
     });
