@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `buildProjectionData` no longer throws when `projectionSettings` is missing, so `fire_status_summary` and `get_expenses` answer on a partial state (for example a fresh browser profile on the hosted bridge) instead of failing with a TypeError. A new test calls every MCP tool on the demo seed and on an empty state.
 - `GET/POST /api/sync/ebay/marketplace-account-deletion` answers `503` (not `500`) when the eBay verification token or endpoint URL is unset; a missing `challenge_code` stays `400`. Added `app/404.html` so unknown paths on Pages are a real 404 (#544, #520).
 - Privacy modal: the hosted-bridge design link is now an absolute GitHub URL, so it no longer 404s inside the app.
 
