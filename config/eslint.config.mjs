@@ -36,6 +36,8 @@ export default [
             'relay/**/*.mjs',
             'functions/**/*.js',
             'app/bridge-protocol.mjs',
+            'app/bridge-host.mjs',
+            'app/bridge-scope.mjs',
             'app/lib/metals-prices.js',
             'app/lib/net-worth-history.js',
             'app/lib/data-freshness.js',
