@@ -135,7 +135,7 @@ fire includes an optional **MCP (Model Context Protocol) server** (`app/mcp-serv
 
 ### 6a. Hosted MCP browser bridge (fire.nitsuah.io)
 
-> Status: designed and built in stages ([design](hosted-mcp-browser-bridge.md)); the relay is not deployed yet, so this section describes what happens once it is. The hosted app keeps your data only in your browser, so a remote assistant can reach it only through an open fire tab.
+> Status: designed and built in stages ([design](https://github.com/nitsuah/fire/blob/main/docs/hosted-mcp-browser-bridge.md)); the relay is not deployed yet, so this section describes what happens once it is. The hosted app keeps your data only in your browser, so a remote assistant can reach it only through an open fire tab.
 
 When you choose **Connect an agent** on the hosted app and approve a request, a small **relay** forwards the assistant's read-only tool calls to your open browser tab and carries the answers back.
 
