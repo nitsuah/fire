@@ -117,6 +117,8 @@ test.describe('MCP consent page', () => {
         // The ticket is a hash, never the pending value itself.
         const href = await link.getAttribute('href');
         const u = new URL(href);
+        // Same origin as the app: the deploy rewrites /authorize/complete to the relay.
+        expect(u.origin).toBe(new URL(page.url()).origin);
         expect(u.pathname).toBe('/authorize/complete');
         expect(u.searchParams.get('sid')).toBe(hello.sid);
         expect(u.searchParams.get('t')).toBe(

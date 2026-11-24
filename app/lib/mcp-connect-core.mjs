@@ -31,8 +31,12 @@ export function describeRequest(req) {
     try {
         const body = JSON.parse(b64urlToText(req.split('.')[0]));
         const redirect = new URL(body.redirect_uri);
+        // Only web redirects: never hand an app-handler scheme to location.
+        if (redirect.protocol !== 'https:' && redirect.protocol !== 'http:') {
+            return null;
+        }
         const groups = (Array.isArray(body.scope) ? body.scope : []).filter(
-            (g) => Object.hasOwn(TOOL_GROUPS, g),
+            (g) => typeof g === 'string' && Object.hasOwn(TOOL_GROUPS, g),
         );
         if (groups.length === 0) return null;
         return {

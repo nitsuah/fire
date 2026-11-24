@@ -51,6 +51,21 @@ describe('consent page core', () => {
         });
     });
 
+    it('rejects non-web redirect schemes and non-string scope ids', () => {
+        expect(
+            describeRequest(enc({ ...payload, redirect_uri: 'myapp://cb' })),
+        ).toBeNull();
+        expect(
+            describeRequest(
+                enc({ ...payload, redirect_uri: 'javascript:alert(1)' }),
+            ),
+        ).toBeNull();
+        const info = describeRequest(
+            enc({ ...payload, scope: [['transactions'], 'summary'] }),
+        );
+        expect(info.groups.map((g) => g.id)).toEqual(['summary']);
+    });
+
     it('returns null for unreadable, scope-less or malformed requests', () => {
         expect(describeRequest('not-base64.sig')).toBeNull();
         expect(

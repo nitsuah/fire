@@ -62,13 +62,14 @@ function message(panel, title, body) {
     panel.append(h, el('p', 'mcp-connect-note', body));
 }
 
+/** Resolves true once a session started, false if approval did not proceed. */
 async function approve(panel, info, req, chosen, lengthMs, status) {
     status.textContent = 'Connecting…';
     const lock = await acquireBridgeLock(navigator.locks);
     if (!lock) {
         status.textContent =
             'An agent is already connected in another fire tab. Disconnect it there first.';
-        return;
+        return false;
     }
     let handleTool;
     try {
@@ -77,7 +78,7 @@ async function approve(panel, info, req, chosen, lengthMs, status) {
         lock.release();
         status.textContent =
             'This build cannot serve MCP tools yet, so nothing was shared.';
-        return;
+        return false;
     }
     const channel = new BroadcastChannel(CHANNEL);
     // Tell other fire tabs an agent is connected here.
@@ -145,7 +146,9 @@ async function approve(panel, info, req, chosen, lengthMs, status) {
     } catch {
         lock.release();
         status.textContent = 'Could not start the connection.';
+        return false;
     }
+    return true;
 }
 
 function renderConsent(panel, info, req) {
@@ -215,11 +218,23 @@ function renderConsent(panel, info, req) {
     boxes.forEach((b) => b.addEventListener('change', sync));
     sync();
 
-    approveBtn.addEventListener('click', () => {
+    approveBtn.addEventListener('click', async () => {
         approveBtn.disabled = true;
         denyBtn.disabled = true;
         const chosen = boxes.filter((b) => b.checked).map((b) => b.value);
-        approve(panel, info, req, chosen, Number(select.value), status);
+        const started = await approve(
+            panel,
+            info,
+            req,
+            chosen,
+            Number(select.value),
+            status,
+        );
+        if (!started) {
+            // Nothing started: let the user retry or deny.
+            denyBtn.disabled = false;
+            sync();
+        }
     });
     denyBtn.addEventListener('click', () => {
         location.assign(denyUrl(info));
