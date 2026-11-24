@@ -191,6 +191,17 @@ Connect Claude Code to your live financial data. The project ships a `.mcp.json`
 
 `simulate_rebalance` is a what-if: it reports allocation and diversification score before/after moving money between asset classes, and never trades or saves anything. With `chaos: true` it sweeps every single-leg move across liquid classes and your top positions at several sizes, scores each under bear/base/bull return assumptions you supply (defaults are placeholders) net of estimated capital-gains tax, and ranks the rows by a metric you pick. It reports a table, never a recommendation.
 
+### Hosted app (fire.nitsuah.io)
+
+On the hosted app your data lives only in your browser, so a remote assistant (for example a Claude connector added by URL) connects through a short-lived relay to **your open fire tab**:
+
+- The MCP URL will be `https://fire.nitsuah.io/mcp` (OAuth is handled automatically by the client). The relay is built but not deployed yet, tracked in the bridge parent issue (#341) and its deploy child.
+- **The tab must stay open.** Approve the request on the consent page, then leave that tab (or any fire tab) open: if it closes or reloads, the session ends and you consent again.
+- **Session limits:** 15, 30 (default) or 60 minutes, 10 minutes idle, 30 calls per minute, 256 KB per result, read-only tools only. Transactions are unticked by default on the consent page.
+- The relay holds each call in memory only and stores nothing; see [the design](docs/hosted-mcp-browser-bridge.md) and [privacy policy](docs/privacy-policy.md#6a-hosted-mcp-browser-bridge-fire-nitsuahio) for exactly what it can see.
+
+The self-hosted `/mcp` (behind your own API key) and the stdio server above are unchanged.
+
 **Claude skill:** [`skills/fire-coach`](skills/README.md) makes Claude a FIRE coach for this app. It maps questions to the right MCP tools, applies a FIRE playbook (the 4% rule, savings rate, order of operations, taxes, sequence risk, what to do when income stops) and points to the exact tab and button. Install it with `mkdir -p ~/.claude/skills && cp -r skills/fire-coach ~/.claude/skills/`.
 
 **Money-maker skills:** [`skills/reseller-autopilot`](skills/README.md#reseller-autopilot) prices items and drafts listings, with net-after-fees on eBay, Etsy, Mercari, Poshmark and FB Marketplace and runs a weekly low-touch selling routine. [`skills/passive-income-lab`](skills/README.md#passive-income-lab) sizes low-touch income streams against your runway and shows how far each moves your FIRE date.

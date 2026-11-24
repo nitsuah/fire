@@ -415,6 +415,16 @@ Run this before any external-facing deployment or after major changes to the syn
 - [ ] MCP server does not make external network calls (run with network blocked; all 20 tools should still respond from db.json)
 - [ ] MCP audit log records tool calls without logging response content
 
+#### Hosted browser bridge (relay and browser host)
+
+- [x] Relay stores nothing: `tests/unit/relay/relay-hygiene.test.mjs` fails if relay code imports or calls known storage APIs (fs, sqlite, Durable Object storage, alarms, KV, browser storage) or the hibernation API
+- [x] No payload, token or session id reaches relay logs: the log sink only accepts a fixed list of event names (`tests/unit/relay/relay-hygiene.test.mjs`)
+- [x] Browser enforces scope, expiry, idle, grace, rate and call sequencing independently of the relay: `tests/unit/bridge-host.test.mjs` (relay-supplied out-of-scope, replayed, late and over-rate calls are refused; a mismatched `READY` ends the session)
+- [x] Session key is non-extractable and never persisted; a reload ends the session; only a metadata activity log is written (`tests/unit/bridge-host.test.mjs`)
+- [x] OAuth: PKCE S256 required, exact `redirect_uri` match, `resource` checked, single-use 60 s codes, signed 24 h registrations and 5 min pending authorizations, no refresh tokens, token scope is the approved scope (`tests/unit/relay/oauth.test.mjs`)
+- [x] Secrets compared in constant time (HMAC verify, token and PKCE comparisons); the relay HMAC key is a Worker secret and missing or short keys fail closed
+- [ ] Deploy checks (owner-gated, with the Cloudflare deploy): confirm host request logs carry no bodies, confirm Durable Object keepalive behaviour on workerd, and rotate the relay HMAC key once to confirm registrations and pending authorizations then fail cleanly
+
 ---
 
 ## What We Intentionally Do Not Harden Against
