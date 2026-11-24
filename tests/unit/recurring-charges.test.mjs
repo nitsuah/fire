@@ -14,7 +14,7 @@ let normalizeMerchant;
 beforeAll(async () => {
     ({ handleTool } = await import('../../app/mcp-server.mjs'));
     ({ detectRecurringCharges, normalizeMerchant } =
-        await import('../../app/lib/recurring-charges.js'));
+        await import('../../app/lib/recurring-charges.mjs'));
 });
 
 const DAY_MS = 1000 * 60 * 60 * 24;

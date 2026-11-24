@@ -1847,66 +1847,67 @@
     <script src="lib/html-utils.js"></script>
     <script type="module" src="lib/fetch-utils.js"></script>
     <script type="module" src="lib/mcp-connect.js"></script>
-    <script src="lib/aggregates.js"></script>
-    <script src="lib/daily-snapshot.js"></script>
-    <script src="lib/deploy-mode.js"></script>
-    <script src="lib/state.js"></script>
-    <script src="lib/prices.js"></script>
-    <script src="lib/ebay-report.js"></script>
-    <script src="lib/marketplace-reports.js"></script>
-    <script src="lib/side-gig-tax.js"></script>
-    <script src="lib/csv-import.js"></script>
-    <script src="lib/expenses.js"></script>
-    <script src="lib/ebay-status.js"></script>
-    <script src="lib/finance-platforms.js"></script>
-    <script src="lib/side-gig.js"></script>
-    <script src="lib/etsy-sync.js"></script>
-    <script src="lib/stripe-status.js"></script>
-    <script src="lib/managers/stripe-card.js"></script>
-    <script src="lib/cointracker-merge.js"></script>
-    <script src="lib/cointracker.js"></script>
-    <script src="lib/chaos-events.js"></script>
-    <script src="lib/projections.js"></script>
+    <!-- ES-module helpers (window bridges) and every classic script after them are deferred, so they all run in document order once parsing ends. -->
+    <script type="module" src="lib/aggregates.mjs"></script>
+    <script type="module" src="lib/daily-snapshot.mjs"></script>
+    <script defer src="lib/deploy-mode.js"></script>
+    <script defer src="lib/state.js"></script>
+    <script defer src="lib/prices.js"></script>
+    <script defer src="lib/ebay-report.js"></script>
+    <script defer src="lib/marketplace-reports.js"></script>
+    <script type="module" src="lib/side-gig-tax.mjs"></script>
+    <script defer src="lib/csv-import.js"></script>
+    <script defer src="lib/expenses.js"></script>
+    <script defer src="lib/ebay-status.js"></script>
+    <script defer src="lib/finance-platforms.js"></script>
+    <script defer src="lib/side-gig.js"></script>
+    <script defer src="lib/etsy-sync.js"></script>
+    <script defer src="lib/stripe-status.js"></script>
+    <script defer src="lib/managers/stripe-card.js"></script>
+    <script type="module" src="lib/cointracker-merge.mjs"></script>
+    <script defer src="lib/cointracker.js"></script>
+    <script defer src="lib/chaos-events.js"></script>
+    <script defer src="lib/projections.js"></script>
     <!-- Charts -->
-    <script src="lib/charts/cd-ladder.js"></script>
-    <script src="lib/charts/projections.js"></script>
-    <script src="lib/charts/allocation.js"></script>
-    <script src="lib/charts/net-worth-history.js"></script>
+    <script defer src="lib/charts/cd-ladder.js"></script>
+    <script defer src="lib/charts/projections.js"></script>
+    <script defer src="lib/charts/allocation.js"></script>
+    <script defer src="lib/charts/net-worth-history.js"></script>
     <!-- Tables: Assets -->
-    <script src="lib/tables/real-estate.js"></script>
-    <script src="lib/tables/vehicles.js"></script>
-    <script src="lib/tables/projections-table.js"></script>
-    <script src="lib/tables/dashboard.js"></script>
+    <script defer src="lib/tables/real-estate.js"></script>
+    <script defer src="lib/tables/vehicles.js"></script>
+    <script defer src="lib/tables/projections-table.js"></script>
+    <script defer src="lib/tables/dashboard.js"></script>
     <!-- Tables: Positions & Holdings -->
-    <script src="lib/tables/positions.js"></script>
-    <script src="lib/tables/liquid.js"></script>
-    <script src="lib/tables/fixed-income.js"></script>
-    <script src="lib/tables/side-gig-table.js"></script>
+    <script defer src="lib/tables/positions.js"></script>
+    <script defer src="lib/tables/liquid.js"></script>
+    <script defer src="lib/tables/fixed-income.js"></script>
+    <script defer src="lib/tables/side-gig-table.js"></script>
     <!-- Managers -->
-    <script src="lib/managers/navigation.js"></script>
-    <script src="lib/managers/accounts.js"></script>
-    <script src="lib/managers/cds.js"></script>
-    <script src="lib/managers/real-estate.js"></script>
-    <script src="lib/managers/vehicles.js"></script>
-    <script src="lib/managers/asset-form.js"></script>
-    <script src="lib/managers/ens-lookup.js"></script>
-    <script src="lib/managers/wallets.js"></script>
-    <script src="lib/managers/gdrive-backup.js"></script>
-    <script src="lib/managers/spending-upload.js"></script>
-    <script src="lib/managers/hustle-accelerators.js"></script>
-    <script src="lib/layout-manager.js"></script>
+    <script defer src="lib/managers/navigation.js"></script>
+    <script defer src="lib/managers/accounts.js"></script>
+    <script defer src="lib/managers/cds.js"></script>
+    <script defer src="lib/managers/real-estate.js"></script>
+    <script defer src="lib/managers/vehicles.js"></script>
+    <script defer src="lib/managers/asset-form.js"></script>
+    <script defer src="lib/managers/ens-lookup.js"></script>
+    <script defer src="lib/managers/wallets.js"></script>
+    <script defer src="lib/managers/gdrive-backup.js"></script>
+    <script defer src="lib/managers/spending-upload.js"></script>
+    <script defer src="lib/managers/hustle-accelerators.js"></script>
+    <script defer src="lib/layout-manager.js"></script>
     <!-- Quick Start Model (must load before manager) -->
-    <script src="lib/quick-start.js"></script>
-    <script src="lib/quick-start-facts.js"></script>
-    <script src="lib/managers/quick-start.js"></script>
+    <script defer src="lib/quick-start.js"></script>
+    <script defer src="lib/quick-start-facts.js"></script>
+    <script defer src="lib/managers/quick-start.js"></script>
     <!-- Main Controller Script -->
-    <script src="app.js"></script>
+    <script defer src="app.js"></script>
     <!-- Taxes & Tax-Loss Harvesting -->
-    <script src="lib/tables/tax-harvest.js"></script>
+    <script defer src="lib/tables/tax-harvest.js"></script>
     <!-- Portfolio Rebalancing -->
-    <script src="lib/tables/rebalancing.js"></script>
+    <script defer src="lib/tables/rebalancing.js"></script>
     <!-- Notifications -->
-    <script src="lib/notifications.js"></script>
+    <script defer src="lib/notifications.js"></script>
     <!-- Privacy policy modal (after DOM is ready) -->
     <script type="module" src="lib/privacy.js"></script>
     <!-- PWA service worker registration -->

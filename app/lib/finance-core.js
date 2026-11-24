@@ -9,7 +9,7 @@
    ========================================================================== */
 
 const parsing = require('./finance-parsing');
-const calcs = require('./finance-calcs');
+const calcs = require('./finance-calcs.mjs');
 const platforms = require('./finance-platforms');
 
 /* --------------------------------------------------------------------------
@@ -143,7 +143,7 @@ function computeEffectiveTaxRate(grossIncome, filingState) {
 
 // Aggregates live in aggregates.js (shared with the browser); re-exported
 // below so existing require('./finance-core') callers keep working.
-const aggregates = require('./aggregates');
+const aggregates = require('./aggregates.mjs');
 const {
     insuranceToMonthly,
     getInsuranceMonthly,

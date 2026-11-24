@@ -19,7 +19,7 @@ const {
     checkAndRecord,
     validateEventId,
 } = require('./lib/stripe-webhook-idempotency');
-const { recordNetWorthSnapshot } = require('./lib/net-worth-history');
+const { recordNetWorthSnapshot } = require('./lib/net-worth-history.mjs');
 const { collectLiveQuotes } = require('./lib/server-reprice');
 const { applyLiveValues } = require('./lib/live-values');
 const { runDailyBackup } = require('./lib/local-backup');

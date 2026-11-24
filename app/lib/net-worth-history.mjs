@@ -1,5 +1,3 @@
-'use strict';
-
 /* ==========================================================================
    net-worth-history.js — Daily net-worth snapshots (state.netWorthHistory)
 
@@ -10,20 +8,20 @@
    hustle income stays out of net worth there too.
    ========================================================================== */
 
-const {
+import {
     getAggregateCash,
     getAggregateCDs,
     getAggregateEquities,
     getAggregateOtherAssets,
     getAggregateRealEstate,
     getAggregateVehicles,
-} = require('./finance-core');
-const { pricesAsOf } = require('./data-freshness');
-const {
+} from './aggregates.mjs';
+import { pricesAsOf } from './data-freshness.mjs';
+import {
     MAX_HISTORY_DAYS,
     dayKey,
     upsertDailySnapshot,
-} = require('./daily-snapshot');
+} from './daily-snapshot.mjs';
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
@@ -121,7 +119,7 @@ function summarizeNetWorthHistory(history, now = new Date()) {
     };
 }
 
-module.exports = {
+export {
     MAX_HISTORY_DAYS,
     dayKey,
     snapshotNetWorth,

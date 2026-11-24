@@ -1,11 +1,9 @@
-'use strict';
-
 /* ==========================================================================
    finance-calcs.js — Projection data builders and window-slice helpers
-   CommonJS module — require()'d by finance-core.js
+   ES module — loaded by finance-core.js (via require(esm)), the MCP tools and the browser MCP host
    ========================================================================== */
 
-const { normalizeSpanYears } = require('./aggregates.js');
+import { normalizeSpanYears } from './aggregates.mjs';
 
 // US median retirement savings by age (Vanguard How America Saves 2023)
 // Duplicated here so this module is self-contained; finance-core re-exports it.
@@ -481,7 +479,7 @@ function buildProjectionData(state, scenarioOffset) {
     };
 }
 
-module.exports = {
+export {
     US_MEDIAN_SAVINGS,
     windowToPoints,
     sliceProjectionData,

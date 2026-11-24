@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { buildProjectionData } from '../../app/lib/finance-calcs.js';
+import { buildProjectionData } from '../../app/lib/finance-calcs.mjs';
 
 describe('buildProjectionData - unbounded loop protection', () => {
     let state;

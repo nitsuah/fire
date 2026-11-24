@@ -12,7 +12,7 @@ import {
     needsItemCost,
     summarizeSideGigLedger,
     tagUntaggedSales,
-} from '../../app/lib/side-gig-tax.js';
+} from '../../app/lib/side-gig-tax.mjs';
 
 // mcp-server.mjs requires app/lib/db.js, which reads FIRE_DB_FILE at load.
 process.env.FIRE_DB_FILE = path.join(

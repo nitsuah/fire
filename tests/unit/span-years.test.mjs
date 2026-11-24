@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const {
     normalizeSpanYears,
     MAX_SPAN_YEARS,
-} = require('../../app/lib/aggregates.js');
+} = require('../../app/lib/aggregates.mjs');
 
 const projectionSource = ['html-utils.js', 'projections.js']
     .map((file) =>

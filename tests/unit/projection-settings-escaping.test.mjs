@@ -5,7 +5,7 @@ import vm from 'vm';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const { normalizeSpanYears } = require('../../app/lib/aggregates.js');
+const { normalizeSpanYears } = require('../../app/lib/aggregates.mjs');
 
 // projections.js is a classic browser script that depends on globals, so load
 // it into a stubbed browser context and call renderProjSettingsSummary directly.

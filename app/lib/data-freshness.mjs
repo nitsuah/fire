@@ -1,5 +1,3 @@
-'use strict';
-
 /* ==========================================================================
    data-freshness.js — How old are the prices behind the numbers?
 
@@ -148,7 +146,7 @@ function summarizeDataFreshness(state, now = new Date()) {
     };
 }
 
-module.exports = {
+export {
     STALE_AFTER_DAYS,
     cleanSymbol,
     isCashLike,

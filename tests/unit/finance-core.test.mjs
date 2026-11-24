@@ -129,7 +129,7 @@ describe('isCdMatured / matured CDs in interest estimates', () => {
 });
 
 describe('yearsToFire', () => {
-    const { yearsToFire } = require('../../app/lib/aggregates.js');
+    const { yearsToFire } = require('../../app/lib/aggregates.mjs');
     it('is 0 once net worth meets the FIRE number', () => {
         expect(yearsToFire({ networth: 1e6, fireNumber: 5e5 })).toBe(0);
     });

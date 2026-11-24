@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 const SEED = require('../../promo/demo-seed.js');
 const { PRICES } = require('../../promo/demo-mocks.js');
 const { applyLiveValues } = require('../../app/lib/live-values.js');
-const { fireStatus } = require('../../app/lib/aggregates.js');
+const { fireStatus } = require('../../app/lib/aggregates.mjs');
 
 let handleTool;
 beforeAll(async () => {

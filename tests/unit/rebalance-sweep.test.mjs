@@ -10,7 +10,7 @@ process.env.FIRE_DB_FILE = path.join(
 );
 
 const require = createRequire(import.meta.url);
-const { sweepRebalances } = require('../../app/lib/rebalance-sweep.js');
+const { sweepRebalances } = require('../../app/lib/rebalance-sweep.mjs');
 
 let handleTool;
 beforeAll(async () => {

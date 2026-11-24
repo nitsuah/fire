@@ -6,7 +6,7 @@ import {
     recordNetWorthSnapshot,
     summarizeNetWorthHistory,
     MAX_HISTORY_DAYS,
-} from '../../app/lib/net-worth-history.js';
+} from '../../app/lib/net-worth-history.mjs';
 
 // mcp-server.mjs requires app/lib/db.js, which reads FIRE_DB_FILE at load.
 process.env.FIRE_DB_FILE = path.join(

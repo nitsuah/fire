@@ -19,7 +19,6 @@ export default [
             'app/lib/webhook-integration.js',
             'app/lib/yahoo-prices.js',
             'app/lib/finance-core.js',
-            'app/lib/finance-calcs.js',
             'app/lib/finance-parsing.js',
             'app/lib/finance-platforms.js',
             'app/lib/web3-prices.js',
@@ -39,9 +38,6 @@ export default [
             'app/bridge-host.mjs',
             'app/bridge-scope.mjs',
             'app/lib/metals-prices.js',
-            'app/lib/net-worth-history.js',
-            'app/lib/data-freshness.js',
-            'app/lib/rebalance-sweep.js',
             'app/lib/live-values.js',
             'app/lib/server-reprice.js',
             'app/lib/local-backup.js',
@@ -71,7 +67,6 @@ export default [
             'app/lib/csv-import.js',
             'app/lib/ebay-report.js',
             'app/lib/marketplace-reports.js',
-            'app/lib/side-gig-tax.js',
             'app/lib/expenses.js',
             'app/lib/side-gig.js',
             'app/lib/cointracker.js',
@@ -103,6 +98,29 @@ export default [
         rules: {
             'no-undef': 'off',
             'no-unused-vars': 'off',
+        },
+    },
+
+    // Pure ES-module helpers shared by Node (require(esm)), the MCP tools and
+    // the browser MCP host. They only touch `window` behind a typeof guard (the
+    // temporary bridge for classic page scripts).
+    {
+        files: [
+            'app/lib/aggregates.mjs',
+            'app/lib/daily-snapshot.mjs',
+            'app/lib/finance-calcs.mjs',
+            'app/lib/side-gig-tax.mjs',
+            'app/lib/rebalance-sweep.mjs',
+            'app/lib/net-worth-history.mjs',
+            'app/lib/cointracker-merge.mjs',
+            'app/lib/data-freshness.mjs',
+            'app/lib/recurring-charges.mjs',
+            'app/mcp-tools.mjs',
+        ],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+            },
         },
     },
 
