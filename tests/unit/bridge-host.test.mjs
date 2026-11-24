@@ -248,6 +248,130 @@ describe('handshake and key custody', () => {
     });
 });
 
+describe('start, retry and late-READY races', () => {
+    it('a reload during key generation cancels the start: no key, no socket', async () => {
+        let release;
+        const gate = new Promise((r) => (release = r));
+        const subtle = {
+            generateKey: async (...a) => {
+                await gate;
+                return globalThis.crypto.subtle.generateKey(...a);
+            },
+            exportKey: (...a) => globalThis.crypto.subtle.exportKey(...a),
+            sign: (...a) => globalThis.crypto.subtle.sign(...a),
+        };
+        const t = makeHost({ subtle });
+        const started = t.host.start({
+            sid: SID,
+            pendingAuth: 'p',
+            scope: ['summary'],
+            lengthMs: 15 * MIN,
+        });
+        t.host.end('page_unload');
+        release();
+        await started;
+        expect(t.host.state).toBe('ended');
+        expect(t.host.key).toBeNull();
+        expect(t.sockets.length).toBe(0);
+        expect(t.clock.pending).toBe(0);
+    });
+
+    it('a crypto failure leaves no partial state', async () => {
+        const t = makeHost({
+            subtle: {
+                generateKey: async () => {
+                    throw new Error('boom');
+                },
+            },
+        });
+        await expect(
+            t.host.start({
+                sid: SID,
+                pendingAuth: 'p',
+                scope: ['summary'],
+                lengthMs: 15 * MIN,
+            }),
+        ).rejects.toThrow('boom');
+        expect(t.host.state).toBe('ended');
+        expect(t.host.key).toBeNull();
+    });
+
+    it('retries the first HELLO with its credentials until the relay answers READY', async () => {
+        const t = makeHost();
+        await t.host.start({
+            sid: SID,
+            pendingAuth: 'pending-value',
+            scope: ['summary'],
+            lengthMs: 15 * MIN,
+        });
+        t.sockets[0].open();
+        t.sockets[0].drop(); // dropped before READY
+        await t.clock.advance(2500);
+        const retry = t.sockets[1];
+        retry.open();
+        expect(retry.last(FrameType.HELLO)).toMatchObject({
+            pendingAuth: 'pending-value',
+            scope: ['summary'],
+        });
+    });
+
+    it('a late proof signed for an ended session is never sent', async () => {
+        let release;
+        const gate = new Promise((r) => (release = r));
+        const real = globalThis.crypto.subtle;
+        const subtle = {
+            generateKey: (...a) => real.generateKey(...a),
+            exportKey: (...a) => real.exportKey(...a),
+            sign: async (...a) => {
+                await gate;
+                return real.sign(...a);
+            },
+        };
+        const t = makeHost({ subtle });
+        await t.host.start({
+            sid: SID,
+            pendingAuth: 'p',
+            scope: ['summary'],
+            lengthMs: 15 * MIN,
+        });
+        const ws = t.sockets[0];
+        ws.open();
+        ws.serverSend({
+            v: 1,
+            type: 'CHALLENGE',
+            sid: SID,
+            nonce: 'b'.repeat(32),
+            exp: t.clock.now() + 10_000,
+        });
+        t.host.end('user_disconnect');
+        release();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(ws.last(FrameType.PROVE)).toBeUndefined();
+    });
+
+    it('a READY after the 30 s grace deadline does not revive the session', async () => {
+        const t = makeHost();
+        const first = await connect(t);
+        first.ws.drop();
+        await t.clock.advance(2500);
+        const ws2 = t.sockets[1];
+        ws2.open();
+        t.clock.t += Limits.RECONNECT_GRACE_MS; // past the deadline, timer not yet run
+        await ws2.serverSend({
+            v: 1,
+            type: 'READY',
+            sid: SID,
+            expiresAt: t.host.expiresAt,
+            idleTimeout: Limits.IDLE_TIMEOUT_MS,
+            scope: ['summary'],
+        });
+        expect(t.host.state).toBe('ended');
+        expect(t.host.endReason).toBe('grace_expired');
+        call(t, ws2, 'get_net_worth');
+        expect(results(ws2).length).toBe(0);
+    });
+});
+
 describe('call enforcement (the browser decides, not the relay)', () => {
     it('answers an allowed call and logs metadata only', async () => {
         const t = makeHost();

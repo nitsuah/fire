@@ -196,6 +196,7 @@ export class BridgeHost {
         this.subtle = subtle;
         this.onChange = onChange;
         this.state = 'idle'; // idle | connecting | live | grace | ended
+        this._gen = 0; // bumps on end(), so a pending start() can tell it was cancelled
         this._reset();
     }
 
@@ -216,6 +217,7 @@ export class BridgeHost {
         this.socket = null;
         this.timers = {};
         this.droppedAt = 0;
+        this.bound = false; // true once the relay answered READY
     }
 
     /** Begin a session the user just approved on the consent page. */
@@ -230,13 +232,26 @@ export class BridgeHost {
             throw new Error('scope is required');
         }
         this._reset();
-        const keys = await this.subtle.generateKey(
-            { name: 'ECDSA', namedCurve: 'P-256' },
-            false, // the private key can never be exported
-            ['sign', 'verify'],
-        );
+        // Claim the session before the first await, so end() (a reload or
+        // Disconnect during key generation) cancels this start.
+        this.state = 'connecting';
+        const gen = ++this._gen;
+        let keys;
+        let jwk;
+        try {
+            keys = await this.subtle.generateKey(
+                { name: 'ECDSA', namedCurve: 'P-256' },
+                false, // the private key can never be exported
+                ['sign', 'verify'],
+            );
+            if (gen !== this._gen) return;
+            jwk = await this.subtle.exportKey('jwk', keys.publicKey);
+        } catch (err) {
+            if (gen === this._gen) this.end('crypto_failed', false);
+            throw err;
+        }
+        if (gen !== this._gen) return;
         this.key = keys.privateKey;
-        const jwk = await this.subtle.exportKey('jwk', keys.publicKey);
         this.pub = { kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y };
         this.sid = sid;
         this.pendingAuth = pendingAuth;
@@ -251,7 +266,6 @@ export class BridgeHost {
             lengthMs,
         );
         this._armIdle();
-        this.state = 'connecting';
         this._open(true);
         this.onChange();
     }
@@ -301,7 +315,11 @@ export class BridgeHost {
         }
         if (this.state === 'grace') {
             this.timers.retry = this.clock.setTimeout(() => {
-                if (this.state === 'grace') this._open(false);
+                // Until the relay has bound the session, retry with the
+                // first-open credentials; afterwards use the reconnect form.
+                if (this.state === 'grace' || this.state === 'connecting') {
+                    this._open(!this.bound);
+                }
             }, RECONNECT_RETRY_MS);
         }
         this.onChange();
@@ -332,6 +350,10 @@ export class BridgeHost {
 
     async _onChallenge(frame) {
         if (this.state === 'ended' || !(frame.exp > this.clock.now())) return;
+        const gen = this._gen;
+        const ws = this.socket;
+        // The session may end (and another start) while signing is pending.
+        const current = () => gen === this._gen && ws === this.socket;
         try {
             const message = enc.encode(
                 buildProveSigningString(
@@ -347,9 +369,10 @@ export class BridgeHost {
                 this.key,
                 message,
             );
+            if (!current()) return;
             this._send(createProve(this.sid, b64url(sig)));
         } catch {
-            this.end('sign_failed');
+            if (current()) this.end('sign_failed');
         }
     }
 
@@ -363,8 +386,18 @@ export class BridgeHost {
             this.end('ready_mismatch');
             return;
         }
+        // Our own grace deadline: a late READY does not revive the session,
+        // even if its timer has not run yet.
+        if (
+            this.state === 'grace' &&
+            this.clock.now() - this.droppedAt >= Limits.RECONNECT_GRACE_MS
+        ) {
+            this.end('grace_expired');
+            return;
+        }
         this.clock.clearTimeout(this.timers.grace);
         this.clock.clearTimeout(this.timers.retry);
+        this.bound = true;
         this.state = 'live';
         this.onChange();
     }
@@ -452,6 +485,7 @@ export class BridgeHost {
             /* already closed */
         }
         for (const h of Object.values(this.timers)) this.clock.clearTimeout(h);
+        this._gen += 1;
         this.state = 'ended';
         this.endReason = reason;
         this._reset();
