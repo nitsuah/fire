@@ -33,6 +33,7 @@ export default [
             'app/lib/grant-cookie.js',
             'netlify/**/*.mjs',
             'cloudflare/**/*.mjs',
+            'relay/**/*.mjs',
             'functions/**/*.js',
             'app/bridge-protocol.mjs',
             'app/lib/metals-prices.js',
