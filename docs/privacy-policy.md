@@ -133,6 +133,20 @@ fire includes an optional **MCP (Model Context Protocol) server** (`app/mcp-serv
 
 **Important:** When you invoke an AI assistant with the MCP server enabled, the tool responses (your financial data) are sent to the AI provider's API. Only enable this integration if you are comfortable with this and have reviewed your AI provider's data handling policies.
 
+### 6a. Hosted MCP browser bridge (fire.nitsuah.io)
+
+> Status: designed and built in stages ([design](hosted-mcp-browser-bridge.md)); the relay is not deployed yet, so this section describes what happens once it is. The hosted app keeps your data only in your browser, so a remote assistant can reach it only through an open fire tab.
+
+When you choose **Connect an agent** on the hosted app and approve a request, a small **relay** forwards the assistant's read-only tool calls to your open browser tab and carries the answers back.
+
+- **Plaintext in memory, per call (accepted trade-off).** A standard MCP connector added by URL expects plain JSON back, so the relay necessarily handles each tool call and result as plaintext, in memory, only while that call is in flight. It writes nothing to disk, keeps no database and no copy of your data, and does not log request or result bodies, tokens or session ids.
+- **What a compromised relay could do.** An attacker who controlled the relay could read the results of calls made during an active session, could invent its own read-only calls within the scope you approved until the session ends, and could return made-up or altered results to the assistant, which you could not detect in this mode. It could not read your data when no session is active, change your data (there are no write tools) or widen what you approved. A stricter sealed mode (end-to-end encrypted, with a local shim) is designed but not built.
+- **You choose the scope and the length.** The consent page lists tool groups; transactions start unticked. A session lasts 15, 30 (default) or 60 minutes, ends after 10 idle minutes, and ends when you press **Disconnect**, close or reload the tab, or the connection stays down for 30 seconds. The browser enforces these limits itself, not only the relay.
+- **What the relay and the hosting provider can see.** Metadata: the assistant's self-declared client name and redirect host, timing, call counts and sizes, tool names, and network addresses in the provider's request logs.
+- **Your side.** A local activity log (time, tool, size, outcome; never arguments or results) is kept in your browser and is not included in backups.
+
+Only connect assistants you trust, and treat the client name on the consent page as unverified text the client chose.
+
 ---
 
 ## 7. Webhook Integration (Optional)
