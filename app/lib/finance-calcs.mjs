@@ -253,12 +253,12 @@ function buildProjectionData(state, scenarioOffset) {
         insurances,
         taxRate,
     );
-    const swr = (state.projectionSettings.swr || 4.0) / 100;
+    const settings = state.projectionSettings || {};
+    const swr = (settings.swr || 4.0) / 100;
     const fireNumber = swr > 0 ? annualExpenses / swr : 0;
 
-    const savings = state.projectionSettings.annualSavings || 0;
-    const equityReturnPct =
-        (state.projectionSettings.expectedReturn || 0) + offset;
+    const savings = settings.annualSavings || 0;
+    const equityReturnPct = (settings.expectedReturn || 0) + offset;
     const blendedNominalReturn = _getBlendedNominalReturn(
         state,
         equityReturnPct,
@@ -268,7 +268,7 @@ function buildProjectionData(state, scenarioOffset) {
         state,
         Math.max(equityReturnPct - 2, 0),
     );
-    const inflation = (state.projectionSettings.inflationRate || 0) / 100;
+    const inflation = (settings.inflationRate || 0) / 100;
     const toRealReturn = (nominalPct) =>
         (1 + nominalPct / 100) / (1 + inflation) - 1;
     const realReturn = toRealReturn(blendedNominalReturn);
@@ -291,9 +291,9 @@ function buildProjectionData(state, scenarioOffset) {
         ),
         -0.01,
     );
-    const span = normalizeSpanYears(state.projectionSettings.spanYears);
-    const currentAge = state.projectionSettings.currentAge || 30;
-    const retireAge = state.projectionSettings.retireAge || 60;
+    const span = normalizeSpanYears(settings.spanYears);
+    const currentAge = settings.currentAge || 30;
+    const retireAge = settings.retireAge || 60;
 
     const passiveIncome = _getPassiveIncome(state);
     const netWithdrawal = Math.max(0, annualExpenses - passiveIncome);
