@@ -261,6 +261,26 @@ describe('/mcp: transport and auth', () => {
         expect(res.status).toBe(401);
     });
 
+    it('rejects a non-object params value', async () => {
+        const ctx = await liveSession();
+        for (const params of [5, 'x', null, true]) {
+            const { res, body } = await call(ctx, {
+                jsonrpc: '2.0',
+                method: 'ping',
+                params,
+                id: 1,
+            });
+            expect(res.status).toBe(400);
+            expect(body.error.code).toBe(-32600);
+        }
+        const note = await call(ctx, {
+            jsonrpc: '2.0',
+            method: 'notifications/initialized',
+            params: 5,
+        });
+        expect(note.res.status).toBe(400);
+    });
+
     it('a notification gets 202 with no body', async () => {
         const ctx = await liveSession();
         const { res } = await call(ctx, {
@@ -399,8 +419,13 @@ describe('/mcp: tools/call forwarding and the §6 failure table', () => {
             ctx,
             rpc('tools/call', { name: 'get_net_worth', arguments: {} }),
         );
+        let settled = false;
+        p.then(() => {
+            settled = true;
+        });
         const end = Date.now() + 3000;
         while (!ctx.session.inFlight) {
+            if (settled) throw new Error('call settled before admission');
             if (Date.now() > end) throw new Error('call never admitted');
             await new Promise((r) => setTimeout(r, 1));
         }
@@ -428,6 +453,29 @@ describe('/mcp: tools/call forwarding and the §6 failure table', () => {
         await calls(ctx);
         ctx.session.end('user_disconnect');
         expect((await p).res.status).toBe(401);
+    });
+
+    it('a RESULT too big to parse still fails its call as result_too_large', async () => {
+        const ctx = await liveSession(['summary']);
+        const p = call(
+            ctx,
+            rpc('tools/call', { name: 'get_net_worth', arguments: {} }),
+        );
+        await calls(ctx);
+        const frame = ctx.socket.last(FrameType.CALL);
+        await ctx.session.handleMessage(
+            ctx.socket,
+            JSON.stringify({
+                v: 1,
+                type: 'RESULT',
+                sid: ctx.sid,
+                id: frame.id,
+                ok: true,
+                content: 'x'.repeat(Limits.MAX_RESULT_BYTES * 2),
+            }),
+        );
+        expect((await p).body.result.content[0].text).toBe('result_too_large');
+        expect(ctx.session.status).toBe('live');
     });
 
     it('an oversize RESULT becomes the result_too_large tool error', async () => {

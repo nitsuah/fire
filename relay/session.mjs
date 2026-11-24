@@ -280,6 +280,9 @@ export class BridgeSession {
             data.length > MAX_INBOUND_BYTES ||
             new TextEncoder().encode(data).length > MAX_INBOUND_BYTES
         ) {
+            if (state.stage === 'live' && this._failOversizeResult(data)) {
+                return;
+            }
             this._dropSocket(socket, 'bad_frame');
             return;
         }
@@ -304,6 +307,23 @@ export class BridgeSession {
             default:
                 this._dropSocket(socket, 'bad_state');
         }
+    }
+
+    /**
+     * An oversize RESULT is too big to parse, but the call it answers should
+     * still fail as result_too_large, not time out. The id sits at the front
+     * of a RESULT frame, so read it from the first bytes.
+     */
+    _failOversizeResult(data) {
+        if (typeof data !== 'string') return false;
+        const head = data.slice(0, 512);
+        const m = /"type":"RESULT"[^]*?"id":"([0-9a-f]{32})"/.exec(head);
+        const entry = m && this._pending.get(m[1]);
+        if (!entry || !entry.sent) return false;
+        this._pending.delete(m[1]);
+        this.clock.clearTimeout(entry.timer);
+        entry.reject(new SessionError('result_too_large'));
+        return true;
     }
 
     async _onHello(socket, state, frame) {

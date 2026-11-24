@@ -97,6 +97,12 @@ async function handleRpc(session, msg) {
             ? { none: true }
             : invalid;
     }
+    if (
+        msg.params !== undefined &&
+        (msg.params === null || typeof msg.params !== 'object')
+    ) {
+        return invalid;
+    }
     const hasId = 'id' in msg;
     if (hasId && typeof msg.id !== 'string' && typeof msg.id !== 'number') {
         return invalid;
