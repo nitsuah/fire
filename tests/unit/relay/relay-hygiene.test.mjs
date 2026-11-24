@@ -14,26 +14,55 @@ const files = fs.readdirSync(dir).filter((f) => f.endsWith('.mjs'));
 const BANNED_MODULES =
     /^(node:)?(fs|fs\/promises|sqlite|better-sqlite3|redis|pg|mysql2?|mongodb)$/;
 
-function stripComments(s) {
-    return s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+// A small scanner that tells code from comments and strings. Returns the
+// source without comments (`kept`, strings intact, for module specifiers) and
+// the same with string contents blanked (`blanked`, for API-name checks).
+function scan(src) {
+    let kept = '';
+    let blanked = '';
+    let i = 0;
+    while (i < src.length) {
+        const c = src[i];
+        const n = src[i + 1];
+        if (c === '/' && n === '/') {
+            while (i < src.length && src[i] !== '
+') i++;
+        } else if (c === '/' && n === '*') {
+            const end = src.indexOf('*/', i + 2);
+            i = end === -1 ? src.length : end + 2;
+        } else if (c === "'" || c === '"' || c === '`') {
+            let j = i + 1;
+            while (j < src.length && src[j] !== c) j += src[j] === '\' ? 2 : 1;
+            const lit = src.slice(i, j + 1);
+            kept += lit;
+            blanked += c + ' '.repeat(Math.max(0, lit.length - 2)) + c;
+            i = j + 1;
+        } else {
+            kept += c;
+            blanked += c;
+            i++;
+        }
+    }
+    return { kept, blanked };
 }
 
 /** Storage-API violations in relay source (comments ignored). */
 function findStorageViolations(source) {
-    const src = stripComments(source);
+    const { kept, blanked } = scan(source);
+    const src = blanked;
     const found = [];
     // Imports, re-exports, dynamic imports and require, by module specifier.
     const specifiers = [
-        ...src.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g),
-        ...src.matchAll(/\bimport\s*\(?\s*['"]([^'"]+)['"]/g),
-        ...src.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]/g),
+        ...kept.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g),
+        ...kept.matchAll(/\bimport\s*\(?\s*['"]([^'"]+)['"]/g),
+        ...kept.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]/g),
     ].map((m) => m[1]);
     for (const spec of specifiers) {
         if (BANNED_MODULES.test(spec)) found.push(`module ${spec}`);
     }
     const patterns = [
         [/\brequire\s*\(/, 'require'],
-        [/\.\s*storage\b|\[\s*['"`]storage['"`]\s*\]/, 'storage property'],
+        [/\.\s*storage\b/, 'storage property'],
         [/\b(set|get|delete)Alarm\b/, 'alarm'],
         [/\bKV(Namespace)?\b|\bD1Database\b|\bR2Bucket\b/, 'KV/D1/R2'],
         [
@@ -45,6 +74,9 @@ function findStorageViolations(source) {
             'hibernation API',
         ],
     ];
+    if (/\[\s*['"`]storage['"`]\s*\]/.test(kept)) {
+        found.push('storage property');
+    }
     for (const [re, label] of patterns) {
         if (re.test(src)) found.push(label);
     }
@@ -75,6 +107,9 @@ describe('storage guard (fixtures)', () => {
             '/* ctx.acceptWebSocket(ws) */',
             "import { x } from './session.mjs';",
             'const storageful = 1; const kv = 2;',
+            'const ok = 1; // state.storage.put()',
+            "const s = 'ctx.acceptWebSocket and localStorage'; /* x */",
+            'const t = `state.storage`;',
         ].join('\n');
         expect(findStorageViolations(code)).toEqual([]);
     });
@@ -91,7 +126,7 @@ describe('relay stays memory-only (design §3, C1)', () => {
     });
 
     it.each(files)('%s has no console or direct logging calls', (f) => {
-        const src = stripComments(fs.readFileSync(path.join(dir, f), 'utf8'));
+        const src = scan(fs.readFileSync(path.join(dir, f), 'utf8')).blanked;
         expect(src).not.toMatch(/\bconsole\./);
     });
 

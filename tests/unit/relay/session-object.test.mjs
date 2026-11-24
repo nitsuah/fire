@@ -105,6 +105,40 @@ describe('Durable Object adapter', () => {
         expect(server.sent.some((f) => f.type === FrameType.READY)).toBe(true);
     });
 
+    it('sends a PING keepalive every 20 s through the Workers socket', async () => {
+        const clock = new FakeClock();
+        const { obj, server } = makeObject({ clock });
+        await obj.fetch(upgrade(`/bridge/${sid}`));
+        const key = await makeKey();
+        const exp = clock.now() + 5 * 60_000;
+        server.handlers.message({
+            data: JSON.stringify({
+                v: 1,
+                type: FrameType.HELLO,
+                sid,
+                pub: key.pub,
+                pendingAuth: 'p',
+                scope: ['accounts'],
+                expiresAt: exp,
+            }),
+        });
+        await until(() => server.sent.some((f) => f.type === FrameType.CHALLENGE));
+        const ch = server.sent.find((f) => f.type === FrameType.CHALLENGE);
+        const sig = await sign(key, {
+            sid,
+            nonce: ch.nonce,
+            scope: ['accounts'],
+            expiresAt: exp,
+            origin: 'https://relay.example',
+        });
+        server.handlers.message({
+            data: JSON.stringify({ v: 1, type: FrameType.PROVE, sid, sig }),
+        });
+        await until(() => server.sent.some((f) => f.type === FrameType.READY));
+        await clock.advance(60_000);
+        expect(server.sent.filter((f) => f.type === 'PING').length).toBe(3);
+    });
+
     it('denies by default when no pending-authorization verifier is wired', async () => {
         const { obj, server } = makeObject({ verifyPendingAuth: undefined });
         await obj.fetch(upgrade(`/bridge/${sid}`));

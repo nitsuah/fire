@@ -376,7 +376,8 @@ export class BridgeSession {
         }
         const now = this.clock.now();
         if (
-            (first && (this.status !== 'new' || expiresAt <= now)) ||
+            (first && this.status !== 'new') ||
+            expiresAt <= now ||
             (this.status === 'grace' && now >= this._graceDeadline)
         ) {
             this._dropSocket(socket, 'bad_proof');

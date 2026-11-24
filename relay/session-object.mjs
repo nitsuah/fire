@@ -57,8 +57,10 @@ export class BridgeSessionObject {
         const socket = {
             send: (text) => server.send(text),
             close: (code, reason) => server.close(code, reason),
-            // Workers expose no protocol-level ping; liveness during a call
-            // comes from the traffic itself (see docs, deploy step #515).
+            // Workers expose no protocol-level ping, so the 20 s keepalive is
+            // a small application frame the browser host ignores.
+            ping: () =>
+                server.send(JSON.stringify({ v: 1, type: 'PING', sid })),
         };
         session.attach(socket);
         server.addEventListener('message', (event) => {
