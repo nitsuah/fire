@@ -122,7 +122,9 @@ describe('Durable Object adapter', () => {
                 expiresAt: exp,
             }),
         });
-        await until(() => server.sent.some((f) => f.type === FrameType.CHALLENGE));
+        await until(() =>
+            server.sent.some((f) => f.type === FrameType.CHALLENGE),
+        );
         const ch = server.sent.find((f) => f.type === FrameType.CHALLENGE);
         const sig = await sign(key, {
             sid,

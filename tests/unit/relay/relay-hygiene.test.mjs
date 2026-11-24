@@ -25,14 +25,15 @@ function scan(src) {
         const c = src[i];
         const n = src[i + 1];
         if (c === '/' && n === '/') {
-            while (i < src.length && src[i] !== '
-') i++;
+            while (i < src.length && src[i] !== '\n') i++;
         } else if (c === '/' && n === '*') {
             const end = src.indexOf('*/', i + 2);
             i = end === -1 ? src.length : end + 2;
         } else if (c === "'" || c === '"' || c === '`') {
             let j = i + 1;
-            while (j < src.length && src[j] !== c) j += src[j] === '\' ? 2 : 1;
+            while (j < src.length && src[j] !== c) {
+                j += src[j] === '\\' ? 2 : 1;
+            }
             const lit = src.slice(i, j + 1);
             kept += lit;
             blanked += c + ' '.repeat(Math.max(0, lit.length - 2)) + c;
