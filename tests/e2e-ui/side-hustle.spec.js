@@ -24,6 +24,24 @@ test.beforeEach(async ({ page }) => {
 test.describe('Platform Fee Calculator', () => {
     // The Etsy/FB panels start hidden by a CSS class; switching tabs must
     // actually show them (an empty inline display used to leave them hidden).
+    // The category select holds fee-rule ids; the fee tiers at the $7,500 cap.
+    test('eBay fees resolve the selected rule id and its tiers', async ({
+        page,
+    }) => {
+        await page.locator('#ebay-price').fill('8000');
+        await page.locator('#ebay-shipping-charged').fill('0');
+        await page.locator('#ebay-ad-rate').fill('0');
+        const fees = page.locator('#ebay-res-fees');
+
+        await page.locator('#ebay-category-rate').selectOption('trading-cards');
+        // 7,500 x 13.25% + 500 x 2.35% + $0.40 order fee
+        await expect(fees).toHaveText('$1,005.90');
+
+        await page.locator('#ebay-category-rate').selectOption('standard');
+        // 7,500 x 13.6% + 500 x 2.35% + $0.40
+        await expect(fees).toHaveText('$1,032.15');
+    });
+
     test('switches between every platform panel', async ({ page }) => {
         const panels = {
             ebay: page.locator('#calc-panel-ebay'),
