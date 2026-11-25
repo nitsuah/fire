@@ -41,18 +41,18 @@ describe('resolveEns', () => {
         });
     });
 
-    it.each([
-        {},
-        { address: 'not-an-address' },
-    ])('maps invalid addresses to 404', async (data) => {
-        fetch.mockResolvedValue({
-            ok: true,
-            json: async () => data,
-        });
-        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({
-            status: 404,
-        });
-    });
+    it.each([{}, { address: 'not-an-address' }])(
+        'maps invalid addresses to 404',
+        async (data) => {
+            fetch.mockResolvedValue({
+                ok: true,
+                json: async () => data,
+            });
+            await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({
+                status: 404,
+            });
+        },
+    );
 });
 
 describe('resolveCryptoValue ticker path', () => {
