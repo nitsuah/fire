@@ -23,7 +23,8 @@ beforeEach(() => {
 afterEach(() => {
     if (originalClientId === undefined) delete process.env.EBAY_CLIENT_ID;
     else process.env.EBAY_CLIENT_ID = originalClientId;
-    if (originalClientSecret === undefined) delete process.env.EBAY_CLIENT_SECRET;
+    if (originalClientSecret === undefined)
+        delete process.env.EBAY_CLIENT_SECRET;
     else process.env.EBAY_CLIENT_SECRET = originalClientSecret;
     vi.restoreAllMocks();
 });
@@ -70,18 +71,29 @@ describe('handleDeletionNotification', () => {
     });
 
     it.each([
-        [{ metadata: { topic: 'OTHER' }, notification: { notificationId: 'x' } }],
+        [
+            {
+                metadata: { topic: 'OTHER' },
+                notification: { notificationId: 'x' },
+            },
+        ],
         [{ metadata: { topic: 'MARKETPLACE_ACCOUNT_DELETION' } }],
     ])('rejects malformed notifications without purging', async (body) => {
         const purge = vi.fn();
         await expect(
-            handlers.handleDeletionNotification({ body, allowUnsigned: true, purge }),
+            handlers.handleDeletionNotification({
+                body,
+                allowUnsigned: true,
+                purge,
+            }),
         ).resolves.toMatchObject({ status: 400 });
         expect(purge).not.toHaveBeenCalled();
     });
 
     it('returns a generic 500 when cleanup throws', async () => {
-        const purge = vi.fn().mockRejectedValue(new Error('private cleanup detail'));
+        const purge = vi
+            .fn()
+            .mockRejectedValue(new Error('private cleanup detail'));
         await expect(
             handlers.handleDeletionNotification({
                 body: notification(),
