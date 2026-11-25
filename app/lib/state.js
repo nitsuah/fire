@@ -80,7 +80,49 @@ let syncedRevision = null;
 const revisionOf = (data) =>
     Number.isInteger(data?.stateRevision) ? data.stateRevision : 0;
 
+// A definitive hosted answer (a real 404 from /api/state) is remembered per
+// origin so later loads skip the probe instead of logging a red 404 each
+// time. Entries older than this are re-probed. A self-hosted answer is never
+// cached: a server that is there must always be asked.
+const DEPLOY_MODE_KEY = 'fire.deployMode';
+const DEPLOY_MODE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isHostedCached() {
+    try {
+        const raw = localStorage.getItem(DEPLOY_MODE_KEY);
+        if (!raw) return false;
+        const entry = JSON.parse(raw);
+        if (!entry || entry.hosted !== true || !Number.isFinite(entry.at))
+            return false;
+        const age = Date.now() - entry.at;
+        // A timestamp from the future (clock change) is not trusted.
+        return age >= 0 && age < DEPLOY_MODE_TTL_MS;
+    } catch (e) {
+        return false;
+    }
+}
+
+function rememberDeployMode(hosted) {
+    try {
+        if (hosted) {
+            localStorage.setItem(
+                DEPLOY_MODE_KEY,
+                JSON.stringify({ hosted: true, at: Date.now() }),
+            );
+        } else {
+            localStorage.removeItem(DEPLOY_MODE_KEY);
+        }
+    } catch (e) {
+        /* storage unavailable: just probe again next load */
+    }
+}
+
 async function loadStateFromServer() {
+    if (isHostedCached()) {
+        reportDeployMode(false);
+        loadLocalStateOnly();
+        return;
+    }
     try {
         const res = await fetch('/api/state');
         if (res.ok) {
@@ -93,6 +135,7 @@ async function loadStateFromServer() {
                 state = sanitizeState({ ...state, ...data });
                 syncedRevision = revisionOf(data);
                 reportDeployMode(true);
+                rememberDeployMode(false);
                 console.log('State loaded successfully from backend DB.');
                 return;
             }
@@ -101,7 +144,9 @@ async function loadStateFromServer() {
         // thinks of this request. 404 is the hosted deploy: /api/state is
         // routed in every build that has a server, and the Netlify catch-all
         // answers with "not available in the hosted browser deployment".
-        reportDeployMode(res.status !== 404);
+        const hasServer = res.status !== 404;
+        reportDeployMode(hasServer);
+        rememberDeployMode(!hasServer);
     } catch (e) {
         console.warn(
             'Express backend unreachable. Falling back to localStorage.',
@@ -109,6 +154,10 @@ async function loadStateFromServer() {
         );
         reportDeployMode(false);
     }
+    loadLocalStateOnly();
+}
+
+function loadLocalStateOnly() {
     loadStateFromStorage();
     // Opening the app is enough to keep the history going: the hosted deploy
     // has no server timer, so without this a user who only ever reads would
