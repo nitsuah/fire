@@ -41,7 +41,9 @@ function findStripeManualOverlapCandidates(ledger, { windowDays = 3 } = {}) {
     const candidates = [];
     for (const stripe of stripeRows) {
         for (const manual of manualRows) {
-            const grossMatch = Math.round(stripe.gross * 100) === Math.round(manual.gross * 100);
+            const grossMatch =
+                Math.round(stripe.gross * 100) ===
+                Math.round(manual.gross * 100);
             if (!grossMatch) continue;
 
             const dApart = daysApart(stripe.dateMs, manual.dateMs);
@@ -58,7 +60,8 @@ function findStripeManualOverlapCandidates(ledger, { windowDays = 3 } = {}) {
 
     candidates.sort((a, b) => {
         if (a.daysApart !== b.daysApart) return a.daysApart - b.daysApart;
-        if (a.stripeId !== b.stripeId) return a.stripeId.localeCompare(b.stripeId);
+        if (a.stripeId !== b.stripeId)
+            return a.stripeId.localeCompare(b.stripeId);
         return a.manualId.localeCompare(b.manualId);
     });
 
@@ -71,7 +74,8 @@ function findStripeManualOverlapCandidates(ledger, { windowDays = 3 } = {}) {
     }
 
     accepted.sort((a, b) => {
-        if (a.stripeId !== b.stripeId) return a.stripeId.localeCompare(b.stripeId);
+        if (a.stripeId !== b.stripeId)
+            return a.stripeId.localeCompare(b.stripeId);
         return a.manualId.localeCompare(b.manualId);
     });
 
