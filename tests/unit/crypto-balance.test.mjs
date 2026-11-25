@@ -43,7 +43,9 @@ describe('detectIdentifierType', () => {
     it('trims surrounding whitespace', () => {
         expect(cb.detectIdentifierType('  ETH  ')).toBe('ticker');
         expect(cb.detectIdentifierType('  you.eth  ')).toBe('ens');
-        expect(cb.detectIdentifierType('  0x' + 'a'.repeat(40) + '  ')).toBe('address');
+        expect(cb.detectIdentifierType('  0x' + 'a'.repeat(40) + '  ')).toBe(
+            'address',
+        );
     });
 });
 
@@ -54,10 +56,13 @@ describe('resolveEns', () => {
 
     it('returns address on successful fetch', async () => {
         const expectedAddress = '0x' + '1'.repeat(40);
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ address: expectedAddress }),
-        }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ address: expectedAddress }),
+            }),
+        );
 
         const address = await cb.resolveEns('you.eth');
 
@@ -69,43 +74,66 @@ describe('resolveEns', () => {
     });
 
     it('rejects with status 502 on fetch ok: false', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({ ok: false, status: 500 }),
+        );
 
-        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({ status: 502 });
+        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({
+            status: 502,
+        });
     });
 
     it('rejects with status 404 when address is missing', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({}),
-        }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({}),
+            }),
+        );
 
-        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({ status: 404 });
+        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({
+            status: 404,
+        });
     });
 
     it('rejects with status 404 when address is malformed', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ address: 'not-an-address' }),
-        }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ address: 'not-an-address' }),
+            }),
+        );
 
-        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({ status: 404 });
+        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({
+            status: 404,
+        });
     });
 
     it('rejects with status 404 when address is empty string', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ address: '' }),
-        }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ address: '' }),
+            }),
+        );
 
-        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({ status: 404 });
+        await expect(cb.resolveEns('you.eth')).rejects.toMatchObject({
+            status: 404,
+        });
     });
 
     it('URL requested ends with /you.eth', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ address: '0x' + '1'.repeat(40) }),
-        }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ address: '0x' + '1'.repeat(40) }),
+            }),
+        );
 
         await cb.resolveEns('you.eth');
 
@@ -120,32 +148,45 @@ describe('resolveCryptoValue ticker path', () => {
     });
 
     it('rejects with status 400 for unknown identifier', async () => {
-        await expect(cb.resolveCryptoValue('???')).rejects.toMatchObject({ status: 400 });
+        await expect(cb.resolveCryptoValue('???')).rejects.toMatchObject({
+            status: 400,
+        });
     });
 
     it('rejects with status 400 when quantity is 0', async () => {
-        await expect(cb.resolveCryptoValue('ETH', 0)).rejects.toMatchObject({ status: 400 });
+        await expect(cb.resolveCryptoValue('ETH', 0)).rejects.toMatchObject({
+            status: 400,
+        });
     });
 
     it('rejects with status 400 when quantity is -1', async () => {
-        await expect(cb.resolveCryptoValue('ETH', -1)).rejects.toMatchObject({ status: 400 });
+        await expect(cb.resolveCryptoValue('ETH', -1)).rejects.toMatchObject({
+            status: 400,
+        });
     });
 
     it('rejects with status 400 when quantity is omitted', async () => {
-        await expect(cb.resolveCryptoValue('ETH')).rejects.toMatchObject({ status: 400 });
+        await expect(cb.resolveCryptoValue('ETH')).rejects.toMatchObject({
+            status: 400,
+        });
     });
 
     it('returns usdValue, price, ticker, source for successful fetch', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                chart: {
-                    result: [{
-                        meta: { regularMarketPrice: 1500 },
-                    }],
-                },
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    chart: {
+                        result: [
+                            {
+                                meta: { regularMarketPrice: 1500 },
+                            },
+                        ],
+                    },
+                }),
             }),
-        }));
+        );
 
         const result = await cb.resolveCryptoValue('ETH', 2);
 
@@ -159,7 +200,10 @@ describe('resolveCryptoValue ticker path', () => {
     });
 
     it('returns usdValue 5 and source stablecoin-peg for USDC with fetch failure', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockRejectedValue(new Error('network error')),
+        );
 
         const result = await cb.resolveCryptoValue('USDC', 5);
 
@@ -173,7 +217,10 @@ describe('resolveCryptoValue ticker path', () => {
     });
 
     it('returns usdValue 5 and source stablecoin-peg for USDC with ok: false', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({ ok: false, status: 500 }),
+        );
 
         const result = await cb.resolveCryptoValue('USDC', 5);
 
@@ -187,26 +234,40 @@ describe('resolveCryptoValue ticker path', () => {
     });
 
     it('rejects with status 502 for non-stablecoin with ok: false', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({ ok: false, status: 503 }),
+        );
 
-        await expect(cb.resolveCryptoValue('ETH', 2)).rejects.toMatchObject({ status: 502 });
+        await expect(cb.resolveCryptoValue('ETH', 2)).rejects.toMatchObject({
+            status: 502,
+        });
     });
 
     it('rejects with status 404 for empty chart data', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                chart: { result: [] },
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    chart: { result: [] },
+                }),
             }),
-        }));
+        );
 
-        await expect(cb.resolveCryptoValue('ETH', 2)).rejects.toMatchObject({ status: 404 });
+        await expect(cb.resolveCryptoValue('ETH', 2)).rejects.toMatchObject({
+            status: 404,
+        });
     });
 
     it('rejects with status 504 for TimeoutError', async () => {
-        const timeoutError = Object.assign(new Error('x'), { name: 'TimeoutError' });
+        const timeoutError = Object.assign(new Error('x'), {
+            name: 'TimeoutError',
+        });
         vi.stubGlobal('fetch', vi.fn().mockRejectedValue(timeoutError));
 
-        await expect(cb.resolveCryptoValue('ETH', 2)).rejects.toMatchObject({ status: 504 });
+        await expect(cb.resolveCryptoValue('ETH', 2)).rejects.toMatchObject({
+            status: 504,
+        });
     });
 });
