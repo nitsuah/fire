@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Unit tests for `integrateWebhookData` covering the accounts, cds, positions, expenses, taxRate and projectionSettings webhook types (#619).
+- Unit tests for `integrateWebhookData` dedupe on `sideGigLedger` and `importedFiles`, including the id-less file name-only match (#620).
 - Unit tests for `app/lib/server-utils.js`.
 - Optional `accountId` argument on `stripeBalanceTransactionsToEntries` that records `canonicalKey` (#597).
 - `findStripeManualOverlapCandidates` in `app/lib/ledger-overlap.js`: pure helper that finds Stripe-vs-manual duplicate candidates by gross match and date window, used by the Stripe overlap audit (#596).
