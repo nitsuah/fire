@@ -123,7 +123,9 @@ describe('page wiring and CSP (#514)', () => {
             .find((l) => l.includes('Content-Security-Policy'));
         expect(csp).toContain('wss://relay.fire.nitsuah.io');
         const script = /script-src ([^;]+);/.exec(csp)[1];
-        expect(script).toBe("'self' https://cdn.jsdelivr.net https://static.cloudflareinsights.com");
+        expect(script).toBe(
+            "'self' https://cdn.jsdelivr.net https://static.cloudflareinsights.com",
+        );
         const connect = /connect-src ([^;]+);/.exec(csp)[1];
         expect(connect).toContain('https://cloudflareinsights.com');
         expect(connect).toContain('wss://relay.fire.nitsuah.io');
