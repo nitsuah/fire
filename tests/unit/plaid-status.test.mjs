@@ -8,7 +8,10 @@ import {
 describe('failureCode', () => {
     it('returns plaidErrorCode when both are set', () => {
         expect(
-            failureCode({ plaidErrorCode: 'ITEM_LOGIN_REQUIRED', code: 'OTHER' }),
+            failureCode({
+                plaidErrorCode: 'ITEM_LOGIN_REQUIRED',
+                code: 'OTHER',
+            }),
         ).toBe('ITEM_LOGIN_REQUIRED');
     });
 
@@ -56,7 +59,9 @@ describe('reauthRequired', () => {
         expect(
             reauthRequired([null, { lastErrorCode: 'ITEM_LOGIN_REQUIRED' }]),
         ).toBe(true);
-        expect(reauthRequired([null, { lastErrorCode: 'RATE_LIMIT' }])).toBe(false);
+        expect(reauthRequired([null, { lastErrorCode: 'RATE_LIMIT' }])).toBe(
+            false,
+        );
     });
 });
 
