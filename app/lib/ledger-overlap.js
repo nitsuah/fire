@@ -42,8 +42,9 @@ function findStripeManualOverlapCandidates(ledger, { windowDays = 3 } = {}) {
     for (const stripe of stripeRows) {
         for (const manual of manualRows) {
             const grossMatch =
+                Math.sign(stripe.gross) === Math.sign(manual.gross) &&
                 Math.round(stripe.gross * 100) ===
-                Math.round(manual.gross * 100);
+                    Math.round(manual.gross * 100);
             if (!grossMatch) continue;
 
             const dApart = daysApart(stripe.dateMs, manual.dateMs);

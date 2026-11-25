@@ -61,7 +61,34 @@ describe('findStripeManualOverlapCandidates', () => {
         ]);
     });
 
-    it('one manual row with two Stripe candidates pairs with the closer one only', () => {
+    it('one manual row with two Stripe candidates pairs with the closer one', () => {
+        const ledger = [
+            { id: 'stripe-1', date: '2024-01-08', gross: 100.0 },
+            { id: 'stripe-2', date: '2024-01-12', gross: 100.0 },
+            { id: 'manual-1', date: '2024-01-11', gross: 100.0 },
+        ];
+        const result = findStripeManualOverlapCandidates(ledger, {
+            windowDays: 3,
+        });
+        expect(result).toEqual([
+            {
+                stripeId: 'stripe-2',
+                manualId: 'manual-1',
+                gross: 100.0,
+                daysApart: 1,
+            },
+        ]);
+    });
+
+    it('opposite-sign amounts that round to zero cents never match', () => {
+        const ledger = [
+            { id: 'stripe-1', date: '2024-01-10', gross: -0.001 },
+            { id: 'manual-1', date: '2024-01-10', gross: 0.001 },
+        ];
+        expect(findStripeManualOverlapCandidates(ledger)).toEqual([]);
+    });
+
+    it('equal-distance Stripe candidates tie-break by Stripe id', () => {
         const ledger = [
             { id: 'stripe-1', date: '2024-01-10', gross: 100.0 },
             { id: 'stripe-2', date: '2024-01-12', gross: 100.0 },
