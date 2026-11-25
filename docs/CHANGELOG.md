@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Allowed the Cloudflare Web Analytics beacon in the hosted site's CSP and documented its cookieless, aggregate page-view metrics (#610).
+
+### Fixed
 - The hosted deploy remembers its answer per origin (`fire.deployMode` in `localStorage`, valid for 7 days), so later loads skip the `/api/state` probe and no longer log a 404 each time. A self-hosted answer is never cached (#583).
 - `buildProjectionData` no longer throws when `projectionSettings` is missing, so `fire_status_summary` and `get_expenses` answer on a partial state (for example a fresh browser profile on the hosted bridge) instead of failing with a TypeError. A new test calls every MCP tool on the demo seed and on an empty state.
 - `GET/POST /api/sync/ebay/marketplace-account-deletion` answers `503` (not `500`) when the eBay verification token or endpoint URL is unset; a missing `challenge_code` stays `400`. Added `app/404.html` so unknown paths on Pages are a real 404 (#544, #520).
