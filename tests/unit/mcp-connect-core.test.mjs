@@ -117,13 +117,19 @@ describe('page wiring and CSP (#514)', () => {
     const read = (p) =>
         fs.readFileSync(new URL(`../../app/${p}`, import.meta.url), 'utf8');
 
-    it('adds only the relay host to connect-src and no new script source', () => {
+    it('allows the Cloudflare Web Analytics beacon without weakening CSP', () => {
         const csp = read('_headers')
             .split('\n')
             .find((l) => l.includes('Content-Security-Policy'));
         expect(csp).toContain('wss://relay.fire.nitsuah.io');
         const script = /script-src ([^;]+);/.exec(csp)[1];
-        expect(script).toBe("'self' https://cdn.jsdelivr.net");
+        expect(script).toBe(
+            "'self' https://cdn.jsdelivr.net https://static.cloudflareinsights.com",
+        );
+        const connect = /connect-src ([^;]+);/.exec(csp)[1];
+        expect(connect).toBe(
+            "'self' https://query1.finance.yahoo.com https://finance.yahoo.com https://cdn.jsdelivr.net wss://relay.fire.nitsuah.io https://cloudflareinsights.com",
+        );
         expect(csp).not.toContain('unsafe-');
     });
 
