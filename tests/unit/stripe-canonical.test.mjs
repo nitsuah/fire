@@ -179,3 +179,52 @@ describe('stripeBalanceTransactionsToEntries', () => {
         });
     });
 });
+
+describe('canonicalKey', () => {
+    const baseTxn = transaction({ id: 'txn_charge_1' });
+
+    it('adds canonicalKey when accountId matches acct_ pattern', () => {
+        const result = stripe.stripeBalanceTransactionsToEntries([baseTxn], {
+            accountId: 'acct_1AbC',
+        });
+
+        expect(result.entries).toHaveLength(1);
+        expect(result.entries[0]).toMatchObject({
+            id: 'stripe-txn_charge_1',
+            canonicalKey: 'stripe:acct_1AbC:txn_charge_1',
+        });
+    });
+
+    it('omits canonicalKey when no accountId is provided', () => {
+        const result = stripe.stripeBalanceTransactionsToEntries([baseTxn]);
+
+        expect(result.entries).toHaveLength(1);
+        expect('canonicalKey' in result.entries[0]).toBe(false);
+    });
+
+    it('omits canonicalKey when accountId is an invalid string', () => {
+        const invalid = ['sk_live_x', '', 'not-an-account'];
+        for (const id of invalid) {
+            const result = stripe.stripeBalanceTransactionsToEntries(
+                [baseTxn],
+                {
+                    accountId: id,
+                },
+            );
+            expect('canonicalKey' in result.entries[0]).toBe(false);
+        }
+    });
+
+    it('omits canonicalKey when accountId is a non-string', () => {
+        const invalid = [42, null, undefined, true, {}];
+        for (const id of invalid) {
+            const result = stripe.stripeBalanceTransactionsToEntries(
+                [baseTxn],
+                {
+                    accountId: id,
+                },
+            );
+            expect('canonicalKey' in result.entries[0]).toBe(false);
+        }
+    });
+});

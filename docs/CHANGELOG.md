@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Privacy modal: the hosted-bridge design link is now an absolute GitHub URL, so it no longer 404s inside the app.
 
 ### Added
+- Optional `accountId` argument on `stripeBalanceTransactionsToEntries` that records `canonicalKey` (#597).
 - `findStripeManualOverlapCandidates` in `app/lib/ledger-overlap.js`: pure helper that finds Stripe-vs-manual duplicate candidates by gross match and date window, used by the Stripe overlap audit (#596).
 - Unit tests for `app/lib/plaid-status.js` (#608).
 - Unit tests for `app/lib/oauth-nonce.js` (#607).
