@@ -127,8 +127,9 @@ describe('page wiring and CSP (#514)', () => {
             "'self' https://cdn.jsdelivr.net https://static.cloudflareinsights.com",
         );
         const connect = /connect-src ([^;]+);/.exec(csp)[1];
-        expect(connect).toContain('https://cloudflareinsights.com');
-        expect(connect).toContain('wss://relay.fire.nitsuah.io');
+        expect(connect).toBe(
+            "'self' https://query1.finance.yahoo.com https://finance.yahoo.com https://cdn.jsdelivr.net wss://relay.fire.nitsuah.io https://cloudflareinsights.com",
+        );
         expect(csp).not.toContain('unsafe-');
     });
 
