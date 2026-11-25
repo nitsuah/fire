@@ -47,7 +47,7 @@ describe('findAvailablePort', () => {
 
     it('rejects when no candidates provided', async () => {
         await expect(findAvailablePort([])).rejects.toThrow(
-            'No port candidates provided'
+            'No port candidates provided',
         );
     });
 
