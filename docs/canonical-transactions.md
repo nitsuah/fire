@@ -5,7 +5,7 @@
 ## Canonical key and provenance
 
 - The pure Stripe balance-transaction mapper emits a ledger row id of `stripe-<txn id>` and keeps the raw provider id in `stripeTxnId`. The id is source provenance, not proof that another provider row is the same sale.
-- The mapper currently has no Stripe account-id input. The account-scoped canonical key described in [the overlap audit](stripe-overlap-audit.md) is `stripe:<account id>:<balance transaction id>`; it is a future storage/reconciliation key, not the current mapper's row id.
+- The mapper records `canonicalKey` (`stripe:<account id>:<balance transaction id>`, see [the overlap audit](stripe-overlap-audit.md)) when an `accountId` matching `acct_...` is passed; the sync route does not pass one yet.
 - eBay rows keep `ebay-<orderId>`; Etsy rows keep `etsy-<receipt_id>`; manual rows keep their user-created ids. Keep those source ids when reconciling.
 
 ## Counting rules (current Stripe mapper)

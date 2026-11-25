@@ -37,10 +37,16 @@ function skippedRow(transaction, reason) {
     };
 }
 
-function stripeBalanceTransactionsToEntries(transactions) {
+const ACCOUNT_ID_RE = /^acct_[A-Za-z0-9]+$/;
+
+function stripeBalanceTransactionsToEntries(transactions, { accountId } = {}) {
     const entries = [];
     const skipped = [];
     const seen = new Set();
+    const keyPrefix =
+        typeof accountId === 'string' && ACCOUNT_ID_RE.test(accountId)
+            ? 'stripe:' + accountId + ':'
+            : null;
 
     for (const transaction of Array.isArray(transactions) ? transactions : []) {
         const id = typeof transaction?.id === 'string' ? transaction.id : '';
@@ -121,6 +127,7 @@ function stripeBalanceTransactionsToEntries(transactions) {
             net: roundMoney(gross - fees),
             stripeTxnId: id,
             kind: type,
+            ...(keyPrefix ? { canonicalKey: keyPrefix + id } : {}),
         });
     }
 
