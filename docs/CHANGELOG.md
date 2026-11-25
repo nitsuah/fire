@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Privacy modal: the hosted-bridge design link is now an absolute GitHub URL, so it no longer 404s inside the app.
 
 ### Added
+- `findStripeManualOverlapCandidates` in `app/lib/ledger-overlap.js`: pure helper that finds Stripe-vs-manual duplicate candidates by gross match and date window, used by the Stripe overlap audit (#596).
 - Unit tests for `app/lib/plaid-status.js` (#608).
 - Unit tests for `app/lib/oauth-nonce.js` (#607).
 - `pages-router.yml` CI job: runs the Cloudflare Pages Function router under `wrangler pages dev` (pinned 4.168.0, no secrets) and curls `/api/health`, the eBay deletion endpoint (503), eBay status (`configured:false`), `/api/state` (404 JSON) and an unknown path (404) via `scripts/pages-router-smoke.sh` (#582).
