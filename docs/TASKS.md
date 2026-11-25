@@ -11,6 +11,8 @@ updated: 2026-10-30
 - [x] Evaluation: [stripe-side-hustle-eval.md](./stripe-side-hustle-eval.md). Keep Stripe read-only and do not integrate payments.
 - [ ] Pure Stripe-vs-manual duplicate-candidate finder (#596).
 - [x] Optional account-scoped `canonicalKey` in the mapper (#597).
+- [x] Pure Stripe-vs-manual duplicate-candidate finder (#596).
+- [ ] Optional account-scoped `canonicalKey` in the mapper (#597).
 - [ ] Owner decision on hosted read-only Stripe (#598).
 - [ ] Live-provider acceptance with the owner's restricted key (manual).
 
