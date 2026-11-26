@@ -439,7 +439,9 @@ describe('self-hosted revoked Drive grants', () => {
     async function storeExpiredGrant(status = 400) {
         vi.stubGlobal(
             'fetch',
-            vi.fn().mockResolvedValueOnce({
+            vi
+                .fn()
+                .mockResolvedValueOnce({
                     ok: true,
                     json: async () => ({
                         access_token: 'expired-at',
@@ -472,7 +474,8 @@ describe('self-hosted revoked Drive grants', () => {
     it('keeps the stored grant when refresh fails with a transient 500', async () => {
         vi.stubGlobal(
             'fetch',
-            vi.fn()
+            vi
+                .fn()
                 .mockResolvedValueOnce({
                     ok: true,
                     json: async () => ({
