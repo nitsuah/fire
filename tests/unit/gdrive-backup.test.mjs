@@ -458,8 +458,9 @@ describe('self-hosted revoked Drive grants', () => {
         await gdrive.exchangeCodeForTokens('auth-code');
     }
 
-    it('deletes a stored grant when Google rejects refresh with 400 or 401', async () => {
-        for (const status of [400, 401]) {
+    it.each([400, 401])(
+        'deletes a stored grant when Google rejects refresh with %i',
+        async (status) => {
             await storeExpiredGrant(status);
             expect(gdrive.isOAuthConfigured()).toBe(true);
             await expect(gdrive.listBackups()).rejects.toMatchObject({
@@ -470,8 +471,8 @@ describe('self-hosted revoked Drive grants', () => {
             expect(
                 fs.existsSync(path.join(TEST_DATA_DIR, 'tokens-gdrive.json')),
             ).toBe(false);
-        }
-    });
+        },
+    );
 
     it('keeps the stored grant when refresh fails with a transient 500', async () => {
         vi.stubGlobal(
