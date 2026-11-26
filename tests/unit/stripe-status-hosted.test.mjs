@@ -72,7 +72,9 @@ describe('hosted Stripe status requests', () => {
             document,
             FireDeployMode: { whenKnown: async () => true },
             fetch: async () => {
-                throw new Error('hosted deployment must not fetch Stripe status');
+                throw new Error(
+                    'hosted deployment must not fetch Stripe status',
+                );
             },
         };
         vm.runInNewContext(stripeCardSource, context);
@@ -92,7 +94,10 @@ describe('hosted Stripe status requests', () => {
         const context = {
             document,
             FireDeployMode: { whenKnown: async () => false },
-            stripeStatusBadge: () => ({ label: 'Not connected', color: 'gray' }),
+            stripeStatusBadge: () => ({
+                label: 'Not connected',
+                color: 'gray',
+            }),
             stripeRecoveryHint: () => '',
             fetch: async (url) => {
                 requested.push(url);
