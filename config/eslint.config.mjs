@@ -101,6 +101,14 @@ export default [
         },
     },
 
+    // This manager imports fetchJson directly; keep its browser globals from the block above.
+    {
+        files: ['app/lib/managers/ens-lookup.js'],
+        languageOptions: {
+            sourceType: 'module',
+        },
+    },
+
     // Pure ES-module helpers shared by Node (require(esm)), the MCP tools and
     // the browser MCP host. They only touch `window` behind a typeof guard (the
     // temporary bridge for classic page scripts).
