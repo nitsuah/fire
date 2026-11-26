@@ -74,6 +74,21 @@ async function loadStripeCard() {
     const myLoadId = ++loadCounter;
 
     try {
+        let hosted = null;
+        try {
+            hosted = globalThis.FireDeployMode
+                ? await globalThis.FireDeployMode.whenKnown()
+                : null;
+        } catch {
+            /* unknown deployment mode: retain the self-hosted status check */
+        }
+        if (hosted === true) {
+            if (myLoadId !== loadCounter) return;
+            lastStripeData = { configured: false };
+            renderStripeCard(lastStripeData);
+            return;
+        }
+
         const res = await fetch('/api/sync/stripe/status', {
             cache: 'no-store',
         });
