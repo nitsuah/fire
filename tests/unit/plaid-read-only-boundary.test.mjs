@@ -24,7 +24,7 @@ describe('Plaid read-only boundary', () => {
     it('calls only the allowlisted Plaid endpoints', () => {
         // Collect every first argument of plaidPost( calls (ignore the function definition)
         const callCount = [
-            ...serviceSource.matchAll(/\bplaidPost\s*\(/g),
+            ...serviceSource.matchAll(/(?<!function )\bplaidPost\s*\(/g),
         ].length;
         const plaidPostCalls = Array.from(
             serviceSource.matchAll(/\bplaidPost\s*\(\s*(['"])([^'"]+)\1/g),
@@ -85,7 +85,9 @@ describe('Plaid read-only boundary', () => {
     });
 
     it('does not call transfer, payment, processor or signal endpoints', () => {
-        const callCount = [...serviceSource.matchAll(/\bplaidPost\s*\(/g)].length;
+        const callCount = [
+            ...serviceSource.matchAll(/(?<!function )\bplaidPost\s*\(/g),
+        ].length;
         const plaidPostCalls = Array.from(
             serviceSource.matchAll(/\bplaidPost\s*\(\s*(['"])([^'"]+)\1/g),
             ([, , path]) => path,
