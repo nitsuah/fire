@@ -125,6 +125,7 @@ describe('page wiring and CSP (#514)', () => {
         const script = /script-src ([^;]+);/.exec(csp)[1];
         expect(script).toBe("'self' https://cdn.jsdelivr.net");
         expect(csp).not.toContain('unsafe-');
+        expect(csp).not.toContain('cloudflareinsights');
     });
 
     it('the page module uses text nodes only', () => {
