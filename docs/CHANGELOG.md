@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Hosted deployments no longer request the self-hosted Stripe status route; self-hosted checks remain unchanged (#632).
 - Hosted privacy modal now loads the policy from the Pages output directory; a byte-for-byte test keeps the published copy synchronized (#631).
 - The hosted deploy remembers its answer per origin (`fire.deployMode` in `localStorage`, valid for 7 days), so later loads skip the `/api/state` probe and no longer log a 404 each time. A self-hosted answer is never cached (#583).
 - `buildProjectionData` no longer throws when `projectionSettings` is missing, so `fire_status_summary` and `get_expenses` answer on a partial state (for example a fresh browser profile on the hosted bridge) instead of failing with a TypeError. A new test calls every MCP tool on the demo seed and on an empty state.
