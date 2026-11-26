@@ -31,7 +31,7 @@ Pages project.
 - **Owner-only steps (from #515):**
   - Create the Worker account / namespace
   - `wrangler secret put RELAY_HMAC_KEY --config relay/wrangler.toml`
-  - Choose the Workers plan (paid for Durable Objects)
+  - Choose the Workers plan (SQLite-backed Durable Objects run on the Free plan, within its limits)
   - Add any custom routes
   - `wrangler deploy --config relay/wrangler.toml`
 

@@ -6,9 +6,18 @@ const configPath = resolve('relay/wrangler.toml');
 const content = readFileSync(configPath, 'utf-8');
 
 describe('relay/wrangler.toml', () => {
-    it('contains the BRIDGE_SESSIONS binding with correct class name', () => {
-        expect(content).toContain('name = "BRIDGE_SESSIONS"');
-        expect(content).toContain('class_name = "BridgeSessionObject"');
+    it('contains an active BRIDGE_SESSIONS binding with the correct class name', () => {
+        // Drop comment lines so a commented-out block cannot pass.
+        const active = content
+            .split(/\r?\n/)
+            .map((line) => line.replace(/#.*$/, '').trim())
+            .filter(Boolean);
+        const start = active.indexOf('[[durable_objects.bindings]]');
+        expect(start).toBeGreaterThanOrEqual(0);
+        const next = active.findIndex((line, i) => i > start && line.startsWith('['));
+        const block = active.slice(start + 1, next === -1 ? undefined : next);
+        expect(block).toContain('name = "BRIDGE_SESSIONS"');
+        expect(block).toContain('class_name = "BridgeSessionObject"');
     });
 
     it('has observability disabled', () => {
