@@ -18,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Unit tests for the eBay handler helpers (#622).
 - Unit tests for `app/lib/crypto-balance.js`.
-- Plaid read-only boundary test pinning the six allowed endpoints and the `investments` product (#629).
 - Unit tests for `integrateWebhookData` covering the accounts, cds, positions, expenses, taxRate and projectionSettings webhook types (#619).
 - Unit tests for `integrateWebhookData` dedupe on `sideGigLedger` and `importedFiles`, including the id-less file name-only match (#620).
 - Unit tests for `app/lib/server-utils.js`.
