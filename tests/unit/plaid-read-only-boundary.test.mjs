@@ -22,7 +22,7 @@ const netlifySource = readFileSync(
 
 describe('Plaid read-only boundary', () => {
     it('calls only the allowlisted Plaid endpoints', () => {
-        // Collect every first argument of plaidPost( calls (ignore the function definition)
+        // Inspect each plaidPost call, including multiline calls.
         const callCount = [
             ...serviceSource.matchAll(/(?<!function )\bplaidPost\s*\(/g),
         ].length;
@@ -42,14 +42,14 @@ describe('Plaid read-only boundary', () => {
     });
 
     it('requests only the investments product', () => {
-        // Assert body.products = ['investments'] and no other products assignment
+        // Assert the requested Link product is fixed.
         expect(serviceSource).toMatch(/body\.products\s*=\s*\['investments'\]/);
         // No other products assignment
         const otherProducts = serviceSource.match(/body\.products\s*=/g) || [];
         expect(otherProducts).toHaveLength(1);
     });
 
-    it('sends only investments on new Link creation and omits products in update mode', async () => {
+    it('pins Link products in create and update modes', async () => {
         const originalFetch = globalThis.fetch;
         const originalClientId = process.env.PLAID_CLIENT_ID;
         const originalSecret = process.env.PLAID_SECRET;
@@ -77,10 +77,16 @@ describe('Plaid read-only boundary', () => {
             expect(requests[1].body).not.toHaveProperty('products');
         } finally {
             globalThis.fetch = originalFetch;
-            if (originalClientId === undefined) delete process.env.PLAID_CLIENT_ID;
-            else process.env.PLAID_CLIENT_ID = originalClientId;
-            if (originalSecret === undefined) delete process.env.PLAID_SECRET;
-            else process.env.PLAID_SECRET = originalSecret;
+            if (originalClientId === undefined) {
+                delete process.env.PLAID_CLIENT_ID;
+            } else {
+                process.env.PLAID_CLIENT_ID = originalClientId;
+            }
+            if (originalSecret === undefined) {
+                delete process.env.PLAID_SECRET;
+            } else {
+                process.env.PLAID_SECRET = originalSecret;
+            }
         }
     });
 
