@@ -566,7 +566,21 @@ SYNC_MASTER_KEY=     # 64 hex chars — required to encrypt stored OAuth tokens
 ### Products Requested
 
 - `investments` — brokerage positions and balances (requires Plaid Partner approval for some institutions)
-- `auth` — bank account balances
+
+### Read-only boundary
+
+The Plaid integration is strictly read-only. The test `tests/unit/plaid-read-only-boundary.test.mjs` pins the six Plaid endpoints the service may call:
+
+- `/link/token/create`
+- `/item/public_token/exchange`
+- `/item/get`
+- `/accounts/balance/get`
+- `/investments/holdings/get`
+- `/transactions/sync`
+
+No `transfer`, `payment`, `processor`, or `signal` endpoints are used. The `products` parameter is only ever set to `['investments']`. The Express routes (`app/routes/plaid.js`) and the Netlify Function (`netlify/functions/plaid.mjs`) never call Plaid directly — all Plaid HTTP goes through the shared `plaidPost` helper in `app/lib/plaid-service.js`.
+
+Manual CSV import remains the fallback when Plaid sync is not available or the institution is not covered.
 
 ### What's Synced
 

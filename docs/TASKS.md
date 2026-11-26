@@ -13,6 +13,7 @@ updated: 2026-10-30
 - [x] Optional account-scoped `canonicalKey` in the mapper (#597).
 - [ ] Owner decision on hosted read-only Stripe (#598).
 - [ ] Live-provider acceptance with the owner's restricted key (manual).
+- [x] Plaid endpoint and product list pinned by a test (#263).
 
 ## Hosted MCP browser bridge
 
