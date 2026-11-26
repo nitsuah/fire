@@ -435,13 +435,11 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
     });
 });
 
-
 describe('self-hosted revoked Drive grants', () => {
     async function storeExpiredGrant() {
         vi.stubGlobal(
             'fetch',
-            vi.fn()
-                .mockResolvedValueOnce({
+            vi.fn().mockResolvedValueOnce({
                     ok: true,
                     json: async () => ({
                         access_token: 'expired-at',
@@ -487,7 +485,9 @@ describe('self-hosted revoked Drive grants', () => {
                 }),
         );
         await gdrive.exchangeCodeForTokens('auth-code');
-        await expect(gdrive.listBackups()).rejects.toMatchObject({ status: 500 });
+        await expect(gdrive.listBackups()).rejects.toMatchObject({
+            status: 500,
+        });
         expect(gdrive.isOAuthConfigured()).toBe(true);
     });
 });
