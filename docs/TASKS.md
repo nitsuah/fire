@@ -5,6 +5,7 @@
 updated: 2026-10-30
 
 - [x] Hosted privacy modal loads the policy (#631).
+- [x] Hosted deploy skips the self-hosted Stripe status route (#632).
 
 - [x] Self-hosted Drive reconnect-required case covered (#262/#630).
 
