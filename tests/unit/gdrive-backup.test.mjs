@@ -436,7 +436,7 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
 });
 
 describe('self-hosted revoked Drive grants', () => {
-    async function storeExpiredGrant() {
+    async function storeExpiredGrant(status = 400) {
         vi.stubGlobal(
             'fetch',
             vi.fn().mockResolvedValueOnce({
@@ -449,21 +449,24 @@ describe('self-hosted revoked Drive grants', () => {
                 })
                 .mockResolvedValueOnce({
                     ok: false,
-                    status: 400,
+                    status,
                     text: async () => 'invalid_grant',
                 }),
         );
         await gdrive.exchangeCodeForTokens('auth-code');
     }
 
-    it('deletes a stored grant when Google rejects refresh with 400', async () => {
-        await storeExpiredGrant();
-        expect(gdrive.isOAuthConfigured()).toBe(true);
-        await expect(gdrive.listBackups()).rejects.toMatchObject({
-            status: 401,
-            code: 'gdrive_revoked',
-        });
-        expect(gdrive.isOAuthConfigured()).toBe(false);
+    it('deletes a stored grant when Google rejects refresh with 400 or 401', async () => {
+        for (const status of [400, 401]) {
+            await storeExpiredGrant(status);
+            expect(gdrive.isOAuthConfigured()).toBe(true);
+            await expect(gdrive.listBackups()).rejects.toMatchObject({
+                status: 401,
+                code: 'gdrive_revoked',
+            });
+            expect(gdrive.isOAuthConfigured()).toBe(false);
+            fs.unlinkSync(path.join(TEST_DATA_DIR, 'tokens-gdrive.json'));
+        }
     });
 
     it('keeps the stored grant when refresh fails with a transient 500', async () => {
