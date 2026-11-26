@@ -434,3 +434,60 @@ describe('uploadBackup / listBackups / downloadAndDecryptBackup', () => {
         });
     });
 });
+
+
+describe('self-hosted revoked Drive grants', () => {
+    async function storeExpiredGrant() {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn()
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({
+                        access_token: 'expired-at',
+                        refresh_token: 'dead-rt',
+                        expires_in: -3600,
+                    }),
+                })
+                .mockResolvedValueOnce({
+                    ok: false,
+                    status: 400,
+                    text: async () => 'invalid_grant',
+                }),
+        );
+        await gdrive.exchangeCodeForTokens('auth-code');
+    }
+
+    it('deletes a stored grant when Google rejects refresh with 400', async () => {
+        await storeExpiredGrant();
+        expect(gdrive.isOAuthConfigured()).toBe(true);
+        await expect(gdrive.listBackups()).rejects.toMatchObject({
+            status: 401,
+            code: 'gdrive_revoked',
+        });
+        expect(gdrive.isOAuthConfigured()).toBe(false);
+    });
+
+    it('keeps the stored grant when refresh fails with a transient 500', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn()
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({
+                        access_token: 'expired-at',
+                        refresh_token: 'temporary-rt',
+                        expires_in: -3600,
+                    }),
+                })
+                .mockResolvedValueOnce({
+                    ok: false,
+                    status: 500,
+                    text: async () => 'temporary outage',
+                }),
+        );
+        await gdrive.exchangeCodeForTokens('auth-code');
+        await expect(gdrive.listBackups()).rejects.toMatchObject({ status: 500 });
+        expect(gdrive.isOAuthConfigured()).toBe(true);
+    });
+});
