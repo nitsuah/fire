@@ -1,3 +1,5 @@
+import { fetchJson } from '../fetch-utils.js';
+
 /* ==========================================================================
    managers/ens-lookup.js — ENS (.eth) wallet lookup widget
    Resolves a name via GET /api/wallets/ens/:name and renders the total USD
