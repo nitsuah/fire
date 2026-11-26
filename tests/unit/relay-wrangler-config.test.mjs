@@ -23,7 +23,9 @@ describe('relay/wrangler.toml', () => {
     it('contains no RELAY_HMAC_KEY assignment', () => {
         // No line that assigns RELAY_HMAC_KEY (e.g., RELAY_HMAC_KEY = "...")
         const lines = content.split('\n');
-        const hasHmacAssignment = lines.some(line => line.trim().startsWith('RELAY_HMAC_KEY'));
+        const hasHmacAssignment = lines.some((line) =>
+            line.trim().startsWith('RELAY_HMAC_KEY'),
+        );
         expect(hasHmacAssignment).toBe(false);
     });
 });
