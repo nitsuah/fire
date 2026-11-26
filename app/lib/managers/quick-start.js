@@ -16,12 +16,21 @@
     }
 
     async function loadFacts() {
+        let hosted = null;
+        try {
+            hosted = root.FireDeployMode
+                ? await root.FireDeployMode.whenKnown()
+                : null;
+        } catch {
+            /* unknown deployment mode: preserve existing provider checks */
+        }
+
         const providerEndpoints = [
             '/api/sync/ebay/status',
             '/api/sync/etsy/status',
             '/api/sync/plaid/status',
             '/api/sync/cointracker/status',
-            '/api/sync/stripe/status',
+            ...(hosted === true ? [] : ['/api/sync/stripe/status']),
         ];
 
         const driveEndpoint = '/api/backup/drive/status';
