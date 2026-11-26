@@ -245,6 +245,7 @@ for shipped capabilities. Its follow-up items are below._
   - Priority: P3 (maintainability) — deferred from PR #111 review (CodeRabbit, `fetch-utils.js` thread).
   - Context: the SPA loads ~40 plain `<script>` files that share one global scope, so any helper is a cross-file global by design. Fixing just `fetchJson` would mean converting every consumer to `import`; doing it properly means moving the frontend to ES modules with a bundler (or native `type="module"`) as one migration.
   - Acceptance Criteria: decision recorded (native modules vs. bundler), helpers exported/imported explicitly, `no-undef` lint enforced for cross-file references, and the Playwright suite still green.
+  - [x] Native-module migration step 2: `ens-lookup.js` imports `fetchJson` directly (#634).
 
 ---
 
