@@ -71,9 +71,7 @@ describe('Plaid read-only boundary', () => {
             await createLinkToken({
                 item: { accessToken: 'existing-access-token' },
             });
-            expect(requests[1].body.access_token).toBe(
-                'existing-access-token',
-            );
+            expect(requests[1].body.access_token).toBe('existing-access-token');
             expect(requests[1].body).not.toHaveProperty('products');
         } finally {
             globalThis.fetch = originalFetch;
@@ -106,11 +104,7 @@ describe('Plaid read-only boundary', () => {
     });
 
     it('Express routes and Netlify function do not call Plaid directly', () => {
-        expect(routesSource).not.toMatch(
-            /\bplaid\.com\b/i,
-        );
-        expect(netlifySource).not.toMatch(
-            /\bplaid\.com\b/i,
-        );
+        expect(routesSource).not.toMatch(/\bplaid\.com\b/i);
+        expect(netlifySource).not.toMatch(/\bplaid\.com\b/i);
     });
 });
