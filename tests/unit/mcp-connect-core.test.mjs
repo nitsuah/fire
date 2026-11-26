@@ -124,7 +124,12 @@ describe('page wiring and CSP (#514)', () => {
         expect(csp).toContain('wss://relay.fire.nitsuah.io');
         const script = /script-src ([^;]+);/.exec(csp)[1];
         expect(script).toBe("'self' https://cdn.jsdelivr.net");
+        const connect = /connect-src ([^;]+);/.exec(csp)[1];
+        expect(connect).toBe(
+            "'self' https://query1.finance.yahoo.com https://finance.yahoo.com https://cdn.jsdelivr.net wss://relay.fire.nitsuah.io",
+        );
         expect(csp).not.toContain('unsafe-');
+        expect(csp).not.toContain('cloudflareinsights');
     });
 
     it('the page module uses text nodes only', () => {
