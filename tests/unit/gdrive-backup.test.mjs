@@ -467,7 +467,9 @@ describe('self-hosted revoked Drive grants', () => {
                 code: 'gdrive_revoked',
             });
             expect(gdrive.isOAuthConfigured()).toBe(false);
-            fs.unlinkSync(path.join(TEST_DATA_DIR, 'tokens-gdrive.json'));
+            expect(
+                fs.existsSync(path.join(TEST_DATA_DIR, 'tokens-gdrive.json')),
+            ).toBe(false);
         }
     });
 
