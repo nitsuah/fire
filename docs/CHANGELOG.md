@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Privacy modal: the hosted-bridge design link is now an absolute GitHub URL, so it no longer 404s inside the app.
 
 ### Added
+- Self-hosted Google Drive backup now has regression coverage for revoked refresh grants and transient refresh failures (#630).
 - Unit tests for the eBay handler helpers (#622).
 - Unit tests for `app/lib/crypto-balance.js`.
 - Unit tests for `integrateWebhookData` covering the accounts, cds, positions, expenses, taxRate and projectionSettings webhook types (#619).
