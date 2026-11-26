@@ -4,6 +4,8 @@
 
 updated: 2026-10-30
 
+- [x] Self-hosted Drive reconnect-required case covered (#262/#630).
+
 ---
 
 ## Stripe for the Side-Hustle Hub (#261)
