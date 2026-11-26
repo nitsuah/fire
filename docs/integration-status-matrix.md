@@ -64,7 +64,7 @@ describes; an empty cell means nothing pins it yet.
 | CoinTracker (both runtimes) | `tests/unit/cointracker-status.test.mjs` |
 | Etsy | `tests/unit/etsy-sync-label.test.mjs`, `tests/unit/sync-etsy-route.test.mjs`, `tests/unit/netlify-etsy-function.test.mjs` |
 | eBay | `tests/unit/ebay-status.test.mjs` covers safe outcome normalization/storage and hosted sync, OAuth, and lost-grant transitions (#326); `tests/unit/sync-ebay-route.test.mjs` and `tests/unit/netlify-ebay-functions.test.mjs` cover configured/status behavior |
-| Drive backup | `tests/unit/gdrive-backup.test.mjs`, `tests/unit/netlify-gdrive-backup.test.mjs` — the `gdrive_token_invalid` handling is pinned only in the hosted suite; the self-hosted route has no revoked-grant case |
+| Drive backup | `tests/unit/gdrive-backup.test.mjs` covers self-hosted refresh rejection (400/401 deletes the revoked token; 500 preserves it); `tests/unit/netlify-gdrive-backup.test.mjs` covers hosted `gdrive_token_invalid` grant removal |
 | Stripe (self-hosted) | `tests/unit/sync-stripe-route.test.mjs` — credential/status/disconnect behavior; no live provider validation |
 
 Not verified here, and not something a code read can establish:
