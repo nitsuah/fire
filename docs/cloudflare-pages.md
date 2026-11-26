@@ -19,3 +19,20 @@ is switched.
   copied into `process.env` before each request.
 - **Local:** `npx wrangler pages dev app --compatibility-flags nodejs_compat`
   with secrets in `.dev.vars` (git-ignored).
+
+## Relay Worker
+
+The hosted MCP browser bridge runs a separate Cloudflare Worker (Durable Object) for
+the WebSocket relay. Its config is `relay/wrangler.toml` and is **not** part of the
+Pages project.
+
+- **File:** `relay/wrangler.toml`
+- **Dry-run:** `wrangler deploy --dry-run --config relay/wrangler.toml` (passes on `main`)
+- **Owner-only steps (from #515):**
+  - Create the Worker account / namespace
+  - `wrangler secret put RELAY_HMAC_KEY --config relay/wrangler.toml`
+  - Choose the Workers plan (paid for Durable Objects)
+  - Add any custom routes
+  - `wrangler deploy --config relay/wrangler.toml`
+
+The root `wrangler.toml` belongs to the Pages app and is left alone.

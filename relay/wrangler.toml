@@ -1,0 +1,20 @@
+# HMAC key (RELAY_HMAC_KEY) is set with `wrangler secret put`, never in this file.
+name = "fire-relay"
+main = "worker.mjs"
+compatibility_date = "2026-11-01"
+workers_dev = false
+
+[vars]
+APP_ORIGIN = "https://fire.nitsuah.io"
+PUBLIC_ORIGIN = "https://relay.fire.nitsuah.io"
+
+[[durable_objects.bindings]]
+name = "BRIDGE_SESSIONS"
+class_name = "BridgeSessionObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BridgeSessionObject"]
+
+[observability]
+enabled = false
