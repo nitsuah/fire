@@ -23,7 +23,9 @@ const netlifySource = readFileSync(
 describe('Plaid read-only boundary', () => {
     it('calls only the allowlisted Plaid endpoints', () => {
         // Collect every first argument of plaidPost( calls (ignore the function definition)
-        const callCount = [...serviceSource.matchAll(/\bplaidPost\s*\(/g)].length;
+        const callCount = [
+            ...serviceSource.matchAll(/\bplaidPost\s*\(/g),
+        ].length;
         const plaidPostCalls = Array.from(
             serviceSource.matchAll(/\bplaidPost\s*\(\s*(['"])([^'"]+)\1/g),
             ([, , path]) => path,
@@ -66,8 +68,12 @@ describe('Plaid read-only boundary', () => {
             await createLinkToken();
             expect(requests[0].body.products).toEqual(['investments']);
 
-            await createLinkToken({ item: { accessToken: 'existing-access-token' } });
-            expect(requests[1].body.access_token).toBe('existing-access-token');
+            await createLinkToken({
+                item: { accessToken: 'existing-access-token' },
+            });
+            expect(requests[1].body.access_token).toBe(
+                'existing-access-token',
+            );
             expect(requests[1].body).not.toHaveProperty('products');
         } finally {
             globalThis.fetch = originalFetch;
@@ -92,7 +98,11 @@ describe('Plaid read-only boundary', () => {
     });
 
     it('Express routes and Netlify function do not call Plaid directly', () => {
-        expect(routesSource).not.toMatch(/\bplaid\.com\b/i);
-        expect(netlifySource).not.toMatch(/\bplaid\.com\b/i);
+        expect(routesSource).not.toMatch(
+            /\bplaid\.com\b/i,
+        );
+        expect(netlifySource).not.toMatch(
+            /\bplaid\.com\b/i,
+        );
     });
 });
