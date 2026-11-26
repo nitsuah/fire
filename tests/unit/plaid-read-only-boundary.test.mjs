@@ -1,5 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
+
+const require = createRequire(import.meta.url);
+const { createLinkToken } = require('../../app/lib/plaid-service.js');
 
 const serviceSource = readFileSync(
     new URL('../../app/lib/plaid-service.js', import.meta.url),
@@ -19,10 +23,12 @@ const netlifySource = readFileSync(
 describe('Plaid read-only boundary', () => {
     it('calls only the allowlisted Plaid endpoints', () => {
         // Collect every first argument of plaidPost( calls (ignore the function definition)
+        const callCount = [...serviceSource.matchAll(/\bplaidPost\s*\(/g)].length;
         const plaidPostCalls = Array.from(
-            serviceSource.matchAll(/plaidPost\(['"]([^'"]+)['"]/g),
-            ([, path]) => path,
+            serviceSource.matchAll(/\bplaidPost\s*\(\s*(['"])([^'"]+)\1/g),
+            ([, , path]) => path,
         );
+        expect(plaidPostCalls).toHaveLength(callCount);
         expect([...new Set(plaidPostCalls)].sort()).toEqual([
             '/accounts/balance/get',
             '/investments/holdings/get',
@@ -41,11 +47,44 @@ describe('Plaid read-only boundary', () => {
         expect(otherProducts).toHaveLength(1);
     });
 
+    it('sends only investments on new Link creation and omits products in update mode', async () => {
+        const originalFetch = globalThis.fetch;
+        const originalClientId = process.env.PLAID_CLIENT_ID;
+        const originalSecret = process.env.PLAID_SECRET;
+        const requests = [];
+        process.env.PLAID_CLIENT_ID = 'test-client';
+        process.env.PLAID_SECRET = 'test-secret';
+        globalThis.fetch = async (url, options) => {
+            requests.push({ url, body: JSON.parse(options.body) });
+            return {
+                ok: true,
+                status: 200,
+                text: async () => JSON.stringify({ link_token: 'link-test' }),
+            };
+        };
+        try {
+            await createLinkToken();
+            expect(requests[0].body.products).toEqual(['investments']);
+
+            await createLinkToken({ item: { accessToken: 'existing-access-token' } });
+            expect(requests[1].body.access_token).toBe('existing-access-token');
+            expect(requests[1].body).not.toHaveProperty('products');
+        } finally {
+            globalThis.fetch = originalFetch;
+            if (originalClientId === undefined) delete process.env.PLAID_CLIENT_ID;
+            else process.env.PLAID_CLIENT_ID = originalClientId;
+            if (originalSecret === undefined) delete process.env.PLAID_SECRET;
+            else process.env.PLAID_SECRET = originalSecret;
+        }
+    });
+
     it('does not call transfer, payment, processor or signal endpoints', () => {
+        const callCount = [...serviceSource.matchAll(/\bplaidPost\s*\(/g)].length;
         const plaidPostCalls = Array.from(
-            serviceSource.matchAll(/plaidPost\(['"]([^'"]+)['"]/g),
-            ([, path]) => path,
+            serviceSource.matchAll(/\bplaidPost\s*\(\s*(['"])([^'"]+)\1/g),
+            ([, , path]) => path,
         );
+        expect(plaidPostCalls).toHaveLength(callCount);
         const forbidden = plaidPostCalls.filter((p) =>
             /transfer|payment|processor|signal/i.test(p),
         );
@@ -53,7 +92,7 @@ describe('Plaid read-only boundary', () => {
     });
 
     it('Express routes and Netlify function do not call Plaid directly', () => {
-        expect(routesSource).not.toMatch(/plaid\.com\//);
-        expect(netlifySource).not.toMatch(/plaid\.com\//);
+        expect(routesSource).not.toMatch(/\bplaid\.com\b/i);
+        expect(netlifySource).not.toMatch(/\bplaid\.com\b/i);
     });
 });
