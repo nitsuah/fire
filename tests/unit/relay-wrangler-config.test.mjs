@@ -14,7 +14,9 @@ describe('relay/wrangler.toml', () => {
             .filter(Boolean);
         const start = active.indexOf('[[durable_objects.bindings]]');
         expect(start).toBeGreaterThanOrEqual(0);
-        const next = active.findIndex((line, i) => i > start && line.startsWith('['));
+        const next = active.findIndex(
+            (line, i) => i > start && line.startsWith('['),
+        );
         const block = active.slice(start + 1, next === -1 ? undefined : next);
         expect(block).toContain('name = "BRIDGE_SESSIONS"');
         expect(block).toContain('class_name = "BridgeSessionObject"');
