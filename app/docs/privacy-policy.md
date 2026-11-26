@@ -1,0 +1,202 @@
+# fire — Privacy Policy & Terms of Use
+
+> 🧭 [fire](../README.md) · [Features](./FEATURES.md) · [Roadmap](./ROADMAP.md) · [Tasks](./TASKS.md) · [Changelog](./CHANGELOG.md) · [Metrics](./METRICS.md) <!-- nav -->
+
+**Effective Date:** September 2026  
+**Application:** fire (`fire.nitsuah.io` / self-hosted)  
+**Repository:** [github.com/nitsuah/fire](https://github.com/nitsuah/fire)
+
+---
+
+## 1. Overview
+
+fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is transmitted to any remote server operated by this application unless you opt into a listed integration. The only remote copies are ones you opt into: eBay order sync, CoinTracker wallet balances (read from your CoinTracker account) and encrypted Google Drive backups to your own Drive (see Sections 2 and 4).
+
+---
+
+## 2. Data Storage
+
+### 2a. Browser-Only Mode (fire.nitsuah.io)
+
+When you use the hosted Netlify deployment:
+
+- **Your data lives in your browser's `localStorage`**, keyed to `fire_tracker_state`. The only copies that can exist elsewhere are ones you create by opting into an integration below (Google Drive backup, eBay order sync, CoinTracker wallet sync, Plaid account sync, Etsy order sync).
+- Data does not leave your device through this application unless you opt into an integration described below. Without an opt-in, it is not sent to Netlify servers, cloud databases, or any third party by this app.
+- Clearing your browser data, switching browsers, or using a private/incognito session **will erase your data**. Use the Export JSON Backup feature regularly.
+- **Optional Google Drive backup.** If you connect Google Drive, the backup flow runs through this site's Netlify Function (`/api/backup/drive/*`). Your state is sent to that Function, encrypted there with a server-held key (`SYNC_MASTER_KEY`) using AES-256-GCM, and uploaded to **your own** Google Drive. The Drive OAuth token, sealed with the same key, is kept in an HttpOnly cookie that only `/api/backup/drive` receives and that page scripts can't read; `localStorage` keeps only a connected marker under `fire_tracker_gdrive_token`. A restore sends the chosen backup back to the Function, which decrypts it server-side and returns your plaintext state to the browser. Because the key lives on the server, a backup can't be decrypted without this deployment, and losing `SYNC_MASTER_KEY` makes existing backups unreadable.
+- **Optional eBay order sync and CoinTracker wallet sync are the exceptions.** CoinTracker works like eBay below: its requests go through `/api/sync/cointracker/*`, nothing is kept server-side, and the encrypted token is kept in an HttpOnly cookie that only `/api/sync/cointracker` receives (see Section 4). If you click *Connect eBay*, the connect and sync requests go through this site's Netlify Functions (`/api/sync/ebay/*`) to eBay. The Functions keep nothing: your eBay tokens are encrypted with a server-held key and kept in an HttpOnly cookie that only `/api/sync/ebay` receives and page scripts can't read, and orders pulled during a sync are returned straight to your browser. They never log your eBay username or user ID.
+- **If you revoke this app's eBay access or close your eBay account**, the next sync gets an `invalid_grant` rejection from eBay. The app then deletes the eBay token and the sales it synced from eBay through the API from this browser and tells you. Sales you logged by hand and uploaded CSV reports are yours and are kept. eBay's account-deletion notifications reach the server, but the server holds no eBay data for you and can't reach your browser, so this cleanup happens the next time you open the app and sync.
+- **Optional Plaid and Etsy sync.** Both are opt-in; nothing is fetched until you connect. For Plaid, you sign in only in Plaid's Link window; this app never receives your bank or brokerage login. On the hosted site, requests go through the Netlify Functions (`/api/sync/plaid/*`), which call Plaid for account balances, investment holdings and transactions. The access token is sealed with `SYNC_MASTER_KEY` and kept in an HttpOnly cookie that only `/api/sync/plaid` receives and page scripts can't read. The token expires after 180 days without use. Etsy is read-only: OAuth with PKCE and scopes `transactions_r` and `shops_r` fetches your shop's paid receipts through `/api/sync/etsy/*`. Its sealed token is kept in an HttpOnly cookie that only `/api/sync/etsy` receives; receipts are returned straight to your browser. Neither hosted Function retains a copy of the integration data or tokens.
+- The Netlify platform itself may log standard HTTP access metadata (IP address, timestamp, URL path) as part of normal CDN operation — this is governed by [Netlify's Privacy Policy](https://www.netlify.com/privacy/), not this document.
+
+### 2b. Self-Hosted / Local Docker Mode
+
+When you run the application locally via Docker:
+
+- Data is stored in a **local `data/db.json` file** on your machine.
+- The Express server (`localhost:3001`) is bound to `127.0.0.1` (loopback), so it's reachable only from your machine, not other devices on your network. `FIRE_API_KEY` is required by default (set `FIRE_AUTH_DISABLED=true` to explicitly opt out for local-only use) — see [security-hardening.md](https://github.com/nitsuah/fire/blob/main/docs/security-hardening.md).
+- The browser app syncs with this local server; `localStorage` serves as a fallback if the server is unreachable.
+- **Optional Google Drive backup.** On a self-hosted server, if you connect Google Drive (Google OAuth, `drive.file` scope, so the app can see only the files it creates) and run a backup, the server encrypts a copy of `data/db.json` with AES-256-GCM using your `SYNC_MASTER_KEY` before upload, and stores it as a file in **your own** Google Drive (folder `fire-tracker-backups`, or the folder you configure). Google holds only ciphertext. The Drive OAuth token is stored on your machine in `data/tokens-gdrive.json`, also encrypted with `SYNC_MASTER_KEY`. Backups stay in your Drive until you delete them there; this app has no copy and no separate retention. Losing `SYNC_MASTER_KEY` makes those backups unreadable. The hosted site offers the same feature through its Netlify Function — see Section 2a.
+
+- **Optional Plaid and Etsy sync.** If connected, the self-hosted server calls Plaid for balances, investment holdings and transactions, and Etsy for read-only paid receipts. Their tokens are stored on your machine in `data/tokens-plaid.json` and `data/tokens-etsy.json`, encrypted with `SYNC_MASTER_KEY`. Synced accounts, positions, transactions and Etsy receipts are merged into `data/db.json`. This app does not retain those tokens or synced data elsewhere.
+
+---
+
+## 3. Data Never Collected or Transmitted by This App
+
+The following data is explicitly **never collected, stored remotely, or shared** by this application, apart from the integrations you opt into (Sections 2 and 4): the encrypted Google Drive backup (unreadable without this app's key) and its OAuth sign-in and token refresh; eBay order sync, where orders are fetched from eBay through this app's server or Netlify Function and returned straight to your browser; CoinTracker wallet sync, where wallet names, public addresses and balances are fetched the same way; Plaid account sync, where balances, holdings and transactions come back the same way; and Etsy order sync, where paid receipts do. On the hosted site the eBay, CoinTracker, Plaid and Etsy integrations keep nothing on the server. When self-hosted, eBay, Plaid and Etsy tokens are stored on your machine in `data/tokens-ebay.json`, `data/tokens-plaid.json` and `data/tokens-etsy.json`; CoinTracker remains browser-held in both modes. Without an opt-in, none of this applies:
+
+- Account balances, net worth, or investment values
+- Portfolio positions or CSV import contents
+- Expense figures or income data
+- Names, email addresses, or any personally identifiable information
+- IP addresses or device identifiers (by this app — see Section 2a regarding Netlify)
+
+---
+
+## 4. External Services & Third-Party Requests
+
+The following **external CDN requests** are made when loading the application. These load UI libraries only — no financial data is included in these requests:
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `fonts.googleapis.com` | Inter & Outfit typefaces | Browser/font request only |
+| `fonts.gstatic.com` | Font file delivery | Browser/font request only |
+| `cdn.jsdelivr.net` | Chart.js & annotation plugin | Browser/script request only |
+| `cdn.jsdelivr.net` | Marked.js (markdown renderer) | Browser/script request only |
+
+No financial data, account information, or personal data is included in any of these requests.
+
+If you opt into Google Drive backup (Section 2a on the hosted site, Section 2b self-hosted), the server or Netlify Function also calls Google:
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `accounts.google.com`, `oauth2.googleapis.com` | Drive OAuth sign-in and token refresh | OAuth client ID/secret, authorization code, refresh token |
+| `www.googleapis.com` (Drive API) | Upload, list and download backups | The AES-256-GCM encrypted backup file and its name (`fire-backup-YYYY-MM-DD.json`) |
+
+When you refresh a crypto, gold/silver or stock value, or use the ENS lookup, the server (Express or the Netlify Function) looks up public data. It sends only the public identifier, never your balances or other data:
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `ensdata.net` | Resolve an ENS name to its address | The ENS name |
+| Blockscout explorers (`eth.blockscout.com`, `base.blockscout.com`, `explorer.optimism.io`, `arbitrum.blockscout.com`, `polygon.blockscout.com`) | Native and token balances with USD prices | The public wallet address |
+| `*.publicnode.com` RPCs | ENS resolution and BNB/Avalanche balances | The public wallet address |
+| Yahoo Finance, metals.dev | Coin, metal and stock prices | Ticker symbols only |
+
+If you connect CoinTracker (optional, on the hosted site or self-hosted), the server (Express or the Netlify Function) calls CoinTracker on your behalf. It stores nothing: the OAuth token is returned to your browser encrypted with `SYNC_MASTER_KEY` and kept in `localStorage`.
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `login.cointracker.com` | OAuth client registration, sign-in, token refresh and revocation | Callback URL, authorization code, PKCE verifier, refresh token |
+| `mcp.cointracker.com` | Read-only wallet balances (MCP `mcp:read`) | Your CoinTracker access token. The response (wallet names, public addresses, USD balances and holdings) is merged into your crypto accounts. Transactions, cost basis and tax data are never requested |
+
+If you connect Plaid (optional, hosted or self-hosted), the server (Express or the Netlify Function) calls Plaid on your behalf. Your bank or brokerage login is entered only in Plaid's Link window and never reaches this app. The access token is stored on your machine when self-hosted, and returned to your browser sealed with `SYNC_MASTER_KEY` on the hosted site.
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `production.plaid.com` (or `development.plaid.com` / `sandbox.plaid.com`, per `PLAID_ENV`) | Link token creation, public-token exchange, account balances, investment holdings and transactions | This app's Plaid client ID and secret, the Link public token, and your Plaid access token. The responses (account names and types, balances, holdings, transactions) are merged into your accounts, positions and expenses |
+
+If you connect Etsy (optional, hosted or self-hosted), the server calls Etsy on your behalf. The sign-in uses OAuth with PKCE; the app asks only for the read scopes `transactions_r` and `shops_r`.
+
+| Service | Purpose | What is sent |
+|---|---|---|
+| `www.etsy.com`, `api.etsy.com` | OAuth sign-in and token refresh | Callback URL, authorization code, PKCE verifier, refresh token |
+| `openapi.etsy.com` | Read-only paid receipts for your shop | Your Etsy access token and shop ID. The response (order totals, dates, item titles) is converted into Side Gig Ledger rows |
+
+---
+
+## 5. CSV File Imports
+
+When you import a CSV file (Fidelity, Chase, Capital One, or other):
+
+- The file is **parsed entirely in your browser using JavaScript**. It is never uploaded to any server.
+- Parsed data is written to `localStorage` (browser mode) or `data/db.json` (local server mode) only.
+- Imported file names and record counts are logged locally for your reference; the raw file content is not retained after parsing.
+
+---
+
+## 6. MCP Server (Claude / LLM Integration)
+
+fire includes an optional **MCP (Model Context Protocol) server** (`app/mcp-server.mjs`) for integration with AI assistants such as Claude Code and Claude Desktop.
+
+**What the MCP server does:**
+
+- Exposes **20 read-only tools** that allow an AI assistant to query your FIRE data (net worth, trends, accounts, categorized transactions, detected recurring charges, CDs, upcoming CD maturities, expenses, insurance, projections, portfolio positions, side-gig tax data, wallets, risk/diversification analysis, SWR sensitivity, rebalancing simulations, and emergency runway).
+- Runs as a **local stdio process** spawned by your AI assistant client. It does not bind to a network port or expose any HTTP endpoint.
+- Reads from `data/db.json` only — it has no write access by design (no write tools are registered).
+
+**What the MCP server does NOT do:**
+
+- It does not transmit your financial data to Anthropic, Claude, or any remote server on its own. Data sent to an AI assistant through tool calls is subject to that assistant's privacy policy (e.g., [Anthropic's Privacy Policy](https://www.anthropic.com/privacy)).
+- It does not run unless explicitly configured and started.
+- It cannot modify your data.
+
+**Important:** When you invoke an AI assistant with the MCP server enabled, the tool responses (your financial data) are sent to the AI provider's API. Only enable this integration if you are comfortable with this and have reviewed your AI provider's data handling policies.
+
+### 6a. Hosted MCP browser bridge (fire.nitsuah.io)
+
+> Status: designed and built in stages ([design](https://github.com/nitsuah/fire/blob/main/docs/hosted-mcp-browser-bridge.md)); the relay is not deployed yet, so this section describes what happens once it is. The hosted app keeps your data only in your browser, so a remote assistant can reach it only through an open fire tab.
+
+When you choose **Connect an agent** on the hosted app and approve a request, a small **relay** forwards the assistant's read-only tool calls to your open browser tab and carries the answers back.
+
+- **Plaintext in memory, per call (accepted trade-off).** A standard MCP connector added by URL expects plain JSON back, so the relay necessarily handles each tool call and result as plaintext, in memory, only while that call is in flight. It writes nothing to disk, keeps no database and no copy of your data, and does not log request or result bodies, tokens or session ids.
+- **What a compromised relay could do.** An attacker who controlled the relay could read the results of calls made during an active session, could invent its own read-only calls within the scope you approved until the session ends, and could return made-up or altered results to the assistant, which you could not detect in this mode. It could not read your data when no session is active, change your data (there are no write tools) or widen what you approved. A stricter sealed mode (end-to-end encrypted, with a local shim) is designed but not built.
+- **You choose the scope and the length.** The consent page lists tool groups; transactions start unticked. A session lasts 15, 30 (default) or 60 minutes, ends after 10 idle minutes, and ends when you press **Disconnect**, close or reload the tab, or the connection stays down for 30 seconds. The browser enforces these limits itself, not only the relay.
+- **What the relay and the hosting provider can see.** Metadata: the assistant's self-declared client name and redirect host, timing, call counts and sizes, tool names, and network addresses in the provider's request logs.
+- **Your side.** A local activity log (time, tool, size, outcome; never arguments or results) is kept in your browser and is not included in backups.
+
+Only connect assistants you trust, and treat the client name on the consent page as unverified text the client chose.
+
+---
+
+## 7. Webhook Integration (Optional)
+
+The optional webhook feature allows external services to push data updates into your local fire instance:
+
+- Webhook endpoints are **user-configured** and run on your local server only.
+- Webhook secrets (HMAC keys) are stored in `data/db.json` on your machine.
+- You are responsible for the security of any external service you connect via webhook.
+- No webhook data is relayed to any third party by this application.
+
+---
+
+## 8. Data Backup & Deletion
+
+- **Export:** Use "Export JSON Backup" in the sidebar to download a complete copy of your data at any time.
+- **Delete (browser mode):** Clear this site's data in your browser (DevTools → Application → Storage → Clear Site Data). This removes `localStorage` and cookies, including the encrypted eBay, CoinTracker, Google Drive, Plaid and Etsy tokens, if you connected them. To revoke CoinTracker's grant itself, use *Disconnect* in Settings or remove the connection in your CoinTracker settings.
+- **Delete (local server mode):** Delete `data/db.json` (and `data/tokens-gdrive.json`, `data/tokens-ebay.json`, `data/tokens-plaid.json` or `data/tokens-etsy.json`, for the integrations you connected) from your machine.
+- **Delete (Google Drive backups):** delete the `fire-backup-*.json` files from your backup folder in Google Drive (`fire-tracker-backups` by default, or the folder set in `GDRIVE_BACKUP_FOLDER_ID`), and revoke this app's access in your Google Account settings.
+- **Revoke Plaid or Etsy access.** Use *Disconnect* on the Etsy card in Settings, or remove the app in your Etsy account settings. For Plaid, revoke the connection through Plaid or your financial institution; deleting the stored token as described above stops this app from syncing.
+- This application operates no server-side account or database of its own, so there is no account to close or app-held data to request deletion of.
+
+---
+
+## 9. No Financial Advice
+
+fire is a **personal calculation and tracking tool**. Nothing in this application constitutes financial, investment, tax, or legal advice.
+
+- Projections are mathematical estimates based on inputs you provide. Actual investment returns, inflation, and tax obligations will differ.
+- Safe Withdrawal Rate (SWR) figures are educational references (e.g., the Bengen 4% Rule) and are not personalized recommendations.
+- Consult a qualified financial advisor, CPA, or attorney for decisions affecting your actual financial situation.
+
+---
+
+## 10. Terms of Use
+
+By using fire you agree to the following:
+
+1. **Personal use only.** This application is intended for individual personal finance tracking. Do not use it to store financial data for other people without their explicit consent.
+2. **No warranty.** This software is provided "as is," without warranty of any kind, express or implied, including but not limited to fitness for a particular purpose or accuracy of financial calculations.
+3. **User responsibility.** You are solely responsible for the accuracy of the data you enter, the security of your device and browser, and any financial decisions made using this tool.
+4. **Open source license.** This application is released under the [MIT License](https://github.com/nitsuah/fire/blob/main/LICENSE). You may inspect, fork, and self-host it freely.
+5. **No liability.** The author(s) of fire shall not be liable for any financial loss, data loss, or damages of any kind arising from use of this application.
+
+---
+
+## 11. Changes to This Policy
+
+This document may be updated to reflect changes in application features (e.g., new integrations). The effective date at the top of this document reflects the most recent revision. Continued use of the application after a policy update constitutes acceptance of the revised terms.
+
+---
+
+*fire is an open-source project. Questions or concerns? Open an issue at [github.com/nitsuah/fire](https://github.com/nitsuah/fire).*
