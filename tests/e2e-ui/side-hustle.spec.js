@@ -42,7 +42,9 @@ test.describe('Platform Fee Calculator', () => {
         await expect(fees).toHaveText('$1,032.15');
     });
 
-    test('negative eBay inputs block sale until corrected', async ({ page }) => {
+    test('negative eBay inputs block sale until corrected', async ({
+        page,
+    }) => {
         const save = page.locator('#btn-save-ebay-sale');
         const message = page.locator('#ebay-validation-message');
         const fields = [
@@ -53,19 +55,24 @@ test.describe('Platform Fee Calculator', () => {
             '#ebay-ad-rate',
         ];
         const before = await page.evaluate(() =>
-            state.sideGigLedger.filter(entry => entry.category === 'eBay').length,
+            state.sideGigLedger.filter(
+                (entry) => entry.category === 'eBay',
+            ).length,
         );
 
         for (const selector of fields) {
             await page.locator(selector).fill('-1');
             await expect(save).toBeDisabled();
             await expect(message).toContainText('Correct these values');
-            await expect(page.locator(selector)).toHaveAttribute('aria-invalid', 'true');
+            await expect(page.locator(selector)).toHaveAttribute(
+                'aria-invalid',
+                'true',
+            );
             await page.locator(selector).fill('0');
             await expect(save).toBeEnabled();
         }
 
-        await page.locator('#ebay-category-rate').evaluate(select => {
+        await page.locator('#ebay-category-rate').evaluate((select) => {
             select.value = '-1';
             select.dispatchEvent(new Event('change', { bubbles: true }));
         });
@@ -77,9 +84,15 @@ test.describe('Platform Fee Calculator', () => {
         // Zero is valid; correcting the fields restores the existing save flow.
         await page.locator('#ebay-price').fill('10');
         await save.click();
-        await expect.poll(() => page.evaluate(() =>
-            state.sideGigLedger.filter(entry => entry.category === 'eBay').length,
-        )).toBe(before + 1);
+        await expect
+            .poll(() =>
+                page.evaluate(() =>
+                    state.sideGigLedger.filter(
+                        (entry) => entry.category === 'eBay',
+                    ).length,
+                ),
+            )
+            .toBe(before + 1);
     });
 
     test('switches between every platform panel', async ({ page }) => {
