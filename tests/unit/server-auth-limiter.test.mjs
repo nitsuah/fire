@@ -80,11 +80,24 @@ describe('API key gate and limiter order', () => {
             ];
             for (const [method, route, body] of routes) {
                 const noKey = await agent[method](route).send(body);
-                expect(noKey.status, `${method.toUpperCase()} ${route} without key`).toBe(401);
-                const wrongKey = await agent[method](route).set('x-api-key', 'wrong-key').send(body);
-                expect(wrongKey.status, `${method.toUpperCase()} ${route} with wrong key`).toBe(401);
-                const allowed = await agent[method](route).set('x-api-key', 'right-key').send(body);
-                expect(allowed.status, `${method.toUpperCase()} ${route} with correct key`).not.toBe(401);
+                expect(
+                    noKey.status,
+                    `${method.toUpperCase()} ${route} without key`,
+                ).toBe(401);
+                const wrongKey = await agent[method](route)
+                    .set('x-api-key', 'wrong-key')
+                    .send(body);
+                expect(
+                    wrongKey.status,
+                    `${method.toUpperCase()} ${route} with wrong key`,
+                ).toBe(401);
+                const allowed = await agent[method](route)
+                    .set('x-api-key', 'right-key')
+                    .send(body);
+                expect(
+                    allowed.status,
+                    `${method.toUpperCase()} ${route} with correct key`,
+                ).not.toBe(401);
             }
         });
     });
