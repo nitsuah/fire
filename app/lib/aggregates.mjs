@@ -71,6 +71,13 @@ function getAggregateCDs(cds) {
     return (cds || []).reduce((sum, cd) => sum + (cd.principal || 0), 0);
 }
 
+function getLiquidAssets(importedPositions, customAccounts, cds) {
+    return (
+        getAggregateCash(importedPositions, customAccounts) +
+        getAggregateCDs(cds)
+    );
+}
+
 function getAggregateEquities(importedPositions, customAccounts) {
     let sum = 0;
     (importedPositions || []).forEach((pos) => {
@@ -356,6 +363,7 @@ const api = {
     isSettledCash,
     getAggregateCash,
     getAggregateCDs,
+    getLiquidAssets,
     getAggregateEquities,
     getAggregateOtherAssets,
     isCdMatured,
@@ -381,6 +389,7 @@ export {
     isSettledCash,
     getAggregateCash,
     getAggregateCDs,
+    getLiquidAssets,
     getAggregateEquities,
     getAggregateOtherAssets,
     isCdMatured,

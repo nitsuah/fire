@@ -380,10 +380,21 @@ function renderMilestones(
             );
     }
 
+    // Compute liquid assets for expense-based milestones (e.g., Emergency Fund)
+    const liquidNow = window.FireAggregates?.getLiquidAssets
+        ? window.FireAggregates.getLiquidAssets(
+            state.importedPositions,
+            state.customAccounts,
+            state.cds,
+        )
+        : startingNw;
+
     let html = '';
     milestonesList.forEach((m) => {
         let yearsRequired = 'N/A';
-        const isAchieved = startingNw >= m.target || m.isDepletion;
+        const isAchieved =
+            m.isDepletion ||
+            (m.isExpenseBased ? liquidNow : startingNw) >= m.target;
 
         if (m.isDepletion) {
             yearsRequired = `Money runs out at Age ${escHtml(m.depletionAge)} (${m.depletionAge - currentAge} yrs)`;
