@@ -233,7 +233,9 @@ main { padding: 0 var(--gutter); }
 .lightbox-close:hover { background: rgba(139, 92, 246, .55); }
 
 /* Keep the showcase install commands readable on narrow screens. */
-#install .install {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
+@media (max-width: 560px) {
+    #install .install {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
 }
