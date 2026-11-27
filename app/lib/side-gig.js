@@ -41,11 +41,13 @@ function initSideGigManager() {
 
     inputs.forEach((input) => {
         input.addEventListener('input', calculateEbayProfit);
+        input.addEventListener('change', calculateEbayProfit);
     });
 
     document
         .getElementById('btn-save-ebay-sale')
         .addEventListener('click', async () => {
+            if (!validateEbayInputs()) return;
             const gross =
                 parseFloat(priceInput.value) +
                 parseFloat(shippingCharged.value);
@@ -993,6 +995,61 @@ async function runPlaidTransactionsSyncNow() {
     }
 }
 
+function validateEbayInputs() {
+    const fields = [
+        ['ebay-price', 'Item price'],
+        ['ebay-cost', 'Item cost'],
+        ['ebay-shipping-charged', 'Shipping charged'],
+        ['ebay-shipping-actual', 'Actual shipping cost'],
+        ['ebay-ad-rate', 'Promoted listing rate', 100],
+    ];
+    const invalid = [];
+    for (const [id, label, max] of fields) {
+        const input = document.getElementById(id);
+        const raw = input.value.trim();
+        const value = Number(raw);
+        const bad =
+            raw !== '' &&
+            (!Number.isFinite(value) ||
+                value < 0 ||
+                (max !== undefined && value > max));
+        input.setCustomValidity(
+            bad
+                ? `${label} must be ${max === undefined ? 'zero or greater' : 'between 0 and 100'}.`
+                : '',
+        );
+        input.setAttribute('aria-invalid', String(bad));
+        if (bad) invalid.push(label);
+    }
+
+    const category = document.getElementById('ebay-category-rate');
+    const categoryValid = Array.from(category.options).some(
+        (option) => option.value === category.value,
+    );
+    category.setCustomValidity(
+        categoryValid ? '' : 'Choose a valid eBay category.',
+    );
+    category.setAttribute('aria-invalid', String(!categoryValid));
+    if (!categoryValid) invalid.push('eBay category');
+
+    let message = document.getElementById('ebay-validation-message');
+    if (!message) {
+        message = document.createElement('p');
+        message.id = 'ebay-validation-message';
+        message.className = 'text-coral mt-2';
+        message.setAttribute('role', 'alert');
+        message.setAttribute('aria-live', 'polite');
+        document.querySelector('#calc-panel-ebay .grid-2-col')?.after(message);
+    }
+    message.hidden = invalid.length === 0;
+    message.textContent = invalid.length
+        ? `Correct these values before logging a sale: ${invalid.join(', ')}.`
+        : '';
+    const saveButton = document.getElementById('btn-save-ebay-sale');
+    saveButton.disabled = invalid.length > 0;
+    return invalid.length === 0;
+}
+
 function calculateEbayFeesTotal() {
     const price = parseFloat(document.getElementById('ebay-price').value) || 0;
     const shippingCharged =
@@ -1011,6 +1068,17 @@ function calculateEbayFeesTotal() {
 }
 
 function calculateEbayProfit() {
+    if (!validateEbayInputs()) {
+        [
+            'ebay-res-gross',
+            'ebay-res-fees',
+            'ebay-res-profit',
+            'ebay-res-roi',
+        ].forEach((id) => {
+            document.getElementById(id).textContent = '—';
+        });
+        return;
+    }
     const price = parseFloat(document.getElementById('ebay-price').value) || 0;
     const cost = parseFloat(document.getElementById('ebay-cost').value) || 0;
     const shippingCharged =
