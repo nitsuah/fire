@@ -10,13 +10,17 @@ function cspSources(headers, directive) {
         /^\s*Content-Security-Policy:\s*([^\r\n]+)/im,
     )?.[1];
     if (!policy) throw new Error('Content-Security-Policy header is missing');
-    const directives = new Map(
-        policy.split(';').map((part) => {
-            const [name, ...sources] = part.trim().split(/\s+/);
-            return [name.toLowerCase(), sources];
-        }),
-    );
-    return directives.get(directive) ?? directives.get('default-src') ?? [];
+    const directives = new Map();
+    for (const part of policy.split(';')) {
+        const [name, ...sources] = part.trim().split(/\s+/);
+        const key = name.toLowerCase();
+        if (key && !directives.has(key)) directives.set(key, sources);
+    }
+    const effectiveSources = directives.get(directive) ?? directives.get('default-src');
+    if (!effectiveSources) {
+        throw new Error(`CSP directive ${directive} and default-src are missing`);
+    }
+    return effectiveSources;
 }
 
 describe('CSP hardening', () => {
@@ -33,7 +37,7 @@ describe('CSP hardening', () => {
         expect(sources).not.toContain('https://static.cloudflareinsights.com');
         expect(sources).not.toContain('https:');
         expect(sources).not.toContain('*');
-        expect(sources).not.toContain('https://*.cloudflareinsights.com');
+        expect(sources).not.toContain('*.cloudflareinsights.com');
     });
 
     it('blocks Cloudflare Web Analytics in connect-src', () => {
