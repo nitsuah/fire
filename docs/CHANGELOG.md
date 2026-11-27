@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.
+
 - CI: run the risk guard from the trusted base-branch workflow after bootstrap.
 
 - CI: pull requests now run the shared risk guard check (`.github/workflows/risk-guard.yml`) (#638).
