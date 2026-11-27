@@ -16,9 +16,12 @@ function cspSources(headers, directive) {
         const key = name.toLowerCase();
         if (key && !directives.has(key)) directives.set(key, sources);
     }
-    const effectiveSources = directives.get(directive) ?? directives.get('default-src');
+    const effectiveSources =
+        directives.get(directive) ?? directives.get('default-src');
     if (!effectiveSources) {
-        throw new Error(`CSP directive ${directive} and default-src are missing`);
+        throw new Error(
+            `CSP directive ${directive} and default-src are missing`,
+        );
     }
     return effectiveSources;
 }
