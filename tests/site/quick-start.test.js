@@ -19,7 +19,7 @@ describe('Fire Quick Start', () => {
             ' cd fire',
             ' cp .env.example .env',
             ' node -e &quot;console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))&quot;',
-        ].join('\\n');
+        ].join('\n');
 
         expect(start).toBeGreaterThanOrEqual(0);
         expect(payloads).toHaveLength(2);
