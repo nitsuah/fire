@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CI: pull requests now run the shared risk guard check (`.github/workflows/risk-guard.yml`) (#638).
 ### Fixed
 - Relay Worker Wrangler config added (`relay/wrangler.toml`); deploy stays with the owner (#515/#633).
 - Hosted deployments no longer request the self-hosted Stripe status route; self-hosted checks remain unchanged (#632).
