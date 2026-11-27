@@ -5,6 +5,7 @@ describe('getLiquidAssets', () => {
     it('sums Cash + Savings accounts + SPAXX position + CDs', () => {
         const importedPositions = [
             { symbol: 'SPAXX', description: '', value: 5000 },
+            { symbol: 'FZFXX', description: '', value: 30000 },
             { symbol: 'AAPL', description: 'Apple Inc', value: 10000 },
         ];
         const customAccounts = [
@@ -17,7 +18,7 @@ describe('getLiquidAssets', () => {
             { principal: 5000, rate: 4.5 },
         ];
         expect(getLiquidAssets(importedPositions, customAccounts, cds)).toBe(
-            60000,
+            90000,
         );
     });
 
