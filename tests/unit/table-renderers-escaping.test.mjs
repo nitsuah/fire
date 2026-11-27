@@ -724,7 +724,9 @@ describe('projections table renderers', () => {
         env.ctx.buildProjectionData = () => milestoneRaw(false);
         env.run('renderMilestones(1000, 1e6, 0.04, 10000, null)');
         const markup = env.html('projection-milestones-container');
-        expect(markup).toContain('Estimate unavailable (liquid forecast not modeled)');
+        expect(markup).toContain(
+            'Estimate unavailable (liquid forecast not modeled)',
+        );
     });
 
     it('renderMilestones still renders an ordinary FIRE estimate', () => {
