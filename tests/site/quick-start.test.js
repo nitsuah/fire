@@ -14,11 +14,12 @@ describe('Fire Quick Start', () => {
         const payloads = [...section.matchAll(/data-copy="([^"]*)"/g)].map(
             (match) => match[1],
         );
-        const configure =
-            'git clone https://github.com/nitsuah/fire.git\\n' +
-            ' cd fire\\n' +
-            ' cp .env.example .env\\n' +
-            ' node -e &quot;console.log(require(\\'crypto\\').randomBytes(32).toString(\\'hex\\'))&quot;';
+        const configure = [
+            'git clone https://github.com/nitsuah/fire.git',
+            ' cd fire',
+            ' cp .env.example .env',
+            ' node -e &quot;console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))&quot;',
+        ].join('\\n');
 
         expect(start).toBeGreaterThanOrEqual(0);
         expect(payloads).toHaveLength(2);
