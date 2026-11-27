@@ -52,11 +52,7 @@ function isSettledCash(pos) {
 function getAggregateCash(importedPositions, customAccounts) {
     let sum = 0;
     (importedPositions || []).forEach((pos) => {
-        if (
-            (pos.symbol || '').includes('SPAXX') ||
-            (pos.symbol || '').includes('FDRXX') ||
-            (pos.description || '').includes('MONEY MARKET')
-        ) {
+        if (isSettledCash(pos)) {
             sum += pos.value || 0;
         }
     });
@@ -71,14 +67,17 @@ function getAggregateCDs(cds) {
     return (cds || []).reduce((sum, cd) => sum + (cd.principal || 0), 0);
 }
 
+function getLiquidAssets(importedPositions, customAccounts, cds) {
+    return (
+        getAggregateCash(importedPositions, customAccounts) +
+        getAggregateCDs(cds)
+    );
+}
+
 function getAggregateEquities(importedPositions, customAccounts) {
     let sum = 0;
     (importedPositions || []).forEach((pos) => {
-        if (
-            !(pos.symbol || '').includes('SPAXX') &&
-            !(pos.symbol || '').includes('FDRXX') &&
-            !(pos.description || '').includes('MONEY MARKET')
-        ) {
+        if (!isSettledCash(pos)) {
             sum += pos.value || 0;
         }
     });
@@ -356,6 +355,7 @@ const api = {
     isSettledCash,
     getAggregateCash,
     getAggregateCDs,
+    getLiquidAssets,
     getAggregateEquities,
     getAggregateOtherAssets,
     isCdMatured,
@@ -381,6 +381,7 @@ export {
     isSettledCash,
     getAggregateCash,
     getAggregateCDs,
+    getLiquidAssets,
     getAggregateEquities,
     getAggregateOtherAssets,
     isCdMatured,

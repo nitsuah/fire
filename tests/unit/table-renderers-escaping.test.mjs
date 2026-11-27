@@ -719,12 +719,22 @@ describe('projections table renderers', () => {
         expectInert(env.html('projection-milestones-container'));
     });
 
-    it('renderMilestones still renders an ordinary estimate', () => {
+    it('renderMilestones suppresses net-worth estimates for the liquid emergency fund', () => {
         const env = projectionsEnv(baseSettings());
         env.ctx.buildProjectionData = () => milestoneRaw(false);
         env.run('renderMilestones(1000, 1e6, 0.04, 10000, null)');
-        expect(env.html('projection-milestones-container')).toContain(
-            '(Age 32)',
+        const markup = env.html('projection-milestones-container');
+        expect(markup).toContain(
+            'Estimate unavailable (liquid forecast not modeled)',
         );
+    });
+
+    it('renderMilestones still renders an ordinary FIRE estimate', () => {
+        const env = projectionsEnv(baseSettings());
+        env.ctx.buildProjectionData = () => milestoneRaw(false);
+        env.run('renderMilestones(1000, 1e6, 0.04, 10000, null)');
+        const markup = env.html('projection-milestones-container');
+        expect(markup).toContain('Lean FIRE (75%)');
+        expect(markup).toMatch(/[0-9.]+ yrs [(]Age [0-9]+[)]/);
     });
 });
