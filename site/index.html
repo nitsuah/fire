@@ -45,7 +45,7 @@
     <div class="hero-body">
       <p class="eyebrow">Financial Independence, Retire Early</p>
       <h1 class="hero-headline">When can I retire?<br /><span class="emph">Now you'll know.</span></h1>
-      <p class="hero-sub"><strong>fire</strong> is a <strong>self-hosted</strong> retirement tracker. Your whole net worth, retirement projections, portfolio insights and side-hustle tracking in one dashboard, plus a 16-tool read-only MCP server so Claude can answer questions about it. Your data stays in one JSON file <strong>on your machine</strong>.</p>
+      <p class="hero-sub"><strong>fire</strong> is a <strong>self-hosted</strong> retirement tracker. Your whole net worth, retirement projections, portfolio insights and side-hustle tracking in one dashboard, plus a 20-tool read-only MCP server so Claude can answer questions about it. Your data stays in one JSON file <strong>on your machine</strong>.</p>
       <div class="hero-ctas">
         <a class="btn btn-primary" href="#install">Run it locally</a>
         <a class="btn btn-ghost" href="https://fire.nitsuah.io/" target="_blank" rel="noopener">Try the live demo <span aria-hidden="true">↗</span></a>
@@ -71,7 +71,7 @@
 
   <ul class="stats" aria-label="At a glance">
     <li><span class="stat-num">1</span><span class="stat-label">JSON file holds all your data</span></li>
-    <li><span class="stat-num">16</span><span class="stat-label">read-only MCP tools for Claude</span></li>
+    <li><span class="stat-num">20</span><span class="stat-label">read-only MCP tools for Claude</span></li>
     <li><span class="stat-num">AES-256</span><span class="stat-label">optional encryption at rest</span></li>
     <li><span class="stat-num">0</span><span class="stat-label">transactions ever initiated</span></li>
   </ul>
@@ -191,13 +191,14 @@
     <div class="mcp-copy">
       <p class="kicker">Built for Claude</p>
       <h2 id="mcp-title">Ask Claude about <span class="emph">your money.</span></h2>
-      <p>An MCP server ships in the box, and <code>.mcp.json</code> connects it automatically when you open the repo in Claude Code. It exposes 16 tools, all read-only: the smoke test now checks the full registered tool set, while the unit suite also guards against writes.</p>
+      <p>An MCP server ships in the box, and <code>.mcp.json</code> connects it automatically when you open the repo in Claude Code. It exposes 20 tools, all read-only: the smoke test now checks the full registered tool set, while the unit suite also guards against writes.</p>
       <p>Add the <strong>fire-coach</strong> <a href="https://github.com/nitsuah/fire/tree/main/skills" target="_blank" rel="noopener">Claude skill</a> and Claude also gets a FIRE playbook (the 4% rule, savings rate, order of operations, taxes, sequence risk, what to do when income stops) and a guide to every tab, so it answers with your numbers and tells you which button to press.</p>
       <ul class="tools" aria-label="MCP tools">
         <li>fire_status_summary</li><li>get_net_worth</li><li>get_net_worth_trend</li><li>get_accounts</li>
-        <li>get_portfolio</li><li>get_cds</li><li>get_expenses</li><li>get_projection_settings</li>
-        <li>get_side_gig_income</li><li>get_side_gig_tax_summary</li><li>get_wallets</li><li>get_concentration_risk</li>
-        <li>get_diversification_score</li><li>get_swr_sensitivity</li><li>simulate_rebalance</li><li>get_emergency_runway</li>
+        <li>get_portfolio</li><li>get_cds</li><li>get_upcoming_events</li><li>get_expenses</li>
+        <li>get_insurances</li><li>get_projection_settings</li><li>get_side_gig_income</li><li>get_side_gig_tax_summary</li>
+        <li>get_wallets</li><li>get_concentration_risk</li><li>get_diversification_score</li><li>get_swr_sensitivity</li>
+        <li>simulate_rebalance</li><li>get_emergency_runway</li><li>get_transactions</li><li>get_recurring_charges</li>
       </ul>
     </div>
     <div class="term" aria-label="Example Claude Code session">
