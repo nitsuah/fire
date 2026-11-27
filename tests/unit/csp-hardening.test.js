@@ -6,7 +6,9 @@ const APP_DIR = path.join(__dirname, '../../app');
 const read = (file) => fs.readFileSync(path.join(APP_DIR, file), 'utf8');
 
 function cspSources(headers, directive) {
-    const policy = headers.match(/^\s*Content-Security-Policy:\s*([^\r\n]+)/im)?.[1];
+    const policy = headers.match(
+        /^\s*Content-Security-Policy:\s*([^\r\n]+)/im,
+    )?.[1];
     if (!policy) throw new Error('Content-Security-Policy header is missing');
     const directives = new Map(
         policy.split(';').map((part) => {
