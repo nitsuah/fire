@@ -52,11 +52,7 @@ function isSettledCash(pos) {
 function getAggregateCash(importedPositions, customAccounts) {
     let sum = 0;
     (importedPositions || []).forEach((pos) => {
-        if (
-            (pos.symbol || '').includes('SPAXX') ||
-            (pos.symbol || '').includes('FDRXX') ||
-            (pos.description || '').includes('MONEY MARKET')
-        ) {
+        if (isSettledCash(pos)) {
             sum += pos.value || 0;
         }
     });
@@ -81,11 +77,7 @@ function getLiquidAssets(importedPositions, customAccounts, cds) {
 function getAggregateEquities(importedPositions, customAccounts) {
     let sum = 0;
     (importedPositions || []).forEach((pos) => {
-        if (
-            !(pos.symbol || '').includes('SPAXX') &&
-            !(pos.symbol || '').includes('FDRXX') &&
-            !(pos.description || '').includes('MONEY MARKET')
-        ) {
+        if (!isSettledCash(pos)) {
             sum += pos.value || 0;
         }
     });
