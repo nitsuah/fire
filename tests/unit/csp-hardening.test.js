@@ -14,6 +14,16 @@ describe('CSP hardening', () => {
         expect(read('_headers')).not.toContain("'unsafe-inline'");
     });
 
+    it('blocks Cloudflare Web Analytics script-src', () => {
+        const headers = read('_headers');
+        expect(headers).not.toContain('static.cloudflareinsights.com');
+    });
+
+    it('blocks Cloudflare Web Analytics connect-src', () => {
+        const headers = read('_headers');
+        expect(headers).not.toContain('cloudflareinsights.com');
+    });
+
     it('keeps the static app free of inline handlers and style attributes', () => {
         const index = read('index.html');
         expect(index).not.toMatch(/\bon(?:click|change)\s*=/i);
