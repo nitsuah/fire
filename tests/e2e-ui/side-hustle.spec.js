@@ -54,11 +54,14 @@ test.describe('Platform Fee Calculator', () => {
             '#ebay-shipping-actual',
             '#ebay-ad-rate',
         ];
-        const before = await page.evaluate(() =>
-            state.sideGigLedger.filter(
-                (entry) => entry.category === 'eBay',
-            ).length,
-        );
+        const getEbaySaleCount = () =>
+            page.evaluate(
+                () =>
+                    state.sideGigLedger.filter(
+                        (entry) => entry.category === 'eBay',
+                    ).length,
+            );
+        const before = await getEbaySaleCount();
 
         for (const selector of fields) {
             await page.locator(selector).fill('-1');
@@ -84,15 +87,7 @@ test.describe('Platform Fee Calculator', () => {
         // Zero is valid; correcting the fields restores the existing save flow.
         await page.locator('#ebay-price').fill('10');
         await save.click();
-        await expect
-            .poll(() =>
-                page.evaluate(() =>
-                    state.sideGigLedger.filter(
-                        (entry) => entry.category === 'eBay',
-                    ).length,
-                ),
-            )
-            .toBe(before + 1);
+        await expect.poll(getEbaySaleCount).toBe(before + 1);
     });
 
     test('switches between every platform panel', async ({ page }) => {
