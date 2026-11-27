@@ -383,10 +383,10 @@ function renderMilestones(
     // Compute liquid assets for expense-based milestones (e.g., Emergency Fund)
     const liquidNow = window.FireAggregates?.getLiquidAssets
         ? window.FireAggregates.getLiquidAssets(
-            state.importedPositions,
-            state.customAccounts,
-            state.cds,
-        )
+              state.importedPositions,
+              state.customAccounts,
+              state.cds,
+          )
         : startingNw;
 
     let html = '';

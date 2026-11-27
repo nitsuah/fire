@@ -16,7 +16,9 @@ describe('getLiquidAssets', () => {
             { principal: 10000, rate: 5 },
             { principal: 5000, rate: 4.5 },
         ];
-        expect(getLiquidAssets(importedPositions, customAccounts, cds)).toBe(60000);
+        expect(getLiquidAssets(importedPositions, customAccounts, cds)).toBe(
+            60000,
+        );
     });
 
     it('excludes Real Estate / Vehicle / Brokerage custom accounts', () => {
@@ -30,7 +32,9 @@ describe('getLiquidAssets', () => {
             { type: 'Cash', value: 10000 },
         ];
         const cds = [{ principal: 10000, rate: 5 }];
-        expect(getLiquidAssets(importedPositions, customAccounts, cds)).toBe(25000);
+        expect(getLiquidAssets(importedPositions, customAccounts, cds)).toBe(
+            25000,
+        );
     });
 
     it('returns 0 for empty or undefined inputs', () => {
