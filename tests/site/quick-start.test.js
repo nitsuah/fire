@@ -18,7 +18,7 @@ describe('Fire Quick Start', () => {
             'git clone https://github.com/nitsuah/fire.git',
             'cd fire',
             'cp .env.example .env',
-            'node -e &quot;console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))&quot;',
+            "node -e &quot;console.log(require('crypto').randomBytes(32).toString('hex'))&quot;",
         ].join('\n');
 
         expect(start).toBeGreaterThanOrEqual(0);
