@@ -71,6 +71,24 @@ describe('API key gate and limiter order', () => {
         });
     }, 60000);
 
+    it('applies the global API-key gate to Etsy status and mutation routes', async () => {
+        await withServer(async (agent) => {
+            const routes = [
+                ['get', '/api/sync/etsy/status'],
+                ['post', '/api/sync/etsy/toggle', { enabled: false }],
+                ['post', '/api/sync/etsy/disconnect', {}],
+            ];
+            for (const [method, route, body] of routes) {
+                const noKey = await agent[method](route).send(body);
+                expect(noKey.status, `${method.toUpperCase()} ${route} without key`).toBe(401);
+                const wrongKey = await agent[method](route).set('x-api-key', 'wrong-key').send(body);
+                expect(wrongKey.status, `${method.toUpperCase()} ${route} with wrong key`).toBe(401);
+                const allowed = await agent[method](route).set('x-api-key', 'right-key').send(body);
+                expect(allowed.status, `${method.toUpperCase()} ${route} with correct key`).not.toBe(401);
+            }
+        });
+    });
+
     it('still accepts the right key and rejects near-miss keys', async () => {
         await withServer(async (agent) => {
             const ok = await agent
