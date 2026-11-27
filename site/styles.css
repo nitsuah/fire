@@ -231,3 +231,11 @@ main { padding: 0 var(--gutter); }
 .lightbox-caption { margin: 0 var(--gutter); max-width: 900px; text-align: center; color: var(--muted); font-size: 0.9rem; }
 .lightbox-close { position: fixed; top: 14px; right: 14px; width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(8, 11, 17, .8); color: #fff; font-size: 18px; cursor: pointer; }
 .lightbox-close:hover { background: rgba(139, 92, 246, .55); }
+
+/* Keep the showcase install commands readable on narrow screens. */
+@media (max-width: 560px) {
+    #install .install {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+}
