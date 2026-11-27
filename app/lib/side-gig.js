@@ -1008,15 +1008,27 @@ function validateEbayInputs() {
         const input = document.getElementById(id);
         const raw = input.value.trim();
         const value = Number(raw);
-        const bad = raw !== '' && (!Number.isFinite(value) || value < 0 || (max !== undefined && value > max));
-        input.setCustomValidity(bad ? `${label} must be ${max === undefined ? 'zero or greater' : 'between 0 and 100'}.` : '');
+        const bad =
+            raw !== '' &&
+            (!Number.isFinite(value) ||
+                value < 0 ||
+                (max !== undefined && value > max));
+        input.setCustomValidity(
+            bad
+                ? `${label} must be ${max === undefined ? 'zero or greater' : 'between 0 and 100'}.`
+                : '',
+        );
         input.setAttribute('aria-invalid', String(bad));
         if (bad) invalid.push(label);
     }
 
     const category = document.getElementById('ebay-category-rate');
-    const categoryValid = Array.from(category.options).some(option => option.value === category.value);
-    category.setCustomValidity(categoryValid ? '' : 'Choose a valid eBay category.');
+    const categoryValid = Array.from(category.options).some(
+        (option) => option.value === category.value,
+    );
+    category.setCustomValidity(
+        categoryValid ? '' : 'Choose a valid eBay category.',
+    );
     category.setAttribute('aria-invalid', String(!categoryValid));
     if (!categoryValid) invalid.push('eBay category');
 
@@ -1057,7 +1069,12 @@ function calculateEbayFeesTotal() {
 
 function calculateEbayProfit() {
     if (!validateEbayInputs()) {
-        ['ebay-res-gross', 'ebay-res-fees', 'ebay-res-profit', 'ebay-res-roi'].forEach(id => {
+        [
+            'ebay-res-gross',
+            'ebay-res-fees',
+            'ebay-res-profit',
+            'ebay-res-roi',
+        ].forEach((id) => {
             document.getElementById(id).textContent = '—';
         });
         return;
