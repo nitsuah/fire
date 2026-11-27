@@ -735,6 +735,6 @@ describe('projections table renderers', () => {
         env.run('renderMilestones(1000, 1e6, 0.04, 10000, null)');
         const markup = env.html('projection-milestones-container');
         expect(markup).toContain('Lean FIRE (75%)');
-        expect(markup).toMatch(/\\d+\\.\\d+ yrs \\(Age \\d+\\)/);
+        expect(markup).toMatch(/[0-9.]+ yrs [(]Age [0-9]+[)]/);
     });
 });
