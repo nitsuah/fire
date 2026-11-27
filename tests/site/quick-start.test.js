@@ -16,9 +16,9 @@ describe('Fire Quick Start', () => {
         );
         const configure = [
             'git clone https://github.com/nitsuah/fire.git',
-            ' cd fire',
-            ' cp .env.example .env',
-            ' node -e &quot;console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))&quot;',
+            'cd fire',
+            'cp .env.example .env',
+            'node -e &quot;console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))&quot;',
         ].join('\n');
 
         expect(start).toBeGreaterThanOrEqual(0);
@@ -36,6 +36,7 @@ describe('Fire Quick Start', () => {
         const startCommand = section.indexOf('data-copy="docker compose up -d"');
 
         expect(section).toContain('FIRE_AUTH_DISABLED=true');
+        expect(section).toContain('Node.js');
         expect(keyInstruction).toBeGreaterThanOrEqual(0);
         expect(keyInstruction).toBeLessThan(startCommand);
     });
