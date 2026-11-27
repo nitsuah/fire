@@ -402,7 +402,8 @@ function renderMilestones(
             yearsRequired = 'Achieved 🎉';
         } else if (m.isExpenseBased) {
             // Completion uses liquid assets; a net-worth forecast would mislead.
-            yearsRequired = 'Estimate unavailable (liquid forecast not modeled)';
+            yearsRequired =
+                'Estimate unavailable (liquid forecast not modeled)';
         } else if (rawData.chaos) {
             const yrs = chaosYearsToTarget(rawData.nwData, m.target);
             const lastAge = currentAge + rawData.nwData.length - 1;
