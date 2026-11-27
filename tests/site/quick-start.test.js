@@ -33,7 +33,9 @@ describe('Fire Quick Start', () => {
         const end = html.indexOf('</section>', start);
         const section = html.slice(start, end);
         const keyInstruction = section.indexOf('FIRE_API_KEY');
-        const startCommand = section.indexOf('data-copy="docker compose up -d"');
+        const startCommand = section.indexOf(
+            'data-copy="docker compose up -d"',
+        );
 
         expect(section).toContain('FIRE_AUTH_DISABLED=true');
         expect(section).toContain('Node.js');
