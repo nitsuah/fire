@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI: pull requests now run the shared risk guard check (`.github/workflows/risk-guard.yml`) (#638).
 ### Fixed
+- Site Quick Start now shows configuration before startup, as separate steps (#665).
 - Relay Worker Wrangler config added (`relay/wrangler.toml`); deploy stays with the owner (#515/#633).
 - Hosted deployments no longer request the self-hosted Stripe status route; self-hosted checks remain unchanged (#632).
 - Hosted privacy modal now loads the policy from the Pages output directory; a byte-for-byte test keeps the published copy synchronized (#631).
