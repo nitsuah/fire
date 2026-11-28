@@ -10,8 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- The tax-loss alert names the Insights tab (there is no Taxes tab) and its "Show me" button opens the Tax-Loss Harvesting card (#696).
-- Spending and positions CSV imports and adding an account now report through one non-blocking status message instead of browser alert boxes (#697).
+- The Pages site links the published 22-second vertical cut (`brag-22s-vert`) under the tour video (#709).
 
 ### Security
 
@@ -26,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hosted deployments no longer request the self-hosted Stripe status route; self-hosted checks remain unchanged (#632).
 - Hosted privacy modal now loads the policy from the Pages output directory; a byte-for-byte test keeps the published copy synchronized (#631).
 - The hosted deploy remembers its answer per origin (`fire.deployMode` in `localStorage`, valid for 7 days), so later loads skip the `/api/state` probe and no longer log a 404 each time. A self-hosted answer is never cached (#583).
+- The tax-loss alert names the Insights tab (there is no Taxes tab) and its "Show me" button opens the Tax-Loss Harvesting card (#696).
+- Spending and positions CSV imports and adding an account now report through one non-blocking status message instead of browser alert boxes (#697).
 - `buildProjectionData` no longer throws when `projectionSettings` is missing, so `fire_status_summary` and `get_expenses` answer on a partial state (for example a fresh browser profile on the hosted bridge) instead of failing with a TypeError. A new test calls every MCP tool on the demo seed and on an empty state.
 - `GET/POST /api/sync/ebay/marketplace-account-deletion` answers `503` (not `500`) when the eBay verification token or endpoint URL is unset; a missing `challenge_code` stays `400`. Added `app/404.html` so unknown paths on Pages are a real 404 (#544, #520).
 - Privacy modal: the hosted-bridge design link is now an absolute GitHub URL, so it no longer 404s inside the app.
