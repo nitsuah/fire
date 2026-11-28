@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Site Quick Start now shows configuration before startup, as separate steps (#665).
 - Relay Worker Wrangler config added (`relay/wrangler.toml`); deploy stays with the owner (#515/#633).
 - Hosted deployments no longer request the self-hosted Stripe status route; self-hosted checks remain unchanged (#632).
+- On the hosted site, marketplace and provider cards (eBay, Etsy, Plaid, CoinTracker, Google Drive) now say plainly that an unavailable connection is not available, without server setup instructions, and eBay points to CSV upload (#693, #694).
+- Removed the static "Sandbox" badge from the Plaid card (#694).
 - Hosted privacy modal now loads the policy from the Pages output directory; a byte-for-byte test keeps the published copy synchronized (#631).
 - The hosted deploy remembers its answer per origin (`fire.deployMode` in `localStorage`, valid for 7 days), so later loads skip the `/api/state` probe and no longer log a 404 each time. A self-hosted answer is never cached (#583).
 - The tax-loss alert names the Insights tab (there is no Taxes tab) and its "Show me" button opens the Tax-Loss Harvesting card (#696).

@@ -105,6 +105,18 @@ async function loadGDriveBackupPanel() {
             );
         }
 
+        if (
+            (!data.clientConfigured || !data.masterKeySet) &&
+            (await gdriveHosted())
+        ) {
+            statusEl.textContent =
+                'Google Drive backup is not available on the hosted site. Use Export Full State (JSON) under Data Management instead.';
+            statusEl.style.color = 'var(--text-muted)';
+            if (connectBtn) connectBtn.disabled = true;
+            if (backupBtn) backupBtn.disabled = true;
+            return;
+        }
+
         if (!data.clientConfigured) {
             statusEl.textContent =
                 'Google Drive backup is not configured on this server (GDRIVE_CLIENT_ID / GDRIVE_CLIENT_SECRET missing).';

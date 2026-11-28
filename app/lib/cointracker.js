@@ -388,7 +388,9 @@ function renderCoinTrackerCard() {
     if (!configured) {
         // Offering Connect here can only fail: SYNC_MASTER_KEY is missing.
         ctSetStatus(
-            'CoinTracker is not configured on this deployment (SYNC_MASTER_KEY)',
+            globalThis.FireDeployMode?.isHosted()
+                ? 'CoinTracker is not available on the hosted site'
+                : 'CoinTracker is not configured on this deployment (SYNC_MASTER_KEY)',
             'var(--color-warning, var(--color-danger))',
         );
     } else if (!connected) {

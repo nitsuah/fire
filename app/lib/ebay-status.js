@@ -5,6 +5,13 @@
 // Pure (no DOM, no fetch) so it runs in the browser and in Vitest. Same shape
 // as plaidStatusBadge in side-gig.js (#293). Codes only, never tokens.
 function ebayStatusBadge(data) {
+    if (data.configured === false && data.hosted === true) {
+        return {
+            label: 'eBay is not available on the hosted site. Upload a sales report (CSV) in the Side Gig Ledger instead',
+            color: 'var(--text-muted)',
+            connectable: false,
+        };
+    }
     if (data.configured === false) {
         return {
             label: 'eBay is not configured on this deployment (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET)',
