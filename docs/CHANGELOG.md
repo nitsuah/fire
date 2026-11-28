@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The hosted deploy remembers its answer per origin (`fire.deployMode` in `localStorage`, valid for 7 days), so later loads skip the `/api/state` probe and no longer log a 404 each time. A self-hosted answer is never cached (#583).
 - `buildProjectionData` no longer throws when `projectionSettings` is missing, so `fire_status_summary` and `get_expenses` answer on a partial state (for example a fresh browser profile on the hosted bridge) instead of failing with a TypeError. A new test calls every MCP tool on the demo seed and on an empty state.
 - `GET/POST /api/sync/ebay/marketplace-account-deletion` answers `503` (not `500`) when the eBay verification token or endpoint URL is unset; a missing `challenge_code` stays `400`. Added `app/404.html` so unknown paths on Pages are a real 404 (#544, #520).
+- The 404 page uses the app theme (#698).
+- The mobile menu now has JSON export, JSON import and Privacy & Terms (#701).
+- The CSV drop-zone text wraps instead of being cut off, and the privacy policy tables no longer scroll the window sideways on phones (#702).
+- The privacy window is a real dialog: it takes focus, makes the page behind it inert, returns focus on close, and closes with Escape once accepted (#703).
 - Privacy modal: the hosted-bridge design link is now an absolute GitHub URL, so it no longer 404s inside the app.
 
 ### Added

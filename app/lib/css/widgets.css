@@ -68,8 +68,7 @@
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: var(--transition-fast);
-    white-space: nowrap;
-    flex-shrink: 0;
+    min-width: 0;
 }
 .fo-import-drop:hover,
 .fo-import-drop.drag-over {
@@ -93,6 +92,8 @@
 }
 
 .fo-import-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-size: var(--text-sm);
     color: rgba(255,255,255,0.55);
 }

@@ -25,6 +25,18 @@ async function loadPrivacyPolicy() {
     }
 }
 
+// While the window is open the rest of the page is inert, so neither Tab nor
+// assistive technology can reach it. Only what was changed here is restored.
+let inertedElements = [];
+let returnFocusTo = null;
+
+function setBackgroundInert(overlay) {
+    inertedElements = Array.from(document.body.children).filter(
+        (el) => el !== overlay && el.tagName !== 'SCRIPT' && !el.inert,
+    );
+    inertedElements.forEach((el) => (el.inert = true));
+}
+
 async function openPrivacyModal(isRequired) {
     const overlay = document.getElementById('privacy-modal-overlay');
     const body = document.getElementById('privacy-modal-body');
@@ -41,7 +53,14 @@ async function openPrivacyModal(isRequired) {
            <button class="primary-btn" id="btn-privacy-accept">I Understand — Continue</button>`
         : `<button class="backup-btn" id="btn-privacy-close">Close</button>`;
 
-    overlay.classList.add('open');
+    if (!overlay.classList.contains('open')) {
+        returnFocusTo = document.activeElement;
+        setBackgroundInert(overlay);
+        overlay.classList.add('open');
+    }
+    // Focus the dialog itself so a screen reader announces it and the policy
+    // is read from the top, rather than starting at the footer button.
+    document.getElementById('privacy-modal').focus();
 
     const acceptBtn = document.getElementById('btn-privacy-accept');
     const closeBtn = document.getElementById('btn-privacy-close');
@@ -51,6 +70,10 @@ async function openPrivacyModal(isRequired) {
 
 function closePrivacyModal() {
     document.getElementById('privacy-modal-overlay').classList.remove('open');
+    inertedElements.forEach((el) => (el.inert = false));
+    inertedElements = [];
+    if (returnFocusTo?.isConnected) returnFocusTo.focus();
+    returnFocusTo = null;
 }
 
 function acceptPrivacy() {
@@ -82,6 +105,19 @@ document
             closePrivacyModal();
         }
     });
+
+// Escape closes a reopened window; the first-run one still needs consent.
+document.addEventListener('keydown', (e) => {
+    if (
+        e.key === 'Escape' &&
+        document
+            .getElementById('privacy-modal-overlay')
+            ?.classList?.contains('open') &&
+        localStorage.getItem(PRIVACY_ACCEPTED_KEY)
+    ) {
+        closePrivacyModal();
+    }
+});
 
 if (document.readyState === 'complete') {
     checkFirstLoad();

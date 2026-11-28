@@ -35,6 +35,11 @@
     transition: var(--transition-smooth), width var(--transition-smooth);
 }
 
+/* Shown only in the mobile nav drawer (max-width: 768px). */
+.nav-drawer-actions {
+    display: none;
+}
+
 /* Collapsible sidebar (desktop only — mobile keeps its own row layout below) */
 .sidebar-collapse-btn {
     background: none;
@@ -660,6 +665,16 @@
     }
     .sidebar-footer {
         display: none;
+    }
+    .nav-drawer-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+        padding-top: var(--space-sm);
+        border-top: 1px solid var(--border-divider);
+    }
+    .nav-drawer-actions > button {
+        min-height: 44px;
     }
 
     /* Click-outside-to-close scrim, only present (and only rendered) while
