@@ -81,7 +81,7 @@ function processCSVFile(file) {
         if (await importEbayReportText(text, file.name)) return;
         const rows = parseCSVText(text);
         if (rows.length === 0) {
-            alert('File appears to be empty.');
+            showSideGigToast('File appears to be empty.', 'error');
             return;
         }
 
@@ -131,12 +131,13 @@ function processCSVFile(file) {
             refreshAllUI();
             // Kick off price refresh for newly imported symbols
             schedulePriceRefresh();
-            alert(
+            showSideGigToast(
                 `Successfully imported ${records} records from ${source} export.`,
             );
         } else {
-            alert(
+            showSideGigToast(
                 'Unsupported CSV format or no data records found inside the file.',
+                'error',
             );
         }
     };

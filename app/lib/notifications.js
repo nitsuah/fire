@@ -62,6 +62,19 @@ document.addEventListener('click', (e) => {
     if (btn) window.dismissNotifAlert(btn.dataset.tag);
 });
 
+// "Show me" on an alert: open its tab, then scroll to and focus its card.
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.notif-link-btn');
+    if (!btn) return;
+    document.getElementById(`btn-tab-${btn.dataset.tab}`)?.click();
+    window.toggleNotifDropdown(false);
+    const card = document.getElementById(btn.dataset.target);
+    if (!card) return;
+    card.setAttribute('tabindex', '-1');
+    card.scrollIntoView({ block: 'start' });
+    card.focus({ preventScroll: true });
+});
+
 function _updateNotifUI() {
     const btn = document.getElementById('notif-enable-btn');
     const statusEl = document.getElementById('notif-status-text');
@@ -202,11 +215,12 @@ window.checkAndNotify = function (s, sendPush) {
             (p) => p.costBasis > 0 && p.value < p.costBasis,
         );
         if (hasLosses && daysLeft <= 45) {
-            const msg = `${daysLeft} days left in the year — review Tax-Loss Harvesting opportunities in the Taxes tab.`;
+            const msg = `${daysLeft} days left in the year — review Tax-Loss Harvesting opportunities on the Insights tab.`;
             alerts.push({
                 type: 'taxloss',
                 label: 'Tax-Loss Harvest',
                 msg,
+                link: { tab: 'insights', target: 'tax-harvest-card' },
                 urgent: daysLeft <= 14,
                 // Scoped to the current tax year so dismissing this year's
                 // alert doesn't also suppress it once the same condition
@@ -312,6 +326,7 @@ window.checkAndNotify = function (s, sendPush) {
                     ${a.tag ? `<button class="notif-dismiss-btn" data-tag="${escHtml(a.tag)}" aria-label="Dismiss">✕</button>` : ''}
                     <span class="font-bold font-bold csp-notif-label ${a.urgent ? 'notif-label-urgent' : 'notif-label-warning'}">${escHtml(a.label)}</span>
                     <span class="csp-block csp-text-13 csp-mt-2">${escHtml(a.msg)}</span>
+                    ${a.link ? `<button type="button" class="notif-link-btn" data-tab="${escHtml(a.link.tab)}" data-target="${escHtml(a.link.target)}">Show me</button>` : ''}
                 </div>
             `,
                 )
