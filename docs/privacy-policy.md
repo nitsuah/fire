@@ -8,6 +8,17 @@
 
 ---
 
+## Summary
+
+Sentences taken word for word from the full policy below, which is what applies.
+
+- No financial data you enter is transmitted to any remote server operated by this application unless you opt into a listed integration.
+- Clearing your browser data, switching browsers, or using a private/incognito session **will erase your data**. Use the Export JSON Backup feature regularly.
+- When you invoke an AI assistant with the MCP server enabled, the tool responses (your financial data) are sent to the AI provider's API.
+- This application operates no server-side account or database of its own, so there is no account to close or app-held data to request deletion of.
+
+---
+
 ## 1. Overview
 
 fire is a **local-first, privacy-by-design** personal finance tool. It is not a financial product, bank, or registered investment advisor. No financial data you enter is transmitted to any remote server operated by this application unless you opt into a listed integration. The only remote copies are ones you opt into: eBay order sync, CoinTracker wallet balances (read from your CoinTracker account) and encrypted Google Drive backups to your own Drive (see Sections 2 and 4).

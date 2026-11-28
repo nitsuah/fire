@@ -73,6 +73,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification and hosted credential storage remain unavailable (#409).
 - Settings gains a Stripe connection card showing status and last sync, with a confirm-guarded disconnect (#349).
 
+### Changed
+- The privacy window opens with a short summary made of sentences from the policy, followed by the unchanged full policy (#683).
+
 ### Removed
 
 - The Estimated Net Worth block in the summary bar and its renderers; net worth stays in the compact bar tooltip. FIRE-eligible assets, target and ETA move into the compact bar tooltip. Positional banner CSS shifted to match (#482).
