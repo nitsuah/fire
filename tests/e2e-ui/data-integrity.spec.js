@@ -210,6 +210,37 @@ test('a stale tab is refused (409), re-syncs, and asks to redo the change', asyn
     await ctxB.close();
 });
 
+test('bond funds get their own allocation slice, not the equities one', async ({
+    page,
+}) => {
+    await mockMarket(page);
+    await open(page);
+    const r = await page.evaluate(() => {
+        const before = state.importedPositions;
+        state.importedPositions = [
+            ...before,
+            {
+                symbol: 'BND',
+                description: 'TOTAL BOND MARKET ETF',
+                value: 700,
+            },
+        ];
+        const buckets = getAllocationBuckets();
+        const amount = (key) => buckets.find((x) => x.key === key).amt;
+        const result = {
+            bonds: amount('Bonds'),
+            equities: amount('Equities'),
+            sum: buckets.reduce((s, x) => s + x.amt, 0),
+            nw: getAggregateNetWorth(),
+        };
+        state.importedPositions = before;
+        return result;
+    });
+    expect(r.bonds).toBe(700);
+    expect(r.equities).toBeCloseTo(1200, 6);
+    expect(r.sum).toBeCloseTo(r.nw, 6);
+});
+
 test('allocation buckets, Other Assets and the banner agree with net worth', async ({
     page,
 }) => {

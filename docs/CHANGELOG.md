@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Imported bond funds such as BND show as "Bonds & Bond Funds" in Asset Allocation instead of Equities, using the same rule as the rebalancing tool (#688).
+
 ### Security
 
 - Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.
