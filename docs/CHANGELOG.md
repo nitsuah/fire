@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The privacy window opens with a short summary made of sentences from the policy, followed by the unchanged full policy (#683).
+
 ### Security
 
 - Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.
