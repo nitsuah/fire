@@ -110,9 +110,9 @@ document
 document.addEventListener('keydown', (e) => {
     if (
         e.key === 'Escape' &&
-        document
-            .getElementById('privacy-modal-overlay')
-            .classList?.contains('open') &&
+        document.getElementById('privacy-modal-overlay')?.classList?.contains(
+            'open',
+        ) &&
         localStorage.getItem(PRIVACY_ACCEPTED_KEY)
     ) {
         closePrivacyModal();
