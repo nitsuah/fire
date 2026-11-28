@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- On the hosted site the Stripe card no longer shows server setup instructions (#694).
+
 ### Security
 
 - Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.
