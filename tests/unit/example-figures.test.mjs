@@ -47,12 +47,26 @@ describe('exampleFigures', () => {
         ).toEqual([]);
     });
 
-    it('matches the defaults the app starts and resets with', () => {
-        const appJs = read('../../app/app.js');
-        for (const [key, value] of Object.entries(DEFAULT_EXPENSES)) {
-            expect(appJs).toContain(`${key}: ${value}`);
-        }
-        expect(appJs).toContain(`taxGrossIncome: ${DEFAULT_GROSS_INCOME}`);
+    it('matches the state the app starts with', () => {
+        // app.js is a browser script, so evaluate just its initial state.
+        const appJs = read('../../app/app.js').replaceAll(
+            String.fromCharCode(13),
+            '',
+        );
+        const start = appJs.indexOf('var state = {');
+        const end = appJs.indexOf(`${String.fromCharCode(10)}};`, start) + 3;
+        const sandbox = vm.createContext({
+            FireQuickStartFacts: { DEFAULT_PROJECTION },
+        });
+        vm.runInContext(appJs.slice(start, end), sandbox);
+        const initial = JSON.parse(JSON.stringify(sandbox.state));
+        expect(initial.expenses).toEqual(DEFAULT_EXPENSES);
+        expect(initial.taxGrossIncome).toBe(DEFAULT_GROSS_INCOME);
+        expect(exampleFigures(initial)).toEqual([
+            'income',
+            'spending',
+            'growth assumptions',
+        ]);
     });
 });
 
