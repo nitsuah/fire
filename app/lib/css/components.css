@@ -1885,3 +1885,26 @@
 .example-tag[hidden] {
     display: none;
 }
+
+/* Quick Start: completed marker and the control a step points at */
+.quick-start-done {
+    color: var(--color-success);
+}
+
+.qs-highlight {
+    outline: 3px solid var(--color-warning, #fbbf24);
+    outline-offset: 3px;
+}
+
+/* Financial Overview: jump from a read-only row to its input */
+.cf-edit {
+    margin-left: 6px;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    color: var(--color-primary);
+    font: inherit;
+    font-size: var(--text-xs);
+    text-decoration: underline;
+    cursor: pointer;
+}

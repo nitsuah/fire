@@ -14,30 +14,35 @@
             title: 'Add or import your accounts',
             optional: false,
             tab: 'financial',
+            target: 'qs-add-assets',
         },
         {
             id: 'profile',
             title: 'Set your retirement assumptions',
             optional: false,
             tab: 'projections',
+            target: 'proj-settings-card',
         },
         {
             id: 'providers',
             title: 'Connect a supported provider',
             optional: true,
             tab: 'settings',
+            target: 'qs-connect-provider',
         },
         {
             id: 'backup',
-            title: 'Set up a backup',
+            title: 'Set up a backup: download a JSON copy',
             optional: true,
             tab: 'settings',
+            target: 'btn-export-json',
         },
         {
             id: 'explore',
-            title: 'Explore insights and Chaos Mode',
+            title: 'Try Chaos Mode on your projections',
             optional: true,
-            tab: 'insights',
+            tab: 'projections',
+            target: 'proj-chaos-btn',
         },
     ];
 

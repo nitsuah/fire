@@ -68,7 +68,9 @@ test.describe('Quick Start Hub', () => {
         const progressText = page.locator('#quick-start-progress');
         // Consent completes the privacy step; the seeded demo data can complete
         // more, so check the format rather than a fixed count.
-        await expect(progressText).toHaveText(/^[1-6] of 6 done$/);
+        await expect(progressText).toHaveText(
+            /^([1-6] of 6 done( · essentials completed)?|All 6 steps completed)$/,
+        );
 
         const steps = stepsList.locator('li');
         await expect(steps.nth(0)).toContainText(
@@ -85,7 +87,7 @@ test.describe('Quick Start Hub', () => {
         await expect(steps.nth(4)).toContainText('Set up a backup');
         await expect(steps.nth(4)).toContainText('Optional');
         await expect(steps.nth(5)).toContainText(
-            'Explore insights and Chaos Mode',
+            'Try Chaos Mode on your projections',
         );
         await expect(steps.nth(5)).toContainText('Optional');
     });
@@ -99,6 +101,8 @@ test.describe('Quick Start Hub', () => {
         await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(1).click();
         await expect(page.locator('#tab-financial')).toBeVisible();
+        await expect(page.locator('#qs-add-assets')).toBeFocused();
+        await expect(page.locator('#qs-add-assets')).toBeInViewport();
 
         await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(2).click();
@@ -107,14 +111,19 @@ test.describe('Quick Start Hub', () => {
         await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(3).click();
         await expect(page.locator('#tab-settings')).toBeVisible();
+        await expect(page.locator('#qs-connect-provider')).toBeInViewport();
 
         await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(4).click();
         await expect(page.locator('#tab-settings')).toBeVisible();
+        await expect(page.locator('#btn-export-json')).toBeFocused();
+        await expect(page.locator('#btn-export-json')).toBeInViewport();
 
         await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(5).click();
-        await expect(page.locator('#tab-insights')).toBeVisible();
+        await expect(page.locator('#tab-projections')).toBeVisible();
+        await expect(page.locator('#proj-chaos-btn')).toBeFocused();
+        await expect(page.locator('#proj-chaos-btn')).toBeInViewport();
 
         await page.locator('#btn-tab-dashboard').click();
         await page.locator('#quick-start-steps li').nth(0).click();
@@ -123,6 +132,19 @@ test.describe('Quick Start Hub', () => {
         await expect(
             page.getByRole('button', { name: /I Understand.*Continue/i }),
         ).toHaveCount(0);
+    });
+
+    test('downloading a JSON copy completes the backup step at once', async ({
+        page,
+    }) => {
+        await page.goto('/');
+        await dismissPrivacyModal(page);
+        const backup = page.locator('#quick-start-steps li').nth(4);
+        await expect(backup).not.toContainText('Completed');
+        const download = page.waitForEvent('download');
+        await page.locator('#btn-backup-export').click();
+        await download;
+        await expect(backup).toContainText('✓ Completed');
     });
 
     test('dismiss hides card, shows reopen, persists after reload; reopen restores', async ({

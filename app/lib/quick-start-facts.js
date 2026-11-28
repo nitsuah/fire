@@ -18,16 +18,25 @@
         const p = s.projectionSettings || {};
         return {
             privacy: i.privacyAccepted === true,
-            accounts: [s.customAccounts, s.importedPositions].some(
-                (a) => Array.isArray(a) && a.length > 0,
-            ),
-            profile: Object.keys(DEFAULT_PROJECTION).some(
-                (k) => Number.isFinite(p[k]) && p[k] !== DEFAULT_PROJECTION[k],
-            ),
+            accounts: [
+                s.customAccounts,
+                s.importedPositions,
+                s.cds,
+                s.realEstate,
+                s.vehicles,
+            ].some((a) => Array.isArray(a) && a.length > 0),
+            profile:
+                s.assumptionsConfirmed === true ||
+                Object.keys(DEFAULT_PROJECTION).some(
+                    (k) =>
+                        Number.isFinite(p[k]) && p[k] !== DEFAULT_PROJECTION[k],
+                ),
             providers:
                 Array.isArray(i.providerStatuses) &&
                 i.providerStatuses.some((x) => x && x.connected === true),
-            backup: !!i.driveStatus && i.driveStatus.authorized === true,
+            backup:
+                i.jsonExported === true ||
+                (!!i.driveStatus && i.driveStatus.authorized === true),
             explore:
                 !!i.chaos && Number.isInteger(i.chaos.seed) && i.chaos.seed > 0,
         };

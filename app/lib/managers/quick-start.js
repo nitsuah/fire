@@ -6,6 +6,9 @@
 
     const CONSENT_KEY = 'fire_privacy_v1_accepted';
     const DISMISS_KEY = 'fire_quick_start_dismissed';
+    // Set by exportFullState() in app.js.
+    const JSON_EXPORT_KEY = 'fire_json_export_at';
+    const HIGHLIGHT_MS = 3000;
 
     function readKey(key) {
         try {
@@ -15,7 +18,7 @@
         }
     }
 
-    async function loadFacts() {
+    async function fetchStatuses() {
         let hosted = null;
         try {
             hosted = root.FireDeployMode
@@ -57,6 +60,16 @@
         const driveStatus =
             driveResult && typeof driveResult === 'object' ? driveResult : null;
 
+        return { providerStatuses, driveStatus };
+    }
+
+    // `statuses` lets a caller reuse an earlier fetchStatuses() promise, so
+    // recomputing after an edit costs no requests. Everything local is read
+    // after the await, so a slow request never shows stale data.
+    async function loadFacts(statuses) {
+        const { providerStatuses, driveStatus } = await (statuses ||
+            fetchStatuses());
+
         const privacyAccepted = !!readKey(CONSENT_KEY);
 
         let chaos = null;
@@ -83,6 +96,7 @@
                 state,
                 providerStatuses,
                 driveStatus,
+                jsonExported: !!readKey(JSON_EXPORT_KEY),
                 chaos,
             });
         }
@@ -94,6 +108,24 @@
             backup: false,
             explore: false,
         };
+    }
+
+    // Bring a step's control into view, focus it and outline it briefly.
+    function revealTarget(id) {
+        const el = id && root.document.getElementById(id);
+        if (!el) return;
+        if (
+            !el.matches('button, a[href], input, select, textarea') &&
+            !el.hasAttribute('tabindex')
+        )
+            el.setAttribute('tabindex', '-1');
+        el.scrollIntoView({ block: 'center' });
+        el.focus({ preventScroll: true });
+        el.classList.add('qs-highlight');
+        root.setTimeout(
+            () => el.classList.remove('qs-highlight'),
+            HIGHLIGHT_MS,
+        );
     }
 
     function initQuickStart() {
@@ -110,7 +142,14 @@
             const progress = model.quickStartProgress(facts);
             const progressEl = doc.getElementById('quick-start-progress');
             if (progressEl) {
-                progressEl.textContent = `${progress.doneCount} of ${progress.total} done`;
+                const count = `${progress.doneCount} of ${progress.total} done`;
+                if (progress.doneCount === progress.total) {
+                    progressEl.textContent = `All ${progress.total} steps completed`;
+                } else if (progress.requiredDone) {
+                    progressEl.textContent = `${count} · essentials completed`;
+                } else {
+                    progressEl.textContent = count;
+                }
             }
             list.textContent = '';
             progress.steps.forEach((step) => {
@@ -124,11 +163,20 @@
                     tag.textContent = 'Optional';
                     btn.appendChild(tag);
                 }
+                if (step.done) {
+                    const mark = doc.createElement('span');
+                    mark.className = 'quick-start-tag quick-start-done';
+                    mark.textContent = '✓ Completed';
+                    btn.appendChild(mark);
+                }
                 btn.addEventListener('click', () => {
                     const target = doc.getElementById(
                         step.tab ? 'btn-tab-' + step.tab : 'btn-nav-privacy',
                     );
                     if (target) target.click();
+                    // After the tab switch has laid out.
+                    if (step.target)
+                        root.setTimeout(() => revealTarget(step.target), 0);
                 });
                 const li = doc.createElement('li');
                 // Done steps stay clickable (the privacy step reopens the notice).
@@ -152,7 +200,10 @@
             }
         }
 
-        async function render() {
+        let statuses = null;
+
+        // { cached: true } recomputes from the last status answers.
+        async function render(options) {
             keepReopenBesideCard();
             const consented = !!readKey(CONSENT_KEY);
             const dismissed = readKey(DISMISS_KEY) === '1';
@@ -164,7 +215,9 @@
                 return;
             }
 
-            const facts = await loadFacts();
+            if (!statuses || options?.cached !== true)
+                statuses = fetchStatuses();
+            const facts = await loadFacts(statuses);
             renderSteps(facts);
         }
 
@@ -201,7 +254,11 @@
         // Then async render with real facts
         render();
 
-        // Recompute on tab activation
+        // Recompute on dashboard open and when the window becomes visible.
+        // saveState() and Chaos Mode call refreshQuickStart for other changes.
+        doc.getElementById('btn-tab-dashboard')?.addEventListener('click', () =>
+            render(),
+        );
         root.addEventListener('visibilitychange', () => {
             if (root.document.visibilityState === 'visible') {
                 render();
@@ -222,6 +279,7 @@
         };
     } else {
         root.initQuickStart = initQuickStart;
+        root.revealControl = revealTarget;
         root.loadQuickStartFacts = loadFacts;
         if (root.document.readyState === 'loading') {
             root.document.addEventListener('DOMContentLoaded', initQuickStart);

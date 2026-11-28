@@ -44,6 +44,12 @@ describe('quickStartProgress', () => {
         ).toEqual([]);
     });
 
+    it('points every tab step at a control that exists', () => {
+        for (const step of STEPS.filter((s) => s.tab)) {
+            expect(indexHtml).toContain(`id="${step.target}"`);
+        }
+    });
+
     it('keeps ids unique and links only to existing sidebar tabs', () => {
         expect(new Set(STEPS.map((step) => step.id)).size).toBe(STEPS.length);
         expect(
@@ -289,6 +295,28 @@ describe('quick start manager loadFacts', () => {
             };
         };
     }
+
+    it('counts a recorded JSON export as a backup', async () => {
+        globalThis.fetch = makeFetch([]);
+        globalThis.localStorage = {
+            getItem: (k) => (k === 'fire_json_export_at' ? 'x' : null),
+        };
+        globalThis.state = { projectionSettings: {} };
+        const facts = await loadFacts();
+        expect(facts.backup).toBe(true);
+    });
+
+    it('reuses earlier status answers and reads local data afresh', async () => {
+        globalThis.fetch = () => {
+            throw new Error('should not fetch');
+        };
+        globalThis.localStorage = { getItem: () => null };
+        globalThis.state = { vehicles: [{}] };
+        const facts = await loadFacts(
+            Promise.resolve({ providerStatuses: [], driveStatus: null }),
+        );
+        expect(facts.accounts).toBe(true);
+    });
 
     beforeEach(() => {
         globalThis.FireQuickStartFacts = { buildQuickStartFacts };

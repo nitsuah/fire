@@ -244,3 +244,25 @@ describe('buildQuickStartFacts', () => {
         expect(progress.doneCount).toBe(trueCount);
     });
 });
+
+describe('quick start facts: assets and confirmations', () => {
+    const { buildQuickStartFacts: build } = createRequire(import.meta.url)(
+        '../../app/lib/quick-start-facts.js',
+    );
+
+    it.each([
+        'customAccounts',
+        'importedPositions',
+        'cds',
+        'realEstate',
+        'vehicles',
+    ])('counts %s as an added asset', (key) => {
+        expect(build({ state: { [key]: [{}] } }).accounts).toBe(true);
+    });
+
+    it('counts confirmed example figures as retirement assumptions', () => {
+        expect(build({ state: { assumptionsConfirmed: true } }).profile).toBe(
+            true,
+        );
+    });
+});

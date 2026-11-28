@@ -116,6 +116,7 @@
 ## Dashboard & UX
 
 - **Glassmorphic Dark Theme** — High-end HTML5 layout with CSS glassmorphism and HSL color tokens.
+- **Edit links** — Salary and expense rows on Financial Overview jump to the matching input on Expenses.
 - **Dashboard Summary** — Current net worth and a one-line description; figures still at their shipped defaults are marked "Example" until changed or confirmed.
 - **Header Summary Bar** — Annual Income and Spend Rate metrics (net worth in the narrow-width breakdown); at narrow widths a single minimalist bar (FIRE progress split by net-worth allocation, hover/tap for breakdown, income and spend), moved into the sidebar in portrait; alerts bell pinned right.
 - **Responsive Navigation** — Collapsible sidebar on desktop; hamburger drawer on phones.
@@ -131,7 +132,7 @@
   - Click a title to collapse a card. Dashboard ＋ Add widget pins cards from other tabs (keyboard-trapped picker that restores focus), ✕ removes cards, ↺ Reset restores a tab.
   - Persisted per browser (`fire_layout_v2`, migrating v1) in `app/lib/layout-manager.js`. CSP-safe: no inline handlers or style attributes.
 - **Milestone Preset Selector** — 5 financial profiles (Conservative, Standard, Aggressive, Barista FIRE, Coast FIRE) with dynamic targets based on user's income/net worth.
-- **Quick Start Hub** — Appears on the Dashboard only after the privacy notice is accepted; six steps (privacy, accounts, retirement assumptions, provider, backup, explore), the first three required and the last three optional; each step links to the existing tab or the Privacy & Terms control; progress is recomputed from real state on every render and is never stored; a provider counts only when its status endpoint reports `connected: true` (hosted deploys that keep credentials in the browser may under-report); "profile" means at least one projection assumption differs from its default; "explore" means Chaos mode was turned on at least once; dismissal is the only thing stored, in `localStorage` key `fire_quick_start_dismissed` (`'1'`), and a "Quick Start" button reopens the card.
+- **Quick Start Hub** — Appears on the Dashboard only after the privacy notice is accepted; six steps (privacy, accounts, retirement assumptions, provider, backup, explore), the first three required and the last three optional; each step opens its tab (or the Privacy & Terms control), then scrolls to, focuses and outlines the control it means; done steps read "✓ Completed"; progress updates as data is saved and when the dashboard is opened, and is never stored; any asset type counts as accounts; a downloaded JSON copy or an authorized Drive connection counts as a backup; a provider counts only when its status endpoint reports `connected: true` (hosted deploys that keep credentials in the browser may under-report); "profile" means at least one projection assumption differs from its default, or the example figures were confirmed; "explore" means Chaos mode was turned on at least once; dismissal is the only thing stored, in `localStorage` key `fire_quick_start_dismissed` (`'1'`), and a "Quick Start" button reopens the card.
 
 ## Integrations (UI Ready)
 

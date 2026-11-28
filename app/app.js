@@ -102,6 +102,7 @@ const CSP_ACTIONS = new Set([
     'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
     'toggleChaos', 'rerollChaos', 'toggleChaosProfile',
     'saveChaosProfile', 'clearChaosProfile', 'confirmExampleFigures',
+    'editExpenseField',
 ]);
 
 function initCspEventDelegation() {
@@ -218,6 +219,12 @@ function confirmExampleFigures() {
     state.assumptionsConfirmed = true;
     saveState();
     refreshAllUI();
+}
+
+// Financial Overview's read-only rows: open Expenses at the matching input.
+function editExpenseField(inputId) {
+    document.getElementById('btn-tab-expenses')?.click();
+    setTimeout(() => window.revealControl?.(inputId), 0);
 }
 
 /* ==========================================================================
@@ -468,6 +475,12 @@ function exportFullState() {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    try {
+        localStorage.setItem('fire_json_export_at', new Date().toISOString());
+    } catch {
+        /* storage unavailable: the backup step just stays open */
+    }
+    window.refreshQuickStart?.({ cached: true });
 }
 
 function exportCSV() {

@@ -12,10 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - The Pages site links the published 22-second vertical cut (`brag-22s-vert`) under the tour video (#709).
 
-### Added
-- The dashboard shows current net worth as a number, with a one-line description of the app (#684, #679).
-- Income, spending and growth figures that are still the shipped defaults are marked "Example" until you change or confirm them (#679).
-
 ### Security
 
 - Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.
@@ -79,6 +75,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
 - Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification and hosted credential storage remain unavailable (#409).
 - Settings gains a Stripe connection card showing status and last sync, with a confirm-guarded disconnect (#349).
+
+### Fixed
+- Each Quick Start step scrolls to, focuses and outlines its control; the Chaos Mode step now opens Projections, where the button is (#680).
+- Downloading a JSON copy completes the Quick Start backup step, so hosted visitors can finish it (#681).
+- Quick Start progress updates as you work, marks done steps with "✓ Completed", counts every asset type and accepts confirmed example figures (#682).
+- Financial Overview's salary and expense rows have "Edit" links that focus the matching input on Expenses (#685).
+- The Add Account form shows crypto and metal fields only for those types (#686).
+- Spending Upload says that uploads do not change Base Monthly Expenses or projections (#687).
 
 ### Removed
 

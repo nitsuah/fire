@@ -346,7 +346,7 @@
                             </div>
                             <div class="cf-list cf-collapsed" id="cashflow-income-list">
                                 <div class="cf-row">
-                                    <span class="cf-label">Salary / W2 (monthly)</span>
+                                    <span class="cf-label">Salary / W2 (monthly) <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="tax-gross-income" aria-label="Edit gross annual income">Edit</button></span>
                                     <span class="cf-val text-emerald" id="cf-salary">$0</span>
                                 </div>
                                 <div class="cf-row">
@@ -381,14 +381,14 @@
                                 </button>
                             </div>
                             <div class="cf-list cf-collapsed" id="cashflow-expenses-list">
-                                <div class="cf-row"><span class="cf-label">Housing</span><span class="cf-val text-coral" id="cf-housing">$0</span></div>
-                                <div class="cf-row"><span class="cf-label">Utilities</span><span class="cf-val text-coral" id="cf-utilities">$0</span></div>
-                                <div class="cf-row"><span class="cf-label">Food &amp; Groceries</span><span class="cf-val text-coral" id="cf-food">$0</span></div>
-                                <div class="cf-row"><span class="cf-label">Transportation</span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
-                                <div class="cf-row"><span class="cf-label">Healthcare</span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
-                                <div class="cf-row"><span class="cf-label">Discretionary</span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
-                                <div class="cf-row"><span class="cf-label">Car Insurance</span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
-                                <div class="cf-row"><span class="cf-label">Home / Renters Insurance</span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Housing <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="exp-housing" aria-label="Edit housing">Edit</button></span><span class="cf-val text-coral" id="cf-housing">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Utilities <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="exp-utilities" aria-label="Edit utilities">Edit</button></span><span class="cf-val text-coral" id="cf-utilities">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Food &amp; Groceries <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="exp-food" aria-label="Edit food and groceries">Edit</button></span><span class="cf-val text-coral" id="cf-food">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Transportation <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="exp-transport" aria-label="Edit transportation">Edit</button></span><span class="cf-val text-coral" id="cf-transport">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Healthcare <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="exp-healthcare" aria-label="Edit healthcare">Edit</button></span><span class="cf-val text-coral" id="cf-healthcare">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Discretionary <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="exp-discretionary" aria-label="Edit discretionary spending">Edit</button></span><span class="cf-val text-coral" id="cf-discretionary">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Car Insurance <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="ins-car-amt" aria-label="Edit car insurance">Edit</button></span><span class="cf-val text-coral" id="cf-car-insurance">$0</span></div>
+                                <div class="cf-row"><span class="cf-label">Home / Renters Insurance <button type="button" class="cf-edit" data-csp-click-action="editExpenseField" data-csp-click-value="ins-home-amt" aria-label="Edit home or renters insurance">Edit</button></span><span class="cf-val text-coral" id="cf-home-insurance">$0</span></div>
                                 <div class="cf-row cf-total-row">
                                     <span class="cf-label font-bold">Total Monthly Expenses</span>
                                     <span class="cf-val text-coral font-bold" id="cf-total-expenses">$0</span>
@@ -405,7 +405,7 @@
 
                             <!-- Unified Add Form -->
                             <div class="card glass-card" data-card-title="Add Accounts &amp; Assets">
-                                <div class="ua-type-tabs">
+                                <div class="ua-type-tabs" id="qs-add-assets">
                                     <button class="ua-tab-btn active" data-ua-tab="csv">Import CSV</button>
                                     <button class="ua-tab-btn" data-ua-tab="account">Account / Asset</button>
                                     <button class="ua-tab-btn" data-ua-tab="cd">Certificate of Deposit</button>
@@ -926,6 +926,7 @@
                         <div class="card glass-card">
                             <h2 class="card-title">Spending Upload</h2>
                             <p class="card-subtitle">Upload a Chase, Capital One, or generic (Date/Description/Amount) spending CSV — each transaction is auto-categorized and lands in the table below, fully editable.</p>
+                            <p class="card-subtitle" id="spending-budget-note">Uploads are a record of what you spent. They do not change Base Monthly Expenses or your projections; those come from Basic Budget &amp; Expenses on this tab.</p>
                             <div class="import-drag-zone" id="spending-drag-zone" tabindex="0" role="button" aria-label="Upload spending CSV">
                                 <p>Drag &amp; drop a spending CSV, or click to browse</p>
                                 <input type="file" id="spending-file-input" accept=".csv" class="csp-i-001" aria-label="Spending CSV file">
@@ -1515,7 +1516,7 @@
                                 <button class="scenario-btn" data-offset="-2" data-csp-click-action="applyScenario" data-csp-click-value="-2">🐻 Bear (−2%)</button>
                                 <button class="scenario-btn active" data-offset="0" data-csp-click-action="applyScenario" data-csp-click-value="0">Base Rate</button>
                                 <button class="scenario-btn" data-offset="2" data-csp-click-action="applyScenario" data-csp-click-value="2">🐂 Bull (+2%)</button>
-                                <button type="button" class="chaos-btn" data-csp-click-action="toggleChaos" aria-pressed="false" title="Chaos mode: sprinkle realistic random life events (surgery, new job, windfall…) onto the projection">🌪️ Chaos</button>
+                                <button type="button" id="proj-chaos-btn" class="chaos-btn" data-csp-click-action="toggleChaos" aria-pressed="false" title="Chaos mode: sprinkle realistic random life events (surgery, new job, windfall…) onto the projection">🌪️ Chaos</button>
                                 <button type="button" class="chaos-reroll-btn" data-csp-click-action="rerollChaos" hidden title="Roll a different set of life events" aria-label="Reroll life events">🎲</button>
                                 <button type="button" class="chaos-profile-btn" data-csp-click-action="toggleChaosProfile" aria-controls="chaos-profile-panel" hidden title="Tailor chaos events to your household" aria-label="Tailor chaos events to your household" aria-expanded="false">👤</button>
                             </div>
@@ -1695,7 +1696,7 @@
                             <h2 class="card-title">Plaid Transaction Sync</h2>
                             <p class="card-subtitle">Link your accounts via Plaid, then automatically pull bank/card transactions and auto-categorize them into your Expenses tab, using the same categories as CSV imports. While active, manual Fidelity CSV import is disabled to prevent duplicate expenses.</p>
                                 <!-- Plaid Connector -->
-                                <div class="api-connector-panel mt-3">
+                                <div class="api-connector-panel mt-3" id="qs-connect-provider">
                                     <div class="connector-header">
                                         <h3 class="csp-i-012">🔗 Plaid Investments</h3>
                                         <span class="badge-type badge-cd csp-i-026">Sandbox</span>
@@ -1807,7 +1808,7 @@
                             <h2 class="card-title">Data Management</h2>
                             <p class="card-subtitle">Export your complete financial profile or import from backup.</p>
                             <div class="grid-organic-2 mt-3">
-                                <button class="backup-btn" data-csp-click-action="exportFullState">📤 Export Full State (JSON)</button>
+                                <button class="backup-btn" id="btn-export-json" data-csp-click-action="exportFullState">📤 Export Full State (JSON)</button>
                                 <button class="backup-btn" data-csp-click-action="exportCSV">📊 Export Holdings (CSV)</button>
                                 <button class="backup-btn import-btn" data-csp-target-click="import-file">📥 Import State (JSON)</button>
                                 <button class="backup-btn import-btn" data-csp-target-click="import-csv-file">📋 Import Holdings (CSV)</button>

@@ -236,6 +236,7 @@ function saveChaosMode() {
     } catch {
         /* storage unavailable — chaos just won't persist */
     }
+    globalThis.refreshQuickStart?.({ cached: true });
 }
 
 // Household profile for Chaos mode event filtering

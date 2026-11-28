@@ -44,6 +44,11 @@
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
 }
 
+/* This sheet loads after csp-inline.css, so restate the hidden state. */
+.fo-form-row.csp-i-001 {
+    display: none;
+}
+
 .fo-form-row .form-group {
     margin-bottom: 0;
 }

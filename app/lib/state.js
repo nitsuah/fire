@@ -306,6 +306,8 @@ function recordLocalNetWorthSnapshot(now = new Date()) {
 }
 
 function saveState({ preserveSavedAt = false } = {}) {
+    // Quick Start progress follows the data as soon as it changes.
+    globalThis.refreshQuickStart?.({ cached: true });
     const run = saveQueue.then(
         () => postState(preserveSavedAt),
         () => postState(preserveSavedAt),
@@ -363,20 +365,9 @@ async function postState(preserveSavedAt = false) {
 }
 
 // Backup Export & Import Utility
-document.getElementById('btn-backup-export').addEventListener('click', () => {
-    const dataStr =
-        'data:text/json;charset=utf-8,' +
-        encodeURIComponent(JSON.stringify(state, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute(
-        'download',
-        `fire_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`,
-    );
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-});
+document
+    .getElementById('btn-backup-export')
+    .addEventListener('click', () => exportFullState());
 
 const backupFileTrigger = document.getElementById('btn-backup-import-trigger');
 const backupFileInput = document.getElementById('backup-file-input');
