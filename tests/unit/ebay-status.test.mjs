@@ -57,6 +57,65 @@ describe('ebayStatusBadge', () => {
         ).toBe('Connected');
     });
 
+    it('connected-but-never-synced shows Connected (not failed) while sync-failed shows error', () => {
+        const neverSynced = ebayStatusBadge({
+            configured: true,
+            connected: true,
+            lastSyncOutcome: null,
+        });
+        const syncFailed = ebayStatusBadge({
+            configured: true,
+            connected: true,
+            lastSyncOutcome: { ok: false, errorCode: 'TIMEOUT' },
+        });
+        expect(neverSynced.label).toBe('Connected');
+        expect(neverSynced.color).toBe('var(--color-success)');
+        expect(syncFailed.label).toBe('Last sync failed (TIMEOUT)');
+        expect(syncFailed.color).toBe('var(--color-danger)');
+    });
+
+    it('successful OAuth reconnect replaces prior grant without duplicate status', () => {
+        const prior = ebayStatusBadge({
+            configured: true,
+            connected: true,
+            lastSyncOutcome: { ok: true, at: '2025-01-01T00:00:00Z' },
+        });
+        const afterReconnect = ebayStatusBadge({
+            configured: true,
+            connected: true,
+            lastSyncOutcome: { ok: true, at: '2025-01-02T00:00:00Z' },
+        });
+        expect(prior.label).toBe('Connected');
+        expect(afterReconnect.label).toBe('Connected');
+        expect(prior.connectable).toBe(false);
+        expect(afterReconnect.connectable).toBe(false);
+    });
+
+    it('revoked/invalid grant clears connection state and exposes re-link/disconnected', () => {
+        const revoked = ebayStatusBadge({ configured: true, connected: false });
+        expect(revoked.label).toBe('Disconnected');
+        expect(revoked.color).toBe('var(--text-muted)');
+        expect(revoked.connectable).toBe(true);
+    });
+
+    it('serialized outcome omits access/refresh tokens and secrets', () => {
+        const outcome = ebayBuildOutcome({
+            ok: true,
+            at: '2025-01-01T00:00:00Z',
+            // These should never appear in serialized form
+            accessToken: 'secret-access-token',
+            refreshToken: 'secret-refresh-token',
+            clientSecret: 'secret-client-secret',
+        });
+        expect(Object.keys(outcome)).toEqual(['at', 'ok', 'errorCode']);
+        expect(outcome.at).toBe('2025-01-01T00:00:00Z');
+        expect(outcome.ok).toBe(true);
+        expect(outcome.errorCode).toBeNull();
+        expect(outcome.accessToken).toBeUndefined();
+        expect(outcome.refreshToken).toBeUndefined();
+        expect(outcome.clientSecret).toBeUndefined();
+    });
+
     it('disconnected is connectable; offline (configured null) is connectable too', () => {
         expect(ebayStatusBadge({ configured: true, connected: false })).toEqual(
             {
