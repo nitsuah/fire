@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Imported bond funds such as BND show as "Bonds & Bond Funds" in Asset Allocation instead of Equities, using the same rule as the rebalancing tool (#688).
+- The Pages site links the published 22-second vertical cut (`brag-22s-vert`) under the tour video (#709).
 
 ### Security
 
@@ -58,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP hosted browser bridge host (child 6): `app/bridge-host.mjs` enforces scope, expiry, idle timeout, reconnect grace, rate limit and call sequencing in the browser itself, keeps the non-extractable session key and approved policy in tab memory only (a reload ends the session), trims `get_transactions` results to the 256 KB frame cap with `truncated`/`nextOffset` and a bounded `byCategory`, and records a metadata-only activity log (#513).
 - Docs for the hosted MCP browser bridge: privacy policy section 6a (including the plaintext-in-memory and compromised-relay disclosure), README hosted section, security-hardening checklist rows (#516).
 - The Side Hustle Hub eBay card shows last success and last attempt (`syncHealthText`, reusable for other connectors).
+
+### Fixed
+- Imported bond funds such as BND show as "Bonds & Bond Funds" in Asset Allocation instead of Equities, using the same rule as the rebalancing tool (#688).
 
 ### Changed
 - The MCP tool core helpers (`finance-calcs`, `aggregates`, `side-gig-tax`, `rebalance-sweep`, `net-worth-history`, `cointracker-merge`, `data-freshness`, `recurring-charges`, `daily-snapshot`) are native ES modules (`.mjs`), so a browser can load them without a bundler; Node 22 loads them from the CommonJS server through `require(esm)`. The page loads them as module scripts with temporary `window` bridges and defers the classic scripts after them (#514).
