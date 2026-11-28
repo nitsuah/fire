@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI: pull requests now run the shared risk guard check (`.github/workflows/risk-guard.yml`) (#638).
 ### Fixed
+- The Etsy, Facebook Marketplace, Mercari and Poshmark fee calculators now reject negative values: they show a message, hide results and disable Log Sale, as the eBay calculator does (#692).
 - Site Quick Start now shows configuration before startup, as separate steps (#665).
 - Relay Worker Wrangler config added (`relay/wrangler.toml`); deploy stays with the owner (#515/#633).
 - Hosted deployments no longer request the self-hosted Stripe status route; self-hosted checks remain unchanged (#632).
