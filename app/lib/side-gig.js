@@ -995,14 +995,10 @@ async function runPlaidTransactionsSyncNow() {
     }
 }
 
-function validateEbayInputs() {
-    const fields = [
-        ['ebay-price', 'Item price'],
-        ['ebay-cost', 'Item cost'],
-        ['ebay-shipping-charged', 'Shipping charged'],
-        ['ebay-shipping-actual', 'Actual shipping cost'],
-        ['ebay-ad-rate', 'Promoted listing rate', 100],
-    ];
+// Shared by every fee calculator: money and rate inputs must be zero or greater
+// (and within `max` when given). Empty inputs stay allowed. While anything is
+// invalid, an in-page message shows and the panel's Log Sale button is disabled.
+function validateCalcInputs(prefix, fields, extraInvalid = []) {
     const invalid = [];
     for (const [id, label, max] of fields) {
         const input = document.getElementById(id);
@@ -1013,15 +1009,41 @@ function validateEbayInputs() {
             (!Number.isFinite(value) ||
                 value < 0 ||
                 (max !== undefined && value > max));
-        input.setCustomValidity(
-            bad
-                ? `${label} must be ${max === undefined ? 'zero or greater' : 'between 0 and 100'}.`
-                : '',
-        );
+        const range =
+            max === undefined ? 'zero or greater' : `between 0 and ${max}`;
+        input.setCustomValidity(bad ? `${label} must be ${range}.` : '');
         input.setAttribute('aria-invalid', String(bad));
         if (bad) invalid.push(label);
     }
+    invalid.push(...extraInvalid);
 
+    let message = document.getElementById(`${prefix}-validation-message`);
+    if (!message) {
+        message = document.createElement('p');
+        message.id = `${prefix}-validation-message`;
+        message.className = 'text-coral mt-2';
+        message.setAttribute('role', 'alert');
+        message.setAttribute('aria-live', 'polite');
+        document
+            .querySelector(`#calc-panel-${prefix} .grid-2-col`)
+            ?.after(message);
+    }
+    message.hidden = invalid.length === 0;
+    message.textContent = invalid.length
+        ? `Correct these values before logging a sale: ${invalid.join(', ')}.`
+        : '';
+    const saveButton = document.getElementById(`btn-save-${prefix}-sale`);
+    if (saveButton) saveButton.disabled = invalid.length > 0;
+    return invalid.length === 0;
+}
+
+function blankCalcResults(prefix) {
+    for (const name of ['gross', 'fees', 'profit', 'roi']) {
+        document.getElementById(`${prefix}-res-${name}`).textContent = '—';
+    }
+}
+
+function validateEbayInputs() {
     const category = document.getElementById('ebay-category-rate');
     const categoryValid = Array.from(category.options).some(
         (option) => option.value === category.value,
@@ -1030,24 +1052,17 @@ function validateEbayInputs() {
         categoryValid ? '' : 'Choose a valid eBay category.',
     );
     category.setAttribute('aria-invalid', String(!categoryValid));
-    if (!categoryValid) invalid.push('eBay category');
-
-    let message = document.getElementById('ebay-validation-message');
-    if (!message) {
-        message = document.createElement('p');
-        message.id = 'ebay-validation-message';
-        message.className = 'text-coral mt-2';
-        message.setAttribute('role', 'alert');
-        message.setAttribute('aria-live', 'polite');
-        document.querySelector('#calc-panel-ebay .grid-2-col')?.after(message);
-    }
-    message.hidden = invalid.length === 0;
-    message.textContent = invalid.length
-        ? `Correct these values before logging a sale: ${invalid.join(', ')}.`
-        : '';
-    const saveButton = document.getElementById('btn-save-ebay-sale');
-    saveButton.disabled = invalid.length > 0;
-    return invalid.length === 0;
+    return validateCalcInputs(
+        'ebay',
+        [
+            ['ebay-price', 'Item price'],
+            ['ebay-cost', 'Item cost'],
+            ['ebay-shipping-charged', 'Shipping charged'],
+            ['ebay-shipping-actual', 'Actual shipping cost'],
+            ['ebay-ad-rate', 'Promoted listing rate', 100],
+        ],
+        categoryValid ? [] : ['eBay category'],
+    );
 }
 
 function calculateEbayFeesTotal() {
@@ -1069,14 +1084,7 @@ function calculateEbayFeesTotal() {
 
 function calculateEbayProfit() {
     if (!validateEbayInputs()) {
-        [
-            'ebay-res-gross',
-            'ebay-res-fees',
-            'ebay-res-profit',
-            'ebay-res-roi',
-        ].forEach((id) => {
-            document.getElementById(id).textContent = '—';
-        });
+        blankCalcResults('ebay');
         return;
     }
     const price = parseFloat(document.getElementById('ebay-price').value) || 0;
@@ -1324,6 +1332,7 @@ function initPlatformCalculators() {
     document
         .getElementById('btn-save-etsy-sale')
         ?.addEventListener('click', async () => {
+            if (!validateEtsyInputs()) return;
             const price =
                 parseFloat(document.getElementById('etsy-price').value) || 0;
             const shipping =
@@ -1356,6 +1365,7 @@ function initPlatformCalculators() {
     document
         .getElementById('btn-save-fb-sale')
         ?.addEventListener('click', async () => {
+            if (!validateFBInputs()) return;
             const price =
                 parseFloat(document.getElementById('fb-price').value) || 0;
             const shippingActual =
@@ -1401,14 +1411,16 @@ function initPlatformCalculators() {
     );
     document
         .getElementById('btn-save-mercari-sale')
-        ?.addEventListener('click', () =>
-            logCalculatorSale('Mercari', readMercariInputs()),
-        );
+        ?.addEventListener('click', () => {
+            if (!validateMercariInputs()) return;
+            logCalculatorSale('Mercari', readMercariInputs());
+        });
     document
         .getElementById('btn-save-poshmark-sale')
-        ?.addEventListener('click', () =>
-            logCalculatorSale('Poshmark', readPoshmarkInputs()),
-        );
+        ?.addEventListener('click', () => {
+            if (!validatePoshmarkInputs()) return;
+            logCalculatorSale('Poshmark', readPoshmarkInputs());
+        });
 
     calculateEtsyProfit();
     calculateFBProfit();
@@ -1514,11 +1526,36 @@ function renderCalcResults(prefix, r) {
         profitEl.className = `result-value ${r.net < 0 ? 'text-coral' : 'text-emerald'}`;
 }
 
+function validateMercariInputs() {
+    return validateCalcInputs('mercari', [
+        ['mercari-price', 'Item price'],
+        ['mercari-cost', 'Item cost'],
+        ['mercari-shipping-buyer', 'Shipping paid by buyer'],
+        ['mercari-shipping-actual', 'Shipping you pay'],
+    ]);
+}
+
 function calculateMercariProfit() {
+    if (!validateMercariInputs()) {
+        blankCalcResults('mercari');
+        return;
+    }
     renderCalcResults('mercari', readMercariInputs());
 }
 
+function validatePoshmarkInputs() {
+    return validateCalcInputs('poshmark', [
+        ['poshmark-price', 'Sale price'],
+        ['poshmark-cost', 'Item cost'],
+        ['poshmark-shipping-discount', 'Seller shipping discount'],
+    ]);
+}
+
 function calculatePoshmarkProfit() {
+    if (!validatePoshmarkInputs()) {
+        blankCalcResults('poshmark');
+        return;
+    }
     renderCalcResults('poshmark', readPoshmarkInputs());
 }
 
@@ -1532,7 +1569,21 @@ function calculateEtsyFeesTotal(price, shipping, adsRate) {
     return listing + transaction + payment + ads;
 }
 
+function validateEtsyInputs() {
+    return validateCalcInputs('etsy', [
+        ['etsy-price', 'Item price'],
+        ['etsy-cost', 'Item cost'],
+        ['etsy-shipping-charged', 'Shipping charged'],
+        ['etsy-shipping-actual', 'Actual shipping cost'],
+        ['etsy-ads-rate', 'Etsy Ads rate', 25],
+    ]);
+}
+
 function calculateEtsyProfit() {
+    if (!validateEtsyInputs()) {
+        blankCalcResults('etsy');
+        return;
+    }
     const price = parseFloat(document.getElementById('etsy-price')?.value) || 0;
     const shipping =
         parseFloat(document.getElementById('etsy-shipping-charged')?.value) ||
@@ -1566,7 +1617,19 @@ function calculateFBFeesTotal(price, isShipped) {
     return Math.max((price || 0) * 0.05, 0.4);
 }
 
+function validateFBInputs() {
+    return validateCalcInputs('fb', [
+        ['fb-price', 'Listing price'],
+        ['fb-cost', 'Item cost'],
+        ['fb-shipping-actual', 'Actual shipping cost'],
+    ]);
+}
+
 function calculateFBProfit() {
+    if (!validateFBInputs()) {
+        blankCalcResults('fb');
+        return;
+    }
     const price = parseFloat(document.getElementById('fb-price')?.value) || 0;
     const shippingActual =
         parseFloat(document.getElementById('fb-shipping-actual')?.value) || 0;

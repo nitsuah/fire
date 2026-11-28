@@ -90,6 +90,72 @@ test.describe('Platform Fee Calculator', () => {
         await expect.poll(getEbaySaleCount).toBe(before + 1);
     });
 
+    const guardedCalculators = [
+        {
+            tab: 'etsy',
+            category: 'Etsy',
+            fields: [
+                'price',
+                'cost',
+                'shipping-charged',
+                'shipping-actual',
+                'ads-rate',
+            ],
+        },
+        {
+            tab: 'fb',
+            category: 'FB Marketplace',
+            fields: ['price', 'cost', 'shipping-actual'],
+        },
+        {
+            tab: 'mercari',
+            category: 'Mercari',
+            fields: ['price', 'cost', 'shipping-buyer', 'shipping-actual'],
+        },
+        {
+            tab: 'poshmark',
+            category: 'Poshmark',
+            fields: ['price', 'cost', 'shipping-discount'],
+        },
+    ];
+
+    for (const { tab, category, fields } of guardedCalculators) {
+        test(`negative ${category} inputs block sale until corrected`, async ({
+            page,
+        }) => {
+            await page
+                .locator(`.platform-tab-btn[data-platform="${tab}"]`)
+                .click();
+            const save = page.locator(`#btn-save-${tab}-sale`);
+            const message = page.locator(`#${tab}-validation-message`);
+            const profit = page.locator(`#${tab}-res-profit`);
+            const saleCount = () =>
+                page.evaluate(
+                    (name) =>
+                        state.sideGigLedger.filter(
+                            (entry) => entry.category === name,
+                        ).length,
+                    category,
+                );
+            const before = await saleCount();
+
+            for (const field of fields) {
+                const input = page.locator(`#${tab}-${field}`);
+                await input.fill('-1');
+                await expect(save).toBeDisabled();
+                await expect(message).toContainText('Correct these values');
+                await expect(input).toHaveAttribute('aria-invalid', 'true');
+                await expect(profit).toHaveText('—');
+                await input.fill('0');
+                await expect(save).toBeEnabled();
+            }
+
+            await page.locator(`#${tab}-price`).fill('10');
+            await save.click();
+            await expect.poll(saleCount).toBe(before + 1);
+        });
+    }
+
     test('switches between every platform panel', async ({ page }) => {
         const panels = {
             ebay: page.locator('#calc-panel-ebay'),
