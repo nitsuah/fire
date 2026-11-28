@@ -91,29 +91,13 @@ describe('ebayStatusBadge', () => {
         expect(afterReconnect.connectable).toBe(false);
     });
 
-    it('disconnected badge shows Disconnected and connectable', () => {
+    it('badge output for a disconnected account is Disconnected and connectable', () => {
         const revoked = ebayStatusBadge({ configured: true, connected: false });
         expect(revoked.label).toBe('Disconnected');
         expect(revoked.color).toBe('var(--text-muted)');
         expect(revoked.connectable).toBe(true);
     });
 
-    it('revoked provider response clears stored connection and shows re-link status', async () => {
-        const { context, values } = hostedHarness();
-        context.checkEbayConnection = vi
-            .fn()
-            .mockRejectedValue(new Error('invalid_grant'));
-        await expect(context.checkEbayConnection()).rejects.toThrow(
-            'invalid_grant',
-        );
-        await context.handleEbayConnectionLost('ebay_revoked', 'Reconnect');
-        expect(values.has(TOKEN_KEY)).toBe(false);
-        expect(values.has(SYNC_KEY)).toBe(false);
-        expect(values.has(OUTCOME_KEY)).toBe(false);
-        const status = context.localEbayStatus();
-        expect(status.connected).toBe(false);
-        expect(status.syncEnabled).toBe(true);
-    });
 
     it('serialized outcome omits access/refresh tokens and secrets', () => {
         const outcome = ebayBuildOutcome({
@@ -426,6 +410,24 @@ describe('hosted eBay call-site transitions', () => {
             });
         },
     );
+
+    it('clears stored connection and exposes a connectable badge after a revoked sync response', async () => {
+        const { context, values } = hostedHarness();
+        context.fetch.mockResolvedValue(
+            syncResponse({ code: 'ebay_revoked', error: 'private' }, 401),
+        );
+
+        await expect(context.syncEbayViaFunction()).rejects.toThrow();
+        expect(values.has(TOKEN_KEY)).toBe(false);
+        expect(values.has(SYNC_KEY)).toBe(false);
+        expect(values.has(OUTCOME_KEY)).toBe(false);
+
+        const status = context.localEbayStatus();
+        expect(status.connected).toBe(false);
+        expect(
+            context.ebayStatusBadge({ ...status, configured: true }),
+        ).toMatchObject({ label: 'Disconnected', connectable: true });
+    });
 
     it('clears stale outcome on OAuth reconnect', async () => {
         const { context, values } = hostedHarness();
