@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createRequire } from 'module';
 import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 
 const require = createRequire(import.meta.url);
 const {
@@ -72,5 +73,28 @@ describe('dashboard summary markup', () => {
 
     it('precaches the script', () => {
         expect(read('../../app/sw.js')).toContain("'/lib/example-figures.js'");
+    });
+});
+
+describe('browser load', () => {
+    // No `module` in the sandbox: both scripts take their globalThis branch,
+    // as they do when index.html loads them in this order.
+    it('reads the projection defaults from the earlier script', () => {
+        const sandbox = vm.createContext({});
+        for (const file of ['quick-start-facts.js', 'example-figures.js']) {
+            vm.runInContext(read(`../../app/lib/${file}`), sandbox);
+        }
+        expect(
+            sandbox.FireExampleFigures.exampleFigures({
+                projectionSettings: { ...DEFAULT_PROJECTION },
+            }),
+        ).toContain('growth assumptions');
+    });
+
+    it('is loaded after quick-start-facts.js', () => {
+        const html = read('../../app/index.html');
+        expect(html.indexOf('src="lib/quick-start-facts.js"')).toBeLessThan(
+            html.indexOf('src="lib/example-figures.js"'),
+        );
     });
 });
