@@ -10,8 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Settings → Projection Defaults now shows the same values as a fresh Projections tab ($25,000 savings, 8% return, 2.5% inflation) from one shared defaults object (#690).
-- "Add CD" now says why nothing was added when maturity is before the start date or the save fails (#691).
+- The Pages site links the published 22-second vertical cut (`brag-22s-vert`) under the tour video (#709).
 
 ### Security
 
@@ -22,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: pull requests now run the shared risk guard check (`.github/workflows/risk-guard.yml`) (#638).
 ### Fixed
 - Site Quick Start now shows configuration before startup, as separate steps (#665).
+- Settings → Projection Defaults now shows the same values as a fresh Projections tab ($25,000 savings, 8% return, 2.5% inflation) from one shared defaults object (#690).
+- "Add CD" now says why nothing was added when maturity is before the start date or the save fails (#691).
 - Relay Worker Wrangler config added (`relay/wrangler.toml`); deploy stays with the owner (#515/#633).
 - Hosted deployments no longer request the self-hosted Stripe status route; self-hosted checks remain unchanged (#632).
 - Hosted privacy modal now loads the policy from the Pages output directory; a byte-for-byte test keeps the published copy synchronized (#631).
