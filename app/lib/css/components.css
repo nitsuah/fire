@@ -1835,6 +1835,10 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-md) var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-lg);
 }
 
 .dash-net-worth-block {

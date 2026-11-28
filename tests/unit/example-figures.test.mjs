@@ -66,6 +66,8 @@ describe('dashboard summary markup', () => {
         expect(dashboard).toContain('id="dash-net-worth"');
         expect(dashboard).toContain('class="dash-tagline"');
         expect(dashboard).toContain('id="example-note"');
+        // The layout manager turns every .card into a movable widget.
+        expect(dashboard).toContain('class="dash-summary"');
     });
 
     it('precaches the script', () => {
