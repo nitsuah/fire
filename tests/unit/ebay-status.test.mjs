@@ -74,7 +74,7 @@ describe('ebayStatusBadge', () => {
         expect(syncFailed.color).toBe('var(--color-danger)');
     });
 
-    it('successful OAuth reconnect replaces prior grant without duplicate status', () => {
+    it('successful OAuth reconnect keeps the badge Connected', () => {
         const prior = ebayStatusBadge({
             configured: true,
             connected: true,
@@ -91,11 +91,28 @@ describe('ebayStatusBadge', () => {
         expect(afterReconnect.connectable).toBe(false);
     });
 
-    it('revoked/invalid grant clears connection state and exposes re-link/disconnected', () => {
+    it('disconnected badge shows Disconnected and connectable', () => {
         const revoked = ebayStatusBadge({ configured: true, connected: false });
         expect(revoked.label).toBe('Disconnected');
         expect(revoked.color).toBe('var(--text-muted)');
         expect(revoked.connectable).toBe(true);
+    });
+
+    it('revoked provider response clears stored connection and shows re-link status', async () => {
+        const { context, values } = hostedHarness();
+        context.checkEbayConnection = vi
+            .fn()
+            .mockRejectedValue(new Error('invalid_grant'));
+        await expect(context.checkEbayConnection()).rejects.toThrow(
+            'invalid_grant',
+        );
+        await context.handleEbayConnectionLost('ebay_revoked', 'Reconnect');
+        expect(values.has(TOKEN_KEY)).toBe(false);
+        expect(values.has(SYNC_KEY)).toBe(false);
+        expect(values.has(OUTCOME_KEY)).toBe(false);
+        const status = context.localEbayStatus();
+        expect(status.connected).toBe(false);
+        expect(status.syncEnabled).toBe(true);
     });
 
     it('serialized outcome omits access/refresh tokens and secrets', () => {
