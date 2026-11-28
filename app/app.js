@@ -565,14 +565,19 @@ function defaultProjectionDefaults() {
 
 function saveProjectionDefaults() {
     const base = defaultProjectionDefaults();
+    // Only a blank or unreadable field falls back: 0 is a real entry.
+    const read = (id, fallback, parse = parseFloat) => {
+        const value = parse(document.getElementById(id)?.value, 10);
+        return Number.isNaN(value) ? fallback : value;
+    };
     const defaults = {
-        currentAge: parseInt(document.getElementById('default-current-age')?.value) || base.currentAge,
-        retireAge: parseInt(document.getElementById('default-retire-age')?.value) || base.retireAge,
-        annualSavings: parseFloat(document.getElementById('default-annual-savings')?.value) || base.annualSavings,
-        expectedReturn: parseFloat(document.getElementById('default-expected-return')?.value) || base.expectedReturn,
-        inflation: parseFloat(document.getElementById('default-inflation')?.value) || base.inflation,
-        swr: parseFloat(document.getElementById('default-swr')?.value) || base.swr,
-        spanYears: parseInt(document.getElementById('default-span-years')?.value) || base.spanYears,
+        currentAge: read('default-current-age', base.currentAge, parseInt),
+        retireAge: read('default-retire-age', base.retireAge, parseInt),
+        annualSavings: read('default-annual-savings', base.annualSavings),
+        expectedReturn: read('default-expected-return', base.expectedReturn),
+        inflation: read('default-inflation', base.inflation),
+        swr: read('default-swr', base.swr),
+        spanYears: read('default-span-years', base.spanYears, parseInt),
     };
     state.projectionDefaults = defaults;
     saveState();
