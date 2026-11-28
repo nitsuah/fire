@@ -9,6 +9,15 @@ function initCDManager() {
     document.getElementById('cd-start').value =
         `${_today.getFullYear()}-${String(_today.getMonth() + 1).padStart(2, '0')}-${String(_today.getDate()).padStart(2, '0')}`;
 
+    const maturityInput = document.getElementById('cd-maturity');
+    const errorEl = document.getElementById('cd-form-error');
+    const showError = (message, invalidDate = false) => {
+        errorEl.textContent = message;
+        errorEl.hidden = !message;
+        maturityInput.setAttribute('aria-invalid', String(invalidDate));
+    };
+    form.addEventListener('input', () => showError(''));
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -18,7 +27,14 @@ function initCDManager() {
         );
         const rate = parseFloat(document.getElementById('cd-rate').value);
         const startDate = document.getElementById('cd-start').value;
-        const maturity = document.getElementById('cd-maturity').value;
+        const maturity = maturityInput.value;
+
+        if (startDate && maturity && startDate > maturity) {
+            showError('Maturity must be on or after the start date.', true);
+            maturityInput.focus();
+            return;
+        }
+        showError('');
 
         if (
             bank &&
@@ -26,8 +42,7 @@ function initCDManager() {
             principal > 0 &&
             !isNaN(rate) &&
             startDate &&
-            maturity &&
-            startDate <= maturity
+            maturity
         ) {
             const entry = {
                 id: Date.now().toString(),
@@ -43,6 +58,7 @@ function initCDManager() {
             } catch (err) {
                 state.cds = state.cds.filter((cd) => cd.id !== entry.id);
                 console.error('Failed to save CD:', err);
+                showError('Could not save this CD. Please try again.');
                 return;
             }
             refreshAllUI();
