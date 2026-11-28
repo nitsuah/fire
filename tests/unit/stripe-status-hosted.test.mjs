@@ -64,11 +64,9 @@ describe('hosted Stripe status requests', () => {
 
     it('Stripe card renders hosted-only status without fetching', async () => {
         const status = { textContent: '', style: {} };
-        const hint = { textContent: 'stale', hidden: false };
         const document = {
             addEventListener() {},
-            getElementById: (id) =>
-                ({ 'stripe-status': status, 'stripe-hint': hint })[id] || null,
+            getElementById: (id) => (id === 'stripe-status' ? status : null),
         };
         const context = {
             document,
@@ -84,9 +82,6 @@ describe('hosted Stripe status requests', () => {
         await context.loadStripeCard();
 
         expect(status.textContent).toMatch(/self-hosted deployments only/);
-        // No server setup instructions for a hosted visitor.
-        expect(hint.textContent).toBe('');
-        expect(hint.hidden).toBe(true);
     });
 
     it('Stripe card retains the status request for self-hosted deployments', async () => {

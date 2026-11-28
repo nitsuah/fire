@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- On the hosted site, marketplace and provider cards (eBay, Etsy, Plaid, CoinTracker, Stripe, Google Drive) now say plainly that an unavailable connection is not available, without server setup instructions, and eBay points to CSV upload (#693, #694).
+- On the hosted site, marketplace and provider cards (eBay, Etsy, Plaid, CoinTracker, Google Drive) now say plainly that an unavailable connection is not available, without server setup instructions, and eBay points to CSV upload (#693, #694).
 - Removed the static "Sandbox" badge from the Plaid card (#694).
 
 ### Security

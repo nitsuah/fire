@@ -34,6 +34,7 @@ const scenarios = [
         name: 'not configured',
         status: { ...base, configured: false },
         text: /not configured on this deployment/,
+        hostedText: /not available on the hosted site/,
         button: null,
     },
     {
@@ -100,7 +101,9 @@ for (const hosted of [false, true]) {
                 await page.locator('#btn-tab-settings').click();
 
                 const status = page.locator('#plaid-sync-status');
-                await expect(status).toHaveText(scenario.text);
+                await expect(status).toHaveText(
+                    (hosted && scenario.hostedText) || scenario.text,
+                );
                 const linkBtn = page.locator('#btn-plaid-link');
                 if (scenario.button === null) {
                     await expect(linkBtn).toBeHidden();
