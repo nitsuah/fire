@@ -32,3 +32,48 @@ test('an empty spending CSV reports in the page, not in an alert box', async ({
     );
     expect(dialogs).toEqual([]);
 });
+
+// Neither test saves state: the test server's database is shared by all specs.
+test('adding an account is confirmed in the page', async ({ page }) => {
+    await page.evaluate(() => {
+        const w = /** @type {any} */ (window);
+        w.saveState = async () => {};
+        const form = document.getElementById('acc-name').closest('form');
+        document.getElementById('acc-name')['value'] = 'UX Test Savings';
+        document.getElementById('acc-val')['value'] = '100';
+        form.requestSubmit();
+    });
+    await expect(page.locator('#sidegig-toast')).toHaveText(
+        'Added UX Test Savings.',
+    );
+});
+
+test.describe('in December', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.clock.setFixedTime(new Date('2026-12-15T12:00:00Z'));
+    });
+
+    test('the tax-loss alert opens the card on Insights', async ({ page }) => {
+        await page.evaluate(() => {
+            const w = /** @type {any} */ (window);
+            w.checkAndNotify(
+                {
+                    notificationSettings: {},
+                    importedPositions: [
+                        { symbol: 'UXT', costBasis: 100, value: 50 },
+                    ],
+                    cds: [],
+                },
+                false,
+            );
+        });
+        await page.locator('#notif-bell-btn').click();
+        await expect(page.locator('#notif-alerts-list')).toContainText(
+            'on the Insights tab',
+        );
+        await page.locator('.notif-link-btn').click();
+        await expect(page.locator('#btn-tab-insights')).toHaveClass(/active/);
+        await expect(page.locator('#tax-harvest-card')).toBeFocused();
+        await expect(page.locator('#notif-dropdown')).toBeHidden();
+    });
+});
