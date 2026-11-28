@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- The privacy window opens with a short summary made of sentences from the policy, followed by the unchanged full policy (#683).
+### Fixed
+- The Pages site links the published 22-second vertical cut (`brag-22s-vert`) under the tour video (#709).
 
 ### Security
 
@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CoinTracker docs now describe suggestion-first wallet discovery, explicit Add/Dismiss, Exclude/Include restoration, and the balances/holdings-only read boundary (#242).
 - Stripe (self-hosted): document the encrypted restricted-key credential/status contract and local-only disconnect; live provider verification and hosted credential storage remain unavailable (#409).
 - Settings gains a Stripe connection card showing status and last sync, with a confirm-guarded disconnect (#349).
+
+### Changed
+- The privacy window opens with a short summary made of sentences from the policy, followed by the unchanged full policy (#683).
 
 ### Removed
 
