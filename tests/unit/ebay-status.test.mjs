@@ -416,7 +416,7 @@ describe('hosted eBay call-site transitions', () => {
             syncResponse({ code: 'ebay_revoked', error: 'private' }, 401),
         );
 
-        await expect(context.syncEbayViaFunction()).rejects.toThrow();
+        await expect(context.syncEbayViaFunction()).resolves.toBeNull();
         expect(values.has(TOKEN_KEY)).toBe(false);
         expect(values.has(SYNC_KEY)).toBe(false);
         expect(values.has(OUTCOME_KEY)).toBe(false);
