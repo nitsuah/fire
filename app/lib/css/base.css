@@ -588,3 +588,29 @@ h1, h2, h3, h4, h5, h6 {
         scroll-behavior: auto !important;
     }
 }
+
+/* 404.html */
+.not-found {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--space-lg);
+    text-align: center;
+}
+.not-found-card h1 {
+    font-family: var(--font-heading);
+    font-size: var(--text-3xl);
+}
+.not-found-card p {
+    margin-top: var(--space-md);
+    color: var(--text-muted);
+}
+.not-found-card .not-found-brand {
+    font-family: var(--font-heading);
+    color: var(--text-main);
+}
+.not-found-card a {
+    color: var(--text-main);
+    text-decoration: underline;
+}

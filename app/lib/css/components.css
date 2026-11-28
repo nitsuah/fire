@@ -128,6 +128,11 @@
 .privacy-modal-body table { width: 100%; border-collapse: collapse; margin: var(--space-md) 0 var(--space-lg); font-size: var(--text-sm); }
 .privacy-modal-body th { background: rgba(255,255,255,0.04); color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: var(--text-xs); letter-spacing: 0.08em; padding: var(--space-sm) var(--space-md); border: 1px solid var(--border-divider); }
 .privacy-modal-body td { padding: var(--space-sm) var(--space-md); border: 1px solid var(--border-divider); }
+@media (max-width: 768px) {
+    .privacy-modal-body table { table-layout: fixed; overflow-wrap: anywhere; }
+    .privacy-modal-body th, .privacy-modal-body td { padding: var(--space-xs); letter-spacing: normal; }
+}
+.privacy-modal-body code { overflow-wrap: anywhere; }
 .privacy-modal-body hr { border: none; border-top: 1px solid var(--border-divider); margin: var(--space-lg) 0; }
 
 .privacy-modal-footer {

@@ -72,8 +72,21 @@ function initSidebarCollapseState() {
     }
 }
 
+// Mobile drawer copies of the sidebar-footer actions click the originals.
+// The drawer button is focused first so a dialog can hand focus back.
+function initDrawerActions() {
+    document.querySelectorAll('[data-drawer-action]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            closeNavDrawer();
+            document.getElementById('sidebar-collapse-btn')?.focus();
+            document.getElementById(btn.dataset.drawerAction)?.click();
+        });
+    });
+}
+
 function initNavigation() {
     initSidebarCollapseState();
+    initDrawerActions();
     const navButtons = document.querySelectorAll('.nav-btn');
     const tabPanes = document.querySelectorAll('.tab-pane');
 

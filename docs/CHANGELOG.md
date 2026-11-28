@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The 404 page uses the app theme (#698).
+- The mobile menu now has JSON export, JSON import and Privacy & Terms (#701).
+- The CSV drop-zone text wraps instead of being cut off, and the privacy policy tables no longer scroll the window sideways on phones (#702).
+- The privacy window is a real dialog: it takes focus, makes the page behind it inert, returns focus on close, and closes with Escape once accepted (#703).
+
 ### Security
 
 - Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.
