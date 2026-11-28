@@ -791,7 +791,10 @@ function renderDiversificationSuggestions(
     }
     const cashPct = (getAggregateCash() / nw) * 100;
     const eqPct =
-        (window.FireAggregates.getAllocationAmounts(state).equities / nw) * 100;
+        ((window.FireAggregates.getAllocationAmounts(state).equities -
+            window.FireAggregates.getAggregateBonds(state.importedPositions)) /
+            nw) *
+        100;
     const cdsPct = (getAggregateCDs() / nw) * 100;
     const rePct = (getAggregateRealEstate() / nw) * 100;
 

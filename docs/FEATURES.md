@@ -49,7 +49,7 @@
 - **Diversification Suggestion Block** — Allocation-aware tips surfaced inline with the investments view.
 - **Collapse-All Toggle** — Collapses investment rows; cost basis included in facet totals.
 - **Phone-Width Positions** — Symbol, value and PnL only; a + column expands description, quantity, last price and cost basis.
-- **Asset Allocation Drill-Down** — Click a slice (or use the category buttons) to see the accounts, positions, CDs or vehicles behind it; breadcrumb/back navigation.
+- **Asset Allocation Drill-Down** — Click a slice (or use the category buttons) to see the accounts, positions, CDs or vehicles behind it; breadcrumb/back navigation. Imported bond funds (known tickers, or "bond" in the description) have their own slice, matching the rebalancing tool; MCP asset-class totals still count them with equities.
 - **Allocation Filter Reset** — Filter clears automatically when portfolio total is zero.
 
 ## Retirement Projections

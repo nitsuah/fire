@@ -49,6 +49,56 @@ function isSettledCash(pos) {
     );
 }
 
+const BOND_TICKERS = new Set([
+    'BND',
+    'AGG',
+    'FXNAX',
+    'VBTLX',
+    'TLT',
+    'IEF',
+    'SHY',
+    'GOVT',
+    'VTIP',
+    'SCHZ',
+    'FBND',
+    'FUAMX',
+    'FXSTX',
+    'VGIT',
+    'VGLT',
+    'VGSH',
+    'MUB',
+    'HYG',
+    'JNK',
+    'LQD',
+    'VCIT',
+    'VCLT',
+    'VCSH',
+    'BSV',
+    'BIV',
+    'BLV',
+    'TIPS',
+    'STIP',
+    'LTPZ',
+]);
+
+// A bond fund among imported positions: a known ticker, or "bond" in the
+// description. Shared by the allocation chart and the rebalancing tool.
+function isBondPosition(pos) {
+    return (
+        !isSettledCash(pos) &&
+        (BOND_TICKERS.has((pos.symbol || '').toUpperCase()) ||
+            /\bBONDS?\b/i.test(pos.description || ''))
+    );
+}
+
+// Part of the equities aggregate that is really bond funds.
+function getAggregateBonds(importedPositions) {
+    return (importedPositions || []).reduce(
+        (sum, pos) => (isBondPosition(pos) ? sum + (pos.value || 0) : sum),
+        0,
+    );
+}
+
 function getAggregateCash(importedPositions, customAccounts) {
     let sum = 0;
     (importedPositions || []).forEach((pos) => {
@@ -352,6 +402,8 @@ const api = {
     getInsuranceMonthly,
     getMonthlyExpensesBase,
     getAnnualExpensesTotal,
+    isBondPosition,
+    getAggregateBonds,
     isSettledCash,
     getAggregateCash,
     getAggregateCDs,
@@ -378,6 +430,8 @@ export {
     getInsuranceMonthly,
     getMonthlyExpensesBase,
     getAnnualExpensesTotal,
+    isBondPosition,
+    getAggregateBonds,
     isSettledCash,
     getAggregateCash,
     getAggregateCDs,
