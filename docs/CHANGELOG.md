@@ -59,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs for the hosted MCP browser bridge: privacy policy section 6a (including the plaintext-in-memory and compromised-relay disclosure), README hosted section, security-hardening checklist rows (#516).
 - The Side Hustle Hub eBay card shows last success and last attempt (`syncHealthText`, reusable for other connectors).
 
+### Fixed
+- Imported bond funds such as BND show as "Bonds & Bond Funds" in Asset Allocation instead of Equities, using the same rule as the rebalancing tool (#688).
+
 ### Changed
 - The MCP tool core helpers (`finance-calcs`, `aggregates`, `side-gig-tax`, `rebalance-sweep`, `net-worth-history`, `cointracker-merge`, `data-freshness`, `recurring-charges`, `daily-snapshot`) are native ES modules (`.mjs`), so a browser can load them without a bundler; Node 22 loads them from the CommonJS server through `require(esm)`. The page loads them as module scripts with temporary `window` bridges and defers the classic scripts after them (#514).
 - `app/lib/service-worker-registration.js` loads as a native module script; step of nitsuah/fire#568.

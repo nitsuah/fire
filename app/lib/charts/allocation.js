@@ -12,6 +12,7 @@ const ALLOC_SLICE_MAP = {
     Cash: { color: '#10b981', label: 'Cash / SPAXX' },
     CDs: { color: '#f59e0b', label: 'CDs & Fixed' },
     Equities: { color: '#8b5cf6', label: 'Equities' },
+    Bonds: { color: '#ec4899', label: 'Bonds & Bond Funds' },
     Crypto: { color: '#3b82f6', label: 'Crypto' },
     Metals: { color: '#d4af37', label: 'Precious Metals' },
     RealEstate: { color: '#06b6d4', label: 'Real Estate' },
@@ -26,10 +27,15 @@ const ALLOC_SLICE_MAP = {
 function getAllocationBuckets() {
     // Amounts come from the shared aggregates (also used by MCP tools).
     const a = window.FireAggregates.getAllocationAmounts(state);
+    // Bond funds are part of the equities aggregate; show them on their own.
+    const bonds = window.FireAggregates.getAggregateBonds(
+        state.importedPositions,
+    );
     const amounts = {
         Cash: a.cash,
         CDs: a.cds,
-        Equities: a.equities,
+        Equities: a.equities - bonds,
+        Bonds: bonds,
         Crypto: a.crypto,
         Metals: a.metals,
         RealEstate: a.realEstate,
@@ -93,7 +99,7 @@ function getEquitiesDetailItems() {
             pos.symbol.includes('SPAXX') ||
             pos.symbol.includes('FDRXX') ||
             pos.description.includes('MONEY MARKET');
-        if (!isCash) {
+        if (!isCash && !window.FireAggregates.isBondPosition(pos)) {
             items.push({
                 name: pos.symbol,
                 sub: pos.account || 'Brokerage',
@@ -111,6 +117,18 @@ function getEquitiesDetailItems() {
         }
     });
     return items.filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
+}
+
+function getBondsDetailItems() {
+    return state.importedPositions
+        .filter((pos) => window.FireAggregates.isBondPosition(pos))
+        .map((pos) => ({
+            name: pos.symbol,
+            sub: pos.account || 'Brokerage',
+            value: pos.value || 0,
+        }))
+        .filter((i) => i.value > 0)
+        .sort((a, b) => b.value - a.value);
 }
 
 const accountItems = (type, sub) =>
@@ -182,6 +200,7 @@ const ALLOC_DETAIL_FNS = {
     Cash: getCashDetailItems,
     CDs: getCDsDetailItems,
     Equities: getEquitiesDetailItems,
+    Bonds: getBondsDetailItems,
     Crypto: getCryptoDetailItems,
     Metals: getMetalsDetailItems,
     RealEstate: getRealEstateDetailItems,

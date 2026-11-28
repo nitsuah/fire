@@ -99,37 +99,6 @@ window.renderRebalancingTool = function () {
         'VLUE',
         'SIZE',
     ]);
-    const BOND_TICKERS = new Set([
-        'BND',
-        'AGG',
-        'FXNAX',
-        'VBTLX',
-        'TLT',
-        'IEF',
-        'SHY',
-        'GOVT',
-        'VTIP',
-        'SCHZ',
-        'FBND',
-        'FUAMX',
-        'FXSTX',
-        'VGIT',
-        'VGLT',
-        'VGSH',
-        'MUB',
-        'HYG',
-        'JNK',
-        'LQD',
-        'VCIT',
-        'VCLT',
-        'VCSH',
-        'BSV',
-        'BIV',
-        'BLV',
-        'TIPS',
-        'STIP',
-        'LTPZ',
-    ]);
     const CASH_TICKERS = new Set([
         'FZFXX',
         'SPAXX',
@@ -150,7 +119,7 @@ window.renderRebalancingTool = function () {
         const desc = (pos.description || '').toUpperCase();
         if (EQUITY_TICKERS.has(sym)) {
             current.Equities += pos.value || 0;
-        } else if (BOND_TICKERS.has(sym) || desc.includes('BOND')) {
+        } else if (window.FireAggregates.isBondPosition(pos)) {
             current['Fixed Income'] += pos.value || 0;
         } else if (CASH_TICKERS.has(sym) || desc.includes('MONEY MARKET')) {
             current.Cash += pos.value || 0;
