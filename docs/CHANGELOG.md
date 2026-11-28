@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- The dashboard shows current net worth as a number, with a one-line description of the app (#684, #679).
+- Income, spending and growth figures that are still the shipped defaults are marked "Example" until you change or confirm them (#679).
+
 ### Security
 
 - Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.

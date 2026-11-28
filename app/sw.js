@@ -25,6 +25,7 @@ const SHELL_ASSETS = [
     '/lib/ebay-status.js',
     '/lib/quick-start.js',
     '/lib/quick-start-facts.js',
+    '/lib/example-figures.js',
     '/lib/managers/quick-start.js',
     '/lib/csv-import.js',
     '/lib/finance-calcs.mjs',

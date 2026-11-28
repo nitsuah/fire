@@ -101,7 +101,7 @@ const CSP_ACTIONS = new Set([
     'cancelEditVehicle', 'saveEditRealEstate', 'cancelEditRealEstate', 'saveEditAccount',
     'cancelEditAccount', 'saveEditCD', 'cancelEditCD',
     'toggleChaos', 'rerollChaos', 'toggleChaosProfile',
-    'saveChaosProfile', 'clearChaosProfile',
+    'saveChaosProfile', 'clearChaosProfile', 'confirmExampleFigures',
 ]);
 
 function initCspEventDelegation() {
@@ -212,6 +212,12 @@ function refreshAllUI() {
     renderMonthlyCashFlow();
     calculateAndRenderProjections();
     if (typeof window.updateNotifUI === 'function') window.updateNotifUI();
+}
+
+function confirmExampleFigures() {
+    state.assumptionsConfirmed = true;
+    saveState();
+    refreshAllUI();
 }
 
 /* ==========================================================================
