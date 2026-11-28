@@ -116,7 +116,8 @@
 ## Dashboard & UX
 
 - **Glassmorphic Dark Theme** — High-end HTML5 layout with CSS glassmorphism and HSL color tokens.
-- **Header Summary Bar** — Net Worth, Annual Income, Spend Rate metrics; at narrow widths a single minimalist bar (FIRE progress split by net-worth allocation, hover/tap for breakdown, income and spend), moved into the sidebar in portrait; alerts bell pinned right.
+- **Dashboard Summary** — Current net worth and a one-line description; figures still at their shipped defaults are marked "Example" until changed or confirmed.
+- **Header Summary Bar** — Annual Income and Spend Rate metrics (net worth in the narrow-width breakdown); at narrow widths a single minimalist bar (FIRE progress split by net-worth allocation, hover/tap for breakdown, income and spend), moved into the sidebar in portrait; alerts bell pinned right.
 - **Responsive Navigation** — Collapsible sidebar on desktop; hamburger drawer on phones.
 - **Wide-Screen Layouts** — Dashboard top row (Growth Path, Allocation, Cash & Fixed Income) and Financial Overview cash-flow row at ≥1400px; Retirement Growth Path expander.
 - **Financial Overview** — Net Monthly Cash Flow with collapsible Income Sources / Monthly Expenses; full-width holdings, properties and vehicles.

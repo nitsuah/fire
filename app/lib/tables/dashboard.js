@@ -81,6 +81,30 @@ function renderHeaderBannerMetrics() {
                 : 'No side income';
 
     renderCompactFireBar(progressPercent);
+    renderDashboardSummary();
+}
+
+// Current net worth on the dashboard, and markers on the figures that are
+// still the shipped examples (#679, #684).
+function renderDashboardSummary() {
+    const netWorthEl = document.getElementById('dash-net-worth');
+    if (netWorthEl)
+        netWorthEl.textContent = formatCurrency(getAggregateNetWorth());
+
+    const groups = window.FireExampleFigures?.exampleFigures(state) ?? [];
+    const show = (id, visible) => {
+        const el = document.getElementById(id);
+        if (el) el.hidden = !visible;
+    };
+    const income = groups.includes('income');
+    const spending = groups.includes('spending');
+    show('banner-income-example', income);
+    show('banner-spend-example', spending);
+    show('cf-net-example', income || spending);
+    show('example-note', groups.length > 0);
+    const text = document.getElementById('example-note-text');
+    if (text)
+        text.textContent = `Charts and totals still use example figures for ${new Intl.ListFormat('en-US').format(groups)}.`;
 }
 
 // Narrow-width single bar: the filled portion is FIRE progress, split into

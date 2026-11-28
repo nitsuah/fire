@@ -115,13 +115,13 @@
             <!-- Top Summary Banner -->
             <header class="header-banner">
                 <div class="header-metric">
-                    <span class="metric-label">Annual Income</span>
+                    <span class="metric-label">Annual Income <span class="example-tag" id="banner-income-example" hidden>Example</span></span>
                     <span class="metric-value" id="banner-gross-income">$0</span>
                     <span class="income-sub-line income-sub-interest" id="banner-interest-income" hidden></span>
                     <span class="income-sub-line" id="banner-side-income">No side income</span>
                 </div>
                 <div class="header-metric">
-                    <span class="metric-label">Annual Spend Rate</span>
+                    <span class="metric-label">Annual Spend Rate <span class="example-tag" id="banner-spend-example" hidden>Example</span></span>
                     <span class="metric-value text-coral" id="banner-spend">$0.00</span>
                 </div>
                 <div class="header-metric">
@@ -159,6 +159,23 @@
             <div class="scroll-container">
                 <!-- TAB: Dashboard -->
                 <section class="tab-pane active" id="tab-dashboard">
+                    <!-- Current net worth and a one-line description of the app -->
+                    <!-- Not a .card: the layout manager must not adopt it. -->
+                    <div class="dash-summary">
+                        <div class="dash-net-worth-block">
+                            <span class="metric-label">Net Worth</span>
+                            <span class="metric-value" id="dash-net-worth">$0.00</span>
+                        </div>
+                        <p class="dash-tagline">fire tracks what you own and owe, and projects when you could retire.</p>
+                        <div class="example-note" id="example-note" hidden>
+                            <p><span class="example-tag">Example</span> <span id="example-note-text"></span></p>
+                            <div class="example-note-actions">
+                                <button type="button" class="action-btn" data-csp-target-click="btn-tab-expenses">Enter my income &amp; spending</button>
+                                <button type="button" class="action-btn" data-csp-click-action="confirmExampleFigures">These figures are right for me</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Two-column body: Left = Growth + Investments | Right = Allocation + Stats + CDs -->
                     <div class="dashboard-body">
                         <!-- LEFT COLUMN -->
@@ -301,6 +318,7 @@
                         <div class="card glass-card">
                             <h2 class="card-title">Net Monthly Cash Flow</h2>
                             <div class="cf-net-container">
+                                <span class="example-tag" id="cf-net-example" hidden>Example figures</span>
                                 <div class="cf-net-value" id="cf-net-value">$0</div>
                                 <div class="cf-net-label" id="cf-net-label">Enter income &amp; expenses to see your monthly net</div>
                                 <div class="cf-bar-wrap mt-4">
@@ -1899,6 +1917,7 @@
     <!-- Quick Start Model (must load before manager) -->
     <script defer src="lib/quick-start.js"></script>
     <script defer src="lib/quick-start-facts.js"></script>
+    <script defer src="lib/example-figures.js"></script>
     <script defer src="lib/managers/quick-start.js"></script>
     <!-- Main Controller Script -->
     <script defer src="app.js"></script>

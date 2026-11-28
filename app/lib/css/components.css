@@ -1828,3 +1828,60 @@
     display: inline-block;
     margin-top: var(--space-md);
 }
+
+/* Dashboard summary: net worth and example-figure markers */
+.dash-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md) var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-lg);
+}
+
+.dash-net-worth-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.dash-tagline {
+    flex: 1 1 220px;
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.example-note {
+    flex-basis: 100%;
+}
+
+.example-note[hidden] {
+    display: none;
+}
+
+.example-note p {
+    margin: 0 0 var(--space-sm);
+}
+
+.example-note-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.example-tag {
+    display: inline-block;
+    padding: 0 6px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    color: var(--color-warning, #fbbf24);
+    font-size: var(--text-xs);
+    letter-spacing: normal;
+    text-transform: none;
+    vertical-align: middle;
+}
+
+.example-tag[hidden] {
+    display: none;
+}
