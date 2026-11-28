@@ -128,6 +128,7 @@ async function fetchEtsyStatus() {
         return {
             connected: Boolean(etsyRead(ETSY_TOKEN_KEY)),
             configured,
+            hosted: true,
             lastSync: etsyRead(ETSY_LAST_SYNC_KEY),
             lastSyncOutcome: etsyReadOutcome(),
             syncEnabled: state.etsySyncEnabled !== false,
@@ -164,7 +165,9 @@ async function renderEtsyStatus(note) {
         ? `Status: Connected · ${failed}`
         : note?.text ||
           (notConfigured
-              ? 'Status: Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)'
+              ? data.hosted === true
+                  ? 'Status: Etsy is not available on the hosted site'
+                  : 'Status: Etsy is not configured on this deployment (ETSY_CLIENT_ID / SYNC_MASTER_KEY)'
               : data.connected
                 ? `Status: Connected · Last sync: ${lastSync}`
                 : 'Status: Disconnected');

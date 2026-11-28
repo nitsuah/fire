@@ -578,3 +578,13 @@ describe('syncHealthText', () => {
         expect(syncHealthText({ lastSync: 'not a date' }, fmt)).toBe('');
     });
 });
+
+describe('ebayStatusBadge on the hosted site', () => {
+    it('says it is unavailable without naming server settings', () => {
+        const b = ebayStatusBadge({ configured: false, hosted: true });
+        expect(b.label).toMatch(/not available on the hosted site/);
+        expect(b.label).toMatch(/CSV/);
+        expect(b.label).not.toMatch(/EBAY_/);
+        expect(b.connectable).toBe(false);
+    });
+});

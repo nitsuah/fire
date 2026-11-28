@@ -206,7 +206,7 @@ async function fetchEbayStatus() {
         const configured = await fetchEbayConfigured((url, opts) =>
             fetch(url, opts),
         );
-        return { ...localEbayStatus(), configured };
+        return { ...localEbayStatus(), configured, hosted: true };
     }
     const res = await fetch('/api/sync/ebay/status');
     return res.json();
@@ -283,9 +283,25 @@ async function checkEbayConnection() {
         statusEl.textContent = `Status: ${label}`;
         statusEl.style.color = badge.color;
         if (connectBtn) connectBtn.hidden = !badge.connectable;
+        showEbayAvailability(data.hosted === true && data.configured === false);
     } catch (err) {
         statusEl.textContent = 'Status: Error checking connection';
         statusEl.style.color = 'var(--color-danger)';
+    }
+}
+
+// On a hosted deploy without eBay, drop the controls that cannot work and
+// point the calculator at CSV upload instead of at the connect button.
+function showEbayAvailability(unavailable) {
+    const syncBtn = document.getElementById('btn-sidegig-ebay-sync');
+    if (syncBtn) syncBtn.hidden = unavailable;
+    const toggle = document.getElementById('setting-ebay-sync-enabled');
+    const toggleRow = toggle?.closest('label');
+    if (toggleRow) toggleRow.hidden = unavailable;
+    const note = document.getElementById('ebay-calc-connect-note');
+    if (note && unavailable) {
+        note.textContent =
+            'eBay connection is not available on the hosted site. To add past sales, upload a sales report (CSV) in the Side Gig Ledger.';
     }
 }
 
@@ -649,6 +665,13 @@ function applyHostedPlaidTransactions(data) {
 // "Connected" with no hint that anything went wrong (#293).
 function plaidStatusBadge(data) {
     const accounts = `${data.itemCount} account${data.itemCount === 1 ? '' : 's'}`;
+    if (data.configured === false && data.hosted === true) {
+        return {
+            label: 'Plaid is not available on the hosted site. Import a CSV instead',
+            color: 'var(--text-muted)',
+            linkable: false,
+        };
+    }
     if (data.configured === false) {
         return {
             label: 'Plaid is not configured on this deployment (PLAID_CLIENT_ID / PLAID_SECRET)',
@@ -705,7 +728,7 @@ async function checkPlaidConnection() {
         const { res, data } = await plaidRequest('/api/sync/plaid/status');
         if (!res.ok)
             throw new Error(data.error || 'Unable to check Plaid status.');
-        const badge = plaidStatusBadge(data);
+        const badge = plaidStatusBadge({ ...data, hosted: isHostedPlaid() });
         plaidRelinkItemId =
             (data.reauthRequired &&
                 Array.isArray(data.reauthItemIds) &&
@@ -895,7 +918,7 @@ async function loadPlaidSettingsPanel(note = null) {
             ? localStorage.getItem(PLAID_HOSTED_SYNC_KEY) !== 'false'
             : data.syncEnabled !== false;
         toggle.checked = syncEnabled;
-        const badge = plaidStatusBadge(data);
+        const badge = plaidStatusBadge({ ...data, hosted: isHostedPlaid() });
         // The timestamp only means something while the last sync succeeded.
         const detail = !data.connected
             ? ' — use the Plaid Investments card in Financial Overview to link an account first.'

@@ -19,10 +19,13 @@ function renderStripeCard(data) {
         statusEl.textContent =
             'Stripe sync is available on self-hosted deployments only';
         statusEl.style.color = 'var(--color-warning, var(--color-danger))';
+        // Setup steps are for whoever runs the server, never hosted visitors.
         if (hintEl) {
             hintEl.textContent =
-                'Set SYNC_MASTER_KEY (64 hex characters) on your self-hosted server to enable Stripe sync.';
-            hintEl.hidden = false;
+                data.hosted === true
+                    ? ''
+                    : 'Set SYNC_MASTER_KEY (64 hex characters) on your self-hosted server to enable Stripe sync.';
+            hintEl.hidden = data.hosted === true;
         }
         if (lastSyncEl) lastSyncEl.hidden = true;
         if (disconnectBtn) disconnectBtn.hidden = true;
@@ -84,7 +87,7 @@ async function loadStripeCard() {
         }
         if (hosted === true) {
             if (myLoadId !== loadCounter) return;
-            lastStripeData = { configured: false };
+            lastStripeData = { configured: false, hosted: true };
             renderStripeCard(lastStripeData);
             return;
         }
