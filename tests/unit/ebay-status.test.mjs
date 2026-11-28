@@ -98,7 +98,6 @@ describe('ebayStatusBadge', () => {
         expect(revoked.connectable).toBe(true);
     });
 
-
     it('serialized outcome omits access/refresh tokens and secrets', () => {
         const outcome = ebayBuildOutcome({
             ok: true,
