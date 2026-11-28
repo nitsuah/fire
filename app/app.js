@@ -28,15 +28,8 @@ var state = {
     spendingTransactions: [],
     merchantCategoryOverrides: {},
     chaosProfile: null,
-    projectionSettings: {
-        annualSavings: 25000,
-        expectedReturn: 8.0,
-        inflationRate: 2.5,
-        swr: 4.0,
-        spanYears: 30,
-        currentAge: 30,
-        retireAge: 60
-    },
+    // quick-start-facts.js (loaded first) holds the one set of projection defaults.
+    projectionSettings: { ...FireQuickStartFacts.DEFAULT_PROJECTION },
     importedFiles: []
 };
 
@@ -564,30 +557,29 @@ function importCSV(event) {
 }
 
 // Projection Defaults
+// The Settings card calls the inflation rate `inflation`.
+function defaultProjectionDefaults() {
+    const { inflationRate, ...rest } = FireQuickStartFacts.DEFAULT_PROJECTION;
+    return { ...rest, inflation: inflationRate };
+}
+
 function saveProjectionDefaults() {
+    const base = defaultProjectionDefaults();
     const defaults = {
-        currentAge: parseInt(document.getElementById('default-current-age')?.value) || 30,
-        retireAge: parseInt(document.getElementById('default-retire-age')?.value) || 60,
-        annualSavings: parseFloat(document.getElementById('default-annual-savings')?.value) || 20000,
-        expectedReturn: parseFloat(document.getElementById('default-expected-return')?.value) || 7.0,
-        inflation: parseFloat(document.getElementById('default-inflation')?.value) || 3.0,
-        swr: parseFloat(document.getElementById('default-swr')?.value) || 4.0,
-        spanYears: parseInt(document.getElementById('default-span-years')?.value) || 30,
+        currentAge: parseInt(document.getElementById('default-current-age')?.value) || base.currentAge,
+        retireAge: parseInt(document.getElementById('default-retire-age')?.value) || base.retireAge,
+        annualSavings: parseFloat(document.getElementById('default-annual-savings')?.value) || base.annualSavings,
+        expectedReturn: parseFloat(document.getElementById('default-expected-return')?.value) || base.expectedReturn,
+        inflation: parseFloat(document.getElementById('default-inflation')?.value) || base.inflation,
+        swr: parseFloat(document.getElementById('default-swr')?.value) || base.swr,
+        spanYears: parseInt(document.getElementById('default-span-years')?.value) || base.spanYears,
     };
     state.projectionDefaults = defaults;
     saveState();
 }
 
 function loadProjectionDefaults() {
-    const defaults = state.projectionDefaults || {
-        currentAge: 30,
-        retireAge: 60,
-        annualSavings: 20000,
-        expectedReturn: 7.0,
-        inflation: 3.0,
-        swr: 4.0,
-        spanYears: 30,
-    };
+    const defaults = state.projectionDefaults || defaultProjectionDefaults();
     document.getElementById('default-current-age').value = defaults.currentAge;
     document.getElementById('default-retire-age').value = defaults.retireAge;
     document.getElementById('default-annual-savings').value = defaults.annualSavings;
@@ -632,15 +624,7 @@ function resetAllData() {
         taxFilingState: 'NY',
         sideGigLedger: [],
         chaosProfile: null,
-        projectionSettings: {
-            annualSavings: 25000,
-            expectedReturn: 8.0,
-            inflationRate: 2.5,
-            swr: 4.0,
-            spanYears: 30,
-            currentAge: 30,
-            retireAge: 60
-        },
+        projectionSettings: { ...FireQuickStartFacts.DEFAULT_PROJECTION },
         importedFiles: [],
         notificationSettings: {
             enabled: false,
@@ -649,15 +633,7 @@ function resetAllData() {
             rebalanceAlerts: false,
             taxHarvestAlerts: false,
         },
-        projectionDefaults: {
-            currentAge: 30,
-            retireAge: 60,
-            annualSavings: 20000,
-            expectedReturn: 7.0,
-            inflation: 3.0,
-            swr: 4.0,
-            spanYears: 30,
-        }
+        projectionDefaults: defaultProjectionDefaults()
     };
     saveState();
     refreshAllUI();

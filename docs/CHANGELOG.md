@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Settings → Projection Defaults now shows the same values as a fresh Projections tab ($25,000 savings, 8% return, 2.5% inflation) from one shared defaults object (#690).
+- "Add CD" now says why nothing was added when maturity is before the start date or the save fails (#691).
+
 ### Security
 
 - Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.
