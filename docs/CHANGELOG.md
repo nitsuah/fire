@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The tax-loss alert names the Insights tab (there is no Taxes tab) and its "Show me" button opens the Tax-Loss Harvesting card (#696).
+- Spending and positions CSV imports and adding an account now report through one non-blocking status message instead of browser alert boxes (#697).
+
 ### Security
 
 - Add regression coverage that the global API-key gate protects Etsy status, toggle, and disconnect routes against missing and incorrect credentials.

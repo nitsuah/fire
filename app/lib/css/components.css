@@ -1463,6 +1463,16 @@
     background: rgba(255, 255, 255, 0.08);
 }
 
+.notif-link-btn {
+    background: none;
+    border: none;
+    padding: 4px 0 0;
+    color: var(--text-main);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 13px;
+}
+
 .notif-dropdown-empty {
     color: var(--text-muted);
     font-size: var(--text-sm);

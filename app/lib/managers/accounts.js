@@ -130,11 +130,13 @@ function initAccountsManager() {
                 (a) => a.id !== entry.id,
             );
             console.error('Failed to save account:', err);
+            showSideGigToast('Could not save the account.', 'error');
             return;
         }
         refreshAllUI();
         form.reset();
         updateTypeFields();
+        showSideGigToast(`Added ${name}.`);
     });
 }
 

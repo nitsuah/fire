@@ -74,7 +74,7 @@ function processSpendingCSVFile(file) {
     reader.onload = async (e) => {
         const rows = parseCSVText(e.target.result);
         if (rows.length < 2) {
-            alert('File appears to be empty.');
+            showSideGigToast('File appears to be empty.', 'error');
             return;
         }
         const txns = parseSpendingTransactions(
@@ -82,8 +82,9 @@ function processSpendingCSVFile(file) {
             state.merchantCategoryOverrides || {},
         );
         if (txns.length === 0) {
-            alert(
+            showSideGigToast(
                 'No spending rows recognized. Expected a Chase, Capital One, or Date/Description/Amount CSV.',
+                'error',
             );
             return;
         }
@@ -95,14 +96,20 @@ function processSpendingCSVFile(file) {
         } catch (err) {
             state.spendingTransactions = previous;
             console.error('Failed to persist imported transactions:', err);
-            alert('Import failed to save — please try again.');
+            showSideGigToast(
+                'Import failed to save — please try again.',
+                'error',
+            );
             return;
         }
         refreshAllUI();
-        alert(`Imported ${txns.length} transaction(s).`);
+        showSideGigToast(`Imported ${txns.length} transaction(s).`);
     };
     reader.onerror = () => {
-        alert('Could not read the selected file. Please try again.');
+        showSideGigToast(
+            'Could not read the selected file. Please try again.',
+            'error',
+        );
     };
     reader.readAsText(file);
 }
